@@ -1,0 +1,17 @@
+(CCCserverResponse
+    :ResponseHeader (
+        :id (2)
+        :type (UserPass)
+        :session_id ()
+        :return_code (600)
+    )
+    :ResponseData (
+        :authn_status (done)
+        :is_authenticated (true)
+        :active_key (567890)
+        :server_fingerprint ()
+        :server_cn ()
+        :session_id (1234567890)
+        :active_key_timeout (259200)
+    )
+)

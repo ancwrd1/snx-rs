@@ -1,0 +1,29 @@
+(hello_reply
+    :version (1)
+    :protocol_version (1)
+    :OM (
+        :ipaddr (10.0.0.10)
+        :dns_servers (
+            : (10.0.0.1)
+            : (10.0.0.2)
+        )
+        :dns_suffix ("domain1.com,domain2.com")
+    )
+    :range (
+        : (
+            :from (10.0.0.0)
+            :to (10.255.255.255)
+        )
+        : (
+            :from (172.16.0.0)
+            :to (172.16.255.255)
+        )
+    )
+    :timeouts (
+        :authentication (259193)
+        :keepalive (20)
+    )
+    :optional (
+        :subnet (255.255.255.0)
+    )
+)

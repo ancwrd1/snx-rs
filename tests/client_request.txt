@@ -1,0 +1,13 @@
+(CCCclientRequest
+    :RequestHeader (
+        :id (2)
+        :type (UserPass)
+        :session_id ()
+    )
+    :RequestData (
+            :client_type (TRAC)
+            :endpoint_os (unix)
+        :username (1234)
+        :password (1234)
+    )
+)

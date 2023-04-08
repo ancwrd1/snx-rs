@@ -1,0 +1,13 @@
+(client_hello
+    :client_version (1)
+    :protocol_version (1)
+    :protocol_minor_version (1)
+    :OM (
+        :ipaddr (0.0.0.0)
+        :keep_address (false)
+    )
+    :optional (
+        :client_type (4)
+    )
+    :cookie (1234567890)
+)
