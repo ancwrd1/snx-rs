@@ -4,12 +4,17 @@ This project contains a Linux client for Checkpoint VPN written in Rust programm
 It is still an early work and not all features are supported. Based on reverse engineering of the protocol
  used by the vendor 'snx' application.
 
-## TODO
+## Todo
+* 
 * Re-authentication is not supported yet
 * Better command line interface
 * Daemonization
 * Integration with NetworkManager
 * macOS support
+
+## Usage
+
+Run `snx-rs --help` to get a help with all command line parameters
 
 ## License
 
