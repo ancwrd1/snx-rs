@@ -104,7 +104,7 @@ impl SnxClient {
         debug!("Connecting to http endpoint: {}", server_name);
         let client = SnxHttpAuthenticator::new(server_name.clone(), auth);
 
-        let server_response = client.connect().await?;
+        let server_response = client.authenticate().await?;
 
         let active_key = match (
             server_response.data.is_authenticated.as_str(),
