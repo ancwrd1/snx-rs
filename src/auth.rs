@@ -1,8 +1,9 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use crate::model::{CccServerResponse, RequestData, RequestHeader};
-use crate::sexpr::from_s_expr;
-use crate::{model::CccClientRequest, sexpr, util};
+use crate::{
+    model::{CccClientRequest, CccServerResponse, RequestData, RequestHeader},
+    sexpr, util,
+};
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 
@@ -33,7 +34,7 @@ impl SnxHttpAuthenticator {
     }
 
     pub(crate) async fn authenticate(&self) -> anyhow::Result<CccServerResponse> {
-        let expr = sexpr::to_s_expr(CccClientRequest::NAME, self.new_request())?;
+        let expr = sexpr::encode(CccClientRequest::NAME, self.new_request())?;
 
         let client = reqwest::Client::new();
 
@@ -51,7 +52,7 @@ impl SnxHttpAuthenticator {
 
         let s_bytes = String::from_utf8_lossy(&bytes);
 
-        let (_, server_response) = from_s_expr::<_, CccServerResponse>(&s_bytes)?;
+        let (_, server_response) = sexpr::decode::<_, CccServerResponse>(&s_bytes)?;
 
         Ok(server_response)
     }

@@ -13,7 +13,7 @@ type RulePairs<'a> = Pairs<'a, Rule>;
 #[grammar = "sexpr.pest"]
 struct SExpression;
 
-pub fn from_s_expr<S, T>(expression: S) -> anyhow::Result<(String, T)>
+pub fn decode<S, T>(expression: S) -> anyhow::Result<(String, T)>
 where
     S: AsRef<str>,
     for<'a> T: Deserialize<'a>,
@@ -25,7 +25,7 @@ where
     Ok((command, serde_json::from_value(data)?))
 }
 
-pub fn to_s_expr<S, T>(name: S, data: T) -> anyhow::Result<String>
+pub fn encode<S, T>(name: S, data: T) -> anyhow::Result<String>
 where
     S: AsRef<str>,
     T: Serialize,
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn test_parse_client_hello() {
         let data = std::fs::read_to_string("tests/client_hello.txt").unwrap();
-        let expr = from_s_expr::<_, ClientHello>(data).unwrap();
+        let expr = decode::<_, ClientHello>(data).unwrap();
 
         println!("{:#?}", expr);
     }
@@ -147,28 +147,28 @@ mod tests {
     #[test]
     fn test_parse_hello_reply() {
         let data = std::fs::read_to_string("tests/hello_reply.txt").unwrap();
-        let (_, reply) = from_s_expr::<_, HelloReply>(data).unwrap();
+        let (_, reply) = decode::<_, HelloReply>(data).unwrap();
 
         println!("{:#?}", reply);
 
-        let s_expr = to_s_expr(HelloReply::NAME, &reply).unwrap();
+        let s_expr = encode(HelloReply::NAME, &reply).unwrap();
         println!("{}", s_expr);
 
-        let (_, reparsed) = from_s_expr::<_, HelloReply>(&s_expr).unwrap();
+        let (_, reparsed) = decode::<_, HelloReply>(&s_expr).unwrap();
         assert_eq!(reparsed, reply);
     }
 
     #[test]
     fn test_parse_client_request() {
         let data = std::fs::read_to_string("tests/client_request.txt").unwrap();
-        let expr = from_s_expr::<_, CccClientRequest>(data).unwrap();
+        let expr = decode::<_, CccClientRequest>(data).unwrap();
         println!("{:#?}", expr);
     }
 
     #[test]
     fn test_parse_server_response() {
         let data = std::fs::read_to_string("tests/server_response.txt").unwrap();
-        let expr = from_s_expr::<_, CccServerResponse>(data).unwrap();
+        let expr = decode::<_, CccServerResponse>(data).unwrap();
         println!("{:#?}", expr);
     }
 }

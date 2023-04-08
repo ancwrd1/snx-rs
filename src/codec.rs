@@ -2,8 +2,7 @@ use anyhow::anyhow;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::model::SnxPacket;
-use crate::sexpr::{from_s_expr, to_s_expr};
+use crate::{model::SnxPacket, sexpr};
 
 pub(crate) struct SnxCodec;
 
@@ -27,7 +26,7 @@ impl Decoder for SnxCodec {
             1 => {
                 let s_data = String::from_utf8_lossy(&src[8..8 + len]).into_owned();
                 src.advance(8 + len);
-                let (name, value) = from_s_expr::<_, serde_json::Value>(&s_data)?;
+                let (name, value) = sexpr::decode::<_, serde_json::Value>(&s_data)?;
                 Ok(Some(SnxPacket::Control(name, value)))
             }
             2 => {
@@ -46,7 +45,7 @@ impl Encoder<SnxPacket> for SnxCodec {
     fn encode(&mut self, item: SnxPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (data, packet_type) = match item {
             SnxPacket::Control(name, value) => {
-                let mut data = to_s_expr(name, value)?.into_bytes();
+                let mut data = sexpr::encode(name, value)?.into_bytes();
                 data.push(b'\x00');
                 (data, 1u32)
             }
