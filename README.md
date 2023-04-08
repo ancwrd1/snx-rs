@@ -5,7 +5,7 @@ It is still an early work and not all features are supported. Based on reverse e
  used by the vendor 'snx' application.
 
 ## Todo
-* 
+ 
 * Re-authentication is not supported yet
 * Better command line interface
 * Daemonization
