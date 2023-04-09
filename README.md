@@ -11,7 +11,9 @@ Based on the reverse engineered protocol used by the vendor 'snx' application.
 
 ## Usage
 
-Run `snx-rs --help` to get a help with all command line parameters
+Run `snx-rs --help` to get a help with all command line parameters.
+
+Run `assets/install.sh` to install the release build to the host system as a systemd service.
 
 ## License
 
