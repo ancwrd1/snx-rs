@@ -6,9 +6,9 @@ It is still an early work and not all features are supported. Based on reverse e
 
 ## Todo
  
-* Re-authentication is not supported yet
-* Better command line interface
-* Daemonization
+* Re-authentication
+* GUI with tray icon
+* Connection stats
 * Integration with NetworkManager
 * macOS support
 

@@ -1,7 +1,7 @@
 use std::net::Ipv4Addr;
 
 use ipnet::Ipv4Subnets;
-use log::debug;
+use tracing::debug;
 
 use crate::model::HelloReply;
 

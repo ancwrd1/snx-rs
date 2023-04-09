@@ -6,7 +6,7 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     future, pin_mut, SinkExt, StreamExt, TryStreamExt,
 };
-use log::{debug, trace, warn};
+use tracing::{debug, trace, warn};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::TlsConnector;
 use tun::{Device, TunPacket};

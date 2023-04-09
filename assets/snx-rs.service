@@ -1,0 +1,11 @@
+[Unit]
+Description=VPN client for Checkpoint security gateway
+After = network.target network-online.target
+Wants = network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/snx-rs/snx-rs -c /etc/snx-rs.conf
+
+[Install]
+WantedBy=multi-user.target
