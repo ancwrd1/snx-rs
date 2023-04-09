@@ -40,10 +40,11 @@ async fn main() -> anyhow::Result<()> {
         tracing::subscriber::set_global_default(subscriber)?;
     }
 
-    let mut builder = SnxClient::builder();
-    builder.server_name(server).auth(username, password);
-
-    let client = builder.build();
+    let client = SnxClient::builder()
+        .server_name(server)
+        .auth(username, password)
+        .reauth(params.reauth.unwrap_or_default())
+        .build();
 
     let mut tunnel = client.connect().await?;
     let reply = tunnel.client_hello().await?;

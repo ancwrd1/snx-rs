@@ -35,6 +35,13 @@ pub struct SnxParams {
         help = "Enable logging to stdout [info, warn, error, debug, trace]"
     )]
     pub log_level: Option<Level>,
+
+    #[clap(
+        long = "reauth",
+        short = 'r',
+        help = "Enable automatic re-authentication"
+    )]
+    pub reauth: Option<bool>,
 }
 
 impl SnxParams {
@@ -66,7 +73,12 @@ impl SnxParams {
                         }
                         "log-level" => {
                             if self.log_level.is_none() {
-                                self.log_level = v.parse::<Level>().ok()
+                                self.log_level = v.parse().ok()
+                            }
+                        }
+                        "reauth" => {
+                            if self.reauth.is_none() {
+                                self.reauth = v.parse().ok()
                             }
                         }
                         _ => {}

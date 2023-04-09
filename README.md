@@ -6,11 +6,10 @@ It is still an early work and not all features are supported. Based on reverse e
 
 ## Todo
  
-* Re-authentication
 * GUI with tray icon
 * Connection stats
 * Integration with NetworkManager
-* macOS support
+* macOS support (dns and routing setup)
 
 ## Usage
 

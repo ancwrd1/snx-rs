@@ -1,19 +1,16 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::anyhow;
-use futures::future::Either;
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
-    future, pin_mut, SinkExt, StreamExt, TryStreamExt,
+    future, SinkExt, StreamExt, TryStreamExt,
 };
-use tracing::{debug, trace, warn};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::TlsConnector;
+use tracing::{debug, trace, warn};
 use tun::{Device, TunPacket};
 
-use crate::auth::SnxHttpAuthenticator;
-use crate::device::TunDevice;
-use crate::{codec::SnxCodec, model::*, util};
+use crate::{auth::SnxHttpAuthenticator, codec::SnxCodec, device::TunDevice, model::*, util};
 
 pub type SnxPacketSender = Sender<SnxPacket>;
 pub type SnxPacketReceiver = Receiver<SnxPacket>;
@@ -49,6 +46,7 @@ where
 pub struct SnxClientBuilder {
     server_name: Option<String>,
     auth: Option<(String, String)>,
+    reauth: bool,
 }
 
 impl SnxClientBuilder {
@@ -56,10 +54,11 @@ impl SnxClientBuilder {
         Self {
             server_name: None,
             auth: None,
+            reauth: false,
         }
     }
 
-    pub fn auth<U, P>(&mut self, user_name: U, password: P) -> &mut Self
+    pub fn auth<U, P>(mut self, user_name: U, password: P) -> Self
     where
         U: AsRef<str>,
         P: AsRef<str>,
@@ -68,11 +67,16 @@ impl SnxClientBuilder {
         self
     }
 
-    pub fn server_name<S>(&mut self, server_name: S) -> &mut Self
+    pub fn server_name<S>(mut self, server_name: S) -> Self
     where
         S: AsRef<str>,
     {
         self.server_name = Some(server_name.as_ref().to_owned());
+        self
+    }
+
+    pub fn reauth(mut self, flag: bool) -> Self {
+        self.reauth = flag;
         self
     }
 
@@ -88,7 +92,10 @@ impl SnxClient {
         SnxClientBuilder::new()
     }
 
-    pub async fn connect(&self) -> anyhow::Result<SnxTunnel> {
+    pub(crate) async fn authenticate(
+        &self,
+        session_id: Option<&str>,
+    ) -> anyhow::Result<(String, String)> {
         let server_name = self
             .0
             .server_name
@@ -102,9 +109,9 @@ impl SnxClient {
             .ok_or_else(|| anyhow!("No authentication specified!"))?;
 
         debug!("Connecting to http endpoint: {}", server_name);
-        let client = SnxHttpAuthenticator::new(server_name.clone(), auth);
+        let client = SnxHttpAuthenticator::new(server_name.clone(), auth.clone());
 
-        let server_response = client.authenticate().await?;
+        let server_response = client.authenticate(session_id).await?;
 
         let active_key = match (
             server_response.data.is_authenticated.as_str(),
@@ -121,12 +128,19 @@ impl SnxClient {
         let cookie = util::decode_from_hex(active_key.as_bytes())?;
         let cookie = String::from_utf8_lossy(&cookie).into_owned();
 
-        debug!(
-            "Authentication OK, session id: {:?}, opening tunnel connection",
-            session_id,
-        );
+        debug!("Authentication OK, session id: {}", session_id,);
 
-        let tcp = tokio::net::TcpStream::connect((server_name.as_str(), 443)).await?;
+        Ok((session_id, cookie))
+    }
+
+    pub async fn connect(&self) -> anyhow::Result<SnxTunnel> {
+        let (session_id, cookie) = self.authenticate(None).await?;
+
+        debug!("Creating TLS tunnel");
+
+        let server_name = self.0.server_name.as_deref().unwrap();
+
+        let tcp = tokio::net::TcpStream::connect((server_name, 443)).await?;
 
         let tls: tokio_native_tls::TlsConnector = TlsConnector::builder().build()?.into();
         let stream = tls.connect(&server_name, tcp).await?;
@@ -136,34 +150,42 @@ impl SnxClient {
         debug!("Tunnel connected");
 
         Ok(SnxTunnel {
+            server_name: server_name.to_owned(),
+            auth: self.0.auth.clone().unwrap(),
             cookie,
             session_id,
             auth_timeout: Duration::default(),
             keepalive: Duration::default(),
+            ip_address: "0.0.0.0".to_string(),
             sender,
-            receiver,
+            receiver: Some(receiver),
+            reauth: self.0.reauth,
         })
     }
 }
 
 pub struct SnxTunnel {
+    server_name: String,
+    auth: (String, String),
     cookie: String,
     session_id: String,
     auth_timeout: Duration,
     keepalive: Duration,
+    ip_address: String,
     sender: SnxPacketSender,
-    receiver: SnxPacketReceiver,
+    receiver: Option<SnxPacketReceiver>,
+    reauth: bool,
 }
 
 impl SnxTunnel {
-    pub async fn client_hello(&mut self) -> anyhow::Result<HelloReply> {
-        let req = ClientHello {
+    fn new_hello_request(&self, keep_address: bool) -> ClientHello {
+        ClientHello {
             client_version: "1".to_string(),
             protocol_version: "1".to_string(),
             protocol_minor_version: "1".to_string(),
             office_mode: OfficeMode {
-                ipaddr: "0.0.0.0".to_string(),
-                keep_address: Some("true".to_string()),
+                ipaddr: self.ip_address.clone(),
+                keep_address: Some(keep_address.to_string()),
                 dns_servers: None,
                 dns_suffix: None,
             },
@@ -171,12 +193,16 @@ impl SnxTunnel {
                 client_type: "4".to_string(),
             }),
             cookie: self.cookie.clone(),
-        };
+        }
+    }
 
+    pub async fn client_hello(&mut self) -> anyhow::Result<HelloReply> {
+        let req = self.new_hello_request(false);
         self.send(req).await?;
 
-        let reply = self
-            .receiver
+        let receiver = self.receiver.as_mut().unwrap();
+
+        let reply = receiver
             .next()
             .await
             .ok_or_else(|| anyhow!("Channel closed!"))?;
@@ -184,6 +210,7 @@ impl SnxTunnel {
         let reply = match reply {
             SnxPacket::Control(name, value) if name == HelloReply::NAME => {
                 let result = serde_json::from_value::<HelloReply>(value)?;
+                self.ip_address = result.office_mode.ipaddr.clone();
                 self.auth_timeout = result
                     .timeouts
                     .authentication
@@ -206,6 +233,33 @@ impl SnxTunnel {
         Ok(reply)
     }
 
+    async fn keepalive(&mut self) -> anyhow::Result<()> {
+        let req = KeepaliveRequest {
+            id: "0".to_string(),
+        };
+
+        self.send(req).await?;
+
+        Ok(())
+    }
+
+    async fn reauth(&mut self) -> anyhow::Result<()> {
+        let client = SnxClient::builder()
+            .server_name(&self.server_name)
+            .auth(&self.auth.0, &self.auth.1)
+            .build();
+
+        let (session_id, cookie) = client.authenticate(Some(&self.session_id)).await?;
+
+        self.session_id = session_id;
+        self.cookie = cookie;
+
+        let req = self.new_hello_request(true);
+        self.send(req).await?;
+
+        Ok(())
+    }
+
     async fn send<P>(&mut self, packet: P) -> anyhow::Result<()>
     where
         P: Into<SnxPacket>,
@@ -214,14 +268,14 @@ impl SnxTunnel {
         Ok(())
     }
 
-    pub async fn run(self, tun: TunDevice) -> anyhow::Result<()> {
+    pub async fn run(mut self, tun: TunDevice) -> anyhow::Result<()> {
         debug!("Running tunnel for session {}", self.session_id);
 
         let dev_name = tun.inner.get_ref().name().to_owned();
 
         let (mut tun_sender, mut tun_receiver) = tun.inner.into_framed().split();
 
-        let mut snx_receiver = self.receiver;
+        let mut snx_receiver = self.receiver.take().unwrap();
 
         let dev_name2 = dev_name.clone();
 
@@ -241,24 +295,16 @@ impl SnxTunnel {
             Ok::<_, anyhow::Error>(())
         });
 
-        let mut snx_sender = self.sender;
+        let mut snx_sender = self.sender.clone();
+        let mut now = Instant::now();
 
         loop {
-            let ka_fut = tokio::time::sleep(self.keepalive);
-            pin_mut!(ka_fut);
-
-            let recv_fut = tun_receiver.next();
-            pin_mut!(recv_fut);
-
-            match futures::future::select(ka_fut, recv_fut).await {
-                Either::Left((_, _)) => {
-                    let req = KeepaliveRequest {
-                        id: "0".to_string(),
-                    };
-
-                    snx_sender.send(req.into()).await?;
+            tokio::select! {
+                _ = tokio::time::sleep(self.keepalive) => {
+                    self.keepalive().await?;
                 }
-                Either::Right((result, _)) => {
+
+                result = tun_receiver.next() => {
                     if let Some(Ok(item)) = result {
                         let data = item.into_bytes().to_vec();
                         trace!("{} => snx: {}", dev_name, data.len());
@@ -267,6 +313,11 @@ impl SnxTunnel {
                         break;
                     }
                 }
+            }
+
+            if self.reauth && (Instant::now() - now) > self.auth_timeout {
+                self.reauth().await?;
+                now = Instant::now();
             }
         }
 

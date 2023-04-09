@@ -7,22 +7,22 @@ use crate::{
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 
-pub(crate) struct SnxHttpAuthenticator {
+pub struct SnxHttpAuthenticator {
     server_name: String,
     auth: (String, String),
 }
 
 impl SnxHttpAuthenticator {
-    pub(crate) fn new(server_name: String, auth: (String, String)) -> Self {
+    pub fn new(server_name: String, auth: (String, String)) -> Self {
         Self { server_name, auth }
     }
 
-    fn new_request(&self) -> CccClientRequest {
+    fn new_request(&self, session_id: Option<&str>) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst).to_string(),
                 request_type: "UserPass".to_string(),
-                session_id: String::new(),
+                session_id: session_id.unwrap_or_default().to_string(),
             },
             data: RequestData {
                 client_type: "TRAC".to_string(),
@@ -33,8 +33,11 @@ impl SnxHttpAuthenticator {
         }
     }
 
-    pub(crate) async fn authenticate(&self) -> anyhow::Result<CccServerResponse> {
-        let expr = sexpr::encode(CccClientRequest::NAME, self.new_request())?;
+    pub async fn authenticate(
+        &self,
+        session_id: Option<&str>,
+    ) -> anyhow::Result<CccServerResponse> {
+        let expr = sexpr::encode(CccClientRequest::NAME, self.new_request(session_id))?;
 
         let client = reqwest::Client::new();
 
