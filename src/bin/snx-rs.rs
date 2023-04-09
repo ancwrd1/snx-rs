@@ -15,10 +15,6 @@ async fn main() -> anyhow::Result<()> {
     let mut params = params::SnxParams::parse();
     params.load()?;
 
-    if !is_root() {
-        return Err(anyhow!("Please run me as a root user!"));
-    }
-
     let server = params
         .server_name
         .ok_or_else(|| anyhow!("No server specified!"))?;
@@ -33,6 +29,10 @@ async fn main() -> anyhow::Result<()> {
     } else {
         return Err(anyhow!("No password specified!"));
     };
+
+    if !is_root() {
+        return Err(anyhow!("Please run me as a root user!"));
+    }
 
     if let Some(level) = params.log_level {
         let subscriber = tracing_subscriber::fmt().with_max_level(level).finish();
