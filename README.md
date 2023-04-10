@@ -7,7 +7,7 @@ Based on the reverse engineered protocol used by the vendor 'snx' application.
  
 * GUI with tray icon
 * Connection stats
-* macOS support (dns and routing setup)
+* Complete macOS support (DNS servers and suffixes for tun interface)
 
 ## Usage
 
