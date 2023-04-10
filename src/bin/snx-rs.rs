@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
         .ok_or_else(|| anyhow!("No username specified!"))?;
 
     let password = if let Some(password) = params.password {
-        String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&password)?)
+        String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(password)?)
             .into_owned()
     } else {
         return Err(anyhow!("No password specified!"));

@@ -124,7 +124,7 @@ impl SnxClient {
             }
         };
 
-        let session_id = server_response.data.session_id.clone().unwrap_or_default();
+        let session_id = server_response.data.session_id.unwrap_or_default();
         let cookie = util::decode_from_hex(active_key.as_bytes())?;
         let cookie = String::from_utf8_lossy(&cookie).into_owned();
 
@@ -143,7 +143,7 @@ impl SnxClient {
         let tcp = tokio::net::TcpStream::connect((server_name, 443)).await?;
 
         let tls: tokio_native_tls::TlsConnector = TlsConnector::builder().build()?.into();
-        let stream = tls.connect(&server_name, tcp).await?;
+        let stream = tls.connect(server_name, tcp).await?;
 
         let (sender, receiver) = make_channel(stream);
 
