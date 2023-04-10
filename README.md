@@ -1,6 +1,6 @@
-# Linux client for Checkpoint VPN written in Rust
+# Rust client for Checkpoint VPN tunnels
 
-This project contains a Linux client for Checkpoint VPN written in Rust programming language.
+This project implements a client for Checkpoint VPN written in Rust programming language.
 Based on the reverse engineered protocol used by the vendor 'snx' application.
 
 ## Todo
@@ -13,7 +13,7 @@ Based on the reverse engineered protocol used by the vendor 'snx' application.
 
 Run `snx-rs --help` to get a help with all command line parameters.
 
-Run `assets/install.sh` to install the release build to the host system as a systemd service.
+Run `assets/install.sh` to install the release build to the host system as a systemd service (Linux only).
 
 ## License
 
