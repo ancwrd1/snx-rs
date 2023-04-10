@@ -4,8 +4,6 @@ use clap::Parser;
 
 use snx_rs::{device::TunDevice, params, tunnel::SnxClient};
 
-const DEFAULT_TUN_NAME: &str = "snxrs-tun";
-
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
 }
@@ -49,10 +47,7 @@ async fn main() -> anyhow::Result<()> {
     let mut tunnel = client.connect().await?;
     let reply = tunnel.client_hello().await?;
 
-    let device = TunDevice::new(
-        params.tun_name.as_deref().unwrap_or(DEFAULT_TUN_NAME),
-        &reply,
-    )?;
+    let device = TunDevice::new(&reply)?;
     device.setup_dns_and_routing().await?;
 
     tunnel.run(device).await?;

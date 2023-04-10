@@ -13,8 +13,8 @@ fn status_or_error(status: ExitStatus) -> anyhow::Result<ExitStatus> {
     if status.success() {
         Ok(status)
     } else {
-        warn!("Command failed, exit code: {}", status);
-        Err(anyhow!("Command failed, exit status: {}", status))
+        warn!("Command failed: {}", status);
+        Err(anyhow!("Command failed: {}", status))
     }
 }
 

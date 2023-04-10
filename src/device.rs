@@ -2,25 +2,23 @@ use std::net::Ipv4Addr;
 
 use ipnet::Ipv4Subnets;
 use tracing::debug;
+use tun::Device;
 
 use crate::model::HelloReply;
 
 pub struct TunDevice {
     pub(crate) inner: tun::AsyncDevice,
     reply: HelloReply,
-    dev_name: String,
     ipaddr: Ipv4Addr,
+    dev_name: String,
 }
 
 impl TunDevice {
-    pub fn new<S: AsRef<str>>(name: S, reply: &HelloReply) -> anyhow::Result<Self> {
+    pub fn new(reply: &HelloReply) -> anyhow::Result<Self> {
         let mut config = tun::Configuration::default();
         let ipaddr = reply.office_mode.ipaddr.parse::<Ipv4Addr>()?;
 
-        config
-            .name(name.as_ref())
-            .address(reply.office_mode.ipaddr.as_str())
-            .up();
+        config.address(reply.office_mode.ipaddr.as_str()).up();
         if let Some(ref netmask) = reply.optional {
             config.netmask(netmask.subnet.as_str());
         }
@@ -30,18 +28,16 @@ impl TunDevice {
             config.packet_information(true);
         });
 
-        debug!(
-            "Configuring tun device with name {}: {:?}",
-            name.as_ref(),
-            config
-        );
-
         let dev = tun::create_as_async(&config)?;
+
+        let dev_name = dev.get_ref().name().to_owned();
+
+        debug!("Created tun device: {}", dev_name);
 
         Ok(Self {
             inner: dev,
             reply: reply.clone(),
-            dev_name: name.as_ref().to_owned(),
+            dev_name,
             ipaddr,
         })
     }

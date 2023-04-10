@@ -19,9 +19,6 @@ pub struct SnxParams {
     )]
     pub password: Option<String>,
 
-    #[clap(long = "tun-name", short = 't', help = "Custom name for tun interface")]
-    pub tun_name: Option<String>,
-
     #[clap(
         long = "config-file",
         short = 'c',
@@ -64,11 +61,6 @@ impl SnxParams {
                         "server-name" => {
                             if self.server_name.is_none() {
                                 self.server_name = Some(v.to_owned())
-                            }
-                        }
-                        "tun-name" => {
-                            if self.tun_name.is_none() {
-                                self.tun_name = Some(v.to_owned())
                             }
                         }
                         "log-level" => {
