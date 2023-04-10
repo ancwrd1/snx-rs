@@ -27,6 +27,12 @@ impl SnxPacket {
     }
 }
 
+impl From<Vec<u8>> for SnxPacket {
+    fn from(value: Vec<u8>) -> Self {
+        SnxPacket::Data(value)
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OfficeMode {
     pub ipaddr: String,

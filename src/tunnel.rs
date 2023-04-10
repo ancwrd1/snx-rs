@@ -295,7 +295,6 @@ impl SnxTunnel {
             Ok::<_, anyhow::Error>(())
         });
 
-        let mut snx_sender = self.sender.clone();
         let mut now = Instant::now();
 
         loop {
@@ -308,7 +307,7 @@ impl SnxTunnel {
                     if let Some(Ok(item)) = result {
                         let data = item.into_bytes().to_vec();
                         trace!("{} => snx: {}", dev_name, data.len());
-                        snx_sender.send(SnxPacket::Data(data)).await?;
+                        self.send(data).await?;
                     } else {
                         break;
                     }
