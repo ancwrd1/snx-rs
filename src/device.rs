@@ -50,45 +50,24 @@ impl TunDevice {
         for range in &self.reply.range {
             let subnets = Ipv4Subnets::new(range.from.parse()?, range.to.parse()?, 0);
             for subnet in subnets {
-                let snet = subnet.to_string();
-
                 if subnet.contains(&self.ipaddr) {
+                    let snet = subnet.to_string();
                     debug!("Adding route for {}", snet);
-                    tokio::process::Command::new("ip")
-                        .args(["route", "add", snet.as_str(), "dev", self.dev_name.as_str()])
-                        .status()
-                        .await?;
+                    let _ = crate::net::add_route(&snet, &self.dev_name, &self.ipaddr).await;
                 }
             }
         }
 
         if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-            let mut args = vec!["domain".to_owned(), self.dev_name.clone()];
-
-            for suffix in suffixes.trim_matches('"').split(',') {
-                debug!("Adding DNS suffix: {}", suffix);
-
-                args.push(format!("~{}", suffix));
-            }
-
-            tokio::process::Command::new("resolvectl")
-                .args(args)
-                .status()
-                .await?;
+            debug!("Adding DNS suffixes: {}", suffixes);
+            let _ =
+                crate::net::add_dns_suffixes(suffixes.trim_matches('"').split(','), &self.dev_name)
+                    .await;
         }
 
         if let Some(ref servers) = self.reply.office_mode.dns_servers {
-            let mut args = vec!["dns".to_owned(), self.dev_name.clone()];
-
-            for server in servers {
-                debug!("Adding DNS server: {}", server);
-                args.push(server.clone());
-            }
-
-            tokio::process::Command::new("resolvectl")
-                .args(args)
-                .status()
-                .await?;
+            debug!("Adding DNS servers: {:?}", servers);
+            let _ = crate::net::add_dns_servers(servers, &self.dev_name).await;
         }
 
         Ok(())
