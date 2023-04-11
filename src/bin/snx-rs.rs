@@ -1,8 +1,12 @@
 use anyhow::anyhow;
-use base64::Engine;
 use clap::Parser;
+use tracing::debug;
 
-use snx_rs::{device::TunDevice, params, tunnel::SnxClient};
+use snx_rs::{
+    device::TunDevice,
+    params::{CmdlineParams, TunnelParams},
+    tunnel::SnxClient,
+};
 
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
@@ -10,47 +14,50 @@ fn is_root() -> bool {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let mut params = params::SnxParams::parse();
-    params.load()?;
+    let cmdline_params = CmdlineParams::parse();
 
-    let server = params
-        .server_name
-        .ok_or_else(|| anyhow!("No server specified!"))?;
-
-    let username = params
-        .user_name
-        .ok_or_else(|| anyhow!("No username specified!"))?;
-
-    let password = if let Some(password) = params.password {
-        String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(password)?)
-            .into_owned()
+    let mut params = if let Some(ref config_file) = cmdline_params.config_file {
+        TunnelParams::load(config_file)?
     } else {
-        return Err(anyhow!("No password specified!"));
+        TunnelParams::default()
     };
+    params.merge(cmdline_params);
+
+    if params.user_name.is_empty() || params.server_name.is_empty() || params.password.is_empty() {
+        return Err(anyhow!(
+            "Missing required parameters: server name, user name and password!"
+        ));
+    }
 
     if !is_root() {
         return Err(anyhow!("Please run me as a root user!"));
     }
 
-    if let Some(level) = params.log_level {
-        let subscriber = tracing_subscriber::fmt().with_max_level(level).finish();
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(params.log_level)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)?;
 
-        tracing::subscriber::set_global_default(subscriber)?;
-    }
+    debug!(
+        ">>> Starting snx-rs client version {}",
+        env!("CARGO_PKG_VERSION")
+    );
 
-    let client = SnxClient::builder()
-        .server_name(server)
-        .auth(username, password)
-        .reauth(params.reauth.unwrap_or_default())
-        .build();
+    let client = SnxClient::new(&params);
 
-    let mut tunnel = client.connect().await?;
+    let (session_id, cookie) = client.authenticate(None).await?;
+
+    let mut tunnel = client.create_tunnel(session_id, cookie).await?;
+
     let reply = tunnel.client_hello().await?;
 
     let device = TunDevice::new(&reply)?;
-    device.setup_dns_and_routing(params.search_domains).await?;
+
+    device.setup_dns_and_routing(&params).await?;
 
     tunnel.run(device).await?;
+
+    debug!("<<< Stopping snx-rs client");
 
     Ok(())
 }

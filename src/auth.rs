@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use crate::params::TunnelParams;
 use crate::{
     model::{CccClientRequest, CccServerResponse, RequestData, RequestHeader},
     sexpr, util,
@@ -7,14 +8,11 @@ use crate::{
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 
-pub struct SnxHttpAuthenticator {
-    server_name: String,
-    auth: (String, String),
-}
+pub struct SnxHttpAuthenticator(TunnelParams);
 
 impl SnxHttpAuthenticator {
-    pub fn new(server_name: String, auth: (String, String)) -> Self {
-        Self { server_name, auth }
+    pub fn new(params: &TunnelParams) -> Self {
+        Self(params.clone())
     }
 
     fn new_request(&self, session_id: Option<&str>) -> CccClientRequest {
@@ -27,8 +25,8 @@ impl SnxHttpAuthenticator {
             data: RequestData {
                 client_type: "TRAC".to_string(),
                 endpoint_os: "unix".to_string(),
-                username: util::encode_to_hex(&self.auth.0),
-                password: util::encode_to_hex(&self.auth.1),
+                username: util::encode_to_hex(&self.0.user_name),
+                password: util::encode_to_hex(&self.0.password),
             },
         }
     }
@@ -42,7 +40,7 @@ impl SnxHttpAuthenticator {
         let client = reqwest::Client::new();
 
         let req = client
-            .post(format!("https://{}/clients/", self.server_name))
+            .post(format!("https://{}/clients/", self.0.server_name))
             .body(expr)
             .build()?;
 

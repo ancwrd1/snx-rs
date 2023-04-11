@@ -5,6 +5,7 @@ use tracing::debug;
 use tun::Device;
 
 use crate::model::HelloReply;
+use crate::params::TunnelParams;
 
 pub struct TunDevice {
     pub(crate) inner: tun::AsyncDevice,
@@ -42,11 +43,7 @@ impl TunDevice {
         })
     }
 
-    pub async fn setup_dns_and_routing<I, S>(&self, search_domains: I) -> anyhow::Result<()>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<str>,
-    {
+    pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
         for range in &self.reply.range {
             let subnets = Ipv4Subnets::new(range.from.parse()?, range.to.parse()?, 0);
             for subnet in subnets {
@@ -59,15 +56,12 @@ impl TunDevice {
         }
 
         if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-            debug!("Adding DNS suffixes: {}", suffixes);
-            let provided = search_domains
-                .into_iter()
-                .map(|s| s.as_ref().to_owned())
-                .collect::<Vec<_>>();
+            debug!("Adding acquired DNS suffixes: {}", suffixes);
+            debug!("Adding provided DNS suffixes: {:?}", params.search_domains);
             let suffixes = suffixes
                 .trim_matches('"')
                 .split(',')
-                .chain(provided.iter().map(|s| s.as_ref()));
+                .chain(params.search_domains.iter().map(|s| s.as_ref()));
             let _ = crate::net::add_dns_suffixes(suffixes, &self.dev_name).await;
         }
 

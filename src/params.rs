@@ -1,11 +1,12 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use base64::Engine;
 use clap::Parser;
-use tracing::Level;
+use tracing::metadata::LevelFilter;
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs")]
-pub struct SnxParams {
+pub struct CmdlineParams {
     #[clap(long = "server-name", short = 's', help = "Server name")]
     pub server_name: Option<String>,
 
@@ -29,9 +30,9 @@ pub struct SnxParams {
     #[clap(
         long = "log-level",
         short = 'l',
-        help = "Enable logging to stdout [info, warn, error, debug, trace]"
+        help = "Enable logging to stdout [off, info, warn, error, debug, trace]"
     )]
-    pub log_level: Option<Level>,
+    pub log_level: Option<LevelFilter>,
 
     #[clap(
         long = "reauth",
@@ -48,47 +49,82 @@ pub struct SnxParams {
     pub search_domains: Vec<String>,
 }
 
-impl SnxParams {
-    pub fn load(&mut self) -> anyhow::Result<()> {
-        if let Some(ref config) = self.config_file {
-            let data = std::fs::read_to_string(config)?;
-            for line in data.lines() {
-                if let Some((k, v)) = line.split_once('=') {
-                    match k.trim() {
-                        "user-name" => {
-                            if self.user_name.is_none() {
-                                self.user_name = Some(v.to_owned())
-                            }
-                        }
+#[derive(Clone)]
+pub struct TunnelParams {
+    pub server_name: String,
+    pub user_name: String,
+    pub password: String,
+    pub log_level: LevelFilter,
+    pub reauth: bool,
+    pub search_domains: Vec<String>,
+}
+
+impl Default for TunnelParams {
+    fn default() -> Self {
+        Self {
+            server_name: String::new(),
+            user_name: String::new(),
+            password: String::new(),
+            log_level: LevelFilter::OFF,
+            reauth: false,
+            search_domains: Vec::new(),
+        }
+    }
+}
+
+impl TunnelParams {
+    pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+        let mut params = Self::default();
+        let data = std::fs::read_to_string(path)?;
+        for line in data.lines() {
+            if !line.trim().starts_with('#') {
+                if let Some((k, v)) = line.split_once('=').map(|(k, v)| (k.trim(), v.trim())) {
+                    match k {
+                        "server-name" => params.server_name = v.to_string(),
+                        "user-name" => params.user_name = v.to_string(),
                         "password" => {
-                            if self.password.is_none() {
-                                self.password = Some(v.to_owned())
-                            }
+                            params.password = String::from_utf8_lossy(
+                                &base64::engine::general_purpose::STANDARD.decode(v)?,
+                            )
+                            .into_owned();
                         }
-                        "server-name" => {
-                            if self.server_name.is_none() {
-                                self.server_name = Some(v.to_owned())
-                            }
-                        }
-                        "log-level" => {
-                            if self.log_level.is_none() {
-                                self.log_level = v.parse().ok()
-                            }
-                        }
-                        "reauth" => {
-                            if self.reauth.is_none() {
-                                self.reauth = v.parse().ok()
-                            }
-                        }
+                        "log-level" => params.log_level = v.parse().unwrap_or(LevelFilter::OFF),
+                        "reauth" => params.reauth = v.parse().unwrap_or_default(),
                         "search-domains" => {
-                            self.search_domains
-                                .extend(v.split(',').map(|s| s.trim().to_owned()));
+                            params.search_domains =
+                                v.split(',').map(|s| s.trim().to_owned()).collect()
                         }
                         _ => {}
                     }
                 }
             }
         }
-        Ok(())
+        Ok(params)
+    }
+
+    pub fn merge(&mut self, other: CmdlineParams) {
+        if let Some(server_name) = other.server_name {
+            self.server_name = server_name;
+        }
+
+        if let Some(user_name) = other.user_name {
+            self.user_name = user_name;
+        }
+
+        if let Some(password) = other.password {
+            self.password = password;
+        }
+
+        if let Some(reauth) = other.reauth {
+            self.reauth = reauth;
+        }
+
+        if let Some(log_level) = other.log_level {
+            self.log_level = log_level;
+        }
+
+        if !other.search_domains.is_empty() {
+            self.search_domains = other.search_domains;
+        }
     }
 }
