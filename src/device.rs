@@ -42,7 +42,11 @@ impl TunDevice {
         })
     }
 
-    pub async fn setup_dns_and_routing(&self) -> anyhow::Result<()> {
+    pub async fn setup_dns_and_routing<I, S>(&self, search_domains: I) -> anyhow::Result<()>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
         for range in &self.reply.range {
             let subnets = Ipv4Subnets::new(range.from.parse()?, range.to.parse()?, 0);
             for subnet in subnets {
@@ -56,9 +60,15 @@ impl TunDevice {
 
         if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
             debug!("Adding DNS suffixes: {}", suffixes);
-            let _ =
-                crate::net::add_dns_suffixes(suffixes.trim_matches('"').split(','), &self.dev_name)
-                    .await;
+            let provided = search_domains
+                .into_iter()
+                .map(|s| s.as_ref().to_owned())
+                .collect::<Vec<_>>();
+            let suffixes = suffixes
+                .trim_matches('"')
+                .split(',')
+                .chain(provided.iter().map(|s| s.as_ref()));
+            let _ = crate::net::add_dns_suffixes(suffixes, &self.dev_name).await;
         }
 
         if let Some(ref servers) = self.reply.office_mode.dns_servers {

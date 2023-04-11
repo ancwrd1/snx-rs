@@ -39,6 +39,13 @@ pub struct SnxParams {
         help = "Enable automatic re-authentication"
     )]
     pub reauth: Option<bool>,
+
+    #[clap(
+        long = "search-domains",
+        short = 'd',
+        help = "Additional search domains"
+    )]
+    pub search_domains: Vec<String>,
 }
 
 impl SnxParams {
@@ -72,6 +79,10 @@ impl SnxParams {
                             if self.reauth.is_none() {
                                 self.reauth = v.parse().ok()
                             }
+                        }
+                        "search-domains" => {
+                            self.search_domains
+                                .extend(v.split(',').map(|s| s.trim().to_owned()));
                         }
                         _ => {}
                     }

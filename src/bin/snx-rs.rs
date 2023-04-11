@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     let reply = tunnel.client_hello().await?;
 
     let device = TunDevice::new(&reply)?;
-    device.setup_dns_and_routing().await?;
+    device.setup_dns_and_routing(params.search_domains).await?;
 
     tunnel.run(device).await?;
 
