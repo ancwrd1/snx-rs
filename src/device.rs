@@ -55,8 +55,7 @@ impl TunDevice {
                         if subnet.contains(&self.ipaddr) {
                             let snet = subnet.to_string();
                             debug!("Adding route for {snet}");
-                            let _ =
-                                crate::net::add_route(&snet, &self.dev_name, &self.ipaddr).await;
+                            let _ = crate::net::add_route(&snet, &self.dev_name, &self.ipaddr).await;
                         }
                     }
                 }

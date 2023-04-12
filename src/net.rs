@@ -24,11 +24,7 @@ mod linux {
 
     use crate::net::status_or_error;
 
-    pub async fn add_route(
-        target_net: &str,
-        device: &str,
-        _ipaddr: &Ipv4Addr,
-    ) -> anyhow::Result<()> {
+    pub async fn add_route(target_net: &str, device: &str, _ipaddr: &Ipv4Addr) -> anyhow::Result<()> {
         let status = tokio::process::Command::new("ip")
             .args(["route", "add", target_net, "dev", device])
             .status()
@@ -53,10 +49,7 @@ mod linux {
 
         args.extend(suffixes.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("resolvectl")
-            .args(args)
-            .status()
-            .await?;
+        let status = tokio::process::Command::new("resolvectl").args(args).status().await?;
 
         status_or_error(status)?;
 
@@ -70,17 +63,11 @@ mod linux {
     {
         let mut args = vec!["dns", device];
 
-        let servers = servers
-            .into_iter()
-            .map(|s| s.as_ref().to_owned())
-            .collect::<Vec<_>>();
+        let servers = servers.into_iter().map(|s| s.as_ref().to_owned()).collect::<Vec<_>>();
 
         args.extend(servers.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("resolvectl")
-            .args(args)
-            .status()
-            .await?;
+        let status = tokio::process::Command::new("resolvectl").args(args).status().await?;
 
         status_or_error(status)?;
 
@@ -94,11 +81,7 @@ mod macos {
 
     use crate::net::status_or_error;
 
-    pub async fn add_route(
-        target_net: &str,
-        _device: &str,
-        ipaddr: &Ipv4Addr,
-    ) -> anyhow::Result<()> {
+    pub async fn add_route(target_net: &str, _device: &str, ipaddr: &Ipv4Addr) -> anyhow::Result<()> {
         let ip_str = ipaddr.to_string();
 
         let status = tokio::process::Command::new("route")
@@ -118,17 +101,11 @@ mod macos {
     {
         let mut args = vec!["-setsearchdomains", device];
 
-        let suffixes = suffixes
-            .into_iter()
-            .map(|s| s.as_ref().to_owned())
-            .collect::<Vec<_>>();
+        let suffixes = suffixes.into_iter().map(|s| s.as_ref().to_owned()).collect::<Vec<_>>();
 
         args.extend(suffixes.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("networksetup")
-            .args(args)
-            .status()
-            .await?;
+        let status = tokio::process::Command::new("networksetup").args(args).status().await?;
 
         status_or_error(status)?;
 
@@ -142,17 +119,11 @@ mod macos {
     {
         let mut args = vec!["-setdnsservers", device];
 
-        let servers = servers
-            .into_iter()
-            .map(|s| s.as_ref().to_owned())
-            .collect::<Vec<_>>();
+        let servers = servers.into_iter().map(|s| s.as_ref().to_owned()).collect::<Vec<_>>();
 
         args.extend(servers.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("networksetup")
-            .args(args)
-            .status()
-            .await?;
+        let status = tokio::process::Command::new("networksetup").args(args).status().await?;
 
         status_or_error(status)?;
 

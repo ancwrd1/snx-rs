@@ -49,17 +49,14 @@ fn value_to_s_expr(value: serde_json::Value, level: u32) -> Option<String> {
         serde_json::Value::Array(array) => Some(
             array
                 .into_iter()
-                .filter_map(|v| {
-                    value_to_s_expr(v, level + 1).map(|v| format!("\n{}: ({})", indent(level), v))
-                })
+                .filter_map(|v| value_to_s_expr(v, level + 1).map(|v| format!("\n{}: ({})", indent(level), v)))
                 .collect::<Vec<_>>()
                 .join(""),
         ),
         serde_json::Value::Object(map) => Some(
             map.into_iter()
                 .filter_map(|(k, v)| {
-                    value_to_s_expr(v, level + 1)
-                        .map(|v| format!("\n{}:{} ({})", indent(level), k, v))
+                    value_to_s_expr(v, level + 1).map(|v| format!("\n{}:{} ({})", indent(level), k, v))
                 })
                 .collect::<Vec<_>>()
                 .join(""),
@@ -117,11 +114,7 @@ fn parse_array(pairs: RulePairs) -> anyhow::Result<serde_json::Value> {
     for pair in pairs {
         match pair.as_rule() {
             Rule::elem => {
-                let value = parse_data(
-                    pair.into_inner()
-                        .next()
-                        .ok_or_else(|| anyhow!("No value"))?,
-                )?;
+                let value = parse_data(pair.into_inner().next().ok_or_else(|| anyhow!("No value"))?)?;
                 array.push(value);
             }
             _ => return Err(anyhow!("Not an elem")),

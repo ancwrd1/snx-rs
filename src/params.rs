@@ -13,18 +13,10 @@ pub struct CmdlineParams {
     #[clap(long = "user-name", short = 'u', help = "User name")]
     pub user_name: Option<String>,
 
-    #[clap(
-        long = "password",
-        short = 'p',
-        help = "Password in base64-encoded form"
-    )]
+    #[clap(long = "password", short = 'p', help = "Password in base64-encoded form")]
     pub password: Option<String>,
 
-    #[clap(
-        long = "config-file",
-        short = 'c',
-        help = "Read parameters from config file"
-    )]
+    #[clap(long = "config-file", short = 'c', help = "Read parameters from config file")]
     pub config_file: Option<PathBuf>,
 
     #[clap(
@@ -34,18 +26,10 @@ pub struct CmdlineParams {
     )]
     pub log_level: Option<LevelFilter>,
 
-    #[clap(
-        long = "reauth",
-        short = 'r',
-        help = "Enable automatic re-authentication"
-    )]
+    #[clap(long = "reauth", short = 'r', help = "Enable automatic re-authentication")]
     pub reauth: Option<bool>,
 
-    #[clap(
-        long = "search-domains",
-        short = 'd',
-        help = "Additional search domains"
-    )]
+    #[clap(long = "search-domains", short = 'd', help = "Additional search domains")]
     pub search_domains: Vec<String>,
 
     #[clap(
@@ -58,11 +42,7 @@ pub struct CmdlineParams {
     #[clap(long = "no-routing", short = 'n', help = "Do not change routing table")]
     pub no_routing: Option<bool>,
 
-    #[clap(
-        long = "no-dns",
-        short = 'N',
-        help = "Do not change DNS resolver configuration"
-    )]
+    #[clap(long = "no-dns", short = 'N', help = "Do not change DNS resolver configuration")]
     pub no_dns: Option<bool>,
 }
 
@@ -106,17 +86,13 @@ impl TunnelParams {
                         "server-name" => params.server_name = v.to_string(),
                         "user-name" => params.user_name = v.to_string(),
                         "password" => {
-                            params.password = String::from_utf8_lossy(
-                                &base64::engine::general_purpose::STANDARD.decode(v)?,
-                            )
-                            .into_owned();
+                            params.password =
+                                String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(v)?)
+                                    .into_owned();
                         }
                         "log-level" => params.log_level = v.parse().unwrap_or(LevelFilter::OFF),
                         "reauth" => params.reauth = v.parse().unwrap_or_default(),
-                        "search-domains" => {
-                            params.search_domains =
-                                v.split(',').map(|s| s.trim().to_owned()).collect()
-                        }
+                        "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),

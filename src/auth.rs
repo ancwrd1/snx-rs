@@ -31,10 +31,7 @@ impl SnxHttpAuthenticator {
         }
     }
 
-    pub async fn authenticate(
-        &self,
-        session_id: Option<&str>,
-    ) -> anyhow::Result<CccServerResponse> {
+    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<CccServerResponse> {
         let expr = sexpr::encode(CccClientRequest::NAME, self.new_request(session_id))?;
 
         let client = reqwest::Client::new();
@@ -44,12 +41,7 @@ impl SnxHttpAuthenticator {
             .body(expr)
             .build()?;
 
-        let bytes = client
-            .execute(req)
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await?;
+        let bytes = client.execute(req).await?.error_for_status()?.bytes().await?;
 
         let s_bytes = String::from_utf8_lossy(&bytes);
 

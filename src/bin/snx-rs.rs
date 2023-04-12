@@ -33,15 +33,10 @@ async fn main() -> anyhow::Result<()> {
         return Err(anyhow!("Please run me as a root user!"));
     }
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_max_level(params.log_level)
-        .finish();
+    let subscriber = tracing_subscriber::fmt().with_max_level(params.log_level).finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    debug!(
-        ">>> Starting snx-rs client version {}",
-        env!("CARGO_PKG_VERSION")
-    );
+    debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
     let client = SnxClient::new(&params);
 

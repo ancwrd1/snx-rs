@@ -1,7 +1,6 @@
 //! reverse engineered from vendor snx utility
 
-const TABLE: &[u8] =
-    b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";
+const TABLE: &[u8] = b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";
 
 fn translate(i: usize, c: u8) -> u8 {
     let mut c = if c == 0xff { 0 } else { c };

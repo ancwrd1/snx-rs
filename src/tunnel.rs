@@ -142,10 +142,7 @@ impl SnxTunnel {
 
         let receiver = self.receiver.as_mut().unwrap();
 
-        let reply = receiver
-            .next()
-            .await
-            .ok_or_else(|| anyhow!("Channel closed!"))?;
+        let reply = receiver.next().await.ok_or_else(|| anyhow!("Channel closed!"))?;
 
         let reply = match reply {
             SnxPacket::Control(name, value) if name == HelloReply::NAME => {
@@ -174,9 +171,7 @@ impl SnxTunnel {
     }
 
     async fn keepalive(&mut self) -> anyhow::Result<()> {
-        let req = KeepaliveRequest {
-            id: "0".to_string(),
-        };
+        let req = KeepaliveRequest { id: "0".to_string() };
 
         self.send(req).await?;
 
