@@ -72,7 +72,7 @@ impl SnxClient {
         let cookie = util::decode_from_hex(active_key.as_bytes())?;
         let cookie = String::from_utf8_lossy(&cookie).into_owned();
 
-        debug!("Authentication OK, session id: {}", session_id,);
+        debug!("Authentication OK, session id: {session_id}");
 
         Ok((session_id, cookie))
     }
@@ -220,7 +220,7 @@ impl SnxTunnel {
             while let Some(item) = snx_receiver.next().await {
                 match item {
                     SnxPacket::Control(name, _) => {
-                        debug!("Control packet received: {}", name);
+                        debug!("Control packet received: {name}");
                     }
                     SnxPacket::Data(data) => {
                         trace!("snx => {}: {}", data.len(), dev_name2);

@@ -33,7 +33,7 @@ impl TunDevice {
 
         let dev_name = dev.get_ref().name().to_owned();
 
-        debug!("Created tun device: {}", dev_name);
+        debug!("Created tun device: {dev_name}");
 
         Ok(Self {
             inner: dev,
@@ -44,30 +44,40 @@ impl TunDevice {
     }
 
     pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
-        for range in &self.reply.range {
-            let subnets = Ipv4Subnets::new(range.from.parse()?, range.to.parse()?, 0);
-            for subnet in subnets {
-                if subnet.contains(&self.ipaddr) {
-                    let snet = subnet.to_string();
-                    debug!("Adding route for {}", snet);
-                    let _ = crate::net::add_route(&snet, &self.dev_name, &self.ipaddr).await;
+        if !params.no_routing {
+            if params.default_route {
+                debug!("Setting default route for {}", self.dev_name);
+                let _ = crate::net::add_route("default", &self.dev_name, &self.ipaddr).await;
+            } else {
+                for range in &self.reply.range {
+                    let subnets = Ipv4Subnets::new(range.from.parse()?, range.to.parse()?, 0);
+                    for subnet in subnets {
+                        if subnet.contains(&self.ipaddr) {
+                            let snet = subnet.to_string();
+                            debug!("Adding route for {snet}");
+                            let _ =
+                                crate::net::add_route(&snet, &self.dev_name, &self.ipaddr).await;
+                        }
+                    }
                 }
             }
         }
 
-        if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-            debug!("Adding acquired DNS suffixes: {}", suffixes);
-            debug!("Adding provided DNS suffixes: {:?}", params.search_domains);
-            let suffixes = suffixes
-                .trim_matches('"')
-                .split(',')
-                .chain(params.search_domains.iter().map(|s| s.as_ref()));
-            let _ = crate::net::add_dns_suffixes(suffixes, &self.dev_name).await;
-        }
+        if !params.no_dns {
+            if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
+                debug!("Adding acquired DNS suffixes: {suffixes}");
+                debug!("Adding provided DNS suffixes: {:?}", params.search_domains);
+                let suffixes = suffixes
+                    .trim_matches('"')
+                    .split(',')
+                    .chain(params.search_domains.iter().map(|s| s.as_ref()));
+                let _ = crate::net::add_dns_suffixes(suffixes, &self.dev_name).await;
+            }
 
-        if let Some(ref servers) = self.reply.office_mode.dns_servers {
-            debug!("Adding DNS servers: {:?}", servers);
-            let _ = crate::net::add_dns_servers(servers, &self.dev_name).await;
+            if let Some(ref servers) = self.reply.office_mode.dns_servers {
+                debug!("Adding DNS servers: {servers:?}");
+                let _ = crate::net::add_dns_servers(servers, &self.dev_name).await;
+            }
         }
 
         Ok(())
