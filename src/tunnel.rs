@@ -17,6 +17,7 @@ pub type SnxPacketSender = Sender<SnxPacket>;
 pub type SnxPacketReceiver = Receiver<SnxPacket>;
 
 const CHANNEL_SIZE: usize = 1024;
+const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
 
 fn make_channel<S>(stream: S) -> (SnxPacketSender, SnxPacketReceiver)
 where
@@ -154,7 +155,8 @@ impl SnxTunnel {
                     .parse::<u64>()
                     .ok()
                     .map(Duration::from_secs)
-                    .ok_or_else(|| anyhow!("Invalid auth timeout!"))?;
+                    .ok_or_else(|| anyhow!("Invalid auth timeout!"))?
+                    - REAUTH_LEEWAY;
                 self.keepalive = result
                     .timeouts
                     .keepalive
@@ -246,7 +248,7 @@ impl SnxTunnel {
                 }
             }
 
-            if self.params.reauth && (Instant::now() - now) > self.auth_timeout {
+            if self.params.reauth && (Instant::now() - now) >= self.auth_timeout {
                 self.reauth().await?;
                 now = Instant::now();
             }
