@@ -4,11 +4,10 @@ use ipnet::Ipv4Subnets;
 use tracing::debug;
 use tun::Device;
 
-use crate::model::HelloReply;
-use crate::params::TunnelParams;
+use crate::{model::HelloReply, params::TunnelParams};
 
 pub struct TunDevice {
-    pub(crate) inner: tun::AsyncDevice,
+    inner: tun::AsyncDevice,
     reply: HelloReply,
     ipaddr: Ipv4Addr,
     dev_name: String,
@@ -41,6 +40,14 @@ impl TunDevice {
             dev_name,
             ipaddr,
         })
+    }
+
+    pub fn name(&self) -> &str {
+        self.inner.get_ref().name()
+    }
+
+    pub fn into_inner(self) -> tun::AsyncDevice {
+        self.inner
     }
 
     pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {

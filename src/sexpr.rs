@@ -5,6 +5,7 @@ use pest::{
 };
 use pest_derive::Parser;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 type RulePair<'a> = Pair<'a, Rule>;
 type RulePairs<'a> = Pairs<'a, Rule>;
@@ -40,20 +41,20 @@ fn indent(level: u32) -> String {
     (0..level).map(|_| "\t").collect()
 }
 
-fn value_to_s_expr(value: serde_json::Value, level: u32) -> Option<String> {
+fn value_to_s_expr(value: Value, level: u32) -> Option<String> {
     match value {
-        serde_json::Value::Null => None,
-        serde_json::Value::String(s) => Some(s),
-        serde_json::Value::Bool(b) => Some(b.to_string()),
-        serde_json::Value::Number(num) => Some(num.to_string()),
-        serde_json::Value::Array(array) => Some(
+        Value::Null => None,
+        Value::String(s) => Some(s),
+        Value::Bool(b) => Some(b.to_string()),
+        Value::Number(num) => Some(num.to_string()),
+        Value::Array(array) => Some(
             array
                 .into_iter()
                 .filter_map(|v| value_to_s_expr(v, level + 1).map(|v| format!("\n{}: ({})", indent(level), v)))
                 .collect::<Vec<_>>()
                 .join(""),
         ),
-        serde_json::Value::Object(map) => Some(
+        Value::Object(map) => Some(
             map.into_iter()
                 .filter_map(|(k, v)| {
                     value_to_s_expr(v, level + 1).map(|v| format!("\n{}:{} ({})", indent(level), k, v))
@@ -71,16 +72,16 @@ fn parse_command(pair: RulePair) -> anyhow::Result<String> {
     }
 }
 
-fn parse_data(pair: RulePair) -> anyhow::Result<serde_json::Value> {
+fn parse_data(pair: RulePair) -> anyhow::Result<Value> {
     match pair.as_rule() {
         Rule::obj => parse_obj(pair.into_inner()),
         Rule::array => parse_array(pair.into_inner()),
-        Rule::value => Ok(serde_json::Value::String(pair.as_str().to_owned())),
+        Rule::value => Ok(Value::String(pair.as_str().to_owned())),
         _ => Err(anyhow!("Invalid rule")),
     }
 }
 
-fn parse_obj(pairs: RulePairs) -> anyhow::Result<serde_json::Value> {
+fn parse_obj(pairs: RulePairs) -> anyhow::Result<Value> {
     let mut map = serde_json::Map::new();
     for pair in pairs {
         match pair.as_rule() {
@@ -91,10 +92,10 @@ fn parse_obj(pairs: RulePairs) -> anyhow::Result<serde_json::Value> {
             _ => return Err(anyhow!("Not a field")),
         }
     }
-    Ok(serde_json::Value::Object(map))
+    Ok(Value::Object(map))
 }
 
-fn parse_field(mut pairs: RulePairs) -> anyhow::Result<(String, serde_json::Value)> {
+fn parse_field(mut pairs: RulePairs) -> anyhow::Result<(String, Value)> {
     let rule = pairs.next().ok_or_else(|| anyhow!("No name"))?;
     let key = match rule.as_rule() {
         Rule::ident => rule.as_str().to_owned(),
@@ -105,11 +106,11 @@ fn parse_field(mut pairs: RulePairs) -> anyhow::Result<(String, serde_json::Valu
             let value = parse_data(rule)?;
             Ok((key, value))
         }
-        None => Ok((key, serde_json::Value::String(String::new()))),
+        None => Ok((key, Value::String(String::new()))),
     }
 }
 
-fn parse_array(pairs: RulePairs) -> anyhow::Result<serde_json::Value> {
+fn parse_array(pairs: RulePairs) -> anyhow::Result<Value> {
     let mut array = Vec::new();
     for pair in pairs {
         match pair.as_rule() {
@@ -120,7 +121,7 @@ fn parse_array(pairs: RulePairs) -> anyhow::Result<serde_json::Value> {
             _ => return Err(anyhow!("Not an elem")),
         }
     }
-    Ok(serde_json::Value::Array(array))
+    Ok(Value::Array(array))
 }
 
 #[cfg(test)]

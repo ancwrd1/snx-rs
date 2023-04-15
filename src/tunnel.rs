@@ -1,4 +1,10 @@
-use std::time::{Duration, Instant};
+use std::{
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::{Duration, Instant},
+};
 
 use anyhow::anyhow;
 use futures::{
@@ -8,10 +14,9 @@ use futures::{
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::TlsConnector;
 use tracing::{debug, trace, warn};
-use tun::{Device, TunPacket};
+use tun::TunPacket;
 
-use crate::params::TunnelParams;
-use crate::{auth::SnxHttpAuthenticator, codec::SnxCodec, device::TunDevice, model::*, util};
+use crate::{auth::SnxHttpAuthenticator, codec::SnxCodec, device::TunDevice, model::*, params::TunnelParams, util};
 
 pub type SnxPacketSender = Sender<SnxPacket>;
 pub type SnxPacketReceiver = Receiver<SnxPacket>;
@@ -103,6 +108,7 @@ impl SnxClient {
             ip_address: "0.0.0.0".to_string(),
             sender,
             receiver: Some(receiver),
+            keepalive_counter: Arc::new(AtomicU64::default()),
         })
     }
 }
@@ -116,6 +122,7 @@ pub struct SnxTunnel {
     ip_address: String,
     sender: SnxPacketSender,
     receiver: Option<SnxPacketReceiver>,
+    keepalive_counter: Arc<AtomicU64>,
 }
 
 impl SnxTunnel {
@@ -173,7 +180,15 @@ impl SnxTunnel {
     }
 
     async fn keepalive(&mut self) -> anyhow::Result<()> {
+        if self.keepalive_counter.load(Ordering::SeqCst) >= 3 {
+            let msg = "No response for keepalive packets, tunnel appears stuck";
+            warn!(msg);
+            return Err(anyhow!("{}", msg));
+        }
+
         let req = KeepaliveRequest { id: "0".to_string() };
+
+        self.keepalive_counter.fetch_add(1, Ordering::SeqCst);
 
         self.send(req).await?;
 
@@ -205,22 +220,27 @@ impl SnxTunnel {
     pub async fn run(mut self, tun: TunDevice) -> anyhow::Result<()> {
         debug!("Running tunnel for session {}", self.session_id);
 
-        let dev_name = tun.inner.get_ref().name().to_owned();
+        let dev_name = tun.name().to_owned();
 
-        let (mut tun_sender, mut tun_receiver) = tun.inner.into_framed().split();
+        let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 
         let mut snx_receiver = self.receiver.take().unwrap();
 
         let dev_name2 = dev_name.clone();
+        let keepalive_counter = self.keepalive_counter.clone();
 
         tokio::spawn(async move {
             while let Some(item) = snx_receiver.next().await {
                 match item {
                     SnxPacket::Control(name, _) => {
                         debug!("Control packet received: {name}");
+                        if name == KeepaliveRequest::NAME {
+                            keepalive_counter.fetch_sub(1, Ordering::SeqCst);
+                        }
                     }
                     SnxPacket::Data(data) => {
                         trace!("snx => {}: {}", data.len(), dev_name2);
+                        keepalive_counter.store(0, Ordering::SeqCst);
                         let tun_packet = TunPacket::new(data);
                         tun_sender.send(tun_packet).await?;
                     }

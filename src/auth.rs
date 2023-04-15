@@ -1,10 +1,6 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use crate::params::TunnelParams;
-use crate::{
-    model::{CccClientRequest, CccServerResponse, RequestData, RequestHeader},
-    sexpr, util,
-};
+use crate::{model::*, params::TunnelParams, sexpr, util};
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 
