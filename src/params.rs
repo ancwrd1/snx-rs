@@ -81,7 +81,11 @@ impl TunnelParams {
         let data = std::fs::read_to_string(path)?;
         for line in data.lines() {
             if !line.trim().starts_with('#') {
-                if let Some((k, v)) = line.split_once('=').map(|(k, v)| (k.trim(), v.trim())) {
+                let parts = line
+                    .split_once('=')
+                    .map(|(k, v)| (k.trim(), v.trim().trim_matches('"')));
+
+                if let Some((k, v)) = parts {
                     match k {
                         "server-name" => params.server_name = v.to_string(),
                         "user-name" => params.user_name = v.to_string(),
