@@ -23,6 +23,7 @@ pub type SnxPacketReceiver = Receiver<SnxPacket>;
 
 const CHANNEL_SIZE: usize = 1024;
 const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
+const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 
 fn make_channel<S>(stream: S) -> (SnxPacketSender, SnxPacketReceiver)
 where
@@ -213,7 +214,8 @@ impl SnxTunnel {
     where
         P: Into<SnxPacket>,
     {
-        self.sender.send(packet.into()).await?;
+        tokio::time::timeout(SEND_TIMEOUT, self.sender.send(packet.into())).await??;
+
         Ok(())
     }
 

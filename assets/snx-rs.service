@@ -6,6 +6,7 @@ Wants = network-online.target
 [Service]
 Type=simple
 ExecStart=/opt/snx-rs/snx-rs -c /etc/snx-rs/snx-rs.conf
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
