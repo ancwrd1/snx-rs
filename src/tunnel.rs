@@ -24,6 +24,7 @@ pub type SnxPacketReceiver = Receiver<SnxPacket>;
 const CHANNEL_SIZE: usize = 1024;
 const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
 const SEND_TIMEOUT: Duration = Duration::from_secs(120);
+const MAX_KEEP_ALIVE_ATTEMPTS: u64 = 3;
 
 fn make_channel<S>(stream: S) -> (SnxPacketSender, SnxPacketReceiver)
 where
@@ -181,7 +182,7 @@ impl SnxTunnel {
     }
 
     async fn keepalive(&mut self) -> anyhow::Result<()> {
-        if self.keepalive_counter.load(Ordering::SeqCst) >= 3 {
+        if self.keepalive_counter.load(Ordering::SeqCst) >= MAX_KEEP_ALIVE_ATTEMPTS {
             let msg = "No response for keepalive packets, tunnel appears stuck";
             warn!(msg);
             return Err(anyhow!("{}", msg));
