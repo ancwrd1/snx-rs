@@ -21,7 +21,7 @@ where
 {
     let mut rules = SExpression::parse(Rule::sexpr, expression.as_ref())?;
 
-    let command = parse_command(rules.next().unwrap())?;
+    let command = parse_command(rules.next().ok_or_else(|| anyhow!("No command"))?)?;
     let data = parse_data(rules.next().ok_or_else(|| anyhow!("No data"))?)?;
     Ok((command, serde_json::from_value(data)?))
 }
