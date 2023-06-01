@@ -1,5 +1,10 @@
-//! reverse engineered from vendor snx utility
+use std::{ffi::OsStr, fmt, path::Path, process::Output};
 
+use anyhow::anyhow;
+use tokio::process::Command;
+use tracing::trace;
+
+// reverse engineered from vendor snx utility
 const TABLE: &[u8] = b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";
 
 fn translate_byte(i: usize, c: u8) -> u8 {
@@ -34,6 +39,48 @@ pub fn decode_from_hex<D: AsRef<[u8]>>(data: D) -> anyhow::Result<Vec<u8>> {
     decoded.reverse();
 
     Ok(decoded)
+}
+
+fn process_output(output: Output) -> anyhow::Result<String> {
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(anyhow!(if !stderr.is_empty() {
+            stderr
+        } else {
+            output.status.to_string()
+        }))
+    }
+}
+
+pub async fn run_command<C, I, T>(command: C, args: I) -> anyhow::Result<String>
+where
+    C: AsRef<Path> + fmt::Debug,
+    I: IntoIterator<Item = T> + fmt::Debug,
+    T: AsRef<OsStr>,
+{
+    trace!("Exec: {:?} {:?}", command, args);
+
+    let mut command = Command::new(command.as_ref().as_os_str());
+    command.envs(vec![("LANG", "C"), ("LC_ALL", "C")]).args(args);
+
+    // disable console window popup on Windows
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+
+    // call setuid on macOS for privileged commands
+    #[cfg(target_os = "macos")]
+    {
+        if unsafe { libc::geteuid() == 0 } {
+            command.uid(0);
+        }
+    }
+
+    process_output(command.output().await?)
 }
 
 #[cfg(test)]

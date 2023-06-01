@@ -37,6 +37,14 @@ where
         .ok_or_else(|| anyhow!("No value to format!"))
 }
 
+pub fn encode_value<T>(data: T) -> anyhow::Result<String>
+where
+    T: Serialize,
+{
+    let json = serde_json::to_value(data)?;
+    value_to_s_expr(json, 1).ok_or_else(|| anyhow!("No value to format!"))
+}
+
 fn indent(level: u32) -> String {
     (0..level).map(|_| "\t").collect()
 }
@@ -76,7 +84,17 @@ fn parse_data(pair: RulePair) -> anyhow::Result<Value> {
     match pair.as_rule() {
         Rule::obj => parse_obj(pair.into_inner()),
         Rule::array => parse_array(pair.into_inner()),
-        Rule::value => Ok(Value::String(pair.as_str().to_owned())),
+        Rule::value => {
+            if let Ok(i) = pair.as_str().parse::<u64>() {
+                Ok(Value::Number(i.into()))
+            } else if let Ok(h) = u64::from_str_radix(pair.as_str().trim_start_matches("0x"), 16) {
+                Ok(Value::Number(h.into()))
+            } else if let Ok(b) = pair.as_str().parse::<bool>() {
+                Ok(Value::Bool(b))
+            } else {
+                Ok(Value::String(pair.as_str().to_owned()))
+            }
+        }
         _ => Err(anyhow!("Invalid rule")),
     }
 }

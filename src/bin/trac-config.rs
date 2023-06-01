@@ -3,7 +3,7 @@ use snx_rs::util;
 
 fn do_encode(filename: &str) -> anyhow::Result<()> {
     let data = std::fs::read(filename)?;
-    let encoded = util::encode_to_hex(&data);
+    let encoded = util::encode_to_hex(data);
     print!("11TRAC{}", encoded);
     Ok(())
 }

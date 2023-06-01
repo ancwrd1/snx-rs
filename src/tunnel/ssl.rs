@@ -1,0 +1,182 @@
+use std::{
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::{Duration, Instant},
+};
+
+use anyhow::anyhow;
+use futures::{SinkExt, StreamExt};
+use tracing::{debug, trace, warn};
+use tun::TunPacket;
+
+use crate::{
+    model::*,
+    params::TunnelParams,
+    tun::TunDevice,
+    tunnel::{SnxPacketReceiver, SnxPacketSender, SnxTunnel, SnxTunnelConnector},
+};
+
+const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
+const MAX_KEEP_ALIVE_ATTEMPTS: u64 = 3;
+const SEND_TIMEOUT: Duration = Duration::from_secs(120);
+
+pub(crate) struct SnxSslTunnel {
+    pub(crate) params: TunnelParams,
+    pub(crate) session: SnxSession,
+    pub(crate) auth_timeout: Duration,
+    pub(crate) keepalive: Duration,
+    pub(crate) ip_address: String,
+    pub(crate) sender: SnxPacketSender,
+    pub(crate) receiver: Option<SnxPacketReceiver>,
+    pub(crate) keepalive_counter: Arc<AtomicU64>,
+}
+
+impl SnxSslTunnel {
+    fn new_hello_request(&self, keep_address: bool) -> ClientHello {
+        ClientHello {
+            client_version: 1,
+            protocol_version: 1,
+            protocol_minor_version: 1,
+            office_mode: OfficeMode {
+                ipaddr: self.ip_address.clone(),
+                keep_address: Some(keep_address),
+                dns_servers: None,
+                dns_suffix: None,
+            },
+            optional: Some(OptionalRequest {
+                client_type: "4".to_string(),
+            }),
+            cookie: self.session.cookie.clone(),
+        }
+    }
+
+    async fn client_hello(&mut self) -> anyhow::Result<HelloReply> {
+        let req = self.new_hello_request(false);
+        self.send(req).await?;
+
+        let receiver = self.receiver.as_mut().unwrap();
+
+        let reply = receiver.next().await.ok_or_else(|| anyhow!("Channel closed!"))?;
+
+        let reply = match reply {
+            SnxPacket::Control(name, value) if name == HelloReply::NAME => {
+                let result = serde_json::from_value::<HelloReply>(value)?;
+                self.ip_address = result.office_mode.ipaddr.clone();
+                self.auth_timeout = Duration::from_secs(result.timeouts.authentication) - REAUTH_LEEWAY;
+                self.keepalive = Duration::from_secs(result.timeouts.keepalive);
+                result
+            }
+            _ => return Err(anyhow!("Unexpected reply")),
+        };
+
+        Ok(reply)
+    }
+
+    async fn keepalive(&mut self) -> anyhow::Result<()> {
+        if self.keepalive_counter.load(Ordering::SeqCst) >= MAX_KEEP_ALIVE_ATTEMPTS {
+            let msg = "No response for keepalive packets, tunnel appears stuck";
+            warn!(msg);
+            return Err(anyhow!("{}", msg));
+        }
+
+        let req = KeepaliveRequest { id: "0".to_string() };
+
+        self.keepalive_counter.fetch_add(1, Ordering::SeqCst);
+
+        self.send(req).await?;
+
+        Ok(())
+    }
+
+    async fn reauth(&mut self) -> anyhow::Result<()> {
+        let connector = SnxTunnelConnector::new(&self.params);
+
+        let session = connector.authenticate(Some(&self.session.session_id)).await?;
+
+        self.session = session;
+
+        let req = self.new_hello_request(true);
+        self.send(req).await?;
+
+        Ok(())
+    }
+
+    async fn send<P>(&mut self, packet: P) -> anyhow::Result<()>
+    where
+        P: Into<SnxPacket>,
+    {
+        tokio::time::timeout(SEND_TIMEOUT, self.sender.send(packet.into())).await??;
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl SnxTunnel for SnxSslTunnel {
+    async fn run(mut self: Box<Self>) -> anyhow::Result<()> {
+        debug!("Running SSL tunnel for session {}", self.session.session_id);
+
+        let reply = self.client_hello().await?;
+
+        let tun = TunDevice::new(&reply)?;
+        tun.setup_dns_and_routing(&self.params).await?;
+
+        let dev_name = tun.name().to_owned();
+
+        let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
+
+        let mut snx_receiver = self.receiver.take().unwrap();
+
+        let dev_name2 = dev_name.clone();
+        let keepalive_counter = self.keepalive_counter.clone();
+
+        tokio::spawn(async move {
+            while let Some(item) = snx_receiver.next().await {
+                match item {
+                    SnxPacket::Control(name, _) => {
+                        debug!("Control packet received: {name}");
+                        if name == KeepaliveRequest::NAME {
+                            keepalive_counter.fetch_sub(1, Ordering::SeqCst);
+                        }
+                    }
+                    SnxPacket::Data(data) => {
+                        trace!("snx => {}: {}", data.len(), dev_name2);
+                        keepalive_counter.store(0, Ordering::SeqCst);
+                        let tun_packet = TunPacket::new(data);
+                        tun_sender.send(tun_packet).await?;
+                    }
+                }
+            }
+            Ok::<_, anyhow::Error>(())
+        });
+
+        let mut now = Instant::now();
+
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep(self.keepalive) => {
+                    self.keepalive().await?;
+                }
+
+                result = tun_receiver.next() => {
+                    if let Some(Ok(item)) = result {
+                        let data = item.into_bytes().to_vec();
+                        trace!("{} => snx: {}", dev_name, data.len());
+                        self.send(data).await?;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            if self.params.reauth && (Instant::now() - now) >= self.auth_timeout {
+                self.reauth().await?;
+                now = Instant::now();
+            }
+        }
+
+        Ok(())
+    }
+}

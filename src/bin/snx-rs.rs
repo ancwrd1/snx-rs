@@ -3,9 +3,8 @@ use clap::Parser;
 use tracing::debug;
 
 use snx_rs::{
-    device::TunDevice,
     params::{CmdlineParams, TunnelParams},
-    tunnel::SnxClient,
+    tunnel::SnxTunnelConnector,
 };
 
 fn is_root() -> bool {
@@ -38,19 +37,11 @@ async fn main() -> anyhow::Result<()> {
 
     debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
-    let client = SnxClient::new(&params);
+    let connector = SnxTunnelConnector::new(&params);
+    let session = connector.authenticate(None).await?;
 
-    let (session_id, cookie) = client.authenticate(None).await?;
-
-    let mut tunnel = client.create_tunnel(session_id, cookie).await?;
-
-    let reply = tunnel.client_hello().await?;
-
-    let device = TunDevice::new(&reply)?;
-
-    device.setup_dns_and_routing(&params).await?;
-
-    tunnel.run(device).await?;
+    let tunnel = connector.create_tunnel(session).await?;
+    tunnel.run().await?;
 
     debug!("<<< Stopping snx-rs client");
 

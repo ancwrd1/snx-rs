@@ -1,36 +1,47 @@
-use std::process::ExitStatus;
-
-use anyhow::anyhow;
-use tracing::warn;
-
 #[cfg(target_os = "linux")]
-pub use linux::{add_dns_servers, add_dns_suffixes, add_route};
-
+pub use linux::{add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip};
 #[cfg(target_os = "macos")]
-pub use macos::{add_dns_servers, add_dns_suffixes, add_route};
-
-fn status_or_error(status: ExitStatus) -> anyhow::Result<ExitStatus> {
-    if status.success() {
-        Ok(status)
-    } else {
-        warn!("Command failed: {}", status);
-        Err(anyhow!("Command failed: {}", status))
-    }
-}
+pub use macos::{add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip};
 
 #[cfg(target_os = "linux")]
 mod linux {
     use std::net::Ipv4Addr;
 
-    use crate::net::status_or_error;
+    use anyhow::anyhow;
+    use ipnet::Ipv4Subnets;
+    use tracing::debug;
 
-    pub async fn add_route(target_net: &str, device: &str, _ipaddr: &Ipv4Addr) -> anyhow::Result<()> {
-        let status = tokio::process::Command::new("ip")
-            .args(["route", "add", target_net, "dev", device])
-            .status()
-            .await?;
+    use crate::model::NetworkRange;
 
-        status_or_error(status)?;
+    pub async fn get_default_ip() -> anyhow::Result<String> {
+        let result = crate::util::run_command("ip", ["route", "show", "default"]).await?;
+        let mut parts = result.split_whitespace();
+        while let Some(part) = parts.next() {
+            if part == "src" {
+                if let Some(ip) = parts.next() {
+                    return Ok(ip.to_owned());
+                }
+            }
+        }
+        Err(anyhow!("Cannot determine default IP!"))
+    }
+
+    pub async fn add_route(range: &NetworkRange, device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+        let subnets = Ipv4Subnets::new(range.from, range.to, 0);
+        for subnet in subnets {
+            if subnet.contains(&ipaddr) {
+                let snet = subnet.to_string();
+                debug!("Adding route: {} via {}", snet, device);
+                crate::util::run_command("ip", ["route", "add", &snet, "dev", device]).await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn add_default_route(device: &str, _ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+        debug!("Adding default route for {}", device);
+        let _ = crate::util::run_command("ip", ["route", "add", "default", "dev", device]).await?;
 
         Ok(())
     }
@@ -49,9 +60,7 @@ mod linux {
 
         args.extend(suffixes.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("resolvectl").args(args).status().await?;
-
-        status_or_error(status)?;
+        crate::util::run_command("resolvectl", args).await?;
 
         Ok(())
     }
@@ -67,9 +76,7 @@ mod linux {
 
         args.extend(servers.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("resolvectl").args(args).status().await?;
-
-        status_or_error(status)?;
+        crate::util::run_command("resolvectl", args).await?;
 
         Ok(())
     }
@@ -79,17 +86,30 @@ mod linux {
 mod macos {
     use std::net::Ipv4Addr;
 
-    use crate::net::status_or_error;
+    use anyhow::anyhow;
+    use ipnet::Ipv4Subnets;
+    use tracing::debug;
 
-    pub async fn add_route(target_net: &str, _device: &str, ipaddr: &Ipv4Addr) -> anyhow::Result<()> {
+    use crate::model::NetworkRange;
+
+    pub async fn add_route(range: &NetworkRange, _device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
         let ip_str = ipaddr.to_string();
 
-        let status = tokio::process::Command::new("route")
-            .args(["add", "-net", target_net, ip_str.as_str()])
-            .status()
-            .await?;
+        let subnets = Ipv4Subnets::new(range.from, range.to, 0);
+        for subnet in subnets {
+            if subnet.contains(&ipaddr) {
+                let snet = subnet.to_string();
+                debug!("Adding route: {} via {}", snet, ip_str);
+                crate::util::run_command("route", ["add", "-net", &snet, &ip_str]).await?;
+            }
+        }
 
-        status_or_error(status)?;
+        Ok(())
+    }
+
+    pub async fn add_default_route(_device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+        let ip_str = ipaddr.to_string();
+        crate::util::run_command("route", ["add", "-net", "default", &ip_str]).await?;
 
         Ok(())
     }
@@ -105,9 +125,7 @@ mod macos {
 
         args.extend(suffixes.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("networksetup").args(args).status().await?;
-
-        status_or_error(status)?;
+        crate::util::run_command("networksetup", args).await?;
 
         Ok(())
     }
@@ -123,10 +141,12 @@ mod macos {
 
         args.extend(servers.iter().map(|s| s.as_str()));
 
-        let status = tokio::process::Command::new("networksetup").args(args).status().await?;
-
-        status_or_error(status)?;
+        crate::util::run_command("networksetup", args).await?;
 
         Ok(())
+    }
+
+    pub async fn get_default_ip() -> anyhow::Result<String> {
+        Err(anyhow!("Cannot determine default IP!"))
     }
 }

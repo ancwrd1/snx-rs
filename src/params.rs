@@ -1,8 +1,12 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
+use anyhow::anyhow;
 use base64::Engine;
 use clap::Parser;
-use tracing::metadata::LevelFilter;
+use tracing::{metadata::LevelFilter, warn};
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs")]
@@ -44,6 +48,37 @@ pub struct CmdlineParams {
 
     #[clap(long = "no-dns", short = 'N', help = "Do not change DNS resolver configuration")]
     pub no_dns: Option<bool>,
+
+    #[clap(long = "tunnel-type", short = 'e', help = "Tunnel type, one of: ssl, ipsec")]
+    pub tunnel_type: Option<TunnelType>,
+}
+
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+pub enum TunnelType {
+    #[default]
+    Ssl,
+    Ipsec,
+}
+
+impl TunnelType {
+    pub fn as_client_type(&self) -> &'static str {
+        match self {
+            TunnelType::Ssl => "TRAC",
+            TunnelType::Ipsec => "SYMBIAN",
+        }
+    }
+}
+
+impl FromStr for TunnelType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ssl" => Ok(TunnelType::Ssl),
+            "ipsec" => Ok(TunnelType::Ipsec),
+            _ => Err(anyhow!("Invalid tunnel type!")),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -57,6 +92,7 @@ pub struct TunnelParams {
     pub default_route: bool,
     pub no_routing: bool,
     pub no_dns: bool,
+    pub tunnel_type: TunnelType,
 }
 
 impl Default for TunnelParams {
@@ -71,6 +107,7 @@ impl Default for TunnelParams {
             default_route: false,
             no_routing: false,
             no_dns: false,
+            tunnel_type: TunnelType::Ssl,
         }
     }
 }
@@ -100,7 +137,10 @@ impl TunnelParams {
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
-                        _ => {}
+                        "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
+                        other => {
+                            warn!("Ignoring unknown option: {}", other);
+                        }
                     }
                 }
             }
@@ -143,6 +183,10 @@ impl TunnelParams {
 
         if let Some(no_dns) = other.no_dns {
             self.no_dns = no_dns;
+        }
+
+        if let Some(tunnel_type) = other.tunnel_type {
+            self.tunnel_type = tunnel_type;
         }
     }
 }

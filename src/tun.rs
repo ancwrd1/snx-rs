@@ -1,6 +1,5 @@
 use std::net::Ipv4Addr;
 
-use ipnet::Ipv4Subnets;
 use tracing::debug;
 use tun::Device;
 
@@ -53,18 +52,10 @@ impl TunDevice {
     pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
         if !params.no_routing {
             if params.default_route {
-                debug!("Setting default route for {}", self.dev_name);
-                let _ = crate::net::add_route("default", &self.dev_name, &self.ipaddr).await;
+                let _ = crate::net::add_default_route(&self.dev_name, self.ipaddr).await;
             } else {
                 for range in &self.reply.range {
-                    let subnets = Ipv4Subnets::new(range.from.parse()?, range.to.parse()?, 0);
-                    for subnet in subnets {
-                        if subnet.contains(&self.ipaddr) {
-                            let snet = subnet.to_string();
-                            debug!("Adding route for {snet}");
-                            let _ = crate::net::add_route(&snet, &self.dev_name, &self.ipaddr).await;
-                        }
-                    }
+                    let _ = crate::net::add_route(range, &self.dev_name, self.ipaddr).await;
                 }
             }
         }

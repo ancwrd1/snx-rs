@@ -1,6 +1,6 @@
 [package]
 name = "snx-rs"
-version = "0.1.0"
+version = "0.2.0"
 
 edition = "2021"
 
@@ -29,3 +29,5 @@ libc = "0.2"
 base64 = "0.21"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+async-trait = "0.1"
+rand = "0.8"

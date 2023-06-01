@@ -1,9 +1,10 @@
-pub mod auth;
 pub mod codec;
-pub mod device;
+pub mod http;
+pub mod ipsec;
 pub mod model;
 pub mod net;
 pub mod params;
 pub mod sexpr;
+pub mod tun;
 pub mod tunnel;
 pub mod util;
