@@ -1,13 +1,19 @@
 # Rust client for Checkpoint VPN tunnels
 
 This project implements a client for Checkpoint VPN written in Rust programming language.
-Based on the reverse engineered protocol used by the vendor 'snx' application.
+Based on the reverse engineered protocol used by the vendor application.
 
-## Todo
+## Implemented features
+
+* SSL tunnel
+* IPSec tunnel
+* Microsoft MFA Authenticator
+
+## Roadmap
  
 * GUI with tray icon
 * Connection stats
-* Complete macOS support (DNS servers and suffixes for tun interface)
+* SAML SSO support with IKE Phase 2 exchange
 
 ## Usage
 
