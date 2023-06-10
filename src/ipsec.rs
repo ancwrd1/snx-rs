@@ -285,6 +285,7 @@ impl IpsecConfigurator {
 
     async fn cleanup_iptables(&self) {}
 
+    // without this listener automatic IPSec decapsulation from UDP 4500 does not work
     async fn start_udp_listener(&self) -> anyhow::Result<()> {
         let udp = tokio::net::UdpSocket::bind("0.0.0.0:4500").await?;
         let stype: libc::c_int = UDP_ENCAP_ESPINUDP;
