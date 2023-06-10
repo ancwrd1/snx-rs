@@ -82,7 +82,6 @@ impl SnxHttpClient {
 
     async fn send_request(&self, req: CccClientRequest) -> anyhow::Result<CccServerResponse> {
         let expr = sexpr::encode(CccClientRequest::NAME, req)?;
-        println!("req: {}", expr);
         let client = reqwest::Client::new();
 
         let req = client
@@ -93,7 +92,6 @@ impl SnxHttpClient {
         let bytes = client.execute(req).await?.error_for_status()?.bytes().await?;
 
         let s_bytes = String::from_utf8_lossy(&bytes);
-        println!("resp: {}", s_bytes);
 
         let (_, server_response) = sexpr::decode::<_, CccServerResponse>(&s_bytes)?;
 
