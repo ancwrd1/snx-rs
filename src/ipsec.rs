@@ -338,6 +338,8 @@ impl IpsecConfigurator {
                     Err(_) => break,
                 };
 
+                // bypass kernel routing rules and send raw packet via the VTI device
+                // so that it will be wrapped into ESP payload.
                 let packet = packet::ip::v4::Builder::default()
                     .source(src)?
                     .destination(dst)?
