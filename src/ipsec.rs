@@ -1,17 +1,34 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
     os::fd::AsRawFd,
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::anyhow;
-use tracing::debug;
+use packet::Builder;
+use tokio::io::AsyncWriteExt;
+use tracing::{debug, trace};
 
 use crate::{
     model::{ClientSettingsResponseData, IpsecResponseData},
     params::TunnelParams,
     util,
 };
+
+const VTI_KEY: &str = "1000";
+const VTI_NAME: &str = "snx-vti";
+const MAX_ISAKMP_PROBES: usize = 5;
+const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
+
+// picked from wireshark logs
+fn make_keepalive_packet() -> anyhow::Result<Vec<u8>> {
+    let mut data = Vec::new();
+    data.extend(0x11u32.to_be_bytes());
+    data.extend(0x00010002u32.to_be_bytes());
+    data.extend((SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u64).to_be_bytes());
+    data.extend((0..68).map(|_| 0u8));
+    Ok(data)
+}
 
 pub struct IpsecConfigurator {
     tunnel_params: TunnelParams,
@@ -20,11 +37,6 @@ pub struct IpsecConfigurator {
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
 }
-
-const VTI_KEY: &str = "1000";
-const VTI_NAME: &str = "snx-vti";
-const MAX_ISAKMP_PROBES: usize = 5;
-const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
 
 impl IpsecConfigurator {
     pub fn new(
@@ -56,6 +68,7 @@ impl IpsecConfigurator {
         self.setup_routing().await?;
         self.setup_dns().await?;
         self.start_udp_listener().await?;
+        self.start_keepalive_task().await?;
         Ok(())
     }
 
@@ -309,6 +322,41 @@ impl IpsecConfigurator {
                 debug!("Received NON-ESP data from {}, length: {}", from, size);
             }
         });
+        Ok(())
+    }
+
+    async fn start_keepalive_task(&self) -> anyhow::Result<()> {
+        let src: Ipv4Addr = self.ipsec_params.om_addr.into();
+        let dst = self.dest_ip;
+
+        tokio::spawn(async move {
+            loop {
+                trace!("Sending keepalive to {}", dst);
+
+                let data = match make_keepalive_packet() {
+                    Ok(data) => data,
+                    Err(_) => break,
+                };
+
+                let packet = packet::ip::v4::Builder::default()
+                    .source(src)?
+                    .destination(dst)?
+                    .ttl(255)?
+                    .udp()?
+                    .source(18234)?
+                    .destination(18234)?
+                    .payload(&data)?
+                    .build()?;
+
+                let mut raw = afpacket::tokio::RawPacketStream::new()?;
+                raw.bind(VTI_NAME)?;
+                raw.write_all(&packet).await?;
+
+                tokio::time::sleep(Duration::from_secs(20)).await;
+            }
+            Ok::<(), anyhow::Error>(())
+        });
+
         Ok(())
     }
 }
