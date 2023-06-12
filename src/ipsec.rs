@@ -350,6 +350,22 @@ impl IpsecConfigurator {
         let dst = self.dest_ip;
         let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
 
+        // disable UDP checksum validation for incoming packets.
+        // Checkpoint gateway doesn't set it correctly.
+        let disable: libc::c_int = 1;
+        unsafe {
+            let rc = libc::setsockopt(
+                udp.as_raw_fd(),
+                libc::SOL_SOCKET,
+                libc::SO_NO_CHECK,
+                &disable as *const libc::c_int as _,
+                std::mem::size_of::<libc::c_int>() as _,
+            );
+            if rc != 0 {
+                return Err(anyhow!("Cannot set SO_NO_CHECK socket option!"));
+            }
+        }
+
         tokio::spawn(async move {
             loop {
                 trace!("Sending keepalive to {}", dst);
