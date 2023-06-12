@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use base64::Engine;
 use clap::Parser;
 use tracing::{metadata::LevelFilter, warn};
 
@@ -126,11 +125,7 @@ impl TunnelParams {
                     match k {
                         "server-name" => params.server_name = v.to_string(),
                         "user-name" => params.user_name = v.to_string(),
-                        "password" => {
-                            params.password =
-                                String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(v)?)
-                                    .into_owned();
-                        }
+                        "password" => params.password = v.to_string(),
                         "log-level" => params.log_level = v.parse().unwrap_or(LevelFilter::OFF),
                         "reauth" => params.reauth = v.parse().unwrap_or_default(),
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),

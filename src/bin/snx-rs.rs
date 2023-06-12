@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use base64::Engine;
 use clap::Parser;
 use tracing::debug;
 
@@ -21,6 +22,10 @@ async fn main() -> anyhow::Result<()> {
         TunnelParams::default()
     };
     params.merge(cmdline_params);
+
+    // decode password
+    params.password =
+        String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?).into_owned();
 
     if params.user_name.is_empty() || params.server_name.is_empty() || params.password.is_empty() {
         return Err(anyhow!(
