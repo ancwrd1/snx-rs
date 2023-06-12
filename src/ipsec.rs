@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use tracing::{debug, trace};
+use tracing::{debug, trace, warn};
 
 use crate::{
     model::{ClientSettingsResponseData, IpsecResponseData},
@@ -20,12 +20,21 @@ const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
 const KEEPALIVE_PORT: u16 = 18234;
 
 // picked from wireshark logs
-fn make_keepalive_packet() -> Vec<u8> {
-    let mut data = Vec::new();
-    data.extend(0x11u32.to_be_bytes());
-    data.extend(0x00010002u32.to_be_bytes());
-    data.extend((SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64).to_be_bytes());
-    data.extend((0..68).map(|_| 0u8));
+fn make_keepalive_packet() -> [u8; 84] {
+    let mut data = [0u8; 84];
+
+    // 0x00000011 looks like a packet type, KEEPALIVE in this case
+    data[0..4].copy_from_slice(&0x00000011u32.to_be_bytes());
+
+    // 0x0001 is probably a direction: request or response. We get 0x0002 as a response back.
+    data[4..6].copy_from_slice(&0x0001u16.to_be_bytes());
+
+    // this looks like a content type, probably means TIMESTAMP
+    data[6..8].copy_from_slice(&0x0002u16.to_be_bytes());
+
+    // timestamp
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+    data[8..16].copy_from_slice(&timestamp.to_be_bytes());
     data
 }
 
@@ -382,14 +391,15 @@ impl IpsecConfigurator {
                 if let (Ok(_), Ok(Ok((size, _)))) = result {
                     trace!("Received keepalive response from {}, size: {}", dst, size);
                 } else {
-                    // warn!("Keepalive failed, exiting");
-                    // unsafe {
-                    //     libc::kill(
-                    //         libc::getpid(),
-                    //         tokio::signal::unix::SignalKind::terminate().as_raw_value(),
-                    //     );
-                    //     break;
-                    // }
+                    // TODO: this is a temporary (ugly) solution. Refactor into a better one.
+                    warn!("Keepalive failed, exiting");
+                    unsafe {
+                        libc::kill(
+                            libc::getpid(),
+                            tokio::signal::unix::SignalKind::terminate().as_raw_value(),
+                        );
+                        break;
+                    }
                 }
 
                 tokio::time::sleep(Duration::from_secs(20)).await;
