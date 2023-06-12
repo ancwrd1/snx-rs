@@ -5,8 +5,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use packet::Builder;
-use tokio::io::AsyncWriteExt;
 use tracing::{debug, trace};
 
 use crate::{
@@ -19,15 +17,16 @@ const VTI_KEY: &str = "1000";
 const VTI_NAME: &str = "snx-vti";
 const MAX_ISAKMP_PROBES: usize = 5;
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
+const KEEPALIVE_PORT: u16 = 18234;
 
 // picked from wireshark logs
-fn make_keepalive_packet() -> anyhow::Result<Vec<u8>> {
+fn make_keepalive_packet() -> Vec<u8> {
     let mut data = Vec::new();
     data.extend(0x11u32.to_be_bytes());
     data.extend(0x00010002u32.to_be_bytes());
-    data.extend((SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u64).to_be_bytes());
+    data.extend((SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64).to_be_bytes());
     data.extend((0..68).map(|_| 0u8));
-    Ok(data)
+    data
 }
 
 pub struct IpsecConfigurator {
@@ -117,6 +116,15 @@ impl IpsecConfigurator {
         let _ = self.iproute2(&["xfrm", "state", "flush"]).await;
         let _ = self.iproute2(&["xfrm", "policy", "flush"]).await;
         let _ = self.iproute2(&["link", "del", "name", VTI_NAME]).await;
+
+        let dst = self.dest_ip.to_string();
+        let port = KEEPALIVE_PORT.to_string();
+
+        let _ = self
+            .iproute2(&[
+                "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+            ])
+            .await;
         self.cleanup_iptables().await;
     }
 
@@ -256,6 +264,18 @@ impl IpsecConfigurator {
                 }
             }
         }
+
+        let dst = self.dest_ip.to_string();
+        let port = KEEPALIVE_PORT.to_string();
+
+        // for tunnel keepalive
+        self.iproute2(&["route", "add", "table", &port, &dst, "dev", "snx-vti"])
+            .await?;
+        self.iproute2(&[
+            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+        ])
+        .await?;
+
         Ok(())
     }
 
@@ -328,35 +348,36 @@ impl IpsecConfigurator {
     async fn start_keepalive_task(&self) -> anyhow::Result<()> {
         let src: Ipv4Addr = self.ipsec_params.om_addr.into();
         let dst = self.dest_ip;
+        let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
 
         tokio::spawn(async move {
             loop {
                 trace!("Sending keepalive to {}", dst);
 
-                let data = match make_keepalive_packet() {
-                    Ok(data) => data,
-                    Err(_) => break,
-                };
+                let data = make_keepalive_packet();
 
-                // bypass kernel routing rules and send raw packet via the VTI device
-                // so that it will be wrapped into ESP payload.
-                let packet = packet::ip::v4::Builder::default()
-                    .source(src)?
-                    .destination(dst)?
-                    .ttl(255)?
-                    .udp()?
-                    .source(18234)?
-                    .destination(18234)?
-                    .payload(&data)?
-                    .build()?;
+                let send_fut = udp.send_to(&data, (dst, KEEPALIVE_PORT));
 
-                let mut raw = afpacket::tokio::RawPacketStream::new()?;
-                raw.bind(VTI_NAME)?;
-                raw.write_all(&packet).await?;
+                let mut buf = [0u8; 1024];
+                let recv_fut = tokio::time::timeout(Duration::from_secs(5), udp.recv_from(&mut buf));
+
+                let result = futures::future::join(send_fut, recv_fut).await;
+
+                if let (Ok(_), Ok(Ok((size, _)))) = result {
+                    trace!("Received keepalive response from {}, size: {}", dst, size);
+                } else {
+                    // warn!("Keepalive failed, exiting");
+                    // unsafe {
+                    //     libc::kill(
+                    //         libc::getpid(),
+                    //         tokio::signal::unix::SignalKind::terminate().as_raw_value(),
+                    //     );
+                    //     break;
+                    // }
+                }
 
                 tokio::time::sleep(Duration::from_secs(20)).await;
             }
-            Ok::<(), anyhow::Error>(())
         });
 
         Ok(())
