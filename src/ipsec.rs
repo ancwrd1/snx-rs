@@ -253,7 +253,9 @@ impl IpsecConfigurator {
                 ])
                 .await?;
             }
-            CommandType::Delete => {}
+            CommandType::Delete => {
+                self.iproute2(&["xfrm", "state", command.as_str(), "spi", &spi]).await?;
+            }
         }
 
         Ok(())
