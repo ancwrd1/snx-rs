@@ -5,10 +5,10 @@ use std::{
 };
 
 use anyhow::anyhow;
-use tracing::{debug, trace, warn};
+use tracing::{debug, trace};
 
 use crate::{
-    model::{ClientSettingsResponseData, IpsecResponseData},
+    model::{ClientSettingsResponseData, IpsecKey, IpsecResponseData},
     params::TunnelParams,
     util,
 };
@@ -17,7 +17,42 @@ const VTI_KEY: &str = "1000";
 const VTI_NAME: &str = "snx-vti";
 const MAX_ISAKMP_PROBES: usize = 5;
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
+
 const KEEPALIVE_PORT: u16 = 18234;
+const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
+const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(5);
+const KEEPALIVE_MAX_RETRIES: u32 = 5;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(dead_code)]
+enum CommandType {
+    Add,
+    Delete,
+}
+
+impl CommandType {
+    fn as_str(&self) -> &'static str {
+        match self {
+            CommandType::Add => "add",
+            CommandType::Delete => "del",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum PolicyDir {
+    In,
+    Out,
+}
+
+impl PolicyDir {
+    fn as_str(&self) -> &'static str {
+        match self {
+            PolicyDir::In => "in",
+            PolicyDir::Out => "out",
+        }
+    }
+}
 
 // picked from wireshark logs
 fn make_keepalive_packet() -> [u8; 84] {
@@ -76,7 +111,6 @@ impl IpsecConfigurator {
         self.setup_routing().await?;
         self.setup_dns().await?;
         self.start_udp_listener().await?;
-        self.start_keepalive_task().await?;
         Ok(())
     }
 
@@ -122,11 +156,13 @@ impl IpsecConfigurator {
     }
 
     pub async fn cleanup(&self) {
+        let dst = self.dest_ip.to_string();
+
         let _ = self.iproute2(&["xfrm", "state", "flush"]).await;
         let _ = self.iproute2(&["xfrm", "policy", "flush"]).await;
+
         let _ = self.iproute2(&["link", "del", "name", VTI_NAME]).await;
 
-        let dst = self.dest_ip.to_string();
         let port = KEEPALIVE_PORT.to_string();
 
         let _ = self
@@ -173,91 +209,104 @@ impl IpsecConfigurator {
         Ok(())
     }
 
+    async fn configure_xfrm_state(
+        &self,
+        command: CommandType,
+        src: &str,
+        dst: &str,
+        params: &IpsecKey,
+    ) -> anyhow::Result<()> {
+        let spi = format!("0x{:x}", params.spi);
+
+        match command {
+            CommandType::Add =>
+            // out state
+            {
+                self.iproute2(&[
+                    "xfrm",
+                    "state",
+                    command.as_str(),
+                    "src",
+                    &src,
+                    "dst",
+                    &dst,
+                    "proto",
+                    "esp",
+                    "spi",
+                    &spi,
+                    "mode",
+                    "tunnel",
+                    "flag",
+                    "af-unspec",
+                    "auth-trunc",
+                    "sha256",
+                    &params.authkey,
+                    "128",
+                    "enc",
+                    "aes",
+                    &params.enckey,
+                    "encap",
+                    "espinudp",
+                    "4500",
+                    "4500",
+                    "0.0.0.0",
+                ])
+                .await?;
+            }
+            CommandType::Delete => {}
+        }
+
+        Ok(())
+    }
+
+    async fn configure_xfrm_policy(
+        &self,
+        command: CommandType,
+        dir: PolicyDir,
+        src: &str,
+        dst: &str,
+    ) -> anyhow::Result<()> {
+        match command {
+            CommandType::Add => {
+                self.iproute2(&[
+                    "xfrm",
+                    "policy",
+                    command.as_str(),
+                    "dir",
+                    dir.as_str(),
+                    "tmpl",
+                    "src",
+                    &src,
+                    "dst",
+                    &dst,
+                    "proto",
+                    "esp",
+                    "mode",
+                    "tunnel",
+                    "mark",
+                    VTI_KEY,
+                ])
+                .await?;
+            }
+            CommandType::Delete => {}
+        }
+
+        Ok(())
+    }
+
     async fn setup_xfrm(&self) -> anyhow::Result<()> {
         let src = self.source_ip.to_string();
         let dst = self.dest_ip.to_string();
 
-        let enc_params = self.ipsec_params.client_encsa.decode();
-        let dec_params = self.ipsec_params.client_decsa.decode();
+        self.configure_xfrm_state(CommandType::Add, &src, &dst, &self.ipsec_params.client_encsa)
+            .await?;
+        self.configure_xfrm_state(CommandType::Add, &dst, &src, &self.ipsec_params.client_decsa)
+            .await?;
 
-        let enc_spi = format!("0x{:x}", enc_params.spi);
-        let dec_spi = format!("0x{:x}", dec_params.spi);
-
-        // out state
-        self.iproute2(&[
-            "xfrm",
-            "state",
-            "add",
-            "src",
-            &src,
-            "dst",
-            &dst,
-            "proto",
-            "esp",
-            "spi",
-            &enc_spi,
-            "mode",
-            "tunnel",
-            "flag",
-            "af-unspec",
-            "auth-trunc",
-            "sha256",
-            &enc_params.authkey,
-            "128",
-            "enc",
-            "aes",
-            &enc_params.enckey,
-            "encap",
-            "espinudp",
-            "4500",
-            "4500",
-            "0.0.0.0",
-        ])
-        .await?;
-
-        // in state
-        self.iproute2(&[
-            "xfrm",
-            "state",
-            "add",
-            "src",
-            &dst,
-            "dst",
-            &src,
-            "proto",
-            "esp",
-            "spi",
-            &dec_spi,
-            "mode",
-            "tunnel",
-            "flag",
-            "af-unspec",
-            "auth-trunc",
-            "sha256",
-            &dec_params.authkey,
-            "128",
-            "enc",
-            "aes",
-            &dec_params.enckey,
-            "encap",
-            "espinudp",
-            "4500",
-            "4500",
-            "0.0.0.0",
-        ])
-        .await?;
-
-        self.iproute2(&[
-            "xfrm", "policy", "add", "dir", "out", "tmpl", "src", &src, "dst", &dst, "proto", "esp", "mode", "tunnel",
-            "mark", VTI_KEY,
-        ])
-        .await?;
-
-        self.iproute2(&[
-            "xfrm", "policy", "add", "dir", "in", "tmpl", "src", &dst, "dst", &src, "proto", "esp", "mode", "tunnel",
-            "mark", VTI_KEY,
-        ])
-        .await?;
+        self.configure_xfrm_policy(CommandType::Add, PolicyDir::Out, &src, &dst)
+            .await?;
+        self.configure_xfrm_policy(CommandType::Add, PolicyDir::In, &dst, &src)
+            .await?;
 
         Ok(())
     }
@@ -354,7 +403,7 @@ impl IpsecConfigurator {
         Ok(())
     }
 
-    async fn start_keepalive_task(&self) -> anyhow::Result<()> {
+    pub async fn run_keepalive(&self) -> anyhow::Result<()> {
         let src: Ipv4Addr = self.ipsec_params.om_addr.into();
         let dst = self.dest_ip;
         let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
@@ -375,37 +424,34 @@ impl IpsecConfigurator {
             }
         }
 
-        tokio::spawn(async move {
-            loop {
-                trace!("Sending keepalive to {}", dst);
+        let mut num_failures = 0;
 
-                let data = make_keepalive_packet();
+        loop {
+            trace!("Sending keepalive to {}", dst);
 
-                let send_fut = udp.send_to(&data, (dst, KEEPALIVE_PORT));
+            let data = make_keepalive_packet();
 
-                let mut buf = [0u8; 1024];
-                let recv_fut = tokio::time::timeout(Duration::from_secs(5), udp.recv_from(&mut buf));
+            let send_fut = udp.send_to(&data, (dst, KEEPALIVE_PORT));
 
-                let result = futures::future::join(send_fut, recv_fut).await;
+            let mut buf = [0u8; 128];
+            let recv_fut = tokio::time::timeout(KEEPALIVE_TIMEOUT, udp.recv_from(&mut buf));
 
-                if let (Ok(_), Ok(Ok((size, _)))) = result {
-                    trace!("Received keepalive response from {}, size: {}", dst, size);
-                } else {
-                    // TODO: this is a temporary (ugly) solution. Refactor into a better one.
-                    warn!("Keepalive failed, exiting");
-                    unsafe {
-                        libc::kill(
-                            libc::getpid(),
-                            tokio::signal::unix::SignalKind::terminate().as_raw_value(),
-                        );
-                        break;
-                    }
+            let result = futures::future::join(send_fut, recv_fut).await;
+
+            if let (Ok(_), Ok(Ok((size, _)))) = result {
+                trace!("Received keepalive response from {}, size: {}", dst, size);
+            } else {
+                num_failures += 1;
+                if num_failures >= KEEPALIVE_MAX_RETRIES {
+                    break;
                 }
-
-                tokio::time::sleep(Duration::from_secs(20)).await;
             }
-        });
 
-        Ok(())
+            tokio::time::sleep(KEEPALIVE_INTERVAL).await;
+        }
+
+        debug!("Keepalive failed!");
+
+        Err(anyhow!("Keepalive failed!"))
     }
 }

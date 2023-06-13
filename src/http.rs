@@ -111,7 +111,11 @@ impl SnxHttpClient {
         let server_response = self.send_request(self.new_key_management_request(session_id)).await?;
 
         match server_response.data {
-            ResponseData::Ipsec(data) => Ok(data),
+            ResponseData::Ipsec(data) => Ok(IpsecResponseData {
+                client_encsa: data.client_encsa.decode(),
+                client_decsa: data.client_decsa.decode(),
+                ..data
+            }),
             _ => Err(anyhow!("Invalid ipsec response!")),
         }
     }

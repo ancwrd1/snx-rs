@@ -7,33 +7,91 @@ use std::{
 };
 
 use anyhow::anyhow;
-use futures::{SinkExt, StreamExt};
+use futures::{
+    channel::mpsc::{self, Receiver, Sender},
+    SinkExt, StreamExt, TryStreamExt,
+};
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio_native_tls::native_tls::TlsConnector;
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
+use crate::codec::SnxCodec;
 use crate::{
     model::*,
     params::TunnelParams,
     tun::TunDevice,
-    tunnel::{SnxPacketReceiver, SnxPacketSender, SnxTunnel, SnxTunnelConnector},
+    tunnel::{SnxTunnel, SnxTunnelConnector},
 };
 
 const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
 const MAX_KEEP_ALIVE_ATTEMPTS: u64 = 3;
 const SEND_TIMEOUT: Duration = Duration::from_secs(120);
+const CHANNEL_SIZE: usize = 1024;
+
+type SnxPacketSender = Sender<SnxPacket>;
+type SnxPacketReceiver = Receiver<SnxPacket>;
+
+fn make_channel<S>(stream: S) -> (SnxPacketSender, SnxPacketReceiver)
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    let framed = tokio_util::codec::Framed::new(stream, SnxCodec);
+
+    let (tx_in, rx_in) = mpsc::channel(CHANNEL_SIZE);
+    let (tx_out, rx_out) = mpsc::channel(CHANNEL_SIZE);
+
+    let channel = async move {
+        let (mut sink, stream) = framed.split();
+
+        let mut rx = rx_out.map(Ok::<_, anyhow::Error>);
+        let to_wire = sink.send_all(&mut rx);
+
+        let mut tx = tx_in.sink_map_err(anyhow::Error::from);
+        let from_wire = stream.map_err(Into::into).forward(&mut tx);
+
+        futures::future::select(to_wire, from_wire).await;
+    };
+
+    tokio::spawn(channel);
+
+    (tx_out, rx_in)
+}
 
 pub(crate) struct SnxSslTunnel {
-    pub(crate) params: TunnelParams,
-    pub(crate) session: SnxSession,
-    pub(crate) auth_timeout: Duration,
-    pub(crate) keepalive: Duration,
-    pub(crate) ip_address: String,
-    pub(crate) sender: SnxPacketSender,
-    pub(crate) receiver: Option<SnxPacketReceiver>,
-    pub(crate) keepalive_counter: Arc<AtomicU64>,
+    params: TunnelParams,
+    session: SnxSession,
+    auth_timeout: Duration,
+    keepalive: Duration,
+    ip_address: String,
+    sender: SnxPacketSender,
+    receiver: Option<SnxPacketReceiver>,
+    keepalive_counter: Arc<AtomicU64>,
 }
 
 impl SnxSslTunnel {
+    pub(crate) async fn create(params: TunnelParams, session: SnxSession) -> anyhow::Result<Self> {
+        let tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
+
+        let tls: tokio_native_tls::TlsConnector = TlsConnector::builder().build()?.into();
+        let stream = tls.connect(params.server_name.as_str(), tcp).await?;
+
+        let (sender, receiver) = make_channel(stream);
+
+        debug!("Tunnel connected");
+
+        Ok(Self {
+            params,
+            session,
+            auth_timeout: Duration::default(),
+            keepalive: Duration::default(),
+            ip_address: "0.0.0.0".to_string(),
+            sender,
+            receiver: Some(receiver),
+            keepalive_counter: Arc::new(AtomicU64::default()),
+        })
+    }
+
     fn new_hello_request(&self, keep_address: bool) -> ClientHello {
         ClientHello {
             client_version: 1,
