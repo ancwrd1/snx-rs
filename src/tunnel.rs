@@ -1,4 +1,7 @@
 use anyhow::anyhow;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
 use crate::{
@@ -14,7 +17,11 @@ mod ssl;
 
 #[async_trait::async_trait]
 pub trait SnxTunnel {
-    async fn run(mut self: Box<Self>) -> anyhow::Result<()>;
+    async fn run(
+        mut self: Box<Self>,
+        stop_receiver: oneshot::Receiver<()>,
+        connected: Arc<AtomicBool>,
+    ) -> anyhow::Result<()>;
 }
 
 pub struct SnxTunnelConnector(TunnelParams);

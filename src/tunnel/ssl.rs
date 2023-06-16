@@ -1,6 +1,6 @@
 use std::{
     sync::{
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         Arc,
     },
     time::{Duration, Instant},
@@ -11,13 +11,16 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     SinkExt, StreamExt, TryStreamExt,
 };
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::oneshot,
+};
 use tokio_native_tls::native_tls::TlsConnector;
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
-use crate::codec::SnxCodec;
 use crate::{
+    codec::SnxCodec,
     model::*,
     params::TunnelParams,
     tun::TunDevice,
@@ -173,7 +176,11 @@ impl SnxSslTunnel {
 
 #[async_trait::async_trait]
 impl SnxTunnel for SnxSslTunnel {
-    async fn run(mut self: Box<Self>) -> anyhow::Result<()> {
+    async fn run(
+        mut self: Box<Self>,
+        mut stop_receiver: oneshot::Receiver<()>,
+        connected: Arc<AtomicBool>,
+    ) -> anyhow::Result<()> {
         debug!("Running SSL tunnel for session {}", self.session.session_id);
 
         let reply = self.client_hello().await?;
@@ -212,8 +219,13 @@ impl SnxTunnel for SnxSslTunnel {
 
         let mut now = Instant::now();
 
+        connected.store(true, Ordering::SeqCst);
+
         loop {
             tokio::select! {
+                _ = &mut stop_receiver => {
+                    break;
+                }
                 _ = tokio::time::sleep(self.keepalive) => {
                     self.keepalive().await?;
                 }
@@ -234,6 +246,8 @@ impl SnxTunnel for SnxSslTunnel {
                 now = Instant::now();
             }
         }
+
+        connected.store(false, Ordering::SeqCst);
 
         Ok(())
     }

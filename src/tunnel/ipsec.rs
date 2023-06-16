@@ -1,5 +1,9 @@
-use futures::pin_mut;
-use tokio::signal::unix;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+
+use tokio::sync::oneshot;
 use tracing::debug;
 
 use crate::{
@@ -24,30 +28,44 @@ impl SnxIpsecTunnel {
 
 #[async_trait::async_trait]
 impl SnxTunnel for SnxIpsecTunnel {
-    async fn run(self: Box<Self>) -> anyhow::Result<()> {
+    async fn run(
+        self: Box<Self>,
+        stop_receiver: oneshot::Receiver<()>,
+        connected: Arc<AtomicBool>,
+    ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
-        let ctrl_c = tokio::signal::ctrl_c();
-        pin_mut!(ctrl_c);
+        connected.store(true, Ordering::SeqCst);
 
-        let mut sig = unix::signal(unix::SignalKind::terminate())?;
-        let term = sig.recv();
-        pin_mut!(term);
-
-        let select = futures::future::select(ctrl_c, term);
-
-        tokio::select! {
-            _ = select => {
-                debug!("Terminating IPSec tunnel normally");
-                self.0.cleanup().await;
+        let result = tokio::select! {
+            _ = stop_receiver => {
+                debug!("Terminating IPSec tunnel due to stop command");
                 Ok(())
             }
 
             err = self.0.run_keepalive() => {
                 debug!("Terminating IPSec tunnel due to keepalive failure");
-                self.0.cleanup().await;
                 err
             }
-        }
+        };
+
+        connected.store(false, Ordering::SeqCst);
+
+        result
+    }
+}
+
+impl Drop for SnxIpsecTunnel {
+    fn drop(&mut self) {
+        debug!("Cleaning up ipsec tunnel");
+        std::thread::scope(|s| {
+            s.spawn(|| {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                rt.block_on(self.0.cleanup());
+            });
+        });
     }
 }

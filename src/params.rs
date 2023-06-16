@@ -5,13 +5,41 @@ use std::{
 
 use anyhow::anyhow;
 use clap::Parser;
+use serde::{Deserialize, Serialize};
 use tracing::{metadata::LevelFilter, warn};
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum OperationMode {
+    #[default]
+    Standalone,
+    Command,
+}
+
+impl FromStr for OperationMode {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "standalone" => Ok(Self::Standalone),
+            "command" => Ok(Self::Command),
+            _ => Err(anyhow!("Invalid operation mode!")),
+        }
+    }
+}
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs")]
 pub struct CmdlineParams {
     #[clap(long = "server-name", short = 's', help = "Server name")]
     pub server_name: Option<String>,
+
+    #[clap(
+        long = "mode",
+        short = 'm',
+        default_value = "standalone",
+        help = "Operation mode one of: standalone, command"
+    )]
+    pub mode: OperationMode,
 
     #[clap(long = "user-name", short = 'u', help = "User name")]
     pub user_name: Option<String>,
@@ -25,7 +53,7 @@ pub struct CmdlineParams {
     #[clap(
         long = "log-level",
         short = 'l',
-        help = "Enable logging to stdout [off, info, warn, error, debug, trace]"
+        help = "Enable logging to stdout, one of: off, info, warn, error, debug, trace"
     )]
     pub log_level: Option<LevelFilter>,
 
@@ -52,7 +80,7 @@ pub struct CmdlineParams {
     pub tunnel_type: Option<TunnelType>,
 }
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TunnelType {
     #[default]
     Ssl,
@@ -80,12 +108,12 @@ impl FromStr for TunnelType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelParams {
     pub server_name: String,
     pub user_name: String,
     pub password: String,
-    pub log_level: LevelFilter,
+    pub log_level: String,
     pub reauth: bool,
     pub search_domains: Vec<String>,
     pub default_route: bool,
@@ -100,7 +128,7 @@ impl Default for TunnelParams {
             server_name: String::new(),
             user_name: String::new(),
             password: String::new(),
-            log_level: LevelFilter::OFF,
+            log_level: "off".to_owned(),
             reauth: false,
             search_domains: Vec::new(),
             default_route: false,
@@ -126,7 +154,7 @@ impl TunnelParams {
                         "server-name" => params.server_name = v.to_string(),
                         "user-name" => params.user_name = v.to_string(),
                         "password" => params.password = v.to_string(),
-                        "log-level" => params.log_level = v.parse().unwrap_or(LevelFilter::OFF),
+                        "log-level" => params.log_level = v.to_string(),
                         "reauth" => params.reauth = v.parse().unwrap_or_default(),
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
@@ -161,7 +189,7 @@ impl TunnelParams {
         }
 
         if let Some(log_level) = other.log_level {
-            self.log_level = log_level;
+            self.log_level = log_level.to_string();
         }
 
         if !other.search_domains.is_empty() {
@@ -184,4 +212,18 @@ impl TunnelParams {
             self.tunnel_type = tunnel_type;
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TunnelServiceRequest {
+    Connect(TunnelParams),
+    Disconnect,
+    GetStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TunnelServiceResponse {
+    Ok,
+    Error(String),
+    ConnectionStatus(bool),
 }

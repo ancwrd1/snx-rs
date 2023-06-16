@@ -4,6 +4,7 @@ pub mod ipsec;
 pub mod model;
 pub mod net;
 pub mod params;
+pub mod server;
 pub mod sexpr;
 pub mod tun;
 pub mod tunnel;

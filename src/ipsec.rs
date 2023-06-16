@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use tokio::sync::oneshot;
 use tracing::{debug, trace};
 
 use crate::{
@@ -79,6 +80,7 @@ pub struct IpsecConfigurator {
     client_settings: ClientSettingsResponseData,
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
+    stopper: Option<oneshot::Sender<()>>,
 }
 
 impl IpsecConfigurator {
@@ -93,6 +95,7 @@ impl IpsecConfigurator {
             client_settings,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip: Ipv4Addr::new(0, 0, 0, 0),
+            stopper: None,
         }
     }
 
@@ -155,7 +158,10 @@ impl IpsecConfigurator {
         }
     }
 
-    pub async fn cleanup(&self) {
+    pub async fn cleanup(&mut self) {
+        if let Some(stopper) = self.stopper.take() {
+            let _ = stopper.send(());
+        }
         let dst = self.dest_ip.to_string();
 
         let _ = self.iproute2(&["xfrm", "state", "flush"]).await;
@@ -227,9 +233,9 @@ impl IpsecConfigurator {
                     "state",
                     command.as_str(),
                     "src",
-                    &src,
+                    src,
                     "dst",
-                    &dst,
+                    dst,
                     "proto",
                     "esp",
                     "spi",
@@ -278,9 +284,9 @@ impl IpsecConfigurator {
                     dir.as_str(),
                     "tmpl",
                     "src",
-                    &src,
+                    src,
                     "dst",
-                    &dst,
+                    dst,
                     "proto",
                     "esp",
                     "mode",
@@ -379,7 +385,7 @@ impl IpsecConfigurator {
     async fn cleanup_iptables(&self) {}
 
     // without this listener automatic IPSec decapsulation from UDP 4500 does not work
-    async fn start_udp_listener(&self) -> anyhow::Result<()> {
+    async fn start_udp_listener(&mut self) -> anyhow::Result<()> {
         let udp = tokio::net::UdpSocket::bind("0.0.0.0:4500").await?;
         let stype: libc::c_int = UDP_ENCAP_ESPINUDP;
         unsafe {
@@ -395,11 +401,24 @@ impl IpsecConfigurator {
             }
         }
 
+        let (tx, mut rx) = oneshot::channel();
+        self.stopper = Some(tx);
+
         tokio::spawn(async move {
             debug!("Listening for NAT-T packets on port 4500");
             let mut buf = [0u8; 1024];
-            while let Ok((size, from)) = udp.recv_from(&mut buf).await {
-                debug!("Received NON-ESP data from {}, length: {}", from, size);
+
+            loop {
+                tokio::select! {
+                    result = udp.recv_from(&mut buf) => {
+                        if let Ok((size, from)) = result {
+                            debug!("Received NON-ESP data from {}, length: {}", from, size);
+                        }
+                    }
+                    _ = &mut rx => {
+                        break;
+                    }
+                }
             }
         });
         Ok(())
