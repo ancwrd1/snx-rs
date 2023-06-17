@@ -52,6 +52,8 @@ async fn main() -> anyhow::Result<()> {
 
     debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
+    let (_tx, rx) = oneshot::channel();
+
     let fut: Pin<Box<dyn Future<Output = anyhow::Result<()>>>> = match mode {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
@@ -64,7 +66,6 @@ async fn main() -> anyhow::Result<()> {
             let connector = SnxTunnelConnector::new(&params);
             let session = connector.authenticate(None).await?;
 
-            let (_, rx) = oneshot::channel();
             let connected = Arc::new(AtomicBool::new(false));
 
             let tunnel = connector.create_tunnel(session).await?;
