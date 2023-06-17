@@ -27,11 +27,11 @@ fn translate<P: AsRef<[u8]>>(data: P) -> Vec<u8> {
         .collect::<Vec<u8>>()
 }
 
-pub fn encode_to_hex<P: AsRef<[u8]>>(data: P) -> String {
+pub fn snx_encrypt<P: AsRef<[u8]>>(data: P) -> String {
     hex::encode(translate(data))
 }
 
-pub fn decode_from_hex<D: AsRef<[u8]>>(data: D) -> anyhow::Result<Vec<u8>> {
+pub fn snx_decrypt<D: AsRef<[u8]>>(data: D) -> anyhow::Result<Vec<u8>> {
     let mut unhexed = hex::decode(data)?;
     unhexed.reverse();
 
@@ -65,13 +65,6 @@ where
     let mut command = Command::new(command.as_ref().as_os_str());
     command.envs(vec![("LANG", "C"), ("LC_ALL", "C")]).args(args);
 
-    // disable console window popup on Windows
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        command.creation_flags(0x08000000);
-    }
-
     // call setuid on macOS for privileged commands
     #[cfg(target_os = "macos")]
     {
@@ -90,10 +83,10 @@ mod tests {
     #[test]
     fn test_encode_decode() {
         let username = "testuser";
-        let secret = encode_to_hex(username.as_bytes());
+        let secret = snx_encrypt(username.as_bytes());
         assert_eq!(secret, "36203a333d372a59");
 
-        let decoded = decode_from_hex(secret.as_bytes()).unwrap();
+        let decoded = snx_decrypt(secret.as_bytes()).unwrap();
         assert_eq!(decoded, b"testuser");
     }
 }

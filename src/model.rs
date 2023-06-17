@@ -1,5 +1,4 @@
-use std::fmt;
-use std::net::Ipv4Addr;
+use std::{fmt, net::Ipv4Addr};
 
 use serde::{Deserialize, Serialize};
 

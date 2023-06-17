@@ -23,8 +23,8 @@ impl SnxHttpClient {
             },
             data: RequestData::Password(PasswordData {
                 client_type: self.0.tunnel_type.as_client_type().to_owned(),
-                username: util::encode_to_hex(&self.0.user_name),
-                password: util::encode_to_hex(&self.0.password),
+                username: util::snx_encrypt(&self.0.user_name),
+                password: util::snx_encrypt(&self.0.password),
                 client_logging_data: Some(ClientLoggingData {
                     // Checkpoint gateway checks this and if it's missing or not "Android" the IPSec traffic is blocked
                     os_name: Some("\"Android\"".to_string()),

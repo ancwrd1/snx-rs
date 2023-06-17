@@ -1,17 +1,30 @@
+use anyhow::anyhow;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 
+use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
-use crate::{
-    params::{TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
-    tunnel::SnxTunnelConnector,
-};
+use crate::{params::TunnelParams, tunnel::SnxTunnelConnector};
 
 const MAX_PACKET_SIZE: usize = 1_000_000;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+enum TunnelServiceRequest {
+    Connect(TunnelParams),
+    Disconnect,
+    GetStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+enum TunnelServiceResponse {
+    Ok,
+    Error(String),
+    ConnectionStatus(bool),
+}
 
 pub struct CommandServer {
     port: u16,
@@ -37,6 +50,7 @@ impl CommandServer {
         loop {
             let (size, addr) = socket.recv_from(&mut buf).await?;
             let resp = self.handle(&buf[0..size]).await;
+            debug!("Response: {:?}", resp);
             let json = serde_json::to_vec(&resp)?;
             let _ = socket.send_to(&json, addr).await;
         }
@@ -87,20 +101,27 @@ impl CommandServer {
             let (tx, rx) = oneshot::channel();
             self.stopper = Some(tx);
 
-            tokio::spawn(tunnel.run(rx, self.connected.clone()));
+            let connected = self.connected.clone();
+
+            tokio::spawn(async move {
+                if let Err(e) = tunnel.run(rx, connected.clone()).await {
+                    warn!("{}", e);
+                }
+                connected.store(false, Ordering::SeqCst);
+            });
+            Ok(())
         } else {
-            warn!("Tunnel is already connected");
+            Err(anyhow!("Tunnel is already connected!"))
         }
-        Ok(())
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
         if let Some(stopper) = self.stopper.take() {
             let _ = stopper.send(());
+            Ok(())
         } else {
-            debug!("Tunnel is already disconnected");
+            Err(anyhow!("Tunnel is already disconnected!"))
         }
-        Ok(())
     }
 
     async fn get_status(&self) -> anyhow::Result<bool> {

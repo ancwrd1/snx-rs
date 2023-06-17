@@ -49,8 +49,6 @@ impl SnxTunnel for SnxIpsecTunnel {
             }
         };
 
-        connected.store(false, Ordering::SeqCst);
-
         result
     }
 }

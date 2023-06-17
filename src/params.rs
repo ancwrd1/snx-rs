@@ -213,17 +213,3 @@ impl TunnelParams {
         }
     }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TunnelServiceRequest {
-    Connect(TunnelParams),
-    Disconnect,
-    GetStatus,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TunnelServiceResponse {
-    Ok,
-    Error(String),
-    ConnectionStatus(bool),
-}

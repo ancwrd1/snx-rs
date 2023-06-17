@@ -247,8 +247,6 @@ impl SnxTunnel for SnxSslTunnel {
             }
         }
 
-        connected.store(false, Ordering::SeqCst);
-
         Ok(())
     }
 }

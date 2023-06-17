@@ -46,7 +46,7 @@ impl SnxTunnelConnector {
         };
 
         let session_id = data.session_id.unwrap_or_default();
-        let cookie = util::decode_from_hex(active_key.as_bytes())?;
+        let cookie = util::snx_decrypt(active_key.as_bytes())?;
         let cookie = String::from_utf8_lossy(&cookie).into_owned();
 
         debug!("Authentication OK, session id: {session_id}");
@@ -54,7 +54,7 @@ impl SnxTunnelConnector {
         Ok(SnxSession { session_id, cookie })
     }
 
-    pub async fn create_tunnel(&self, session: SnxSession) -> anyhow::Result<Box<dyn SnxTunnel>> {
+    pub async fn create_tunnel(&self, session: SnxSession) -> anyhow::Result<Box<dyn SnxTunnel + Send>> {
         match self.0.tunnel_type {
             TunnelType::Ssl => Ok(Box::new(SnxSslTunnel::create(self.0.clone(), session).await?)),
             TunnelType::Ipsec => Ok(Box::new(SnxIpsecTunnel::create(self.0.clone(), session).await?)),
