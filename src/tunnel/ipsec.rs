@@ -13,8 +13,8 @@ use crate::{
 pub(crate) struct SnxIpsecTunnel(IpsecConfigurator);
 
 impl SnxIpsecTunnel {
-    pub(crate) async fn create(params: TunnelParams, session: SnxSession) -> anyhow::Result<Self> {
-        let client = SnxHttpClient::new(&params);
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: SnxSession) -> anyhow::Result<Self> {
+        let client = SnxHttpClient::new(params.clone());
         let client_settings = client.get_client_settings(&session.session_id).await?;
         debug!("Client settings: {:?}", client_settings);
 

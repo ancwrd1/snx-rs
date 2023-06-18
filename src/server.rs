@@ -69,7 +69,7 @@ impl CommandServer {
         match req {
             TunnelServiceRequest::Connect(params) => {
                 debug!("Handling connect command");
-                match self.connect(params).await {
+                match self.connect(Arc::new(params)).await {
                     Ok(_) => TunnelServiceResponse::Ok,
                     Err(e) => TunnelServiceResponse::Error(e.to_string()),
                 }
@@ -91,9 +91,9 @@ impl CommandServer {
         }
     }
 
-    async fn connect(&mut self, params: TunnelParams) -> anyhow::Result<()> {
+    async fn connect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<()> {
         if !self.connected.load(Ordering::SeqCst) {
-            let connector = SnxTunnelConnector::new(&params);
+            let connector = SnxTunnelConnector::new(params.clone());
             let session = connector.authenticate(None).await?;
 
             let tunnel = connector.create_tunnel(session).await?;

@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
+};
 
 use anyhow::anyhow;
 
@@ -6,11 +9,11 @@ use crate::{model::*, params::TunnelParams, sexpr, util};
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 
-pub struct SnxHttpClient(TunnelParams);
+pub struct SnxHttpClient(Arc<TunnelParams>);
 
 impl SnxHttpClient {
-    pub fn new(params: &TunnelParams) -> Self {
-        Self(params.clone())
+    pub fn new(params: Arc<TunnelParams>) -> Self {
+        Self(params)
     }
 
     fn new_auth_request(&self, session_id: Option<&str>) -> CccClientRequest {

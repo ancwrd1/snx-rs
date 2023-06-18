@@ -24,16 +24,16 @@ pub trait SnxTunnel {
     ) -> anyhow::Result<()>;
 }
 
-pub struct SnxTunnelConnector(TunnelParams);
+pub struct SnxTunnelConnector(Arc<TunnelParams>);
 
 impl SnxTunnelConnector {
-    pub fn new(params: &TunnelParams) -> Self {
-        Self(params.clone())
+    pub fn new(params: Arc<TunnelParams>) -> Self {
+        Self(params)
     }
 
     pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<SnxSession> {
         debug!("Connecting to http endpoint: {}", self.0.server_name);
-        let client = SnxHttpClient::new(&self.0);
+        let client = SnxHttpClient::new(self.0.clone());
 
         let data = client.authenticate(session_id).await?;
 

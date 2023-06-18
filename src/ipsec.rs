@@ -1,6 +1,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
     os::fd::AsRawFd,
+    sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -75,7 +76,7 @@ fn make_keepalive_packet() -> [u8; 84] {
 }
 
 pub struct IpsecConfigurator {
-    tunnel_params: TunnelParams,
+    tunnel_params: Arc<TunnelParams>,
     ipsec_params: IpsecResponseData,
     client_settings: ClientSettingsResponseData,
     source_ip: Ipv4Addr,
@@ -85,7 +86,7 @@ pub struct IpsecConfigurator {
 
 impl IpsecConfigurator {
     pub fn new(
-        tunnel_params: TunnelParams,
+        tunnel_params: Arc<TunnelParams>,
         ipsec_params: IpsecResponseData,
         client_settings: ClientSettingsResponseData,
     ) -> Self {

@@ -62,7 +62,7 @@ where
 }
 
 pub(crate) struct SnxSslTunnel {
-    params: TunnelParams,
+    params: Arc<TunnelParams>,
     session: SnxSession,
     auth_timeout: Duration,
     keepalive: Duration,
@@ -73,7 +73,7 @@ pub(crate) struct SnxSslTunnel {
 }
 
 impl SnxSslTunnel {
-    pub(crate) async fn create(params: TunnelParams, session: SnxSession) -> anyhow::Result<Self> {
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: SnxSession) -> anyhow::Result<Self> {
         let tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
 
         let tls: tokio_native_tls::TlsConnector = TlsConnector::builder().build()?.into();
@@ -152,7 +152,7 @@ impl SnxSslTunnel {
     }
 
     async fn reauth(&mut self) -> anyhow::Result<()> {
-        let connector = SnxTunnelConnector::new(&self.params);
+        let connector = SnxTunnelConnector::new(self.params.clone());
 
         let session = connector.authenticate(Some(&self.session.session_id)).await?;
 

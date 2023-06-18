@@ -41,6 +41,8 @@ async fn main() -> anyhow::Result<()> {
     params.password =
         String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?).into_owned();
 
+    let params = Arc::new(params);
+
     if !is_root() {
         return Err(anyhow!("Please run me as a root user!"));
     }
@@ -63,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
                 ));
             }
 
-            let connector = SnxTunnelConnector::new(&params);
+            let connector = SnxTunnelConnector::new(params.clone());
             let session = connector.authenticate(None).await?;
 
             let connected = Arc::new(AtomicBool::new(false));
