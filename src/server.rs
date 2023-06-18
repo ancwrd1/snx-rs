@@ -94,7 +94,7 @@ impl CommandServer {
     async fn connect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<()> {
         if !self.connected.load(Ordering::SeqCst) {
             let connector = SnxTunnelConnector::new(params.clone());
-            let session = connector.authenticate(None).await?;
+            let session = Arc::new(connector.authenticate(None).await?);
 
             let tunnel = connector.create_tunnel(session).await?;
 

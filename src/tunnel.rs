@@ -54,7 +54,7 @@ impl SnxTunnelConnector {
         Ok(SnxSession { session_id, cookie })
     }
 
-    pub async fn create_tunnel(&self, session: SnxSession) -> anyhow::Result<Box<dyn SnxTunnel + Send>> {
+    pub async fn create_tunnel(&self, session: Arc<SnxSession>) -> anyhow::Result<Box<dyn SnxTunnel + Send>> {
         match self.0.tunnel_type {
             TunnelType::Ssl => Ok(Box::new(SnxSslTunnel::create(self.0.clone(), session).await?)),
             TunnelType::Ipsec => Ok(Box::new(SnxIpsecTunnel::create(self.0.clone(), session).await?)),

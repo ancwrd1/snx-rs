@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let connector = SnxTunnelConnector::new(params.clone());
-            let session = connector.authenticate(None).await?;
+            let session = Arc::new(connector.authenticate(None).await?);
 
             let connected = Arc::new(AtomicBool::new(false));
 
