@@ -75,7 +75,7 @@ fn make_keepalive_packet() -> [u8; 84] {
     data
 }
 
-pub struct IpsecConfigurator {
+pub struct XfrmConfigurator {
     tunnel_params: Arc<TunnelParams>,
     ipsec_params: IpsecResponseData,
     client_settings: ClientSettingsResponseData,
@@ -84,7 +84,7 @@ pub struct IpsecConfigurator {
     stopper: Option<oneshot::Sender<()>>,
 }
 
-impl IpsecConfigurator {
+impl XfrmConfigurator {
     pub fn new(
         tunnel_params: Arc<TunnelParams>,
         ipsec_params: IpsecResponseData,

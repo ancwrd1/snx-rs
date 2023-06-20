@@ -7,10 +7,10 @@ use tokio::sync::oneshot;
 use tracing::debug;
 
 use crate::{
-    http::SnxHttpClient, ipsec::IpsecConfigurator, model::SnxSession, params::TunnelParams, tunnel::SnxTunnel,
+    http::SnxHttpClient, xfrm::XfrmConfigurator, model::SnxSession, params::TunnelParams, tunnel::SnxTunnel,
 };
 
-pub(crate) struct SnxIpsecTunnel(IpsecConfigurator);
+pub(crate) struct SnxIpsecTunnel(XfrmConfigurator);
 
 impl SnxIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<Self> {
@@ -19,7 +19,7 @@ impl SnxIpsecTunnel {
         debug!("Client settings: {:?}", client_settings);
 
         let ipsec_params = client.get_ipsec_tunnel_params(&session.session_id).await?;
-        let mut configurator = IpsecConfigurator::new(params, ipsec_params, client_settings);
+        let mut configurator = XfrmConfigurator::new(params, ipsec_params, client_settings);
         configurator.configure().await?;
 
         Ok(Self(configurator))
