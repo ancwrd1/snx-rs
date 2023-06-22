@@ -385,7 +385,8 @@ impl XfrmConfigurator {
 
     async fn cleanup_iptables(&self) {}
 
-    // without this listener automatic IPSec decapsulation from UDP 4500 does not work
+    // start a dummy UDP listener on port 4500 with UDP_ENCAP option.
+    // this is necessary in order to perform automatic decapsulation of incoming ESP packets
     async fn start_udp_listener(&mut self) -> anyhow::Result<()> {
         let udp = tokio::net::UdpSocket::bind("0.0.0.0:4500").await?;
         let stype: libc::c_int = UDP_ENCAP_ESPINUDP;
