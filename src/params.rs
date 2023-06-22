@@ -37,7 +37,7 @@ pub struct CmdlineParams {
         long = "mode",
         short = 'm',
         default_value = "standalone",
-        help = "Operation mode one of: standalone, command"
+        help = "Operation mode, one of: standalone, command"
     )]
     pub mode: OperationMode,
 
@@ -57,7 +57,11 @@ pub struct CmdlineParams {
     )]
     pub log_level: Option<LevelFilter>,
 
-    #[clap(long = "reauth", short = 'r', help = "Enable automatic re-authentication")]
+    #[clap(
+        long = "reauth",
+        short = 'r',
+        help = "Enable automatic re-authentication, SSL tunnel only"
+    )]
     pub reauth: Option<bool>,
 
     #[clap(long = "search-domains", short = 'd', help = "Additional search domains")]
