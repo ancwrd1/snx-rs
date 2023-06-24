@@ -1,6 +1,6 @@
+use std::sync::{atomic::AtomicBool, Arc};
+
 use anyhow::anyhow;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
