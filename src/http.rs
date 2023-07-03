@@ -4,6 +4,7 @@ use std::sync::{
 };
 
 use anyhow::anyhow;
+use reqwest::Certificate;
 
 use crate::{model::*, params::TunnelParams, sexpr, util};
 
@@ -85,7 +86,15 @@ impl SnxHttpClient {
 
     async fn send_request(&self, req: CccClientRequest) -> anyhow::Result<CccServerResponse> {
         let expr = sexpr::encode(CccClientRequest::NAME, req)?;
-        let client = reqwest::Client::new();
+
+        let mut builder = reqwest::Client::builder();
+        if let Some(ref ca_cert) = self.0.ca_cert {
+            let data = tokio::fs::read(ca_cert).await?;
+            let cert = Certificate::from_pem(&data).or_else(|_| Certificate::from_der(&data))?;
+            builder = builder.add_root_certificate(cert);
+        }
+
+        let client = builder.build()?;
 
         let req = client
             .post(format!("https://{}/clients/", self.0.server_name))

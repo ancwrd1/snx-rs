@@ -82,6 +82,9 @@ pub struct CmdlineParams {
 
     #[clap(long = "tunnel-type", short = 'e', help = "Tunnel type, one of: ssl, ipsec")]
     pub tunnel_type: Option<TunnelType>,
+
+    #[clap(long = "ca-cert", short = 'k', help = "Custom CA cert file in PEM or DER format")]
+    pub ca_cert: Option<PathBuf>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -124,6 +127,7 @@ pub struct TunnelParams {
     pub no_routing: bool,
     pub no_dns: bool,
     pub tunnel_type: TunnelType,
+    pub ca_cert: Option<PathBuf>,
 }
 
 impl Default for TunnelParams {
@@ -139,6 +143,7 @@ impl Default for TunnelParams {
             no_routing: false,
             no_dns: false,
             tunnel_type: TunnelType::Ssl,
+            ca_cert: None,
         }
     }
 }
@@ -165,6 +170,7 @@ impl TunnelParams {
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
+                        "ca-cert" => params.ca_cert = Some(v.into()),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -214,6 +220,10 @@ impl TunnelParams {
 
         if let Some(tunnel_type) = other.tunnel_type {
             self.tunnel_type = tunnel_type;
+        }
+
+        if let Some(ca_cert) = other.ca_cert {
+            self.ca_cert = Some(ca_cert);
         }
     }
 }
