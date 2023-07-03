@@ -15,7 +15,7 @@ use tokio::{
     io::{AsyncRead, AsyncWrite},
     sync::oneshot,
 };
-use tokio_native_tls::native_tls::TlsConnector;
+use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
@@ -76,7 +76,15 @@ impl SnxSslTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<Self> {
         let tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
 
-        let tls: tokio_native_tls::TlsConnector = TlsConnector::builder().build()?.into();
+        let mut builder = TlsConnector::builder();
+
+        if let Some(ref ca_cert) = params.ca_cert {
+            let data = tokio::fs::read(ca_cert).await?;
+            let cert = Certificate::from_pem(&data).or_else(|_| Certificate::from_der(&data))?;
+            builder.add_root_certificate(cert);
+        }
+
+        let tls: tokio_native_tls::TlsConnector = builder.build()?.into();
         let stream = tls.connect(params.server_name.as_str(), tcp).await?;
 
         let (sender, receiver) = make_channel(stream);
