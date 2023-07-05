@@ -88,10 +88,15 @@ impl SnxHttpClient {
         let expr = sexpr::encode(CccClientRequest::NAME, req)?;
 
         let mut builder = reqwest::Client::builder();
+
         if let Some(ref ca_cert) = self.0.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;
             let cert = Certificate::from_pem(&data).or_else(|_| Certificate::from_der(&data))?;
             builder = builder.add_root_certificate(cert);
+        }
+
+        if self.0.no_cert_check {
+            builder = builder.danger_accept_invalid_hostnames(true);
         }
 
         let client = builder.build()?;
@@ -101,13 +106,17 @@ impl SnxHttpClient {
             .body(expr)
             .build()?;
 
-        let bytes = client.execute(req).await?.error_for_status()?.bytes().await?;
+        let reply = client.execute(req).await?.error_for_status()?.text().await?;
 
-        let s_bytes = String::from_utf8_lossy(&bytes);
+        let (_, server_response) = sexpr::decode::<_, CccServerResponse>(&reply)?;
 
-        let (_, server_response) = sexpr::decode::<_, CccServerResponse>(&s_bytes)?;
-
-        Ok(server_response)
+        match server_response.data {
+            ResponseData::Other(_) => Err(anyhow!(
+                "Invalid request, error code: {}",
+                server_response.header.return_code
+            )),
+            _ => Ok(server_response),
+        }
     }
 
     pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<AuthResponseData> {

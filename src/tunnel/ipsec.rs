@@ -6,9 +6,7 @@ use std::sync::{
 use tokio::sync::oneshot;
 use tracing::debug;
 
-use crate::{
-    http::SnxHttpClient, xfrm::XfrmConfigurator, model::SnxSession, params::TunnelParams, tunnel::SnxTunnel,
-};
+use crate::{http::SnxHttpClient, model::SnxSession, params::TunnelParams, tunnel::SnxTunnel, xfrm::XfrmConfigurator};
 
 pub(crate) struct SnxIpsecTunnel(XfrmConfigurator);
 

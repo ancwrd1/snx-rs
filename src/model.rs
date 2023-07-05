@@ -215,6 +215,7 @@ pub enum ResponseData {
     Ipsec(IpsecResponseData),
     ClientSettings(ClientSettingsResponseData),
     LocationAwareness(LocationAwarenessResponseData),
+    Other(String),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

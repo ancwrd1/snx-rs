@@ -80,6 +80,13 @@ pub struct CmdlineParams {
     #[clap(long = "no-dns", short = 'N', help = "Do not change DNS resolver configuration")]
     pub no_dns: Option<bool>,
 
+    #[clap(
+        long = "no-cert-check",
+        short = 'H',
+        help = "Do not validate server common name in the certificate"
+    )]
+    pub no_cert_check: Option<bool>,
+
     #[clap(long = "tunnel-type", short = 'e', help = "Tunnel type, one of: ssl, ipsec")]
     pub tunnel_type: Option<TunnelType>,
 
@@ -97,7 +104,7 @@ pub enum TunnelType {
 impl TunnelType {
     pub fn as_client_type(&self) -> &'static str {
         match self {
-            TunnelType::Ssl => "TRAC",
+            TunnelType::Ssl => "SYMBIAN",
             TunnelType::Ipsec => "SYMBIAN",
         }
     }
@@ -126,6 +133,7 @@ pub struct TunnelParams {
     pub default_route: bool,
     pub no_routing: bool,
     pub no_dns: bool,
+    pub no_cert_check: bool,
     pub tunnel_type: TunnelType,
     pub ca_cert: Option<PathBuf>,
 }
@@ -142,6 +150,7 @@ impl Default for TunnelParams {
             default_route: false,
             no_routing: false,
             no_dns: false,
+            no_cert_check: false,
             tunnel_type: TunnelType::Ssl,
             ca_cert: None,
         }
@@ -169,6 +178,7 @@ impl TunnelParams {
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
+                        "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                         "ca-cert" => params.ca_cert = Some(v.into()),
                         other => {
