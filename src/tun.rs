@@ -62,10 +62,10 @@ impl TunDevice {
 
         if !params.no_dns {
             if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-                debug!("Adding acquired DNS suffixes: {suffixes}");
+                debug!("Adding acquired DNS suffixes: {}", suffixes.0);
                 debug!("Adding provided DNS suffixes: {:?}", params.search_domains);
                 let suffixes = suffixes
-                    .trim_matches('"')
+                    .0
                     .split(',')
                     .chain(params.search_domains.iter().map(|s| s.as_ref()));
                 let _ = crate::net::add_dns_suffixes(suffixes, &self.dev_name).await;

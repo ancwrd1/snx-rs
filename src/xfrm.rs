@@ -10,7 +10,7 @@ use tokio::sync::oneshot;
 use tracing::{debug, trace};
 
 use crate::{
-    model::{ClientSettingsResponseData, IpsecKey, IpsecResponseData},
+    model::{ClientSettingsResponseData, IpsecSA, IpsecResponseData},
     params::TunnelParams,
     util,
 };
@@ -221,7 +221,7 @@ impl XfrmConfigurator {
         command: CommandType,
         src: &str,
         dst: &str,
-        params: &IpsecKey,
+        params: &IpsecSA,
     ) -> anyhow::Result<()> {
         let spi = format!("0x{:x}", params.spi);
 
@@ -229,6 +229,10 @@ impl XfrmConfigurator {
             CommandType::Add =>
             // out state
             {
+                let authkey = format!("0x{}", params.authkey.0);
+                let enckey = format!("0x{}", params.enckey.0);
+                let trunc_len = self.ipsec_params.authalg.trunc_length().to_string();
+
                 self.iproute2(&[
                     "xfrm",
                     "state",
@@ -246,12 +250,12 @@ impl XfrmConfigurator {
                     "flag",
                     "af-unspec",
                     "auth-trunc",
-                    "sha256",
-                    &params.authkey,
-                    "128",
+                    self.ipsec_params.authalg.as_xfrm_name(),
+                    &authkey,
+                    &trunc_len,
                     "enc",
-                    "aes",
-                    &params.enckey,
+                    self.ipsec_params.encalg.as_xfrm_name(),
+                    &enckey,
                     "encap",
                     "espinudp",
                     "4500",
@@ -348,12 +352,12 @@ impl XfrmConfigurator {
 
     async fn setup_dns(&self) -> anyhow::Result<()> {
         if !self.tunnel_params.no_dns {
-            debug!("Adding acquired DNS suffixes: {}", self.ipsec_params.om_domain_name);
+            debug!("Adding acquired DNS suffixes: {}", self.ipsec_params.om_domain_name.0);
             debug!("Adding provided DNS suffixes: {:?}", self.tunnel_params.search_domains);
             let suffixes = self
                 .ipsec_params
                 .om_domain_name
-                .trim_matches('"')
+                .0
                 .split(',')
                 .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()));
             let _ = crate::net::add_dns_suffixes(suffixes, VTI_NAME).await;

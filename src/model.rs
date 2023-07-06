@@ -92,7 +92,7 @@ impl<'de> Deserialize<'de> for EncryptedString {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let decrypted = crate::util::snx_decrypt(s.as_bytes()).map_err(|e| serde::de::Error::custom(e))?;
+        let decrypted = crate::util::snx_decrypt(s.as_bytes()).map_err(serde::de::Error::custom)?;
         Ok(Self(String::from_utf8_lossy(&decrypted).into_owned()))
     }
 }
@@ -116,6 +116,53 @@ impl<'a> From<&'a str> for EncryptedString {
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
+pub struct HexKey(pub String);
+
+impl HexKey {
+    fn revert(s: &str) -> String {
+        let mut enckey = hex::decode(s).unwrap_or_default();
+        enckey.reverse();
+        hex::encode(enckey)
+    }
+}
+
+impl Serialize for HexKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Self::revert(&self.0).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for HexKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self(Self::revert(&String::deserialize(deserializer)?)))
+    }
+}
+
+impl From<String> for HexKey {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<HexKey> for String {
+    fn from(value: HexKey) -> Self {
+        value.0
+    }
+}
+
+impl<'a> From<&'a str> for HexKey {
+    fn from(value: &'a str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct SnxSession {
     pub session_id: String,
     pub cookie: String,
@@ -126,7 +173,7 @@ pub struct OfficeMode {
     pub ipaddr: String,
     pub keep_address: Option<bool>,
     pub dns_servers: Option<Vec<String>>,
-    pub dns_suffix: Option<String>,
+    pub dns_suffix: Option<QuotedString>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -313,8 +360,8 @@ pub struct AuthResponseData {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct IpsecResponseData {
-    pub client_encsa: IpsecKey,
-    pub client_decsa: IpsecKey,
+    pub client_encsa: IpsecSA,
+    pub client_decsa: IpsecSA,
     pub om_addr: u32,
     pub om_subnet_mask: u32,
     pub om_nbns0: u32,
@@ -323,18 +370,18 @@ pub struct IpsecResponseData {
     pub om_dns0: u32,
     pub om_dns1: u32,
     pub om_dns2: u32,
-    pub om_domain_name: String,
+    pub om_domain_name: QuotedString,
     pub lifetime: u64,
-    pub encalg: String,
-    pub authalg: String,
+    pub encalg: EncryptionAlgorithm,
+    pub authalg: AuthenticationAlgorithm,
     pub nattport: u16,
     pub udpencapsulation: bool,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct IpsecKey {
-    pub enckey: String,
-    pub authkey: String,
+pub struct IpsecSA {
+    pub enckey: HexKey,
+    pub authkey: HexKey,
     pub spi: u32,
 }
 
@@ -358,24 +405,6 @@ pub struct Range {
 pub struct LocationAwarenessResponseData {
     pub location: String,
     pub source_ip: String,
-}
-
-impl IpsecKey {
-    pub fn decode(&self) -> Self {
-        let mut enckey = hex::decode(&self.enckey).unwrap_or_default();
-        enckey.reverse();
-        let enckey = format!("0x{}", hex::encode(enckey));
-
-        let mut authkey = hex::decode(&self.authkey).unwrap_or_default();
-        authkey.reverse();
-        let authkey = format!("0x{}", hex::encode(authkey));
-
-        Self {
-            enckey,
-            authkey,
-            spi: self.spi,
-        }
-    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -442,6 +471,88 @@ impl FromStr for LoginType {
             "emergency-access" => Ok(Self::EmergencyAccess),
             "sso-azure" => Ok(Self::SsoAzure),
             other => Err(anyhow!("Unknown login type: {}", other)),
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
+pub enum EncryptionAlgorithm {
+    #[default]
+    Aes256Cbc,
+}
+
+impl EncryptionAlgorithm {
+    pub fn as_xfrm_name(&self) -> &'static str {
+        match self {
+            Self::Aes256Cbc => "aes",
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for EncryptionAlgorithm {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match String::deserialize(deserializer)?.as_str() {
+            "AES-256" => Ok(Self::Aes256Cbc),
+            _ => Err(serde::de::Error::custom("Unsupported encryption algorithm!")),
+        }
+    }
+}
+
+impl Serialize for EncryptionAlgorithm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Aes256Cbc => String::from("AES-256").serialize(serializer),
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
+pub enum AuthenticationAlgorithm {
+    #[default]
+    HmacSha256,
+}
+
+impl AuthenticationAlgorithm {
+    pub fn as_xfrm_name(&self) -> &'static str {
+        match self {
+            Self::HmacSha256 => "sha256",
+        }
+    }
+
+    pub fn trunc_length(&self) -> u32 {
+        match self {
+            Self::HmacSha256 => 128,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for AuthenticationAlgorithm {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match String::deserialize(deserializer)?.as_str() {
+            "SHA256" => Ok(Self::HmacSha256),
+            _ => Err(serde::de::Error::custom("Unsupported authentication algorithm!")),
+        }
+    }
+}
+
+impl Serialize for AuthenticationAlgorithm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::HmacSha256 => String::from("SHA256").serialize(serializer),
         }
     }
 }
