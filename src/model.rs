@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+use std::str::FromStr;
 use std::{fmt, net::Ipv4Addr};
 
 use serde::{Deserialize, Serialize};
@@ -324,5 +326,42 @@ impl DisconnectRequest {
 impl From<DisconnectRequest> for SnxPacket {
     fn from(value: DisconnectRequest) -> Self {
         SnxPacket::control(DisconnectRequest::NAME, value)
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum LoginType {
+    Password,
+    PasswordWithMfa,
+    #[default]
+    PasswordWithMsAuth,
+    EmergencyAccess,
+    SsoAzure,
+}
+
+impl LoginType {
+    pub fn as_login_option(&self) -> &'static str {
+        match self {
+            Self::Password => "vpn_Username_Password",
+            Self::PasswordWithMfa => "vpn",
+            Self::PasswordWithMsAuth => "vpn_Microsoft_Authenticator",
+            Self::EmergencyAccess => "vpn_Emergency_Access",
+            Self::SsoAzure => "vpn_Azure_Authentication",
+        }
+    }
+}
+
+impl FromStr for LoginType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "password" => Ok(Self::Password),
+            "password-mfa" => Ok(Self::PasswordWithMfa),
+            "password-ms-auth" => Ok(Self::PasswordWithMsAuth),
+            "emergency-access" => Ok(Self::EmergencyAccess),
+            "sso-azure" => Ok(Self::SsoAzure),
+            other => Err(anyhow!("Unknown login type: {}", other)),
+        }
     }
 }

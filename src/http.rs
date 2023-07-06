@@ -34,7 +34,8 @@ impl SnxHttpClient {
                     os_name: Some("\"Android\"".to_string()),
                     ..Default::default()
                 }),
-                ..Default::default()
+                selected_login_option: Some(self.0.login_type.as_login_option().to_owned()),
+                endpoint_os: None,
             }),
         }
     }
