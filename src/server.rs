@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
-use crate::{params::TunnelParams, tunnel::SnxTunnelConnector};
+use crate::{model::params::TunnelParams, tunnel::SnxTunnelConnector};
 
 const MAX_PACKET_SIZE: usize = 1_000_000;
 

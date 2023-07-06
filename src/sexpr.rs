@@ -144,7 +144,7 @@ fn parse_array(pairs: RulePairs) -> anyhow::Result<Value> {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::{CccClientRequest, CccServerResponse, ClientHello, HelloReply};
+    use crate::model::snx::{CccClientRequest, CccServerResponse, ClientHello, HelloReply};
 
     use super::*;
 

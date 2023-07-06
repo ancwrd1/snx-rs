@@ -2,7 +2,6 @@ pub mod codec;
 pub mod http;
 pub mod model;
 pub mod net;
-pub mod params;
 pub mod server;
 pub mod sexpr;
 pub mod tun;

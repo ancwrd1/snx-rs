@@ -6,8 +6,10 @@ use tracing::{debug, warn};
 
 use crate::{
     http::SnxHttpClient,
-    model::*,
-    params::{TunnelParams, TunnelType},
+    model::{
+        params::{TunnelParams, TunnelType},
+        *,
+    },
     tunnel::{ipsec::SnxIpsecTunnel, ssl::SnxSslTunnel},
 };
 

@@ -11,7 +11,7 @@ mod linux {
     use ipnet::Ipv4Subnets;
     use tracing::debug;
 
-    use crate::model::NetworkRange;
+    use crate::model::snx::NetworkRange;
 
     pub async fn get_default_ip() -> anyhow::Result<String> {
         let result = crate::util::run_command("ip", ["route", "show", "default"]).await?;
@@ -90,7 +90,7 @@ mod macos {
     use ipnet::Ipv4Subnets;
     use tracing::debug;
 
-    use crate::model::NetworkRange;
+    use crate::model::snx::NetworkRange;
 
     pub async fn add_route(range: &NetworkRange, _device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
         let ip_str = ipaddr.to_string();

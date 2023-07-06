@@ -3,7 +3,7 @@ use std::net::Ipv4Addr;
 use tracing::debug;
 use tun::Device;
 
-use crate::{model::HelloReply, params::TunnelParams};
+use crate::{model::params::TunnelParams, model::snx::HelloReply};
 
 pub struct TunDevice {
     inner: tun::AsyncDevice,

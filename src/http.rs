@@ -7,7 +7,10 @@ use std::sync::{
 use anyhow::anyhow;
 use reqwest::Certificate;
 
-use crate::{model::*, params::TunnelParams, sexpr};
+use crate::{
+    model::{params::TunnelParams, snx::*},
+    sexpr,
+};
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 

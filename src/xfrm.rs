@@ -10,8 +10,10 @@ use tokio::sync::oneshot;
 use tracing::{debug, trace};
 
 use crate::{
-    model::{ClientSettingsResponseData, IpsecSA, IpsecResponseData},
-    params::TunnelParams,
+    model::{
+        params::TunnelParams,
+        snx::{ClientSettingsResponseData, IpsecResponseData, IpsecSA},
+    },
     util,
 };
 

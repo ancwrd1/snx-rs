@@ -21,8 +21,7 @@ use tun::TunPacket;
 
 use crate::{
     codec::SnxCodec,
-    model::*,
-    params::TunnelParams,
+    model::{params::TunnelParams, snx::*, *},
     tun::TunDevice,
     tunnel::{SnxTunnel, SnxTunnelConnector},
 };

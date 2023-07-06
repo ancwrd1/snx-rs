@@ -8,12 +8,11 @@ use anyhow::anyhow;
 use base64::Engine;
 use clap::Parser;
 use futures::pin_mut;
-use tokio::signal::unix;
-use tokio::sync::oneshot;
+use tokio::{signal::unix, sync::oneshot};
 use tracing::{debug, metadata::LevelFilter};
 
 use snx_rs::{
-    params::{CmdlineParams, OperationMode, TunnelParams},
+    model::params::{CmdlineParams, OperationMode, TunnelParams},
     server::CommandServer,
     tunnel::SnxTunnelConnector,
 };
