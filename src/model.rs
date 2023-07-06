@@ -75,9 +75,9 @@ impl<'a> From<&'a str> for QuotedString {
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
-pub struct EncryptedString(pub String);
+pub struct SecretKey(pub String);
 
-impl Serialize for EncryptedString {
+impl Serialize for SecretKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -86,7 +86,7 @@ impl Serialize for EncryptedString {
     }
 }
 
-impl<'de> Deserialize<'de> for EncryptedString {
+impl<'de> Deserialize<'de> for SecretKey {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -97,19 +97,19 @@ impl<'de> Deserialize<'de> for EncryptedString {
     }
 }
 
-impl From<String> for EncryptedString {
+impl From<String> for SecretKey {
     fn from(value: String) -> Self {
         Self(value)
     }
 }
 
-impl From<EncryptedString> for String {
-    fn from(value: EncryptedString) -> Self {
+impl From<SecretKey> for String {
+    fn from(value: SecretKey) -> Self {
         value.0
     }
 }
 
-impl<'a> From<&'a str> for EncryptedString {
+impl<'a> From<&'a str> for SecretKey {
     fn from(value: &'a str) -> Self {
         Self(value.to_owned())
     }
@@ -271,8 +271,8 @@ pub struct RequestHeader {
 pub struct PasswordData {
     pub client_type: String,
     pub endpoint_os: Option<String>,
-    pub username: EncryptedString,
-    pub password: EncryptedString,
+    pub username: SecretKey,
+    pub password: SecretKey,
     pub client_logging_data: Option<ClientLoggingData>,
     #[serde(rename = "selectedLoginOption")]
     pub selected_login_option: Option<String>,
@@ -313,9 +313,9 @@ pub struct PoliciesAndVersions {
     pub nemo_client_1: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LocationAwarenessData {
-    pub source_ip: String,
+    pub source_ip: Ipv4Addr,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -351,7 +351,7 @@ pub enum ResponseData {
 pub struct AuthResponseData {
     pub authn_status: String,
     pub is_authenticated: bool,
-    pub active_key: Option<EncryptedString>,
+    pub active_key: Option<SecretKey>,
     pub server_fingerprint: Option<String>,
     pub server_cn: Option<String>,
     pub session_id: Option<String>,

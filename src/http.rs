@@ -1,3 +1,4 @@
+use std::net::Ipv4Addr;
 use std::sync::{
     atomic::{AtomicU32, Ordering},
     Arc,
@@ -71,7 +72,7 @@ impl SnxHttpClient {
         }
     }
 
-    fn new_location_awareness_request(&self, source_ip: &str) -> CccClientRequest {
+    fn new_location_awareness_request(&self, source_ip: Ipv4Addr) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
@@ -79,9 +80,7 @@ impl SnxHttpClient {
                 session_id: String::new(),
                 protocol_version: Some(100),
             },
-            data: RequestData::LocationAwareness(LocationAwarenessData {
-                source_ip: source_ip.to_owned(),
-            }),
+            data: RequestData::LocationAwareness(LocationAwarenessData { source_ip }),
         }
     }
 
@@ -147,7 +146,7 @@ impl SnxHttpClient {
         }
     }
 
-    pub async fn get_external_ip(&self, source_ip: &str) -> anyhow::Result<LocationAwarenessResponseData> {
+    pub async fn get_external_ip(&self, source_ip: Ipv4Addr) -> anyhow::Result<LocationAwarenessResponseData> {
         let server_response = self
             .send_request(self.new_location_awareness_request(source_ip))
             .await?;
