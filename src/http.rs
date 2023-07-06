@@ -6,7 +6,7 @@ use std::sync::{
 use anyhow::anyhow;
 use reqwest::Certificate;
 
-use crate::{model::*, params::TunnelParams, sexpr, util};
+use crate::{model::*, params::TunnelParams, sexpr};
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 
@@ -27,11 +27,11 @@ impl SnxHttpClient {
             },
             data: RequestData::Password(PasswordData {
                 client_type: self.0.tunnel_type.as_client_type().to_owned(),
-                username: util::snx_encrypt(&self.0.user_name),
-                password: util::snx_encrypt(&self.0.password),
+                username: self.0.user_name.as_str().into(),
+                password: self.0.password.as_str().into(),
                 client_logging_data: Some(ClientLoggingData {
                     // Checkpoint gateway checks this and if it's missing or not "Android" the IPSec traffic is blocked
-                    os_name: Some("\"Android\"".to_string()),
+                    os_name: Some("Android".into()),
                     ..Default::default()
                 }),
                 selected_login_option: Some(self.0.login_type.as_login_option().to_owned()),

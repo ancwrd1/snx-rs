@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use std::str::FromStr;
 use std::{fmt, net::Ipv4Addr};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub enum SnxPacket {
     Control(String, serde_json::Value),
@@ -32,6 +32,86 @@ impl SnxPacket {
 impl From<Vec<u8>> for SnxPacket {
     fn from(value: Vec<u8>) -> Self {
         SnxPacket::Data(value)
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct QuotedString(pub String);
+
+impl Serialize for QuotedString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        format!("\"{}\"", self.0).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for QuotedString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self(String::deserialize(deserializer)?.trim_matches('"').to_owned()))
+    }
+}
+
+impl From<String> for QuotedString {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<QuotedString> for String {
+    fn from(value: QuotedString) -> Self {
+        value.0
+    }
+}
+
+impl<'a> From<&'a str> for QuotedString {
+    fn from(value: &'a str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct EncryptedString(pub String);
+
+impl Serialize for EncryptedString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        crate::util::snx_encrypt(self.0.as_bytes()).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for EncryptedString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let decrypted = crate::util::snx_decrypt(s.as_bytes()).map_err(|e| serde::de::Error::custom(e))?;
+        Ok(Self(String::from_utf8_lossy(&decrypted).into_owned()))
+    }
+}
+
+impl From<String> for EncryptedString {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<EncryptedString> for String {
+    fn from(value: EncryptedString) -> Self {
+        value.0
+    }
+}
+
+impl<'a> From<&'a str> for EncryptedString {
+    fn from(value: &'a str) -> Self {
+        Self(value.to_owned())
     }
 }
 
@@ -144,8 +224,8 @@ pub struct RequestHeader {
 pub struct PasswordData {
     pub client_type: String,
     pub endpoint_os: Option<String>,
-    pub username: String,
-    pub password: String,
+    pub username: EncryptedString,
+    pub password: EncryptedString,
     pub client_logging_data: Option<ClientLoggingData>,
     #[serde(rename = "selectedLoginOption")]
     pub selected_login_option: Option<String>,
@@ -156,7 +236,7 @@ pub struct ClientLoggingData {
     pub client_name: Option<String>,
     pub client_ver: Option<String>,
     pub client_build_number: Option<String>,
-    pub os_name: Option<String>,
+    pub os_name: Option<QuotedString>,
     pub os_version: Option<String>,
     pub device_type: Option<String>,
     pub hardware_model: Option<String>,
@@ -224,7 +304,7 @@ pub enum ResponseData {
 pub struct AuthResponseData {
     pub authn_status: String,
     pub is_authenticated: bool,
-    pub active_key: Option<String>,
+    pub active_key: Option<EncryptedString>,
     pub server_fingerprint: Option<String>,
     pub server_cn: Option<String>,
     pub session_id: Option<String>,

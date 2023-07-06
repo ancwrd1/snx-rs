@@ -9,7 +9,6 @@ use crate::{
     model::*,
     params::{TunnelParams, TunnelType},
     tunnel::{ipsec::SnxIpsecTunnel, ssl::SnxSslTunnel},
-    util,
 };
 
 mod ipsec;
@@ -37,7 +36,7 @@ impl SnxTunnelConnector {
 
         let data = client.authenticate(session_id).await?;
 
-        let active_key = match (data.is_authenticated, data.active_key) {
+        let cookie = match (data.is_authenticated, data.active_key) {
             (true, Some(ref key)) => key.clone(),
             _ => {
                 warn!("Authentication failed!");
@@ -46,12 +45,13 @@ impl SnxTunnelConnector {
         };
 
         let session_id = data.session_id.unwrap_or_default();
-        let cookie = util::snx_decrypt(active_key.as_bytes())?;
-        let cookie = String::from_utf8_lossy(&cookie).into_owned();
 
         debug!("Authentication OK, session id: {session_id}");
 
-        Ok(SnxSession { session_id, cookie })
+        Ok(SnxSession {
+            session_id,
+            cookie: cookie.0,
+        })
     }
 
     pub async fn create_tunnel(&self, session: Arc<SnxSession>) -> anyhow::Result<Box<dyn SnxTunnel + Send>> {
