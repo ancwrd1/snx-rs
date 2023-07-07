@@ -248,6 +248,10 @@ impl TunnelParams {
             self.ca_cert = Some(ca_cert);
         }
 
+        if let Some(no_cert_check) = other.no_cert_check {
+            self.no_cert_check = no_cert_check;
+        }
+
         if let Some(login_type) = other.login_type {
             self.login_type = login_type;
         }
