@@ -26,7 +26,7 @@ impl SnxHttpClient {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: "UserPass".to_string(),
-                session_id: session_id.unwrap_or_default().to_string(),
+                session_id: session_id.map(ToOwned::to_owned),
                 protocol_version: None,
             },
             data: RequestData::Password(PasswordData {
@@ -49,7 +49,7 @@ impl SnxHttpClient {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: "KeyManagement".to_string(),
-                session_id: session_id.to_string(),
+                session_id: Some(session_id.to_string()),
                 protocol_version: Some(100),
             },
             data: RequestData::Ipsec(IpsecData {
@@ -68,7 +68,7 @@ impl SnxHttpClient {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: "ClientSettings".to_string(),
-                session_id: session_id.to_string(),
+                session_id: Some(session_id.to_string()),
                 protocol_version: Some(100),
             },
             data: RequestData::Wrapped(wrapped),
@@ -80,10 +80,28 @@ impl SnxHttpClient {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: "LocationAwareness".to_string(),
-                session_id: String::new(),
+                session_id: None,
                 protocol_version: Some(100),
             },
             data: RequestData::LocationAwareness(LocationAwarenessData { source_ip }),
+        }
+    }
+
+    fn new_client_hello_request(&self) -> CccClientRequest {
+        CccClientRequest {
+            header: RequestHeader {
+                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                request_type: "ClientHello".to_string(),
+                session_id: None,
+                protocol_version: None,
+            },
+            data: RequestData::ClientInfo {
+                client_info: ClientInfo {
+                    client_type: self.0.tunnel_type.as_client_type().to_owned(),
+                    client_version: 1,
+                    client_support_saml: true,
+                },
+            },
         }
     }
 
@@ -157,6 +175,15 @@ impl SnxHttpClient {
         match server_response.data {
             ResponseData::LocationAwareness(data) => Ok(data),
             _ => Err(anyhow!("Invalid location awareness response!")),
+        }
+    }
+
+    pub async fn get_server_info(&self) -> anyhow::Result<ServerInfo> {
+        let server_response = self.send_request(self.new_client_hello_request()).await?;
+
+        match server_response.data {
+            ResponseData::ServerInfo(data) => Ok(data),
+            _ => Err(anyhow!("Invalid server info response!")),
         }
     }
 }

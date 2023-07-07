@@ -145,7 +145,7 @@ pub struct RequestHeader {
     pub id: u32,
     #[serde(rename = "type")]
     pub request_type: String,
-    pub session_id: String,
+    pub session_id: Option<String>,
     pub protocol_version: Option<u32>,
 }
 
@@ -207,6 +207,7 @@ pub enum RequestData {
     Password(PasswordData),
     Ipsec(IpsecData),
     LocationAwareness(LocationAwarenessData),
+    ClientInfo { client_info: ClientInfo },
     Wrapped(String),
 }
 
@@ -226,6 +227,7 @@ pub enum ResponseData {
     Ipsec(IpsecResponseData),
     ClientSettings(ClientSettingsResponseData),
     LocationAwareness(LocationAwarenessResponseData),
+    ServerInfo(ServerInfo),
     Other(String),
 }
 
@@ -306,4 +308,102 @@ pub struct DisconnectRequest {
 
 impl DisconnectRequest {
     pub const NAME: &'static str = "disconnect";
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClientInfo {
+    pub client_type: String,
+    pub client_version: u32,
+    pub client_support_saml: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ServerInfo {
+    pub protocol_version: ProtocolVersion,
+    pub upgrade_configuration: UpgradeConfiguration,
+    pub connectivity_info: ConnectivityInfo,
+    pub end_point_security: EndPointSecurity,
+    pub login_options_data: LoginOptionsData,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProtocolVersion {
+    pub protocol_version: u32,
+    pub features: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UpgradeConfiguration {
+    pub available_client_version: u32,
+    pub client_upgrade_url: QuotedString,
+    pub upgrade_mode: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConnectivityInfo {
+    pub default_authentication_method: String,
+    pub client_enabled: bool,
+    pub supported_data_tunnel_protocols: Vec<String>,
+    pub connectivity_type: String,
+    pub server_ip: Ipv4Addr,
+    pub ipsec_transport: String,
+    pub tcpt_port: u16,
+    pub natt_port: u16,
+    pub connect_with_certificate_url: QuotedString,
+    pub cookie_name: String,
+    pub internal_ca_fingerprint: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EndPointSecurity {
+    pub ics: IcsInfo,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IcsInfo {
+    pub run_ics: bool,
+    pub ics_base_url: QuotedString,
+    pub ics_version: u32,
+    pub ics_upgrade_url: QuotedString,
+    pub ics_images_url: QuotedString,
+    pub ics_images_ver: u32,
+    pub ics_cab_url: QuotedString,
+    pub ics_cab_version: QuotedString,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoginOptionsData {
+    pub login_options_list: Vec<LoginOption>,
+    pub login_options_md5: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoginOption {
+    pub id: String,
+    pub secondary_realm_hash: String,
+    pub display_name: QuotedString,
+    pub show_realm: u32,
+    pub factors: Vec<LoginFactor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoginFactor {
+    pub factor_type: String,
+    pub securid_card_type: String,
+    pub certificate_storage_type: String,
+    pub custom_display_labels: LoginDisplayLabelSelect,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LoginDisplayLabelSelect {
+    LoginDisplayLabel(LoginDisplayLabel),
+    Empty(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoginDisplayLabel {
+    pub header: QuotedString,
+    pub username: QuotedString,
+    pub password: QuotedString,
 }

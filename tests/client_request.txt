@@ -7,7 +7,7 @@
     :RequestData (
             :client_type (TRAC)
             :endpoint_os (unix)
-        :username (1234)
-        :password (1234)
+        :username (36203a333d372a59)
+        :password (36203a333d372a59)
     )
 )

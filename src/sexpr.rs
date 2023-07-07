@@ -23,6 +23,7 @@ where
 
     let command = parse_command(rules.next().ok_or_else(|| anyhow!("No command"))?)?;
     let data = parse_data(rules.next().ok_or_else(|| anyhow!("No data"))?)?;
+
     Ok((command, serde_json::from_value(data)?))
 }
 
@@ -85,9 +86,9 @@ fn parse_data(pair: RulePair) -> anyhow::Result<Value> {
         Rule::obj => parse_obj(pair.into_inner()),
         Rule::array => parse_array(pair.into_inner()),
         Rule::value => {
-            if let Ok(i) = pair.as_str().parse::<u64>() {
+            if let Ok(i) = pair.as_str().parse::<u32>() {
                 Ok(Value::Number(i.into()))
-            } else if let Ok(h) = u64::from_str_radix(pair.as_str().trim_start_matches("0x"), 16) {
+            } else if let Ok(h) = u32::from_str_radix(pair.as_str().trim_start_matches("0x"), 16) {
                 Ok(Value::Number(h.into()))
             } else if let Ok(b) = pair.as_str().parse::<bool>() {
                 Ok(Value::Bool(b))
@@ -181,6 +182,24 @@ mod tests {
     fn test_parse_server_response() {
         let data = std::fs::read_to_string("tests/server_response.txt").unwrap();
         let expr = decode::<_, CccServerResponse>(data).unwrap();
+        println!("{:#?}", expr);
+    }
+
+    #[test]
+    fn test_parse_array() {
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct Response {
+            data: Vec<String>,
+        }
+        let data = "(Response :data (:1 (hello) :200 (world)))";
+        let expr = decode::<_, Response>(data).unwrap();
+        assert_eq!(
+            expr.1,
+            Response {
+                data: vec!["hello".to_string(), "world".to_string()],
+            },
+        );
+
         println!("{:#?}", expr);
     }
 }

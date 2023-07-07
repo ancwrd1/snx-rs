@@ -15,6 +15,7 @@ pub enum OperationMode {
     #[default]
     Standalone,
     Command,
+    Info,
 }
 
 impl FromStr for OperationMode {
@@ -24,6 +25,7 @@ impl FromStr for OperationMode {
         match s.to_lowercase().as_str() {
             "standalone" => Ok(Self::Standalone),
             "command" => Ok(Self::Command),
+            "info" => Ok(Self::Info),
             _ => Err(anyhow!("Invalid operation mode!")),
         }
     }
@@ -39,7 +41,7 @@ pub struct CmdlineParams {
         long = "mode",
         short = 'm',
         default_value = "standalone",
-        help = "Operation mode, one of: standalone, command"
+        help = "Operation mode, one of: standalone, command, info"
     )]
     pub mode: OperationMode,
 

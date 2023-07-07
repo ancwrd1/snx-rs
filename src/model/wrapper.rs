@@ -1,6 +1,8 @@
+use std::fmt;
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 pub struct QuotedString(pub String);
 
 impl Serialize for QuotedString {
@@ -39,7 +41,19 @@ impl<'a> From<&'a str> for QuotedString {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+impl fmt::Display for QuotedString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl fmt::Debug for QuotedString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
+    }
+}
+
+#[derive(Default, Clone, PartialEq)]
 pub struct SecretKey(pub String);
 
 impl Serialize for SecretKey {
@@ -80,7 +94,19 @@ impl<'a> From<&'a str> for SecretKey {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+impl fmt::Display for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "****")
+    }
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "****")
+    }
+}
+
+#[derive(Default, Clone, PartialEq)]
 pub struct HexKey(pub String);
 
 impl HexKey {
@@ -118,6 +144,18 @@ impl From<String> for HexKey {
 impl From<HexKey> for String {
     fn from(value: HexKey) -> Self {
         value.0
+    }
+}
+
+impl fmt::Display for HexKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl fmt::Debug for HexKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
     }
 }
 

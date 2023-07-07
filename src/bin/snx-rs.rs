@@ -11,6 +11,7 @@ use futures::pin_mut;
 use tokio::{signal::unix, sync::oneshot};
 use tracing::{debug, metadata::LevelFilter};
 
+use snx_rs::http::SnxHttpClient;
 use snx_rs::{
     model::params::{CmdlineParams, OperationMode, TunnelParams},
     server::CommandServer,
@@ -27,6 +28,10 @@ fn is_root() -> bool {
 async fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
 
+    if cmdline_params.mode != OperationMode::Info && !is_root() {
+        return Err(anyhow!("Please run me as a root user!"));
+    }
+
     let mode = cmdline_params.mode;
 
     let mut params = if let Some(ref config_file) = cmdline_params.config_file {
@@ -41,10 +46,6 @@ async fn main() -> anyhow::Result<()> {
         String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?).into_owned();
 
     let params = Arc::new(params);
-
-    if !is_root() {
-        return Err(anyhow!("Please run me as a root user!"));
-    }
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))
@@ -76,6 +77,15 @@ async fn main() -> anyhow::Result<()> {
             debug!("Running in command mode");
             let server = CommandServer::new(LISTEN_PORT);
             Box::pin(server.run())
+        }
+        OperationMode::Info => {
+            if params.server_name.is_empty() {
+                return Err(anyhow!("Missing required parameters: server name!"));
+            }
+            let client = SnxHttpClient::new(params.clone());
+            let info = client.get_server_info().await?;
+            println!("{:#?}", info);
+            Box::pin(futures::future::ok(()))
         }
     };
 

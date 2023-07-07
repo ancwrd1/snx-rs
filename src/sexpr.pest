@@ -1,12 +1,12 @@
 sexpr      = _{ SOI ~ expr ~ EOI }
 expr       = _{ "(" ~ command ~ data ~ ")" }
 command    = { ident }
-data       = _{ obj | array | value }
+data       = _{ obj | array |  value }
 obj        = { field+ }
 array      = { elem+ }
 field      = { ":" ~ ident ~ "(" ~ data? ~ ")" }
-elem       = { ":" ~ "(" ~ data? ~ ")" }
-ident      = { (ASCII_ALPHANUMERIC | "_")+ }
-char       = _{ !("(" | ")") ~ ANY }
+elem       = { ":" ~ ASCII_DIGIT* ~ "(" ~ data? ~ ")" }
+ident      = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+char       = @{ !("(" | ")") ~ ANY }
 value      = { char+ }
 WHITESPACE = _{ " " | "\n" | "\r" | "\t" | "\x00" }

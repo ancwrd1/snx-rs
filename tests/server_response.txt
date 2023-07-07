@@ -8,10 +8,10 @@
     :ResponseData (
         :authn_status (done)
         :is_authenticated (true)
-        :active_key (567890)
+        :active_key (36203a333d372a59)
         :server_fingerprint ()
         :server_cn ()
-        :session_id (1234567890)
+        :session_id (xxyyzz)
         :active_key_timeout (259200)
     )
 )

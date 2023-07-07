@@ -7,7 +7,7 @@
         :keep_address (false)
     )
     :optional (
-        :client_type (4)
+        :client_type (TRACs)
     )
-    :cookie (1234567890)
+    :cookie (x1234567890)
 )
