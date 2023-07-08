@@ -84,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
             }
             let client = SnxHttpClient::new(params.clone());
             let info = client.get_server_info().await?;
-            println!("{:#?}", info);
+            println!("{}", serde_json::to_string_pretty(&info)?);
             Box::pin(futures::future::ok(()))
         }
     };

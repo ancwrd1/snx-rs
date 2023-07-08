@@ -228,7 +228,8 @@ pub enum ResponseData {
     ClientSettings(ClientSettingsResponseData),
     LocationAwareness(LocationAwarenessResponseData),
     ServerInfo(ServerInfo),
-    Other(String),
+    Generic(serde_json::Value),
+    Empty(String),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

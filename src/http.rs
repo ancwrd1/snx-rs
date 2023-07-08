@@ -6,6 +6,7 @@ use std::sync::{
 
 use anyhow::anyhow;
 use reqwest::Certificate;
+use serde::Deserialize;
 
 use crate::{
     model::{params::TunnelParams, snx::*},
@@ -105,7 +106,10 @@ impl SnxHttpClient {
         }
     }
 
-    async fn send_request(&self, req: CccClientRequest) -> anyhow::Result<CccServerResponse> {
+    async fn send_request<T>(&self, req: CccClientRequest) -> anyhow::Result<T>
+    where
+        for<'de> T: Deserialize<'de>,
+    {
         let expr = sexpr::encode(CccClientRequest::NAME, req)?;
 
         let mut builder = reqwest::Client::builder();
@@ -129,61 +133,75 @@ impl SnxHttpClient {
 
         let reply = client.execute(req).await?.error_for_status()?.text().await?;
 
-        let (_, server_response) = sexpr::decode::<_, CccServerResponse>(&reply)?;
+        let (_, server_response) = sexpr::decode::<_, T>(&reply)?;
 
-        match server_response.data {
-            ResponseData::Other(_) => Err(anyhow!(
-                "Invalid request, error code: {}",
-                server_response.header.return_code
-            )),
-            _ => Ok(server_response),
-        }
+        Ok(server_response)
     }
 
     pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<AuthResponseData> {
-        let server_response = self.send_request(self.new_auth_request(session_id)).await?;
+        let server_response = self
+            .send_request::<CccServerResponse>(self.new_auth_request(session_id))
+            .await?;
 
         match server_response.data {
             ResponseData::Auth(data) => Ok(data),
+            ResponseData::Empty(_) => Err(anyhow!(
+                "Request failed, error code: {}!",
+                server_response.header.return_code
+            )),
             _ => Err(anyhow!("Invalid auth response!")),
         }
     }
 
     pub async fn get_ipsec_tunnel_params(&self, session_id: &str) -> anyhow::Result<IpsecResponseData> {
-        let server_response = self.send_request(self.new_key_management_request(session_id)).await?;
+        let server_response = self
+            .send_request::<CccServerResponse>(self.new_key_management_request(session_id))
+            .await?;
 
         match server_response.data {
             ResponseData::Ipsec(data) => Ok(data),
+            ResponseData::Empty(_) => Err(anyhow!(
+                "Request failed, error code: {}!",
+                server_response.header.return_code
+            )),
             _ => Err(anyhow!("Invalid ipsec response!")),
         }
     }
 
     pub async fn get_client_settings(&self, session_id: &str) -> anyhow::Result<ClientSettingsResponseData> {
-        let server_response = self.send_request(self.new_client_settings_request(session_id)).await?;
+        let server_response = self
+            .send_request::<CccServerResponse>(self.new_client_settings_request(session_id))
+            .await?;
 
         match server_response.data {
             ResponseData::ClientSettings(data) => Ok(data),
+            ResponseData::Empty(_) => Err(anyhow!(
+                "Request failed, error code: {}!",
+                server_response.header.return_code
+            )),
             _ => Err(anyhow!("Invalid client settings response!")),
         }
     }
 
     pub async fn get_external_ip(&self, source_ip: Ipv4Addr) -> anyhow::Result<LocationAwarenessResponseData> {
         let server_response = self
-            .send_request(self.new_location_awareness_request(source_ip))
+            .send_request::<CccServerResponse>(self.new_location_awareness_request(source_ip))
             .await?;
 
         match server_response.data {
             ResponseData::LocationAwareness(data) => Ok(data),
+            ResponseData::Empty(_) => Err(anyhow!(
+                "Request failed, error code: {}!",
+                server_response.header.return_code
+            )),
             _ => Err(anyhow!("Invalid location awareness response!")),
         }
     }
 
-    pub async fn get_server_info(&self) -> anyhow::Result<ServerInfo> {
-        let server_response = self.send_request(self.new_client_hello_request()).await?;
-
-        match server_response.data {
-            ResponseData::ServerInfo(data) => Ok(data),
-            _ => Err(anyhow!("Invalid server info response!")),
-        }
+    pub async fn get_server_info(&self) -> anyhow::Result<serde_json::Value> {
+        let server_response = self
+            .send_request::<serde_json::Value>(self.new_client_hello_request())
+            .await?;
+        Ok(server_response)
     }
 }
