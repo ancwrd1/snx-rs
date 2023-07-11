@@ -1,7 +1,10 @@
-use std::net::Ipv4Addr;
-use std::sync::{
-    atomic::{AtomicU32, Ordering},
-    Arc,
+use std::{
+    net::Ipv4Addr,
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -14,6 +17,7 @@ use crate::{
 };
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct SnxHttpClient(Arc<TunnelParams>);
 
@@ -131,7 +135,11 @@ impl SnxHttpClient {
             .body(expr)
             .build()?;
 
-        let reply = client.execute(req).await?.error_for_status()?.text().await?;
+        let reply = tokio::time::timeout(REQUEST_TIMEOUT, client.execute(req))
+            .await??
+            .error_for_status()?
+            .text()
+            .await?;
 
         let (_, server_response) = sexpr::decode::<_, T>(&reply)?;
 
