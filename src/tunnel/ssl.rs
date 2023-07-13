@@ -201,6 +201,8 @@ impl SnxTunnel for SnxSslTunnel {
 
         let dev_name = tun.name().to_owned();
 
+        let _ = crate::util::run_command("nmcli", ["device", "set", &dev_name, "managed", "no"]).await;
+
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 
         let mut snx_receiver = self.receiver.take().unwrap();
