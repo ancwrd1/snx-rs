@@ -222,6 +222,7 @@ pub struct ResponseHeader {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum ResponseData {
     Auth(AuthResponseData),
     Ipsec(IpsecResponseData),

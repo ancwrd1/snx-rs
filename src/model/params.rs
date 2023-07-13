@@ -178,7 +178,8 @@ impl TunnelParams {
             if !line.trim().starts_with('#') {
                 let parts = line
                     .split_once('=')
-                    .map(|(k, v)| (k.trim(), v.trim().trim_matches('"')));
+                    .map(|(k, v)| (k.trim(), v.trim_matches(|c: char| c == '"' || c.is_whitespace())))
+                    .and_then(|(k, v)| if v.is_empty() { None } else { Some((k, v)) });
 
                 if let Some((k, v)) = parts {
                     match k {
