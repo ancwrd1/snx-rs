@@ -197,6 +197,8 @@ impl XfrmConfigurator {
         ])
         .await?;
 
+        let _ = util::run_command("nmcli", ["device", "set", VTI_NAME, "managed", "no"]).await;
+
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", VTI_NAME);
         util::run_command("sysctl", ["-qw", &opt]).await?;
 
