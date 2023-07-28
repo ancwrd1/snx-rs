@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::anyhow;
 use tokio::sync::oneshot;
-use tracing::{debug, trace};
+use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
@@ -24,6 +24,7 @@ const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
 
 const KEEPALIVE_PORT: u16 = 18234;
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
+const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(5);
 const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(5);
 const KEEPALIVE_MAX_RETRIES: u32 = 5;
 
@@ -471,14 +472,26 @@ impl XfrmConfigurator {
 
             if let (Ok(_), Ok(Ok((size, _)))) = result {
                 trace!("Received keepalive response from {}, size: {}", dst, size);
+                num_failures = 0;
             } else {
                 num_failures += 1;
                 if num_failures >= KEEPALIVE_MAX_RETRIES {
+                    warn!("Max number of keepalive retried reached, existing");
                     break;
                 }
+                warn!(
+                    "Keepalive failed, retrying in {} secs",
+                    KEEPALIVE_RETRY_INTERVAL.as_secs()
+                );
             }
 
-            tokio::time::sleep(KEEPALIVE_INTERVAL).await;
+            let interval = if num_failures == 0 {
+                KEEPALIVE_INTERVAL
+            } else {
+                KEEPALIVE_RETRY_INTERVAL
+            };
+
+            tokio::time::sleep(interval).await;
         }
 
         debug!("Keepalive failed!");
