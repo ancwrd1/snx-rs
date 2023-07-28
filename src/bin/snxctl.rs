@@ -1,9 +1,11 @@
+use std::sync::Arc;
 use std::{path::Path, str::FromStr, time::Duration};
 
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
 
+use snx_rs::http::SnxHttpClient;
 use snx_rs::{
     model::params::TunnelParams,
     server::{TunnelServiceRequest, TunnelServiceResponse},
@@ -18,6 +20,7 @@ enum SnxCtlCommand {
     Connect,
     Disconnect,
     Reconnect,
+    Info,
 }
 
 impl FromStr for SnxCtlCommand {
@@ -29,6 +32,7 @@ impl FromStr for SnxCtlCommand {
             "connect" => Ok(Self::Connect),
             "disconnect" => Ok(Self::Disconnect),
             "reconnect" => Ok(Self::Reconnect),
+            "info" => Ok(Self::Info),
             other => Err(anyhow!("Invalid command: {}", other)),
         }
     }
@@ -55,6 +59,7 @@ async fn main() -> anyhow::Result<()> {
             let _ = do_disconnect().await;
             do_connect(&config_file).await
         }
+        SnxCtlCommand::Info => do_info(&config_file).await,
     }
 }
 
@@ -114,4 +119,15 @@ async fn send_receive(request: TunnelServiceRequest, timeout: Duration) -> anyho
     } else {
         Err(anyhow!("Cannot send request to the service!"))
     }
+}
+
+async fn do_info(config_file: &Path) -> anyhow::Result<()> {
+    if !config_file.exists() {
+        return Err(anyhow!("No config file: {}", config_file.display()));
+    }
+    let params = TunnelParams::load(config_file)?;
+    let client = SnxHttpClient::new(Arc::new(params));
+    let info = client.get_server_info().await?;
+    serde_json::to_writer_pretty(&mut std::io::stdout(), &info)?;
+    Ok(())
 }
