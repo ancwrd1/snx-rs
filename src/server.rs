@@ -10,17 +10,19 @@ use tracing::{debug, warn};
 
 use crate::{model::params::TunnelParams, tunnel::SnxTunnelConnector};
 
+pub const LISTEN_PORT: u16 = 7779;
+
 const MAX_PACKET_SIZE: usize = 1_000_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-enum TunnelServiceRequest {
+pub enum TunnelServiceRequest {
     Connect(TunnelParams),
     Disconnect,
     GetStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-enum TunnelServiceResponse {
+pub enum TunnelServiceResponse {
     Ok,
     Error(String),
     ConnectionStatus(bool),

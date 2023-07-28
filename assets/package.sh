@@ -10,6 +10,9 @@ mkdir "$target/$name"
 if ! cp "$target/x86_64-unknown-linux-gnu/release/snx-rs" "$target/$name/"; then
     exit 1
 fi
+if ! cp "$target/x86_64-unknown-linux-gnu/release/snxctl" "$target/$name/"; then
+    exit 1
+fi
 cp "$basedir/assets/snx-rs.conf" "$basedir/assets/snx-rs.service" "$target/$name/"
 cd "$target"
 tar cJf "$name.tar.xz" "$name"

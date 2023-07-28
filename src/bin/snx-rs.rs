@@ -18,8 +18,6 @@ use snx_rs::{
     tunnel::SnxTunnelConnector,
 };
 
-const LISTEN_PORT: u16 = 7779;
-
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
 }
@@ -84,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
             if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
-            let server = CommandServer::new(LISTEN_PORT);
+            let server = CommandServer::new(snx_rs::server::LISTEN_PORT);
 
             Box::pin(server.run())
         }
