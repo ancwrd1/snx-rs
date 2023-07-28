@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 #[cfg(target_os = "linux")]
-pub use linux::{
+pub use linux::net::{
     add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online,
     start_network_state_monitoring,
 };
 #[cfg(target_os = "macos")]
-pub use macos::{
+pub use macos::net::{
     add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online,
     start_network_state_monitoring,
 };
