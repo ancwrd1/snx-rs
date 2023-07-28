@@ -240,7 +240,9 @@ impl SnxTunnel for SnxSslTunnel {
                     break;
                 }
                 _ = tokio::time::sleep(self.keepalive) => {
-                    self.keepalive().await?;
+                    if crate::net::is_online() {
+                        self.keepalive().await?;
+                    }
                 }
 
                 result = tun_receiver.next() => {

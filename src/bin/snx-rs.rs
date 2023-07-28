@@ -9,7 +9,7 @@ use base64::Engine;
 use clap::Parser;
 use futures::pin_mut;
 use tokio::{signal::unix, sync::oneshot};
-use tracing::{debug, metadata::LevelFilter};
+use tracing::{debug, metadata::LevelFilter, warn};
 
 use snx_rs::http::SnxHttpClient;
 use snx_rs::{
@@ -71,11 +71,21 @@ async fn main() -> anyhow::Result<()> {
             let connected = Arc::new(AtomicBool::new(false));
 
             let tunnel = connector.create_tunnel(session).await?;
+
+            if let Err(e) = snx_rs::net::start_network_state_monitoring().await {
+                warn!("Unable to start network monitoring: {}", e);
+            }
+
             Box::pin(tunnel.run(rx, connected))
         }
         OperationMode::Command => {
             debug!("Running in command mode");
+
+            if let Err(e) = snx_rs::net::start_network_state_monitoring().await {
+                warn!("Unable to start network monitoring: {}", e);
+            }
             let server = CommandServer::new(LISTEN_PORT);
+
             Box::pin(server.run())
         }
         OperationMode::Info => {

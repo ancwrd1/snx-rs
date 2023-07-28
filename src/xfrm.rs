@@ -459,30 +459,34 @@ impl XfrmConfigurator {
         let mut num_failures = 0;
 
         loop {
-            trace!("Sending keepalive to {}", dst);
+            if crate::net::is_online() {
+                trace!("Sending keepalive to {}", dst);
 
-            let data = make_keepalive_packet();
+                let data = make_keepalive_packet();
 
-            let send_fut = udp.send_to(&data, (dst, KEEPALIVE_PORT));
+                let send_fut = udp.send_to(&data, (dst, KEEPALIVE_PORT));
 
-            let mut buf = [0u8; 128];
-            let recv_fut = tokio::time::timeout(KEEPALIVE_TIMEOUT, udp.recv_from(&mut buf));
+                let mut buf = [0u8; 128];
+                let recv_fut = tokio::time::timeout(KEEPALIVE_TIMEOUT, udp.recv_from(&mut buf));
 
-            let result = futures::future::join(send_fut, recv_fut).await;
+                let result = futures::future::join(send_fut, recv_fut).await;
 
-            if let (Ok(_), Ok(Ok((size, _)))) = result {
-                trace!("Received keepalive response from {}, size: {}", dst, size);
-                num_failures = 0;
-            } else {
-                num_failures += 1;
-                if num_failures >= KEEPALIVE_MAX_RETRIES {
-                    warn!("Max number of keepalive retried reached, existing");
-                    break;
+                if let (Ok(_), Ok(Ok((size, _)))) = result {
+                    trace!("Received keepalive response from {}, size: {}", dst, size);
+                    num_failures = 0;
+                } else {
+                    num_failures += 1;
+                    if num_failures >= KEEPALIVE_MAX_RETRIES {
+                        warn!("Max number of keepalive retried reached, existing");
+                        break;
+                    }
+                    warn!(
+                        "Keepalive failed, retrying in {} secs",
+                        KEEPALIVE_RETRY_INTERVAL.as_secs()
+                    );
                 }
-                warn!(
-                    "Keepalive failed, retrying in {} secs",
-                    KEEPALIVE_RETRY_INTERVAL.as_secs()
-                );
+            } else {
+                num_failures = 0;
             }
 
             let interval = if num_failures == 0 {

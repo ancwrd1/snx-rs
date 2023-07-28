@@ -1,6 +1,6 @@
 [package]
 name = "snx-rs"
-version = "0.3.2"
+version = "0.3.3"
 
 edition = "2021"
 
@@ -31,3 +31,6 @@ tracing = { version = "0.1", features = [] }
 tracing-subscriber = "0.3"
 async-trait = "0.1"
 rand = "0.8"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = "3"
