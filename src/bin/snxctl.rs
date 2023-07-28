@@ -65,9 +65,7 @@ async fn do_status() -> anyhow::Result<()> {
             println!("{}", if status { "connected" } else { "disconnected" });
             Ok(())
         }
-        Ok(_) => {
-            return Err(anyhow!("Invalid response!"));
-        }
+        Ok(_) => Err(anyhow!("Invalid response!")),
         Err(e) => Err(e),
     }
 }
@@ -90,9 +88,7 @@ async fn do_connect(config_file: &Path) -> anyhow::Result<()> {
             println!("Error: {}", error);
             Ok(())
         }
-        Ok(_) => {
-            return Err(anyhow!("Invalid response!"));
-        }
+        Ok(_) => Err(anyhow!("Invalid response!")),
         Err(e) => Err(e),
     }
 }
