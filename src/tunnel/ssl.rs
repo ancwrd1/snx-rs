@@ -19,12 +19,16 @@ use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
+use codec::SnxCodec;
+
 use crate::{
-    codec::SnxCodec,
     model::{params::TunnelParams, snx::*, *},
-    tun::TunDevice,
     tunnel::{SnxTunnel, SnxTunnelConnector},
 };
+
+pub mod codec;
+#[cfg(unix)]
+pub mod device;
 
 const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
 const MAX_KEEP_ALIVE_ATTEMPTS: u64 = 3;
@@ -196,7 +200,7 @@ impl SnxTunnel for SnxSslTunnel {
 
         let reply = self.client_hello().await?;
 
-        let tun = TunDevice::new(&reply)?;
+        let tun = device::TunDevice::new(&reply)?;
         tun.setup_dns_and_routing(&self.params).await?;
 
         let dev_name = tun.name().to_owned();
@@ -240,7 +244,7 @@ impl SnxTunnel for SnxSslTunnel {
                     break;
                 }
                 _ = tokio::time::sleep(self.keepalive) => {
-                    if crate::net::is_online() {
+                    if crate::platform::is_online() {
                         self.keepalive().await?;
                     }
                 }

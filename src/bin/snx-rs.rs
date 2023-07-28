@@ -11,8 +11,8 @@ use futures::pin_mut;
 use tokio::{signal::unix, sync::oneshot};
 use tracing::{debug, metadata::LevelFilter, warn};
 
-use snx_rs::http::SnxHttpClient;
 use snx_rs::{
+    http::SnxHttpClient,
     model::params::{CmdlineParams, OperationMode, TunnelParams},
     server::CommandServer,
     tunnel::SnxTunnelConnector,
@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
 
             let tunnel = connector.create_tunnel(session).await?;
 
-            if let Err(e) = snx_rs::net::start_network_state_monitoring().await {
+            if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
 
@@ -81,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
         OperationMode::Command => {
             debug!("Running in command mode");
 
-            if let Err(e) = snx_rs::net::start_network_state_monitoring().await {
+            if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
             let server = CommandServer::new(LISTEN_PORT);

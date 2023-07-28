@@ -14,6 +14,7 @@ use crate::{
         params::TunnelParams,
         snx::{ClientSettingsResponseData, IpsecResponseData, IpsecSA},
     },
+    platform::IpsecConfigurator,
     util,
 };
 
@@ -103,24 +104,6 @@ impl XfrmConfigurator {
         }
     }
 
-    pub async fn configure(&mut self) -> anyhow::Result<()> {
-        self.source_ip = crate::net::get_default_ip().await?.parse()?;
-        debug!("Source IP: {}", self.source_ip);
-
-        self.dest_ip = self.client_settings.gw_internal_ip.parse()?;
-        debug!("Target IP: {}", self.dest_ip);
-
-        self.cleanup().await;
-        self.send_isakmp_probes().await?;
-        self.setup_vti().await?;
-        self.setup_iptables().await?;
-        self.setup_xfrm().await?;
-        self.setup_routing().await?;
-        self.setup_dns().await?;
-        self.start_udp_listener().await?;
-        Ok(())
-    }
-
     async fn send_isakmp_probes(&self) -> anyhow::Result<()> {
         for _ in 0..MAX_ISAKMP_PROBES {
             if self.send_isakmp_probe().await.is_ok() {
@@ -160,27 +143,6 @@ impl XfrmConfigurator {
         } else {
             Err(anyhow!("No isakmp reply!"))
         }
-    }
-
-    pub async fn cleanup(&mut self) {
-        if let Some(stopper) = self.stopper.take() {
-            let _ = stopper.send(());
-        }
-        let dst = self.dest_ip.to_string();
-
-        let _ = self.iproute2(&["xfrm", "state", "flush"]).await;
-        let _ = self.iproute2(&["xfrm", "policy", "flush"]).await;
-
-        let _ = self.iproute2(&["link", "del", "name", VTI_NAME]).await;
-
-        let port = KEEPALIVE_PORT.to_string();
-
-        let _ = self
-            .iproute2(&[
-                "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-            ])
-            .await;
-        self.cleanup_iptables().await;
     }
 
     async fn iproute2(&self, args: &[&str]) -> anyhow::Result<String> {
@@ -333,10 +295,10 @@ impl XfrmConfigurator {
         if !self.tunnel_params.no_routing {
             let addr: Ipv4Addr = self.ipsec_params.om_addr.into();
             if self.tunnel_params.default_route {
-                let _ = crate::net::add_default_route(VTI_NAME, addr).await;
+                let _ = crate::platform::add_default_route(VTI_NAME, addr).await;
             } else {
                 for range in &self.client_settings.updated_policies.range.settings {
-                    crate::net::add_route(range, VTI_NAME, addr).await?;
+                    crate::platform::add_route(range, VTI_NAME, addr).await?;
                 }
             }
         }
@@ -365,7 +327,7 @@ impl XfrmConfigurator {
                 .0
                 .split(',')
                 .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()));
-            let _ = crate::net::add_dns_suffixes(suffixes, VTI_NAME).await;
+            let _ = crate::platform::add_dns_suffixes(suffixes, VTI_NAME).await;
 
             let dns_servers = [
                 self.ipsec_params.om_dns0,
@@ -383,7 +345,7 @@ impl XfrmConfigurator {
                 }
             });
 
-            let _ = crate::net::add_dns_servers(servers, VTI_NAME).await;
+            let _ = crate::platform::add_dns_servers(servers, VTI_NAME).await;
         }
         Ok(())
     }
@@ -434,8 +396,50 @@ impl XfrmConfigurator {
         });
         Ok(())
     }
+}
 
-    pub async fn run_keepalive(&self) -> anyhow::Result<()> {
+#[async_trait::async_trait]
+impl IpsecConfigurator for XfrmConfigurator {
+    async fn configure(&mut self) -> anyhow::Result<()> {
+        self.source_ip = crate::platform::get_default_ip().await?.parse()?;
+        debug!("Source IP: {}", self.source_ip);
+
+        self.dest_ip = self.client_settings.gw_internal_ip.parse()?;
+        debug!("Target IP: {}", self.dest_ip);
+
+        self.cleanup().await;
+        self.send_isakmp_probes().await?;
+        self.setup_vti().await?;
+        self.setup_iptables().await?;
+        self.setup_xfrm().await?;
+        self.setup_routing().await?;
+        self.setup_dns().await?;
+        self.start_udp_listener().await?;
+        Ok(())
+    }
+
+    async fn cleanup(&mut self) {
+        if let Some(stopper) = self.stopper.take() {
+            let _ = stopper.send(());
+        }
+        let dst = self.dest_ip.to_string();
+
+        let _ = self.iproute2(&["xfrm", "state", "flush"]).await;
+        let _ = self.iproute2(&["xfrm", "policy", "flush"]).await;
+
+        let _ = self.iproute2(&["link", "del", "name", VTI_NAME]).await;
+
+        let port = KEEPALIVE_PORT.to_string();
+
+        let _ = self
+            .iproute2(&[
+                "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+            ])
+            .await;
+        self.cleanup_iptables().await;
+    }
+
+    async fn run_keepalive(&self) -> anyhow::Result<()> {
         let src: Ipv4Addr = self.ipsec_params.om_addr.into();
         let dst = self.dest_ip;
         let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
@@ -459,7 +463,7 @@ impl XfrmConfigurator {
         let mut num_failures = 0;
 
         loop {
-            if crate::net::is_online() {
+            if crate::platform::is_online() {
                 trace!("Sending keepalive to {}", dst);
 
                 let data = make_keepalive_packet();

@@ -2,8 +2,7 @@ use anyhow::anyhow;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::model::snx::SnxPacket;
-use crate::sexpr;
+use crate::{model::snx::SnxPacket, sexpr};
 
 pub(crate) struct SnxCodec;
 

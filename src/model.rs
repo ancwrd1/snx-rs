@@ -3,9 +3,9 @@ use std::str::FromStr;
 use anyhow::anyhow;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+pub mod newtype;
 pub mod params;
 pub mod snx;
-pub mod wrapper;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct SnxSession {

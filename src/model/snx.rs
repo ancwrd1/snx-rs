@@ -3,7 +3,7 @@ use std::{fmt, net::Ipv4Addr};
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    wrapper::{HexKey, QuotedString, SecretKey},
+    newtype::{HexKey, QuotedString, SecretKey},
     AuthenticationAlgorithm, EncryptionAlgorithm,
 };
 

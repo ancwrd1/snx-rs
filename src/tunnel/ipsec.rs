@@ -9,11 +9,11 @@ use tracing::debug;
 use crate::{
     http::SnxHttpClient,
     model::{params::TunnelParams, SnxSession},
+    platform::IpsecConfigurator,
     tunnel::SnxTunnel,
-    xfrm::XfrmConfigurator,
 };
 
-pub(crate) struct SnxIpsecTunnel(XfrmConfigurator);
+pub(crate) struct SnxIpsecTunnel(Box<dyn IpsecConfigurator + Send>);
 
 impl SnxIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<Self> {
@@ -22,10 +22,10 @@ impl SnxIpsecTunnel {
         debug!("Client settings: {:?}", client_settings);
 
         let ipsec_params = client.get_ipsec_tunnel_params(&session.session_id).await?;
-        let mut configurator = XfrmConfigurator::new(params, ipsec_params, client_settings);
+        let mut configurator = crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings);
         configurator.configure().await?;
 
-        Ok(Self(configurator))
+        Ok(Self(Box::new(configurator)))
     }
 }
 

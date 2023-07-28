@@ -3,7 +3,7 @@ use std::net::Ipv4Addr;
 use tracing::debug;
 use tun::Device;
 
-use crate::{model::params::TunnelParams, model::snx::HelloReply};
+use crate::model::{params::TunnelParams, snx::HelloReply};
 
 pub struct TunDevice {
     inner: tun::AsyncDevice,
@@ -52,10 +52,10 @@ impl TunDevice {
     pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
         if !params.no_routing {
             if params.default_route {
-                let _ = crate::net::add_default_route(&self.dev_name, self.ipaddr).await;
+                let _ = crate::platform::add_default_route(&self.dev_name, self.ipaddr).await;
             } else {
                 for range in &self.reply.range {
-                    let _ = crate::net::add_route(range, &self.dev_name, self.ipaddr).await;
+                    let _ = crate::platform::add_route(range, &self.dev_name, self.ipaddr).await;
                 }
             }
         }
@@ -68,12 +68,12 @@ impl TunDevice {
                     .0
                     .split(',')
                     .chain(params.search_domains.iter().map(|s| s.as_ref()));
-                let _ = crate::net::add_dns_suffixes(suffixes, &self.dev_name).await;
+                let _ = crate::platform::add_dns_suffixes(suffixes, &self.dev_name).await;
             }
 
             if let Some(ref servers) = self.reply.office_mode.dns_servers {
                 debug!("Adding DNS servers: {servers:?}");
-                let _ = crate::net::add_dns_servers(servers, &self.dev_name).await;
+                let _ = crate::platform::add_dns_servers(servers, &self.dev_name).await;
             }
         }
 
