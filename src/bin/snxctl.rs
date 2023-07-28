@@ -53,7 +53,6 @@ async fn main() -> anyhow::Result<()> {
         SnxCtlCommand::Disconnect => do_disconnect().await,
         SnxCtlCommand::Reconnect => {
             let _ = do_disconnect().await;
-            tokio::time::sleep(Duration::from_secs(1)).await;
             do_connect(&config_file).await
         }
     }

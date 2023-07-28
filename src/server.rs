@@ -2,6 +2,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
+use std::time::Duration;
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -120,6 +121,11 @@ impl CommandServer {
     async fn disconnect(&mut self) -> anyhow::Result<()> {
         if let Some(stopper) = self.stopper.take() {
             let _ = stopper.send(());
+            let mut num_waits = 0;
+            while self.connected.load(Ordering::SeqCst) && num_waits < 20 {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                num_waits += 1;
+            }
             Ok(())
         } else {
             Err(anyhow!("Tunnel is already disconnected!"))
