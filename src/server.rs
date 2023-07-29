@@ -5,34 +5,25 @@ use std::sync::{
 use std::time::Duration;
 
 use anyhow::anyhow;
-use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Local};
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
-use crate::{model::params::TunnelParams, tunnel::SnxTunnelConnector};
+use crate::model::ConnectionStatus;
+use crate::{
+    model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
+    tunnel::SnxTunnelConnector,
+};
 
 pub const LISTEN_PORT: u16 = 7779;
 
 const MAX_PACKET_SIZE: usize = 1_000_000;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TunnelServiceRequest {
-    Connect(TunnelParams),
-    Disconnect,
-    GetStatus,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TunnelServiceResponse {
-    Ok,
-    Error(String),
-    ConnectionStatus(bool),
-}
-
 pub struct CommandServer {
     port: u16,
     stopper: Option<oneshot::Sender<()>>,
     connected: Arc<AtomicBool>,
+    connected_since: DateTime<Local>,
 }
 
 impl CommandServer {
@@ -41,6 +32,7 @@ impl CommandServer {
             port,
             stopper: None,
             connected: Arc::new(AtomicBool::new(false)),
+            connected_since: chrono::Local::now(),
         }
     }
 
@@ -87,7 +79,9 @@ impl CommandServer {
             TunnelServiceRequest::GetStatus => {
                 debug!("Handling get status command");
                 match self.get_status().await {
-                    Ok(b) => TunnelServiceResponse::ConnectionStatus(b),
+                    Ok(b) => TunnelServiceResponse::ConnectionStatus(ConnectionStatus {
+                        connected_since: b.then(|| self.connected_since),
+                    }),
                     Err(e) => TunnelServiceResponse::Error(e.to_string()),
                 }
             }
@@ -105,6 +99,7 @@ impl CommandServer {
             self.stopper = Some(tx);
 
             let connected = self.connected.clone();
+            self.connected_since = chrono::Local::now();
 
             tokio::spawn(async move {
                 if let Err(e) = tunnel.run(rx, connected.clone()).await {

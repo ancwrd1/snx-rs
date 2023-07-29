@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use anyhow::anyhow;
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use crate::model::params::TunnelParams;
 
 pub mod newtype;
 pub mod params;
@@ -130,4 +133,23 @@ impl Serialize for AuthenticationAlgorithm {
             Self::HmacSha256 => String::from("SHA256").serialize(serializer),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectionStatus {
+    pub connected_since: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TunnelServiceRequest {
+    Connect(TunnelParams),
+    Disconnect,
+    GetStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TunnelServiceResponse {
+    Ok,
+    Error(String),
+    ConnectionStatus(ConnectionStatus),
 }

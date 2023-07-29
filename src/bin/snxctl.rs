@@ -1,14 +1,12 @@
-use std::sync::Arc;
-use std::{path::Path, str::FromStr, time::Duration};
+use std::{path::Path, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
 
-use snx_rs::http::SnxHttpClient;
 use snx_rs::{
-    model::params::TunnelParams,
-    server::{TunnelServiceRequest, TunnelServiceResponse},
+    http::SnxHttpClient,
+    model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -43,7 +41,10 @@ async fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
 
     if args.len() != 2 {
-        return Err(anyhow!("usage: {} {{status|connect|disconnect|reconnect|info}}", args[0]));
+        return Err(anyhow!(
+            "usage: {} {{status|connect|disconnect|reconnect|info}}",
+            args[0]
+        ));
     }
 
     let command: SnxCtlCommand = args.get(1).map(AsRef::as_ref).unwrap_or("status").parse()?;
@@ -67,7 +68,10 @@ async fn do_status() -> anyhow::Result<()> {
     let response = send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
     match response {
         Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
-            println!("{}", if status { "connected" } else { "disconnected" });
+            match status.connected_since {
+                Some(timestamp) => println!("Connected since {}", timestamp.to_string()),
+                None => println!("Disconnected"),
+            }
             Ok(())
         }
         Ok(_) => Err(anyhow!("Invalid response!")),
@@ -85,10 +89,7 @@ async fn do_connect(config_file: &Path) -> anyhow::Result<()> {
 
     let response = send_receive(TunnelServiceRequest::Connect(params), CONNECT_TIMEOUT).await;
     match response {
-        Ok(TunnelServiceResponse::Ok) => {
-            println!("ok");
-            Ok(())
-        }
+        Ok(TunnelServiceResponse::Ok) => do_status().await,
         Ok(TunnelServiceResponse::Error(error)) => {
             println!("Error: {}", error);
             Ok(())
@@ -128,6 +129,12 @@ async fn do_info(config_file: &Path) -> anyhow::Result<()> {
     let params = TunnelParams::load(config_file)?;
     let client = SnxHttpClient::new(Arc::new(params));
     let info = client.get_server_info().await?;
-    serde_json::to_writer_pretty(&mut std::io::stdout(), &info)?;
+    let response_data = info
+        .get("ResponseData")
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default();
+
+    println!("{}", serde_json::to_string_pretty(&response_data)?);
+
     Ok(())
 }
