@@ -80,7 +80,7 @@ impl CommandServer {
                 debug!("Handling get status command");
                 match self.get_status().await {
                     Ok(b) => TunnelServiceResponse::ConnectionStatus(ConnectionStatus {
-                        connected_since: b.then(|| self.connected_since),
+                        connected_since: b.then_some(self.connected_since),
                     }),
                     Err(e) => TunnelServiceResponse::Error(e.to_string()),
                 }

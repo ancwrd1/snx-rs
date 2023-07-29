@@ -69,7 +69,7 @@ async fn do_status() -> anyhow::Result<()> {
     match response {
         Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
             match status.connected_since {
-                Some(timestamp) => println!("Connected since {}", timestamp.to_string()),
+                Some(timestamp) => println!("Connected since {}", timestamp),
                 None => println!("Disconnected"),
             }
             Ok(())
