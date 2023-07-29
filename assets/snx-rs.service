@@ -6,7 +6,6 @@ Wants = network-online.target
 [Service]
 Type=simple
 ExecStart=/opt/snx-rs/snx-rs -m command -l info
-Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

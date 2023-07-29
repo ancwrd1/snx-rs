@@ -7,19 +7,27 @@ Based on the reverse engineered protocol used by the vendor application.
 
 * SSL tunnel
 * IPSec tunnel
-* Microsoft MFA Authenticator
+* Username/password authentication with Microsoft MFA Authenticator
 
 ## Roadmap
  
 * GUI with tray icon
 * Connection stats
-* SAML SSO support with IKE Phase 2 exchange
+* SAML SSO support
 
 ## Usage
 
-Run `snx-rs --help` to get a help with all command line parameters.
+There are two ways to use the application:
 
-Run `assets/install.sh` to install the release build to the host system as a systemd service (Linux only).
+* Standalone service mode, selected by `-m standalone` parameter. This is the default mode. Run `snx-rs --help` to get a help with all command line parameters. In this mode the application takes connection parameters either from the command line or from the specified configuration file.
+* Command mode, selected by `-m command` parameter. In this mode the application runs as a service without
+ establishing a connection and awaits for the commands from the external client. Use `snxctl` utility
+ to send commands to the service. The following commands are accepted:
+  - `connect` - establish a connection. Parameters are taken from the `~/.config/snx-rs/snx-rs.conf` file.
+  - `disconnect` - disconnect a tunnel
+  - `reconnect` - drop a connection and then connect again
+  - `status` - show connection status
+  - `info` - dump server information in JSON format
 
 ## License
 
