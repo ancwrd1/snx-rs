@@ -105,7 +105,7 @@ async fn do_disconnect() -> anyhow::Result<()> {
 }
 
 async fn send_receive(request: TunnelServiceRequest, timeout: Duration) -> anyhow::Result<TunnelServiceResponse> {
-    let udp = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
+    let udp = tokio::net::UdpSocket::bind("127.0.0.1:0").await?;
     let data = serde_json::to_vec(&request)?;
     let send_fut = udp.send_to(&data, format!("127.0.0.1:{}", snx_rs::server::LISTEN_PORT));
 
