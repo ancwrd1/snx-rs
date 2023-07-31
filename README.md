@@ -15,6 +15,14 @@ Based on the reverse engineered protocol used by the vendor application.
 * Connection stats
 * SAML SSO support
 
+## Contributing
+
+If it doesn't work with your particular Checkpoint server please run the following command:
+
+`snx-rs -m info -s <serveraddress>`
+
+and paste the JSON output into the new issue.
+
 ## Usage
 
 There are two ways to use the application:
