@@ -1,3 +1,4 @@
+pub mod controller;
 pub mod http;
 pub mod model;
 pub mod platform;
