@@ -481,7 +481,7 @@ impl IpsecConfigurator for XfrmConfigurator {
                 } else {
                     num_failures += 1;
                     if num_failures >= KEEPALIVE_MAX_RETRIES {
-                        warn!("Max number of keepalive retried reached, existing");
+                        warn!("Maximum number of keepalive retries reached, exiting");
                         break;
                     }
                     warn!(
