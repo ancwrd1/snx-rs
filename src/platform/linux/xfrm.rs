@@ -115,33 +115,26 @@ impl XfrmConfigurator {
 
     async fn send_isakmp_probe(&self) -> anyhow::Result<()> {
         debug!("Sending isakmp probe to {}", self.dest_ip);
-        let udp = tokio::net::UdpSocket::bind("0.0.0.0:4500").await?;
+        let udp = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
         let data = vec![0u8; 32];
 
-        let mut buf = [0u8; 256];
+        let result =
+            util::udp_send_receive(&udp, format!("{}:4500", self.dest_ip), &data, Duration::from_secs(5)).await;
 
-        let send_fut = udp.send_to(&data, (self.dest_ip.to_string(), 4500));
-        let receive_fut = tokio::time::timeout(Duration::from_secs(5), udp.recv_from(&mut buf));
-
-        let result = futures::future::join(send_fut, receive_fut).await;
-
-        if let (Ok(_), Ok(Ok((size, _)))) = result {
-            if size == 32 {
-                let srcport: [u8; 4] = buf[8..12].try_into().unwrap();
-                let dstport: [u8; 4] = buf[12..16].try_into().unwrap();
+        match result {
+            Ok(reply) if reply.len() == 32 => {
+                let srcport: [u8; 4] = reply[8..12].try_into().unwrap();
+                let dstport: [u8; 4] = reply[12..16].try_into().unwrap();
                 debug!(
                     "Received isakmp reply from {}: srcport: {}, dstport: {}, hash: {}",
                     self.dest_ip,
                     u32::from_be_bytes(srcport),
                     u32::from_be_bytes(dstport),
-                    hex::encode(&buf[size - 16..size])
+                    hex::encode(&reply[reply.len() - 16..reply.len()])
                 );
                 Ok(())
-            } else {
-                Err(anyhow!("Invalid isakmp reply!"))
             }
-        } else {
-            Err(anyhow!("No isakmp reply!"))
+            _ => Err(anyhow!("No isakmp reply!")),
         }
     }
 
@@ -467,16 +460,10 @@ impl IpsecConfigurator for XfrmConfigurator {
                 trace!("Sending keepalive to {}", dst);
 
                 let data = make_keepalive_packet();
+                let result = util::udp_send_receive(&udp, (dst, KEEPALIVE_PORT), &data, KEEPALIVE_TIMEOUT).await;
 
-                let send_fut = udp.send_to(&data, (dst, KEEPALIVE_PORT));
-
-                let mut buf = [0u8; 128];
-                let recv_fut = tokio::time::timeout(KEEPALIVE_TIMEOUT, udp.recv_from(&mut buf));
-
-                let result = futures::future::join(send_fut, recv_fut).await;
-
-                if let (Ok(_), Ok(Ok((size, _)))) = result {
-                    trace!("Received keepalive response from {}, size: {}", dst, size);
+                if let Ok(reply) = result {
+                    trace!("Received keepalive response from {}, size: {}", dst, reply.len());
                     num_failures = 0;
                 } else {
                     num_failures += 1;

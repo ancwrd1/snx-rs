@@ -1,12 +1,14 @@
-use crate::http::SnxHttpClient;
-use crate::model::params::TunnelParams;
-use crate::model::{TunnelServiceRequest, TunnelServiceResponse};
+use std::{str::FromStr, sync::Arc, time::Duration};
+
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::time::Duration;
+
+use crate::{
+    http::SnxHttpClient,
+    model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
+    util,
+};
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(120);
@@ -110,19 +112,14 @@ impl SnxController {
     ) -> anyhow::Result<TunnelServiceResponse> {
         let udp = tokio::net::UdpSocket::bind("127.0.0.1:0").await?;
         let data = serde_json::to_vec(&request)?;
-        let send_fut = udp.send_to(&data, format!("127.0.0.1:{}", crate::server::LISTEN_PORT));
-
-        let mut buf = [0u8; 65536];
-        let recv_fut = tokio::time::timeout(timeout, udp.recv_from(&mut buf));
-
-        let result = futures::future::join(send_fut, recv_fut).await;
-
-        if let (Ok(_), Ok(Ok((size, _)))) = result {
-            let response = serde_json::from_slice(&buf[0..size])?;
-            Ok(response)
-        } else {
-            Err(anyhow!("Cannot send request to the service!"))
-        }
+        let result = util::udp_send_receive(
+            &udp,
+            format!("127.0.0.1:{}", crate::server::LISTEN_PORT),
+            &data,
+            timeout,
+        )
+        .await?;
+        Ok(serde_json::from_slice(&result)?)
     }
 
     async fn do_info(&self) -> anyhow::Result<()> {

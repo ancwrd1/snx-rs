@@ -1,7 +1,10 @@
-use std::{ffi::OsStr, fmt, path::Path, process::Output};
+use std::{ffi::OsStr, fmt, path::Path, process::Output, time::Duration};
 
 use anyhow::anyhow;
-use tokio::process::Command;
+use tokio::{
+    net::{ToSocketAddrs, UdpSocket},
+    process::Command,
+};
 use tracing::trace;
 
 // reverse engineered from vendor snx utility
@@ -71,6 +74,26 @@ where
     }
 
     process_output(command.output().await?)
+}
+
+pub async fn udp_send_receive<A: ToSocketAddrs>(
+    socket: &UdpSocket,
+    dest: A,
+    data: &[u8],
+    timeout: Duration,
+) -> anyhow::Result<Vec<u8>> {
+    let mut buf = [0u8; 65536];
+
+    let send_fut = socket.send_to(data, dest);
+    let recv_fut = tokio::time::timeout(timeout, socket.recv_from(&mut buf));
+
+    let result = futures::future::join(send_fut, recv_fut).await;
+
+    if let (Ok(_), Ok(Ok((size, _)))) = result {
+        Ok(buf[0..size].to_vec())
+    } else {
+        Err(anyhow!("Error sending UDP request!"))
+    }
 }
 
 #[cfg(test)]
