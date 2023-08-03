@@ -111,14 +111,12 @@ impl SnxController {
         timeout: Duration,
     ) -> anyhow::Result<TunnelServiceResponse> {
         let udp = tokio::net::UdpSocket::bind("127.0.0.1:0").await?;
+        udp.connect(format!("127.0.0.1:{}", crate::server::LISTEN_PORT)).await?;
+
         let data = serde_json::to_vec(&request)?;
-        let result = util::udp_send_receive(
-            &udp,
-            format!("127.0.0.1:{}", crate::server::LISTEN_PORT),
-            &data,
-            timeout,
-        )
-        .await?;
+
+        let result = util::udp_send_receive(&udp, &data, timeout).await?;
+
         Ok(serde_json::from_slice(&result)?)
     }
 

@@ -116,10 +116,11 @@ impl XfrmConfigurator {
     async fn send_isakmp_probe(&self) -> anyhow::Result<()> {
         debug!("Sending isakmp probe to {}", self.dest_ip);
         let udp = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
+        udp.connect(format!("{}:4500", self.dest_ip)).await?;
+
         let data = vec![0u8; 32];
 
-        let result =
-            util::udp_send_receive(&udp, format!("{}:4500", self.dest_ip), &data, Duration::from_secs(5)).await;
+        let result = util::udp_send_receive(&udp, &data, Duration::from_secs(5)).await;
 
         match result {
             Ok(reply) if reply.len() == 32 => {
@@ -436,6 +437,7 @@ impl IpsecConfigurator for XfrmConfigurator {
         let src: Ipv4Addr = self.ipsec_params.om_addr.into();
         let dst = self.dest_ip;
         let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
+        udp.connect((dst, KEEPALIVE_PORT)).await?;
 
         // disable UDP checksum validation for incoming packets.
         // Checkpoint gateway doesn't set it correctly.
@@ -460,7 +462,7 @@ impl IpsecConfigurator for XfrmConfigurator {
                 trace!("Sending keepalive to {}", dst);
 
                 let data = make_keepalive_packet();
-                let result = util::udp_send_receive(&udp, (dst, KEEPALIVE_PORT), &data, KEEPALIVE_TIMEOUT).await;
+                let result = util::udp_send_receive(&udp, &data, KEEPALIVE_TIMEOUT).await;
 
                 if let Ok(reply) = result {
                     trace!("Received keepalive response from {}, size: {}", dst, reply.len());
