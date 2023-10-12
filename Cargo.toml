@@ -29,7 +29,7 @@ reqwest = { version = "0.11", features = ["native-tls"] }
 futures = "0.3"
 bytes = "1"
 hex = "0.4"
-tun = { version = "0.5", features = ["async"] }
+tun = { version = "0.6", features = ["async"] }
 ipnet = "2"
 clap = { version = "4", features = ["derive"] }
 libc = "0.2"

@@ -29,7 +29,7 @@ impl TunDevice {
 
         let dev = tun::create_as_async(&config)?;
 
-        let dev_name = dev.get_ref().name().to_owned();
+        let dev_name = dev.get_ref().name()?;
 
         debug!("Created tun device: {dev_name}");
 
@@ -42,7 +42,7 @@ impl TunDevice {
     }
 
     pub fn name(&self) -> &str {
-        self.inner.get_ref().name()
+        &self.dev_name
     }
 
     pub fn into_inner(self) -> tun::AsyncDevice {
