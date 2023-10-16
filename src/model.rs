@@ -1,6 +1,3 @@
-use std::str::FromStr;
-
-use anyhow::anyhow;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -14,43 +11,6 @@ pub mod snx;
 pub struct SnxSession {
     pub session_id: String,
     pub cookie: String,
-}
-
-#[derive(Default, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum LoginType {
-    Password,
-    PasswordWithMfa,
-    #[default]
-    PasswordWithMsAuth,
-    EmergencyAccess,
-    SsoAzure,
-}
-
-impl LoginType {
-    pub fn as_login_option(&self) -> &'static str {
-        match self {
-            Self::Password => "vpn_Username_Password",
-            Self::PasswordWithMfa => "vpn",
-            Self::PasswordWithMsAuth => "vpn_Microsoft_Authenticator",
-            Self::EmergencyAccess => "vpn_Emergency_Access",
-            Self::SsoAzure => "vpn_Azure_Authentication",
-        }
-    }
-}
-
-impl FromStr for LoginType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "password" => Ok(Self::Password),
-            "password-mfa" => Ok(Self::PasswordWithMfa),
-            "password-ms-auth" => Ok(Self::PasswordWithMsAuth),
-            "emergency-access" => Ok(Self::EmergencyAccess),
-            "sso-azure" => Ok(Self::SsoAzure),
-            other => Err(anyhow!("Unknown login type: {}", other)),
-        }
-    }
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]

@@ -43,7 +43,7 @@ impl SnxHttpClient {
                     os_name: Some("Android".into()),
                     ..Default::default()
                 }),
-                selected_login_option: Some(self.0.login_type.as_login_option().to_owned()),
+                selected_login_option: Some(self.0.login_type.clone()),
                 endpoint_os: None,
             }),
         }
