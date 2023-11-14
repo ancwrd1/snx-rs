@@ -260,7 +260,7 @@ impl SnxTunnel for SnxSslTunnel {
                 }
             }
 
-            if self.params.reauth && (Instant::now() - now) >= self.auth_timeout {
+            if self.params.reauthenticate && (Instant::now() - now) >= self.auth_timeout {
                 self.reauth().await?;
                 now = Instant::now();
             }

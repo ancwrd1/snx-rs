@@ -60,11 +60,11 @@ pub struct CmdlineParams {
     pub log_level: Option<LevelFilter>,
 
     #[clap(
-        long = "reauth",
+        long = "reauthenticate",
         short = 'r',
-        help = "Enable automatic re-authentication, SSL tunnel only"
+        help = "Enable automatic re-authentication (SSL tunnel only)"
     )]
-    pub reauth: Option<bool>,
+    pub reauthenticate: Option<bool>,
 
     #[clap(long = "search-domains", short = 'd', help = "Additional search domains")]
     pub search_domains: Vec<String>,
@@ -105,17 +105,14 @@ pub struct CmdlineParams {
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TunnelType {
-    #[default]
     Ssl,
+    #[default]
     Ipsec,
 }
 
 impl TunnelType {
     pub fn as_client_type(&self) -> &'static str {
-        match self {
-            TunnelType::Ssl => "SYMBIAN",
-            TunnelType::Ipsec => "SYMBIAN",
-        }
+        "SYMBIAN"
     }
 }
 
@@ -137,7 +134,7 @@ pub struct TunnelParams {
     pub user_name: String,
     pub password: String,
     pub log_level: String,
-    pub reauth: bool,
+    pub reauthenticate: bool,
     pub search_domains: Vec<String>,
     pub default_route: bool,
     pub no_routing: bool,
@@ -155,7 +152,7 @@ impl Default for TunnelParams {
             user_name: String::new(),
             password: String::new(),
             log_level: "off".to_owned(),
-            reauth: false,
+            reauthenticate: false,
             search_domains: Vec::new(),
             default_route: false,
             no_routing: false,
@@ -185,7 +182,7 @@ impl TunnelParams {
                         "user-name" => params.user_name = v.to_string(),
                         "password" => params.password = v.to_string(),
                         "log-level" => params.log_level = v.to_string(),
-                        "reauth" => params.reauth = v.parse().unwrap_or_default(),
+                        "reauth" => params.reauthenticate = v.parse().unwrap_or_default(),
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
@@ -217,8 +214,8 @@ impl TunnelParams {
             self.password = password;
         }
 
-        if let Some(reauth) = other.reauth {
-            self.reauth = reauth;
+        if let Some(reauthenticate) = other.reauthenticate {
+            self.reauthenticate = reauthenticate;
         }
 
         if let Some(log_level) = other.log_level {
