@@ -1,6 +1,5 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
-    os::fd::AsRawFd,
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -9,6 +8,7 @@ use anyhow::anyhow;
 use tokio::sync::oneshot;
 use tracing::{debug, trace, warn};
 
+use crate::platform::{UdpEncap, UdpSocketExt};
 use crate::{
     model::{
         params::TunnelParams,
@@ -21,7 +21,6 @@ use crate::{
 const VTI_KEY: &str = "1000";
 const VTI_NAME: &str = "snx-vti";
 const MAX_ISAKMP_PROBES: usize = 5;
-const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
 
 const KEEPALIVE_PORT: u16 = 18234;
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
@@ -354,19 +353,7 @@ impl XfrmConfigurator {
     // this is necessary in order to perform automatic decapsulation of incoming ESP packets
     async fn start_udp_listener(&mut self) -> anyhow::Result<()> {
         let udp = tokio::net::UdpSocket::bind("0.0.0.0:4500").await?;
-        let stype: libc::c_int = UDP_ENCAP_ESPINUDP;
-        unsafe {
-            let rc = libc::setsockopt(
-                udp.as_raw_fd(),
-                libc::SOL_UDP,
-                libc::UDP_ENCAP,
-                &stype as *const libc::c_int as _,
-                std::mem::size_of::<libc::c_int>() as _,
-            );
-            if rc != 0 {
-                return Err(anyhow!("Cannot set UDP_ENCAP socket option!"));
-            }
-        }
+        udp.set_encap(UdpEncap::EspInUdp)?;
 
         let (tx, mut rx) = oneshot::channel();
         self.stopper = Some(tx);
@@ -441,19 +428,7 @@ impl IpsecConfigurator for XfrmConfigurator {
 
         // disable UDP checksum validation for incoming packets.
         // Checkpoint gateway doesn't set it correctly.
-        let disable: libc::c_int = 1;
-        unsafe {
-            let rc = libc::setsockopt(
-                udp.as_raw_fd(),
-                libc::SOL_SOCKET,
-                libc::SO_NO_CHECK,
-                &disable as *const libc::c_int as _,
-                std::mem::size_of::<libc::c_int>() as _,
-            );
-            if rc != 0 {
-                return Err(anyhow!("Cannot set SO_NO_CHECK socket option!"));
-            }
-        }
+        udp.set_no_check(true)?;
 
         let mut num_failures = 0;
 

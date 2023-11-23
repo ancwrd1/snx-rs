@@ -43,3 +43,13 @@ pub fn new_ipsec_configurator(
 ) -> impl IpsecConfigurator {
     IpsecImpl::new(tunnel_params, ipsec_params, client_settings)
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub enum UdpEncap {
+    EspInUdp,
+}
+
+pub trait UdpSocketExt {
+    fn set_encap(&self, encap: UdpEncap) -> anyhow::Result<()>;
+    fn set_no_check(&self, flag: bool) -> anyhow::Result<()>;
+}
