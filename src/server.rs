@@ -9,6 +9,7 @@ use chrono::{DateTime, Local};
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
+use crate::controller::{SnxController, SnxCtlCommand};
 use crate::model::ConnectionStatus;
 use crate::{
     model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
@@ -99,13 +100,20 @@ impl CommandServer {
             self.stopper = Some(tx);
 
             let connected = self.connected.clone();
-            self.connected_since = chrono::Local::now();
+            self.connected_since = Local::now();
 
             tokio::spawn(async move {
                 if let Err(e) = tunnel.run(rx, connected.clone()).await {
                     warn!("{}", e);
+                    connected.store(false, Ordering::SeqCst);
+                    if let Ok(controller) = SnxController::new() {
+                        if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
+                            warn!("{}", e);
+                        }
+                    }
+                } else {
+                    connected.store(false, Ordering::SeqCst);
                 }
-                connected.store(false, Ordering::SeqCst);
             });
             Ok(())
         } else {

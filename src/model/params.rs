@@ -62,7 +62,7 @@ pub struct CmdlineParams {
     #[clap(
         long = "reauthenticate",
         short = 'r',
-        help = "Enable automatic re-authentication (SSL tunnel only)"
+        help = "Enable automatic re-authentication"
     )]
     pub reauthenticate: Option<bool>,
 
@@ -182,7 +182,7 @@ impl TunnelParams {
                         "user-name" => params.user_name = v.to_string(),
                         "password" => params.password = v.to_string(),
                         "log-level" => params.log_level = v.to_string(),
-                        "reauth" => params.reauthenticate = v.parse().unwrap_or_default(),
+                        "reauthenticate" => params.reauthenticate = v.parse().unwrap_or_default(),
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
