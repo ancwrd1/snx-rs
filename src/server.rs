@@ -104,11 +104,13 @@ impl CommandServer {
 
             tokio::spawn(async move {
                 if let Err(e) = tunnel.run(rx, connected.clone()).await {
-                    warn!("{}", e);
+                    warn!("Tunnel error: {}", e);
                     connected.store(false, Ordering::SeqCst);
-                    let controller = SnxController::with_params((*params).clone());
-                    if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
-                        warn!("{}", e);
+                    if params.reauthenticate {
+                        let controller = SnxController::with_params((*params).clone());
+                        if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
+                            warn!("{}", e);
+                        }
                     }
                 } else {
                     connected.store(false, Ordering::SeqCst);
