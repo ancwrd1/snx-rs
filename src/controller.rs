@@ -42,6 +42,10 @@ pub struct SnxController {
 }
 
 impl SnxController {
+    pub fn with_params(params: TunnelParams) -> Self {
+        Self { params }
+    }
+
     pub fn new() -> anyhow::Result<Self> {
         let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
         let config_file = dir.config_dir().join("snx-rs.conf");

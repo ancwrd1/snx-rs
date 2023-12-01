@@ -106,10 +106,9 @@ impl CommandServer {
                 if let Err(e) = tunnel.run(rx, connected.clone()).await {
                     warn!("{}", e);
                     connected.store(false, Ordering::SeqCst);
-                    if let Ok(controller) = SnxController::new() {
-                        if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
-                            warn!("{}", e);
-                        }
+                    let controller = SnxController::with_params((*params).clone());
+                    if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
+                        warn!("{}", e);
                     }
                 } else {
                     connected.store(false, Ordering::SeqCst);
