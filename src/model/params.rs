@@ -166,6 +166,8 @@ impl Default for TunnelParams {
 }
 
 impl TunnelParams {
+    pub const IPSEC_KEEPALIVE_PORT: u16 = 18234;
+
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut params = Self::default();
         let data = std::fs::read_to_string(path)?;

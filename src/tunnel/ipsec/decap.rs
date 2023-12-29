@@ -1,5 +1,5 @@
 use tokio::sync::oneshot;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::platform::{UdpEncap, UdpSocketExt};
 
@@ -19,7 +19,7 @@ pub async fn start_decap_listener() -> anyhow::Result<oneshot::Sender<()>> {
             tokio::select! {
                 result = udp.recv_from(&mut buf) => {
                     if let Ok((size, from)) = result {
-                        debug!("Received NON-ESP data from {}, length: {}", from, size);
+                        warn!("Received unexpected NON-ESP data from {}, length: {}", from, size);
                     }
                 }
                 _ = &mut rx => {
@@ -27,6 +27,7 @@ pub async fn start_decap_listener() -> anyhow::Result<oneshot::Sender<()>> {
                 }
             }
         }
+        debug!("NAT-T listener stopped");
     });
 
     Ok(tx)

@@ -5,7 +5,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use tokio::sync::oneshot;
 use tracing::debug;
 
 use crate::{
@@ -58,7 +57,6 @@ pub struct XfrmConfigurator {
     client_settings: ClientSettingsResponseData,
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
-    stopper: Option<oneshot::Sender<()>>,
 }
 
 impl XfrmConfigurator {
@@ -73,7 +71,6 @@ impl XfrmConfigurator {
             client_settings,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip: Ipv4Addr::new(0, 0, 0, 0),
-            stopper: None,
         }
     }
 
@@ -147,6 +144,7 @@ impl XfrmConfigurator {
         debug!("Tunnel address: {}", addr);
 
         self.iproute2(&["addr", "add", &addr, "dev", VTI_NAME]).await?;
+
         Ok(())
     }
 
@@ -270,6 +268,18 @@ impl XfrmConfigurator {
             }
         }
 
+        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
+        let dst = self.dest_ip.to_string();
+
+        // set up routing correctly so that keepalive packets are not wrapped into ESP
+        self.iproute2(&["route", "add", "table", &port, &dst, "dev", "snx-vti"])
+            .await?;
+
+        self.iproute2(&[
+            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+        ])
+        .await?;
+
         Ok(())
     }
 
@@ -334,14 +344,18 @@ impl IpsecConfigurator for XfrmConfigurator {
     }
 
     async fn cleanup(&mut self) {
-        if let Some(stopper) = self.stopper.take() {
-            let _ = stopper.send(());
-        }
-
         let _ = self.iproute2(&["xfrm", "state", "flush"]).await;
         let _ = self.iproute2(&["xfrm", "policy", "flush"]).await;
-
         let _ = self.iproute2(&["link", "del", "name", VTI_NAME]).await;
+
+        let dst = self.dest_ip.to_string();
+        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
+
+        let _ = self
+            .iproute2(&[
+                "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+            ])
+            .await;
 
         self.cleanup_iptables().await;
     }

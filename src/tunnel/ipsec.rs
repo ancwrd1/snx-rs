@@ -27,9 +27,11 @@ impl SnxIpsecTunnel {
         let client_settings = client.get_client_settings(&session.session_id).await?;
         debug!("Client settings: {:?}", client_settings);
 
-        let keepalive_runner = KeepaliveRunner::new(client_settings.gw_internal_ip.parse()?);
-
         let ipsec_params = client.get_ipsec_tunnel_params(&session.session_id).await?;
+
+        let keepalive_runner =
+            KeepaliveRunner::new(ipsec_params.om_addr.into(), client_settings.gw_internal_ip.parse()?);
+
         let mut configurator = crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings);
         configurator.configure().await?;
 
@@ -74,13 +76,7 @@ impl Drop for SnxIpsecTunnel {
     fn drop(&mut self) {
         debug!("Cleaning up ipsec tunnel");
         std::thread::scope(|s| {
-            s.spawn(|| {
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap();
-                rt.block_on(self.configurator.cleanup());
-            });
+            s.spawn(|| crate::util::block_on(self.configurator.cleanup()));
         });
     }
 }

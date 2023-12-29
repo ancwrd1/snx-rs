@@ -6,9 +6,8 @@ use std::{
 use anyhow::anyhow;
 use tracing::{debug, trace, warn};
 
-use crate::{platform::UdpSocketExt, util};
+use crate::{model::params::TunnelParams, platform::UdpSocketExt};
 
-const KEEPALIVE_PORT: u16 = 18234;
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
 const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(5);
 const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(5);
@@ -34,33 +33,20 @@ fn make_keepalive_packet() -> [u8; 84] {
 }
 
 pub struct KeepaliveRunner {
+    src: Ipv4Addr,
     dst: Ipv4Addr,
 }
 
 impl KeepaliveRunner {
-    pub fn new(dst: Ipv4Addr) -> Self {
-        Self { dst }
+    pub fn new(src: Ipv4Addr, dst: Ipv4Addr) -> Self {
+        Self { src, dst }
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
-        let dst = self.dst.to_string();
-        let port = KEEPALIVE_PORT.to_string();
+        let src = self.src.to_string();
 
-        let src: Ipv4Addr = crate::platform::get_default_ip().await?.parse()?;
-
-        // set up routing correctly so that keepalive packets are not wrapped into ESP
-        util::run_command("ip", &["route", "add", "table", &port, &dst, "dev", "snx-vti"]).await?;
-
-        util::run_command(
-            "ip",
-            &[
-                "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-            ],
-        )
-        .await?;
-
-        let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
-        udp.connect((self.dst, KEEPALIVE_PORT)).await?;
+        let udp = tokio::net::UdpSocket::bind((src, TunnelParams::IPSEC_KEEPALIVE_PORT)).await?;
+        udp.connect((self.dst, TunnelParams::IPSEC_KEEPALIVE_PORT)).await?;
 
         // disable UDP checksum validation for incoming packets.
         // Checkpoint gateway doesn't set it correctly.
@@ -103,15 +89,6 @@ impl KeepaliveRunner {
         }
 
         debug!("Keepalive failed!");
-
-        // clean up routing
-        let _ = util::run_command(
-            "ip",
-            &[
-                "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-            ],
-        )
-        .await;
 
         Err(anyhow!("Keepalive failed!"))
     }

@@ -1,3 +1,4 @@
+use std::future::Future;
 use std::{ffi::OsStr, fmt, path::Path, process::Output};
 
 use anyhow::anyhow;
@@ -71,6 +72,18 @@ where
     }
 
     process_output(command.output().await?)
+}
+
+pub fn block_on<F, O>(f: F) -> O
+where
+    F: Future<Output = O>,
+{
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    rt.block_on(f)
 }
 
 #[cfg(test)]
