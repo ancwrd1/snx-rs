@@ -1,5 +1,3 @@
-mod keepalive;
-
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -8,13 +6,15 @@ use std::sync::{
 use tokio::sync::oneshot;
 use tracing::debug;
 
-use crate::tunnel::ipsec::keepalive::KeepaliveRunner;
 use crate::{
     http::SnxHttpClient,
     model::{params::TunnelParams, SnxSession},
     platform::IpsecConfigurator,
-    tunnel::SnxTunnel,
+    tunnel::{ipsec::keepalive::KeepaliveRunner, SnxTunnel},
 };
+
+mod decap;
+mod keepalive;
 
 pub(crate) struct SnxIpsecTunnel {
     configurator: Box<dyn IpsecConfigurator + Send>,
@@ -49,11 +49,14 @@ impl SnxTunnel for SnxIpsecTunnel {
     ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
+        let sender = decap::start_decap_listener().await?;
+
         connected.store(true, Ordering::SeqCst);
 
         let result = tokio::select! {
             _ = stop_receiver => {
                 debug!("Terminating IPSec tunnel due to stop command");
+                let _ = sender.send(());
                 Ok(())
             }
 

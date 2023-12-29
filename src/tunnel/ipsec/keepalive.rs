@@ -48,15 +48,6 @@ impl KeepaliveRunner {
 
         let src: Ipv4Addr = crate::platform::get_default_ip().await?.parse()?;
 
-        let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
-        udp.connect((self.dst, KEEPALIVE_PORT)).await?;
-
-        // disable UDP checksum validation for incoming packets.
-        // Checkpoint gateway doesn't set it correctly.
-        udp.set_no_check(true)?;
-
-        let mut num_failures = 0;
-
         // set up routing correctly so that keepalive packets are not wrapped into ESP
         util::run_command("ip", &["route", "add", "table", &port, &dst, "dev", "snx-vti"]).await?;
 
@@ -67,6 +58,15 @@ impl KeepaliveRunner {
             ],
         )
         .await?;
+
+        let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
+        udp.connect((self.dst, KEEPALIVE_PORT)).await?;
+
+        // disable UDP checksum validation for incoming packets.
+        // Checkpoint gateway doesn't set it correctly.
+        udp.set_no_check(true)?;
+
+        let mut num_failures = 0;
 
         loop {
             if crate::platform::is_online() {

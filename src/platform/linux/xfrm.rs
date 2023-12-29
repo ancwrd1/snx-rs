@@ -13,7 +13,7 @@ use crate::{
         params::TunnelParams,
         snx::{ClientSettingsResponseData, IpsecResponseData, IpsecSA},
     },
-    platform::{IpsecConfigurator, UdpEncap, UdpSocketExt},
+    platform::{IpsecConfigurator, UdpSocketExt},
     util,
 };
 
@@ -311,35 +311,6 @@ impl XfrmConfigurator {
     }
 
     async fn cleanup_iptables(&self) {}
-
-    // start a dummy UDP listener on port 4500 with UDP_ENCAP option.
-    // this is necessary in order to perform automatic decapsulation of incoming ESP packets
-    async fn start_udp_listener(&mut self) -> anyhow::Result<()> {
-        let udp = tokio::net::UdpSocket::bind("0.0.0.0:4500").await?;
-        udp.set_encap(UdpEncap::EspInUdp)?;
-
-        let (tx, mut rx) = oneshot::channel();
-        self.stopper = Some(tx);
-
-        tokio::spawn(async move {
-            debug!("Listening for NAT-T packets on port 4500");
-            let mut buf = [0u8; 1024];
-
-            loop {
-                tokio::select! {
-                    result = udp.recv_from(&mut buf) => {
-                        if let Ok((size, from)) = result {
-                            debug!("Received NON-ESP data from {}, length: {}", from, size);
-                        }
-                    }
-                    _ = &mut rx => {
-                        break;
-                    }
-                }
-            }
-        });
-        Ok(())
-    }
 }
 
 #[async_trait::async_trait]
@@ -358,7 +329,7 @@ impl IpsecConfigurator for XfrmConfigurator {
         self.setup_xfrm().await?;
         self.setup_routing().await?;
         self.setup_dns().await?;
-        self.start_udp_listener().await?;
+
         Ok(())
     }
 
