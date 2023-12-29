@@ -59,15 +59,18 @@ pub struct CmdlineParams {
     )]
     pub log_level: Option<LevelFilter>,
 
-    #[clap(
-        long = "reauthenticate",
-        short = 'r',
-        help = "Enable automatic re-authentication"
-    )]
+    #[clap(long = "reauthenticate", short = 'r', help = "Enable automatic re-authentication")]
     pub reauthenticate: Option<bool>,
 
     #[clap(long = "search-domains", short = 'd', help = "Additional search domains")]
     pub search_domains: Vec<String>,
+
+    #[clap(
+        long = "ignore-search-domains",
+        short = 'i',
+        help = "Ignore specified search domains from the acquired list"
+    )]
+    pub ignore_search_domains: Vec<String>,
 
     #[clap(
         long = "default-route",
@@ -136,6 +139,7 @@ pub struct TunnelParams {
     pub log_level: String,
     pub reauthenticate: bool,
     pub search_domains: Vec<String>,
+    pub ignore_search_domains: Vec<String>,
     pub default_route: bool,
     pub no_routing: bool,
     pub no_dns: bool,
@@ -154,6 +158,7 @@ impl Default for TunnelParams {
             log_level: "off".to_owned(),
             reauthenticate: false,
             search_domains: Vec::new(),
+            ignore_search_domains: Vec::new(),
             default_route: false,
             no_routing: false,
             no_dns: false,
@@ -186,6 +191,9 @@ impl TunnelParams {
                         "log-level" => params.log_level = v.to_string(),
                         "reauthenticate" => params.reauthenticate = v.parse().unwrap_or_default(),
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
+                        "ignore-search-domains" => {
+                            params.ignore_search_domains = v.split(',').map(|s| s.trim().to_owned()).collect()
+                        }
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
@@ -226,6 +234,10 @@ impl TunnelParams {
 
         if !other.search_domains.is_empty() {
             self.search_domains = other.search_domains;
+        }
+
+        if !other.ignore_search_domains.is_empty() {
+            self.ignore_search_domains = other.ignore_search_domains;
         }
 
         if let Some(default_route) = other.default_route {

@@ -292,7 +292,14 @@ impl XfrmConfigurator {
                 .om_domain_name
                 .0
                 .split(',')
-                .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()));
+                .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()))
+                .filter(|&s| {
+                    !self
+                        .tunnel_params
+                        .ignore_search_domains
+                        .iter()
+                        .any(|d| d.to_lowercase() == s.to_lowercase())
+                });
             let _ = crate::platform::add_dns_suffixes(suffixes, VTI_NAME).await;
 
             let dns_servers = [
