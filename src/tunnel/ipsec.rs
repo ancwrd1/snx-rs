@@ -58,7 +58,6 @@ impl SnxTunnel for SnxIpsecTunnel {
         let result = tokio::select! {
             _ = stop_receiver => {
                 debug!("Terminating IPSec tunnel due to stop command");
-                let _ = sender.send(());
                 Ok(())
             }
 
@@ -67,6 +66,8 @@ impl SnxTunnel for SnxIpsecTunnel {
                 err
             }
         };
+
+        let _ = sender.send(());
 
         result
     }
