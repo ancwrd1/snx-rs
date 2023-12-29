@@ -1,3 +1,5 @@
+mod keepalive;
+
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -6,6 +8,7 @@ use std::sync::{
 use tokio::sync::oneshot;
 use tracing::debug;
 
+use crate::tunnel::ipsec::keepalive::KeepaliveRunner;
 use crate::{
     http::SnxHttpClient,
     model::{params::TunnelParams, SnxSession},
@@ -13,7 +16,10 @@ use crate::{
     tunnel::SnxTunnel,
 };
 
-pub(crate) struct SnxIpsecTunnel(Box<dyn IpsecConfigurator + Send>);
+pub(crate) struct SnxIpsecTunnel {
+    configurator: Box<dyn IpsecConfigurator + Send>,
+    keepalive_runner: KeepaliveRunner,
+}
 
 impl SnxIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<Self> {
@@ -21,11 +27,16 @@ impl SnxIpsecTunnel {
         let client_settings = client.get_client_settings(&session.session_id).await?;
         debug!("Client settings: {:?}", client_settings);
 
+        let keepalive_runner = KeepaliveRunner::new(client_settings.gw_internal_ip.parse()?);
+
         let ipsec_params = client.get_ipsec_tunnel_params(&session.session_id).await?;
         let mut configurator = crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings);
         configurator.configure().await?;
 
-        Ok(Self(Box::new(configurator)))
+        Ok(Self {
+            configurator: Box::new(configurator),
+            keepalive_runner,
+        })
     }
 }
 
@@ -46,7 +57,7 @@ impl SnxTunnel for SnxIpsecTunnel {
                 Ok(())
             }
 
-            err = self.0.run_keepalive() => {
+            err = self.keepalive_runner.run() => {
                 debug!("Terminating IPSec tunnel due to keepalive failure");
                 err
             }
@@ -65,7 +76,7 @@ impl Drop for SnxIpsecTunnel {
                     .enable_all()
                     .build()
                     .unwrap();
-                rt.block_on(self.0.cleanup());
+                rt.block_on(self.configurator.cleanup());
             });
         });
     }

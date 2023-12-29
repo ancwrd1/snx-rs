@@ -1,12 +1,12 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 use anyhow::anyhow;
 use tokio::sync::oneshot;
-use tracing::{debug, trace, warn};
+use tracing::debug;
 
 use crate::{
     model::{
@@ -20,12 +20,6 @@ use crate::{
 const VTI_KEY: &str = "1000";
 const VTI_NAME: &str = "snx-vti";
 const MAX_ISAKMP_PROBES: usize = 5;
-
-const KEEPALIVE_PORT: u16 = 18234;
-const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
-const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(5);
-const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(5);
-const KEEPALIVE_MAX_RETRIES: u32 = 5;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(dead_code)]
@@ -56,25 +50,6 @@ impl PolicyDir {
             PolicyDir::Out => "out",
         }
     }
-}
-
-// picked from wireshark logs
-fn make_keepalive_packet() -> [u8; 84] {
-    let mut data = [0u8; 84];
-
-    // 0x00000011 looks like a packet type, KEEPALIVE in this case
-    data[0..4].copy_from_slice(&0x00000011u32.to_be_bytes());
-
-    // 0x0001 is probably a direction: request or response. We get 0x0002 as a response back.
-    data[4..6].copy_from_slice(&0x0001u16.to_be_bytes());
-
-    // this looks like a content type, probably means TIMESTAMP
-    data[6..8].copy_from_slice(&0x0002u16.to_be_bytes());
-
-    // timestamp
-    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
-    data[8..16].copy_from_slice(&timestamp.to_be_bytes());
-    data
 }
 
 pub struct XfrmConfigurator {
@@ -295,17 +270,6 @@ impl XfrmConfigurator {
             }
         }
 
-        let dst = self.dest_ip.to_string();
-        let port = KEEPALIVE_PORT.to_string();
-
-        // for tunnel keepalive
-        self.iproute2(&["route", "add", "table", &port, &dst, "dev", "snx-vti"])
-            .await?;
-        self.iproute2(&[
-            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-        ])
-        .await?;
-
         Ok(())
     }
 
@@ -402,71 +366,12 @@ impl IpsecConfigurator for XfrmConfigurator {
         if let Some(stopper) = self.stopper.take() {
             let _ = stopper.send(());
         }
-        let dst = self.dest_ip.to_string();
 
         let _ = self.iproute2(&["xfrm", "state", "flush"]).await;
         let _ = self.iproute2(&["xfrm", "policy", "flush"]).await;
 
         let _ = self.iproute2(&["link", "del", "name", VTI_NAME]).await;
 
-        let port = KEEPALIVE_PORT.to_string();
-
-        let _ = self
-            .iproute2(&[
-                "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-            ])
-            .await;
         self.cleanup_iptables().await;
-    }
-
-    async fn run_keepalive(&self) -> anyhow::Result<()> {
-        let src: Ipv4Addr = self.ipsec_params.om_addr.into();
-        let dst = self.dest_ip;
-        let udp = tokio::net::UdpSocket::bind((src, KEEPALIVE_PORT)).await?;
-        udp.connect((dst, KEEPALIVE_PORT)).await?;
-
-        // disable UDP checksum validation for incoming packets.
-        // Checkpoint gateway doesn't set it correctly.
-        udp.set_no_check(true)?;
-
-        let mut num_failures = 0;
-
-        loop {
-            if crate::platform::is_online() {
-                trace!("Sending keepalive to {}", dst);
-
-                let data = make_keepalive_packet();
-                let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT).await;
-
-                if let Ok(reply) = result {
-                    trace!("Received keepalive response from {}, size: {}", dst, reply.len());
-                    num_failures = 0;
-                } else {
-                    num_failures += 1;
-                    if num_failures >= KEEPALIVE_MAX_RETRIES {
-                        warn!("Maximum number of keepalive retries reached, exiting");
-                        break;
-                    }
-                    warn!(
-                        "Keepalive failed, retrying in {} secs",
-                        KEEPALIVE_RETRY_INTERVAL.as_secs()
-                    );
-                }
-            } else {
-                num_failures = 0;
-            }
-
-            let interval = if num_failures == 0 {
-                KEEPALIVE_INTERVAL
-            } else {
-                KEEPALIVE_RETRY_INTERVAL
-            };
-
-            tokio::time::sleep(interval).await;
-        }
-
-        debug!("Keepalive failed!");
-
-        Err(anyhow!("Keepalive failed!"))
     }
 }

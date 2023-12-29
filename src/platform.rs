@@ -36,7 +36,6 @@ pub mod macos;
 pub trait IpsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
-    async fn run_keepalive(&self) -> anyhow::Result<()>;
 }
 
 pub fn new_ipsec_configurator(

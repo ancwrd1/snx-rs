@@ -28,7 +28,4 @@ impl IpsecConfigurator for BsdIpsecConfigurator {
         Err(anyhow!("Not implemented"))
     }
     async fn cleanup(&mut self) {}
-    async fn run_keepalive(&self) -> anyhow::Result<()> {
-        Err(anyhow!("Not implemented"))
-    }
 }
