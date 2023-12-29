@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
+
+use anyhow::anyhow;
+use tokio::net::UdpSocket;
 
 #[cfg(target_os = "linux")]
 pub use linux::net::{
@@ -10,13 +13,13 @@ pub use linux::net::{
 use linux::xfrm::XfrmConfigurator as IpsecImpl;
 
 #[cfg(target_os = "macos")]
+use macos::ipsec::BsdIpsecConfigurator as IpsecImpl;
+
+#[cfg(target_os = "macos")]
 pub use macos::net::{
     add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online,
     start_network_state_monitoring,
 };
-
-#[cfg(target_os = "macos")]
-use macos::ipsec::BsdIpsecConfigurator as IpsecImpl;
 
 use crate::model::{
     params::TunnelParams,
@@ -49,7 +52,24 @@ pub enum UdpEncap {
     EspInUdp,
 }
 
+#[async_trait::async_trait]
 pub trait UdpSocketExt {
     fn set_encap(&self, encap: UdpEncap) -> anyhow::Result<()>;
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()>;
+    async fn send_receive(&self, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>>;
+}
+
+async fn udp_send_receive(socket: &UdpSocket, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>> {
+    let mut buf = [0u8; 65536];
+
+    let send_fut = socket.send(data);
+    let recv_fut = tokio::time::timeout(timeout, socket.recv_from(&mut buf));
+
+    let result = futures::future::join(send_fut, recv_fut).await;
+
+    if let (Ok(_), Ok(Ok((size, _)))) = result {
+        Ok(buf[0..size].to_vec())
+    } else {
+        Err(anyhow!("Error sending UDP request!"))
+    }
 }

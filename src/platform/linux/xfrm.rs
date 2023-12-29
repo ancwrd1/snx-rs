@@ -8,13 +8,12 @@ use anyhow::anyhow;
 use tokio::sync::oneshot;
 use tracing::{debug, trace, warn};
 
-use crate::platform::{UdpEncap, UdpSocketExt};
 use crate::{
     model::{
         params::TunnelParams,
         snx::{ClientSettingsResponseData, IpsecResponseData, IpsecSA},
     },
-    platform::IpsecConfigurator,
+    platform::{IpsecConfigurator, UdpEncap, UdpSocketExt},
     util,
 };
 
@@ -119,7 +118,7 @@ impl XfrmConfigurator {
 
         let data = vec![0u8; 32];
 
-        let result = util::udp_send_receive(&udp, &data, Duration::from_secs(5)).await;
+        let result = udp.send_receive(&data, Duration::from_secs(5)).await;
 
         match result {
             Ok(reply) if reply.len() == 32 => {
@@ -437,7 +436,7 @@ impl IpsecConfigurator for XfrmConfigurator {
                 trace!("Sending keepalive to {}", dst);
 
                 let data = make_keepalive_packet();
-                let result = util::udp_send_receive(&udp, &data, KEEPALIVE_TIMEOUT).await;
+                let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT).await;
 
                 if let Ok(reply) = result {
                     trace!("Received keepalive response from {}, size: {}", dst, reply.len());

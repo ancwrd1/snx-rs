@@ -7,7 +7,7 @@ use directories_next::ProjectDirs;
 use crate::{
     http::SnxHttpClient,
     model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
-    util,
+    platform::UdpSocketExt,
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -119,7 +119,7 @@ impl SnxController {
 
         let data = serde_json::to_vec(&request)?;
 
-        let result = util::udp_send_receive(&udp, &data, timeout).await?;
+        let result = udp.send_receive(&data, timeout).await?;
 
         Ok(serde_json::from_slice(&result)?)
     }

@@ -9,10 +9,9 @@ use chrono::{DateTime, Local};
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
-use crate::controller::{SnxController, SnxCtlCommand};
-use crate::model::ConnectionStatus;
 use crate::{
-    model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
+    controller::{SnxController, SnxCtlCommand},
+    model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     tunnel::SnxTunnelConnector,
 };
 
