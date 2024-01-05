@@ -1,10 +1,7 @@
 use std::net::Ipv4Addr;
 
 use anyhow::anyhow;
-use ipnet::Ipv4Subnets;
 use tracing::debug;
-
-use crate::model::snx::NetworkRange;
 
 pub async fn start_network_state_monitoring() -> anyhow::Result<()> {
     Ok(())
@@ -14,17 +11,11 @@ pub fn is_online() -> bool {
     true
 }
 
-pub async fn add_route(range: &NetworkRange, _device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+pub async fn add_route(route: &str, _device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
     let ip_str = ipaddr.to_string();
 
-    let subnets = Ipv4Subnets::new(range.from, range.to, 0);
-    for subnet in subnets {
-        if subnet.contains(&ipaddr) {
-            let snet = subnet.to_string();
-            debug!("Adding route: {} via {}", snet, ip_str);
-            crate::util::run_command("route", ["add", "-net", &snet, &ip_str]).await?;
-        }
-    }
+    debug!("Adding route: {} via {}", route, ip_str);
+    crate::util::run_command("route", ["add", "-net", route, &ip_str]).await?;
 
     Ok(())
 }

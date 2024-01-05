@@ -5,11 +5,8 @@ use std::{
 
 use anyhow::anyhow;
 use futures::StreamExt;
-use ipnet::Ipv4Subnets;
 use tracing::debug;
 use zbus::{dbus_proxy, Connection};
-
-use crate::model::snx::NetworkRange;
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
@@ -91,16 +88,9 @@ pub async fn get_default_ip() -> anyhow::Result<String> {
     Err(anyhow!("Cannot determine default IP!"))
 }
 
-pub async fn add_route(range: &NetworkRange, device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
-    let subnets = Ipv4Subnets::new(range.from, range.to, 0);
-    for subnet in subnets {
-        if subnet.contains(&ipaddr) {
-            let snet = subnet.to_string();
-            debug!("Adding route: {} via {}", snet, device);
-            crate::util::run_command("ip", ["route", "add", &snet, "dev", device]).await?;
-        }
-    }
-
+pub async fn add_route(route: &str, device: &str, _ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+    debug!("Adding route: {} via {}", route, device);
+    crate::util::run_command("ip", ["route", "add", &route, "dev", device]).await?;
     Ok(())
 }
 

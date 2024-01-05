@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use ipnet::Ipv4Subnets;
 use tracing::debug;
 
 use crate::{
@@ -263,7 +264,14 @@ impl XfrmConfigurator {
                 let _ = crate::platform::add_default_route(VTI_NAME, addr).await;
             } else {
                 for range in &self.client_settings.updated_policies.range.settings {
-                    crate::platform::add_route(range, VTI_NAME, addr).await?;
+                    let subnets = Ipv4Subnets::new(range.from, range.to, 0);
+                    for subnet in subnets.into_iter().filter(|s| s.contains(&addr)) {
+                        crate::platform::add_route(&subnet.to_string(), VTI_NAME, addr).await?;
+                    }
+                }
+
+                for route in &self.tunnel_params.add_routes {
+                    crate::platform::add_route(route, VTI_NAME, addr).await?;
                 }
             }
         }

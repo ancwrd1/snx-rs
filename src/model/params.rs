@@ -82,6 +82,9 @@ pub struct CmdlineParams {
     #[clap(long = "no-routing", short = 'n', help = "Do not change routing table")]
     pub no_routing: Option<bool>,
 
+    #[clap(long = "add-routes", short = 'a', help = "Additional routes through the tunnel")]
+    pub add_routes: Vec<String>,
+
     #[clap(long = "no-dns", short = 'N', help = "Do not change DNS resolver configuration")]
     pub no_dns: Option<bool>,
 
@@ -142,6 +145,7 @@ pub struct TunnelParams {
     pub ignore_search_domains: Vec<String>,
     pub default_route: bool,
     pub no_routing: bool,
+    pub add_routes: Vec<String>,
     pub no_dns: bool,
     pub no_cert_check: bool,
     pub tunnel_type: TunnelType,
@@ -161,6 +165,7 @@ impl Default for TunnelParams {
             ignore_search_domains: Vec::new(),
             default_route: false,
             no_routing: false,
+            add_routes: Vec::new(),
             no_dns: false,
             no_cert_check: false,
             tunnel_type: TunnelType::Ssl,
@@ -196,6 +201,7 @@ impl TunnelParams {
                         }
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
+                        "add-routes" => params.add_routes = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                         "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
@@ -250,6 +256,10 @@ impl TunnelParams {
 
         if let Some(no_dns) = other.no_dns {
             self.no_dns = no_dns;
+        }
+
+        if !other.add_routes.is_empty() {
+            self.add_routes = other.add_routes;
         }
 
         if let Some(tunnel_type) = other.tunnel_type {
