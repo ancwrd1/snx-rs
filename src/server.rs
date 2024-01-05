@@ -1,14 +1,11 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::anyhow;
-use chrono::{DateTime, Local};
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
+use crate::model::SnxSession;
 use crate::{
     controller::{SnxController, SnxCtlCommand},
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
@@ -22,8 +19,8 @@ const MAX_PACKET_SIZE: usize = 1_000_000;
 pub struct CommandServer {
     port: u16,
     stopper: Option<oneshot::Sender<()>>,
-    connected: Arc<AtomicBool>,
-    connected_since: DateTime<Local>,
+    connected: Arc<Mutex<ConnectionStatus>>,
+    session_id: Option<String>,
 }
 
 impl CommandServer {
@@ -31,8 +28,8 @@ impl CommandServer {
         Self {
             port,
             stopper: None,
-            connected: Arc::new(AtomicBool::new(false)),
-            connected_since: chrono::Local::now(),
+            connected: Arc::new(Mutex::new(ConnectionStatus::default())),
+            session_id: None,
         }
     }
 
@@ -78,54 +75,87 @@ impl CommandServer {
             }
             TunnelServiceRequest::GetStatus => {
                 debug!("Handling get status command");
-                match self.get_status().await {
-                    Ok(b) => TunnelServiceResponse::ConnectionStatus(ConnectionStatus {
-                        connected_since: b.then_some(self.connected_since),
-                    }),
+                TunnelServiceResponse::ConnectionStatus(self.get_status())
+            }
+            TunnelServiceRequest::ChallengeCode(code, params) => {
+                debug!("Handling challenge code command");
+                match self.challenge_code(&code, Arc::new(params)).await {
+                    Ok(_) => TunnelServiceResponse::Ok,
                     Err(e) => TunnelServiceResponse::Error(e.to_string()),
                 }
             }
         }
     }
 
+    fn is_connected(&self) -> bool {
+        self.connected.lock().unwrap().connected_since.is_some()
+    }
+
+    async fn connect_for_session(&mut self, params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<()> {
+        if session.cookie.is_none() {
+            debug!("Challenge code requested, awaiting for it");
+            self.session_id = Some(session.session_id.clone());
+            *self.connected.lock().unwrap() = ConnectionStatus {
+                mfa_pending: true,
+                ..Default::default()
+            };
+            return Ok(());
+        }
+
+        let connector = SnxTunnelConnector::new(params.clone());
+        let tunnel = connector.create_tunnel(session).await?;
+
+        let (tx, rx) = oneshot::channel();
+        self.stopper = Some(tx);
+
+        let connected = self.connected.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = tunnel.run(rx, connected.clone()).await {
+                warn!("Tunnel error: {}", e);
+                *connected.lock().unwrap() = ConnectionStatus::default();
+                if params.reauthenticate {
+                    let controller = SnxController::with_params((*params).clone());
+                    if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
+                        warn!("{}", e);
+                    }
+                }
+            } else {
+                *connected.lock().unwrap() = ConnectionStatus::default();
+            }
+        });
+        Ok(())
+    }
+
     async fn connect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<()> {
-        if !self.connected.load(Ordering::SeqCst) {
+        if !self.is_connected() {
+            self.session_id = None;
+
             let connector = SnxTunnelConnector::new(params.clone());
             let session = Arc::new(connector.authenticate(None).await?);
-
-            let tunnel = connector.create_tunnel(session).await?;
-
-            let (tx, rx) = oneshot::channel();
-            self.stopper = Some(tx);
-
-            let connected = self.connected.clone();
-            self.connected_since = Local::now();
-
-            tokio::spawn(async move {
-                if let Err(e) = tunnel.run(rx, connected.clone()).await {
-                    warn!("Tunnel error: {}", e);
-                    connected.store(false, Ordering::SeqCst);
-                    if params.reauthenticate {
-                        let controller = SnxController::with_params((*params).clone());
-                        if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
-                            warn!("{}", e);
-                        }
-                    }
-                } else {
-                    connected.store(false, Ordering::SeqCst);
-                }
-            });
-            Ok(())
+            self.connect_for_session(params, session).await
         } else {
             Err(anyhow!("Tunnel is already connected!"))
         }
     }
 
+    async fn challenge_code(&mut self, code: &str, params: Arc<TunnelParams>) -> anyhow::Result<()> {
+        let connector = SnxTunnelConnector::new(params.clone());
+        let session = Arc::new(
+            connector
+                .authenticate_with_mfa(self.session_id.as_deref().unwrap_or_default(), &code)
+                .await?,
+        );
+        self.connect_for_session(params, session).await
+    }
+
     async fn disconnect(&mut self) -> anyhow::Result<()> {
+        self.session_id = None;
+
         if let Some(stopper) = self.stopper.take() {
             let _ = stopper.send(());
             let mut num_waits = 0;
-            while self.connected.load(Ordering::SeqCst) && num_waits < 20 {
+            while self.is_connected() && num_waits < 20 {
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 num_waits += 1;
             }
@@ -135,7 +165,7 @@ impl CommandServer {
         }
     }
 
-    async fn get_status(&self) -> anyhow::Result<bool> {
-        Ok(self.connected.load(Ordering::SeqCst))
+    fn get_status(&self) -> ConnectionStatus {
+        self.connected.lock().unwrap().clone()
     }
 }

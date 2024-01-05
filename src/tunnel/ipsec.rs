@@ -1,11 +1,10 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::{Arc, Mutex};
 
+use chrono::Local;
 use tokio::sync::oneshot;
 use tracing::debug;
 
+use crate::model::ConnectionStatus;
 use crate::{
     http::SnxHttpClient,
     model::{params::TunnelParams, SnxSession},
@@ -47,13 +46,16 @@ impl SnxTunnel for SnxIpsecTunnel {
     async fn run(
         self: Box<Self>,
         stop_receiver: oneshot::Receiver<()>,
-        connected: Arc<AtomicBool>,
+        connected: Arc<Mutex<ConnectionStatus>>,
     ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
         let sender = decap::start_decap_listener().await?;
 
-        connected.store(true, Ordering::SeqCst);
+        *connected.lock().unwrap() = ConnectionStatus {
+            connected_since: Some(Local::now()),
+            mfa_pending: false,
+        };
 
         let result = tokio::select! {
             _ = stop_receiver => {

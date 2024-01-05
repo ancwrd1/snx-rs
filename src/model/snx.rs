@@ -173,6 +173,13 @@ pub struct PasswordData {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MultiChallengeData {
+    pub client_type: String,
+    pub auth_session_id: String,
+    pub user_input: SecretKey,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientLoggingData {
     pub client_name: Option<String>,
     pub client_ver: Option<String>,
@@ -217,6 +224,7 @@ pub struct LocationAwarenessData {
 #[allow(clippy::large_enum_variant)]
 pub enum RequestData {
     Password(PasswordData),
+    MultiChallenge(MultiChallengeData),
     Ipsec(IpsecData),
     LocationAwareness(LocationAwarenessData),
     ClientInfo { client_info: ClientInfo },
@@ -247,7 +255,7 @@ pub enum ResponseData {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AuthResponseData {
     pub authn_status: String,
-    pub is_authenticated: bool,
+    pub is_authenticated: Option<bool>,
     pub active_key: Option<SecretKey>,
     pub server_fingerprint: Option<String>,
     pub server_cn: Option<String>,

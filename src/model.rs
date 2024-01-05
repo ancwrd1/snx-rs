@@ -10,7 +10,7 @@ pub mod snx;
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct SnxSession {
     pub session_id: String,
-    pub cookie: String,
+    pub cookie: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
@@ -95,14 +95,16 @@ impl Serialize for AuthenticationAlgorithm {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConnectionStatus {
     pub connected_since: Option<DateTime<Local>>,
+    pub mfa_pending: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TunnelServiceRequest {
     Connect(TunnelParams),
+    ChallengeCode(String, TunnelParams),
     Disconnect,
     GetStatus,
 }

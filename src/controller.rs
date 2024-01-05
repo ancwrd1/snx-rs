@@ -8,6 +8,7 @@ use crate::{
     http::SnxHttpClient,
     model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
     platform::UdpSocketExt,
+    prompt,
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -73,13 +74,21 @@ impl SnxController {
         }
     }
 
+    #[async_recursion::async_recursion]
     async fn do_status(&self) -> anyhow::Result<()> {
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
                 match status.connected_since {
                     Some(timestamp) => println!("Connected since {}", timestamp),
-                    None => println!("Disconnected"),
+                    None => {
+                        if status.mfa_pending {
+                            let input = prompt::get_input_from_tty()?;
+                            self.do_challenge_code(input).await?;
+                        } else {
+                            println!("Disconnected");
+                        }
+                    }
                 }
                 Ok(())
             }
@@ -91,6 +100,24 @@ impl SnxController {
     async fn do_connect(&self) -> anyhow::Result<()> {
         let response = self
             .send_receive(TunnelServiceRequest::Connect(self.params.clone()), CONNECT_TIMEOUT)
+            .await;
+        match response {
+            Ok(TunnelServiceResponse::Ok) => self.do_status().await,
+            Ok(TunnelServiceResponse::Error(error)) => {
+                println!("Error: {}", error);
+                Ok(())
+            }
+            Ok(_) => Err(anyhow!("Invalid response!")),
+            Err(e) => Err(e),
+        }
+    }
+
+    async fn do_challenge_code(&self, code: String) -> anyhow::Result<()> {
+        let response = self
+            .send_receive(
+                TunnelServiceRequest::ChallengeCode(code, self.params.clone()),
+                CONNECT_TIMEOUT,
+            )
             .await;
         match response {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,

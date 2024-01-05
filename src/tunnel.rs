@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, Mutex};
 
 use anyhow::anyhow;
 use tokio::sync::oneshot;
@@ -8,6 +8,7 @@ use crate::{
     http::SnxHttpClient,
     model::{
         params::{TunnelParams, TunnelType},
+        snx::AuthResponseData,
         *,
     },
     tunnel::{ipsec::SnxIpsecTunnel, ssl::SnxSslTunnel},
@@ -21,7 +22,7 @@ pub trait SnxTunnel {
     async fn run(
         mut self: Box<Self>,
         stop_receiver: oneshot::Receiver<()>,
-        connected: Arc<AtomicBool>,
+        connected: Arc<Mutex<ConnectionStatus>>,
     ) -> anyhow::Result<()>;
 }
 
@@ -33,26 +34,53 @@ impl SnxTunnelConnector {
     }
 
     pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<SnxSession> {
-        debug!("Connecting to http endpoint: {}", self.0.server_name);
+        debug!("Authenticating to endpoint: {}", self.0.server_name);
         let client = SnxHttpClient::new(self.0.clone());
 
         let data = client.authenticate(session_id).await?;
 
+        self.process_auth_response(data).await
+    }
+
+    pub async fn authenticate_with_mfa(&self, session_id: &str, user_input: &str) -> anyhow::Result<SnxSession> {
+        debug!("Authenticating with MFA code to endpoint: {}", self.0.server_name);
+        let client = SnxHttpClient::new(self.0.clone());
+
+        let data = client.mfa(session_id, user_input).await?;
+
+        self.process_auth_response(data).await
+    }
+
+    async fn process_auth_response(&self, data: AuthResponseData) -> anyhow::Result<SnxSession> {
+        let session_id = data.session_id.unwrap_or_default();
+
+        match data.authn_status.as_str() {
+            "continue" => {
+                return Ok(SnxSession {
+                    session_id,
+                    cookie: None,
+                })
+            }
+            "done" => {}
+            other => {
+                warn!("Authn status: {}", other);
+                return Err(anyhow!("Authentication failed!"));
+            }
+        }
+
         let cookie = match (data.is_authenticated, data.active_key) {
-            (true, Some(ref key)) => key.clone(),
+            (Some(true), Some(ref key)) => key.clone(),
             _ => {
                 warn!("Authentication failed!");
                 return Err(anyhow!("Authentication failed!"));
             }
         };
 
-        let session_id = data.session_id.unwrap_or_default();
-
         debug!("Authentication OK, session id: {session_id}");
 
         Ok(SnxSession {
             session_id,
-            cookie: cookie.0,
+            cookie: Some(cookie.0),
         })
     }
 

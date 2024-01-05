@@ -1,12 +1,13 @@
 use std::{
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
-        Arc,
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
     },
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use anyhow::anyhow;
+use chrono::Local;
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     SinkExt, StreamExt, TryStreamExt,
@@ -23,7 +24,7 @@ use codec::SnxCodec;
 
 use crate::{
     model::{params::TunnelParams, snx::*, *},
-    tunnel::{SnxTunnel, SnxTunnelConnector},
+    tunnel::SnxTunnel,
 };
 
 pub mod codec;
@@ -124,7 +125,7 @@ impl SnxSslTunnel {
             optional: Some(OptionalRequest {
                 client_type: "4".to_string(),
             }),
-            cookie: self.session.cookie.clone(),
+            cookie: self.session.cookie.clone().unwrap_or_default(),
         }
     }
 
@@ -166,19 +167,6 @@ impl SnxSslTunnel {
         Ok(())
     }
 
-    async fn reauth(&mut self) -> anyhow::Result<()> {
-        let connector = SnxTunnelConnector::new(self.params.clone());
-
-        let session = Arc::new(connector.authenticate(Some(&self.session.session_id)).await?);
-
-        self.session = session;
-
-        let req = self.new_hello_request(true);
-        self.send(req).await?;
-
-        Ok(())
-    }
-
     async fn send<P>(&mut self, packet: P) -> anyhow::Result<()>
     where
         P: Into<SnxPacket>,
@@ -194,7 +182,7 @@ impl SnxTunnel for SnxSslTunnel {
     async fn run(
         mut self: Box<Self>,
         mut stop_receiver: oneshot::Receiver<()>,
-        connected: Arc<AtomicBool>,
+        connected: Arc<Mutex<ConnectionStatus>>,
     ) -> anyhow::Result<()> {
         debug!("Running SSL tunnel for session {}", self.session.session_id);
 
@@ -234,14 +222,15 @@ impl SnxTunnel for SnxSslTunnel {
             Ok::<_, anyhow::Error>(())
         });
 
-        let mut now = Instant::now();
+        *connected.lock().unwrap() = ConnectionStatus {
+            connected_since: Some(Local::now()),
+            mfa_pending: false,
+        };
 
-        connected.store(true, Ordering::SeqCst);
-
-        loop {
+        let result = loop {
             tokio::select! {
                 _ = &mut stop_receiver => {
-                    break;
+                    break Ok(());
                 }
                 _ = tokio::time::sleep(self.keepalive) => {
                     if crate::platform::is_online() {
@@ -255,17 +244,12 @@ impl SnxTunnel for SnxSslTunnel {
                         trace!("{} => snx: {}", dev_name, data.len());
                         self.send(data).await?;
                     } else {
-                        break;
+                        break Err(anyhow!("Receive failed"));
                     }
                 }
             }
+        };
 
-            if self.params.reauthenticate && (Instant::now() - now) >= self.auth_timeout {
-                self.reauth().await?;
-                now = Instant::now();
-            }
-        }
-
-        Ok(())
+        result
     }
 }

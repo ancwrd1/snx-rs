@@ -1709,6 +1709,7 @@ name = "snx-rs"
 version = "0.5.1"
 dependencies = [
  "anyhow",
+ "async-recursion",
  "async-trait",
  "base64",
  "bytes",

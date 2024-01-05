@@ -1,8 +1,5 @@
-use std::{
-    future::Future,
-    pin::Pin,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::sync::Mutex;
+use std::{future::Future, pin::Pin, sync::Arc};
 
 use anyhow::anyhow;
 use base64::Engine;
@@ -13,7 +10,11 @@ use tracing::{debug, metadata::LevelFilter, warn};
 
 use snx_rs::{
     http::SnxHttpClient,
-    model::params::{CmdlineParams, OperationMode, TunnelParams},
+    model::{
+        params::{CmdlineParams, OperationMode, TunnelParams},
+        ConnectionStatus,
+    },
+    prompt,
     server::CommandServer,
     tunnel::SnxTunnelConnector,
 };
@@ -64,17 +65,27 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let connector = SnxTunnelConnector::new(params.clone());
-            let session = Arc::new(connector.authenticate(None).await?);
+            let mut session = Arc::new(connector.authenticate(None).await?);
 
-            let connected = Arc::new(AtomicBool::new(false));
+            while session.cookie.is_none() {
+                match prompt::get_input_from_tty() {
+                    Ok(input) => {
+                        session = Arc::new(connector.authenticate_with_mfa(&session.session_id, &input).await?);
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
 
+            let status = Arc::new(Mutex::new(ConnectionStatus::default()));
             let tunnel = connector.create_tunnel(session).await?;
 
             if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
 
-            Box::pin(tunnel.run(rx, connected))
+            Box::pin(tunnel.run(rx, status))
         }
         OperationMode::Command => {
             debug!("Running in command mode");

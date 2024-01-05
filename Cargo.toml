@@ -37,6 +37,7 @@ base64 = "0.21"
 tracing = { version = "0.1", features = [] }
 tracing-subscriber = "0.3"
 async-trait = "0.1"
+async-recursion = "1"
 rand = "0.8"
 directories-next = "2"
 chrono = { version = "0.4", features = ["serde"] }

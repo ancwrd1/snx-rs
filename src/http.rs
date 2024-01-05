@@ -49,6 +49,22 @@ impl SnxHttpClient {
         }
     }
 
+    fn new_mfa_request(&self, session_id: &str, user_input: &str) -> CccClientRequest {
+        CccClientRequest {
+            header: RequestHeader {
+                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                request_type: "MultiChallange".to_string(),
+                session_id: Some(session_id.to_owned()),
+                protocol_version: None,
+            },
+            data: RequestData::MultiChallenge(MultiChallengeData {
+                client_type: self.0.tunnel_type.as_client_type().to_owned(),
+                auth_session_id: session_id.to_owned(),
+                user_input: user_input.into(),
+            }),
+        }
+    }
+
     fn new_key_management_request(&self, session_id: &str) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
@@ -140,7 +156,7 @@ impl SnxHttpClient {
             .error_for_status()?
             .text()
             .await?;
-
+        println!("server reply: {}", reply);
         let (_, server_response) = sexpr::decode::<_, T>(&reply)?;
 
         Ok(server_response)
@@ -153,6 +169,21 @@ impl SnxHttpClient {
 
         match server_response.to_data()? {
             ResponseData::Auth(data) => Ok(data),
+            _ => Err(anyhow!("Invalid auth response!")),
+        }
+    }
+
+    pub async fn mfa(&self, session_id: &str, user_input: &str) -> anyhow::Result<AuthResponseData> {
+        let server_response = self
+            .send_request::<CccServerResponse>(self.new_mfa_request(session_id, user_input))
+            .await?;
+
+        match server_response.data {
+            ResponseData::Auth(data) => Ok(data),
+            ResponseData::Empty(_) => Err(anyhow!(
+                "Request failed, error code: {}!",
+                server_response.header.return_code
+            )),
             _ => Err(anyhow!("Invalid auth response!")),
         }
     }

@@ -2,6 +2,7 @@ pub mod controller;
 pub mod http;
 pub mod model;
 pub mod platform;
+pub mod prompt;
 pub mod server;
 pub mod sexpr;
 pub mod tunnel;
