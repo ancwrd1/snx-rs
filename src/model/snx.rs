@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use std::{fmt, net::Ipv4Addr};
 
 use serde::{Deserialize, Serialize};
@@ -137,6 +138,17 @@ pub struct CccServerResponse {
 }
 
 impl CccServerResponse {
+    pub fn to_data(self) -> anyhow::Result<ResponseData> {
+        match self.data {
+            ResponseData::Generic(v) if v.as_str().is_some_and(|s| s.is_empty()) => {
+                Err(anyhow!("Request failed, error code: {}", self.header.return_code))
+            }
+            other => Ok(other),
+        }
+    }
+}
+
+impl CccServerResponse {
     pub const NAME: &'static str = "CCCserverResponse";
 }
 
@@ -230,7 +242,6 @@ pub enum ResponseData {
     LocationAwareness(LocationAwarenessResponseData),
     ServerInfo(ServerInfo),
     Generic(serde_json::Value),
-    Empty(String),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

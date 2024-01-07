@@ -151,12 +151,8 @@ impl SnxHttpClient {
             .send_request::<CccServerResponse>(self.new_auth_request(session_id))
             .await?;
 
-        match server_response.data {
+        match server_response.to_data()? {
             ResponseData::Auth(data) => Ok(data),
-            ResponseData::Empty(_) => Err(anyhow!(
-                "Request failed, error code: {}!",
-                server_response.header.return_code
-            )),
             _ => Err(anyhow!("Invalid auth response!")),
         }
     }
@@ -166,12 +162,8 @@ impl SnxHttpClient {
             .send_request::<CccServerResponse>(self.new_key_management_request(session_id))
             .await?;
 
-        match server_response.data {
+        match server_response.to_data()? {
             ResponseData::Ipsec(data) => Ok(data),
-            ResponseData::Empty(_) => Err(anyhow!(
-                "Request failed, error code: {}!",
-                server_response.header.return_code
-            )),
             _ => Err(anyhow!("Invalid ipsec response!")),
         }
     }
@@ -181,12 +173,8 @@ impl SnxHttpClient {
             .send_request::<CccServerResponse>(self.new_client_settings_request(session_id))
             .await?;
 
-        match server_response.data {
+        match server_response.to_data()? {
             ResponseData::ClientSettings(data) => Ok(data),
-            ResponseData::Empty(_) => Err(anyhow!(
-                "Request failed, error code: {}!",
-                server_response.header.return_code
-            )),
             _ => Err(anyhow!("Invalid client settings response!")),
         }
     }
@@ -196,12 +184,8 @@ impl SnxHttpClient {
             .send_request::<CccServerResponse>(self.new_location_awareness_request(source_ip))
             .await?;
 
-        match server_response.data {
+        match server_response.to_data()? {
             ResponseData::LocationAwareness(data) => Ok(data),
-            ResponseData::Empty(_) => Err(anyhow!(
-                "Request failed, error code: {}!",
-                server_response.header.return_code
-            )),
             _ => Err(anyhow!("Invalid location awareness response!")),
         }
     }
