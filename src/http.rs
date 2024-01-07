@@ -178,12 +178,8 @@ impl SnxHttpClient {
             .send_request::<CccServerResponse>(self.new_mfa_request(session_id, user_input))
             .await?;
 
-        match server_response.data {
+        match server_response.to_data()? {
             ResponseData::Auth(data) => Ok(data),
-            ResponseData::Empty(_) => Err(anyhow!(
-                "Request failed, error code: {}!",
-                server_response.header.return_code
-            )),
             _ => Err(anyhow!("Invalid auth response!")),
         }
     }
