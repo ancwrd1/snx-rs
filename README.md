@@ -35,8 +35,11 @@ There are two ways to use the application:
   - `reconnect` - drop a connection and then connect again
   - `status` - show connection status
   - `info` - dump server information in JSON format
-* MFA codes will be prompted if the application has attached terminal, otherwise authentication error is triggered
-* If password is not provided in the configuration file or command line it will be prompted for and stored in the keychain
+
+## Additional notes
+
+* If additional MFA code is requested a prompt will be shown on the terminal to enter it. If the application has no attached terminal an authentication error will be triggered
+* If password is not provided in the configuration file or command line it will be prompted for and stored in the OS keychain
 
 ## License
 
