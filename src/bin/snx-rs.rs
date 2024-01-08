@@ -1,5 +1,4 @@
-use std::sync::Mutex;
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{future::Future, pin::Pin, sync::Arc, sync::Mutex};
 
 use anyhow::anyhow;
 use base64::Engine;
@@ -40,11 +39,11 @@ async fn main() -> anyhow::Result<()> {
     };
     params.merge(cmdline_params);
 
-    // decode password
-    params.password =
-        String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?).into_owned();
-
-    let params = Arc::new(params);
+    if !params.password.is_empty() {
+        // decode password
+        params.password =
+            String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?).into_owned();
+    }
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))
@@ -58,17 +57,25 @@ async fn main() -> anyhow::Result<()> {
     let fut: Pin<Box<dyn Future<Output = anyhow::Result<()>>>> = match mode {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
+
+            if params.password.is_empty() {
+                match snx_rs::platform::acquire_password(&params.user_name).await {
+                    Ok(password) => params.password = password,
+                    Err(e) => return Err(e),
+                }
+            }
+
             if params.user_name.is_empty() || params.server_name.is_empty() || params.password.is_empty() {
                 return Err(anyhow!(
                     "Missing required parameters: server name, user name and password!"
                 ));
             }
 
-            let connector = SnxTunnelConnector::new(params.clone());
+            let connector = SnxTunnelConnector::new(Arc::new(params));
             let mut session = connector.authenticate(None).await?;
 
             while session.cookie.is_none() {
-                match prompt::get_input_from_tty() {
+                match prompt::get_input_from_tty("Enter challenge code: ") {
                     Ok(input) => {
                         session = connector.challenge_code(&session.session_id, &input).await?;
                     }
@@ -101,7 +108,7 @@ async fn main() -> anyhow::Result<()> {
             if params.server_name.is_empty() {
                 return Err(anyhow!("Missing required parameters: server name!"));
             }
-            let client = SnxHttpClient::new(params.clone());
+            let client = SnxHttpClient::new(Arc::new(params));
             let info = client.get_server_info().await?;
             println!("{}", serde_json::to_string_pretty(&info)?);
             Box::pin(futures::future::ok(()))

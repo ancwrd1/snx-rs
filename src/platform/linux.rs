@@ -1,9 +1,13 @@
-use std::{os::fd::AsRawFd, time::Duration};
+use std::{collections::HashMap, os::fd::AsRawFd, time::Duration};
 
 use anyhow::anyhow;
+use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
 
-use crate::platform::{UdpEncap, UdpSocketExt};
+use crate::{
+    platform::{UdpEncap, UdpSocketExt},
+    prompt,
+};
 
 pub mod net;
 pub mod xfrm;
@@ -54,4 +58,27 @@ impl UdpSocketExt for UdpSocket {
     async fn send_receive(&self, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>> {
         super::udp_send_receive(self, data, timeout).await
     }
+}
+
+pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
+    let ss = SecretService::connect(EncryptionType::Dh).await?;
+
+    let props = HashMap::from([("snx-rs.password", user_name)]);
+
+    let search_items = ss.search_items(props.clone()).await?;
+    if let Some(item) = search_items.unlocked.get(0) {
+        if let Ok(secret) = item.get_secret().await {
+            return Ok(String::from_utf8_lossy(&secret).into_owned());
+        }
+    }
+
+    let password = prompt::get_input_from_tty(&format!("Enter password for {} (echo is off): ", user_name))?;
+
+    let collection = ss.get_default_collection().await?;
+
+    collection
+        .create_item("snx-rs user password", props, password.as_bytes(), true, "text/plain")
+        .await?;
+
+    Ok(password)
 }

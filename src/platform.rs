@@ -4,9 +4,12 @@ use anyhow::anyhow;
 use tokio::net::UdpSocket;
 
 #[cfg(target_os = "linux")]
-pub use linux::net::{
-    add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online,
-    start_network_state_monitoring,
+pub use linux::{
+    acquire_password,
+    net::{
+        add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online,
+        start_network_state_monitoring,
+    },
 };
 
 #[cfg(target_os = "linux")]
@@ -16,9 +19,12 @@ use linux::xfrm::XfrmConfigurator as IpsecImpl;
 use macos::ipsec::BsdIpsecConfigurator as IpsecImpl;
 
 #[cfg(target_os = "macos")]
-pub use macos::net::{
-    add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online,
-    start_network_state_monitoring,
+pub use macos::{
+    acquire_password,
+    net::{
+        add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online,
+        start_network_state_monitoring,
+    },
 };
 
 use crate::model::{

@@ -55,8 +55,12 @@ impl SnxController {
             return Err(anyhow!("No config file: {}", config_file.display()));
         }
         let mut params = TunnelParams::load(config_file)?;
-        params.password =
-            String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?).into_owned();
+
+        if !params.password.is_empty() {
+            params.password =
+                String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?)
+                    .into_owned();
+        }
 
         Ok(Self { params })
     }
@@ -83,7 +87,7 @@ impl SnxController {
                     Some(timestamp) => println!("Connected since {}", timestamp),
                     None => {
                         if status.mfa_pending {
-                            let input = prompt::get_input_from_tty()?;
+                            let input = prompt::get_input_from_tty("Enter challenge code: ")?;
                             self.do_challenge_code(input).await?;
                         } else {
                             println!("Disconnected");
@@ -98,8 +102,17 @@ impl SnxController {
     }
 
     async fn do_connect(&self) -> anyhow::Result<()> {
+        let mut params = self.params.clone();
+
+        if params.password.is_empty() {
+            match crate::platform::acquire_password(&params.user_name).await {
+                Ok(password) => params.password = password,
+                Err(e) => return Err(e),
+            }
+        }
+
         let response = self
-            .send_receive(TunnelServiceRequest::Connect(self.params.clone()), CONNECT_TIMEOUT)
+            .send_receive(TunnelServiceRequest::Connect(params), CONNECT_TIMEOUT)
             .await;
         match response {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,
