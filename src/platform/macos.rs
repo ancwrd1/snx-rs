@@ -29,5 +29,5 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
     Ok(prompt::get_input_from_tty(&format!(
         "Enter password for {} (echo is off): ",
         user_name
-    ))?);
+    ))?)
 }
