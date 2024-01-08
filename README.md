@@ -8,6 +8,7 @@ Based on the reverse engineered protocol used by the vendor application.
 * IPSec support (faster tunnel)
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
+* Integration with libsecret and keychains
 
 ## Implemented features
 
@@ -15,6 +16,7 @@ Based on the reverse engineered protocol used by the vendor application.
 * IPSec tunnel
 * Username/password authentication with Microsoft MFA Authenticator
 * Multi-factor codes input via TTY (SMS/SecurID/TOTP)
+* Store password in the keychain using libsecret
 
 ## Roadmap
  
@@ -34,6 +36,7 @@ There are two ways to use the application:
   - `status` - show connection status
   - `info` - dump server information in JSON format
 * MFA codes will be prompted if the application has attached terminal, otherwise authentication error is triggered
+* If password is not provided in the configuration file or command line it will be prompted for and stored in the keychain
 
 ## License
 
