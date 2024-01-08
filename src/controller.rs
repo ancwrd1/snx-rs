@@ -3,6 +3,7 @@ use std::{str::FromStr, sync::Arc, time::Duration};
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
+use tracing::level_filters::LevelFilter;
 
 use crate::{
     http::SnxHttpClient,
@@ -66,6 +67,11 @@ impl SnxController {
     }
 
     pub async fn command(&self, command: SnxCtlCommand) -> anyhow::Result<()> {
+        let subscriber = tracing_subscriber::fmt()
+            .with_max_level(self.params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))
+            .finish();
+        tracing::subscriber::set_global_default(subscriber)?;
+
         match command {
             SnxCtlCommand::Status => self.do_status().await,
             SnxCtlCommand::Connect => self.do_connect().await,

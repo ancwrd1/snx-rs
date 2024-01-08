@@ -3,6 +3,7 @@ use std::{collections::HashMap, os::fd::AsRawFd, time::Duration};
 use anyhow::anyhow;
 use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
+use tracing::{debug, warn};
 
 use crate::{
     platform::{UdpEncap, UdpSocketExt},
@@ -61,24 +62,50 @@ impl UdpSocketExt for UdpSocket {
 }
 
 pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
-    let ss = SecretService::connect(EncryptionType::Dh).await?;
-
     let props = HashMap::from([("snx-rs.password", user_name)]);
 
-    let search_items = ss.search_items(props.clone()).await?;
-    if let Some(item) = search_items.unlocked.get(0) {
-        if let Ok(secret) = item.get_secret().await {
-            return Ok(String::from_utf8_lossy(&secret).into_owned());
+    debug!("Attempting to acquire password from the secret service");
+
+    let ss = SecretService::connect(EncryptionType::Dh).await;
+    let collection = match ss {
+        Ok(ref ss) => ss.get_default_collection().await.ok(),
+        Err(ref e) => {
+            warn!("{}", e);
+            None
+        }
+    };
+
+    if let Some(ref collection) = collection {
+        match collection.is_locked().await {
+            Ok(true) => {
+                debug!("Unlocking secret collection");
+                let _ = collection.unlock().await;
+            }
+            _ => {}
+        }
+    }
+
+    if let Ok(ref ss) = ss {
+        let search_items = ss.search_items(props.clone()).await?;
+        if let Some(item) = search_items.unlocked.get(0) {
+            if let Ok(secret) = item.get_secret().await {
+                debug!("Acquired user password from the secret service");
+                return Ok(String::from_utf8_lossy(&secret).into_owned());
+            }
         }
     }
 
     let password = prompt::get_input_from_tty(&format!("Enter password for {} (echo is off): ", user_name))?;
 
-    let collection = ss.get_default_collection().await?;
-
-    collection
-        .create_item("snx-rs user password", props, password.as_bytes(), true, "text/plain")
-        .await?;
+    if let Some(collection) = collection {
+        debug!("Attempting to store user password in the secret service");
+        if let Err(e) = collection
+            .create_item("snx-rs user password", props, password.as_bytes(), true, "text/plain")
+            .await
+        {
+            warn!("Warning: cannot store user password in the secret service: {}", e);
+        }
+    }
 
     Ok(password)
 }
