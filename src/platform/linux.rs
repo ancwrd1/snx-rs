@@ -68,22 +68,27 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
 
     let ss = SecretService::connect(EncryptionType::Dh).await;
     let collection = match ss {
-        Ok(ref ss) => ss.get_default_collection().await.ok(),
+        Ok(ref ss) => match ss.get_default_collection().await {
+            Ok(collection) => {
+                match collection.is_locked().await {
+                    Ok(true) => {
+                        debug!("Unlocking secret collection");
+                        let _ = collection.unlock().await;
+                    }
+                    _ => {}
+                }
+                Some(collection)
+            }
+            Err(e) => {
+                warn!("{}", e);
+                None
+            }
+        },
         Err(ref e) => {
             warn!("{}", e);
             None
         }
     };
-
-    if let Some(ref collection) = collection {
-        match collection.is_locked().await {
-            Ok(true) => {
-                debug!("Unlocking secret collection");
-                let _ = collection.unlock().await;
-            }
-            _ => {}
-        }
-    }
 
     if let Ok(ref ss) = ss {
         let search_items = ss.search_items(props.clone()).await?;
