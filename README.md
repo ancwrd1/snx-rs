@@ -14,18 +14,11 @@ Based on the reverse engineered protocol used by the vendor application.
 * SSL tunnel
 * IPSec tunnel
 * Username/password authentication with Microsoft MFA Authenticator
+* Multi-factor codes input via TTY (SMS/SecurID/TOTP)
 
 ## Roadmap
  
 * SAML SSO support
-
-## Contributing
-
-If it doesn't work with your particular Checkpoint server please run the following command:
-
-`snx-rs -m info -s <serveraddress>`
-
-and paste the JSON output into the new issue.
 
 ## Usage
 
@@ -40,6 +33,7 @@ There are two ways to use the application:
   - `reconnect` - drop a connection and then connect again
   - `status` - show connection status
   - `info` - dump server information in JSON format
+* MFA codes will be prompted if the application has attached terminal, otherwise authentication error is triggered
 
 ## License
 

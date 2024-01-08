@@ -42,11 +42,14 @@ impl SnxTunnelConnector {
         self.process_auth_response(data).await
     }
 
-    pub async fn authenticate_with_mfa(&self, session_id: &str, user_input: &str) -> anyhow::Result<SnxSession> {
-        debug!("Authenticating with MFA code to endpoint: {}", self.0.server_name);
+    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<SnxSession> {
+        debug!(
+            "Authenticating with challenge code {} to endpoint: {}",
+            user_input, self.0.server_name
+        );
         let client = SnxHttpClient::new(self.0.clone());
 
-        let data = client.mfa(session_id, user_input).await?;
+        let data = client.challenge_code(session_id, user_input).await?;
 
         self.process_auth_response(data).await
     }

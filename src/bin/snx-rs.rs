@@ -65,12 +65,12 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let connector = SnxTunnelConnector::new(params.clone());
-            let mut session = Arc::new(connector.authenticate(None).await?);
+            let mut session = connector.authenticate(None).await?;
 
             while session.cookie.is_none() {
                 match prompt::get_input_from_tty() {
                     Ok(input) => {
-                        session = Arc::new(connector.authenticate_with_mfa(&session.session_id, &input).await?);
+                        session = connector.challenge_code(&session.session_id, &input).await?;
                     }
                     Err(e) => {
                         return Err(e);
@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let status = Arc::new(Mutex::new(ConnectionStatus::default()));
-            let tunnel = connector.create_tunnel(session).await?;
+            let tunnel = connector.create_tunnel(Arc::new(session)).await?;
 
             if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);

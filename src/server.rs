@@ -143,7 +143,7 @@ impl CommandServer {
         let connector = SnxTunnelConnector::new(params.clone());
         let session = Arc::new(
             connector
-                .authenticate_with_mfa(self.session_id.as_deref().unwrap_or_default(), &code)
+                .challenge_code(self.session_id.as_deref().unwrap_or_default(), &code)
                 .await?,
         );
         self.connect_for_session(params, session).await

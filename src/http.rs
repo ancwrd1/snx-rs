@@ -49,7 +49,7 @@ impl SnxHttpClient {
         }
     }
 
-    fn new_mfa_request(&self, session_id: &str, user_input: &str) -> CccClientRequest {
+    fn new_challenge_code_request(&self, session_id: &str, user_input: &str) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
@@ -173,9 +173,9 @@ impl SnxHttpClient {
         }
     }
 
-    pub async fn mfa(&self, session_id: &str, user_input: &str) -> anyhow::Result<AuthResponseData> {
+    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<AuthResponseData> {
         let server_response = self
-            .send_request::<CccServerResponse>(self.new_mfa_request(session_id, user_input))
+            .send_request::<CccServerResponse>(self.new_challenge_code_request(session_id, user_input))
             .await?;
 
         match server_response.to_data()? {
