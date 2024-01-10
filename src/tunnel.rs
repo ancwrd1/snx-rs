@@ -74,8 +74,12 @@ impl SnxTunnelConnector {
         let cookie = match (data.is_authenticated, data.active_key) {
             (Some(true), Some(ref key)) => key.clone(),
             _ => {
-                warn!("Authentication failed!");
-                return Err(anyhow!("Authentication failed!"));
+                let msg = match (data.error_message, data.error_id, data.error_code) {
+                    (Some(message), Some(id), Some(code)) => format!("[{} {}] {}", code, id.0, message.0),
+                    _ => "Authentication failed!".to_owned(),
+                };
+                warn!("{}", msg);
+                return Err(anyhow!(msg));
             }
         };
 

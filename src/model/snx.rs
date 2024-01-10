@@ -261,6 +261,9 @@ pub struct AuthResponseData {
     pub server_cn: Option<String>,
     pub session_id: Option<String>,
     pub active_key_timeout: Option<u64>,
+    pub error_message: Option<SecretKey>,
+    pub error_id: Option<SecretKey>,
+    pub error_code: Option<u32>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
