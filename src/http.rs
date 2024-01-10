@@ -156,7 +156,6 @@ impl SnxHttpClient {
             .error_for_status()?
             .text()
             .await?;
-        println!("server reply: {}", reply);
         let (_, server_response) = sexpr::decode::<_, T>(&reply)?;
 
         Ok(server_response)
