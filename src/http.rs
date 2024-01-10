@@ -8,8 +8,9 @@ use std::{
 };
 
 use anyhow::anyhow;
-use reqwest::Certificate;
+use reqwest::{Certificate, Identity};
 use serde::Deserialize;
+use tracing::trace;
 
 use crate::{
     model::{params::TunnelParams, snx::*},
@@ -27,17 +28,26 @@ impl SnxHttpClient {
     }
 
     fn new_auth_request(&self, session_id: Option<&str>) -> CccClientRequest {
+        let (request_type, username, password) = if self.0.client_cert.is_none() {
+            (
+                "UserPass",
+                Some(self.0.user_name.as_str().into()),
+                Some(self.0.password.as_str().into()),
+            )
+        } else {
+            ("CertAuth", None, None)
+        };
         CccClientRequest {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
-                request_type: "UserPass".to_string(),
+                request_type: request_type.to_owned(),
                 session_id: session_id.map(ToOwned::to_owned),
                 protocol_version: None,
             },
-            data: RequestData::Password(PasswordData {
+            data: RequestData::Auth(AuthData {
                 client_type: self.0.tunnel_type.as_client_type().to_owned(),
-                username: self.0.user_name.as_str().into(),
-                password: self.0.password.as_str().into(),
+                username,
+                password,
                 client_logging_data: Some(ClientLoggingData {
                     // Checkpoint gateway checks this and if it's missing or not "Android" the IPSec traffic is blocked
                     os_name: Some("Android".into()),
@@ -144,7 +154,14 @@ impl SnxHttpClient {
             builder = builder.danger_accept_invalid_hostnames(true);
         }
 
+        if let Some(ref client_cert) = self.0.client_cert {
+            let data = std::fs::read(client_cert)?;
+            builder = builder.identity(Identity::from_pkcs8_pem(&data, &data)?);
+        }
+
         let client = builder.build()?;
+
+        trace!("Request to server: {}", expr);
 
         let req = client
             .post(format!("https://{}/clients/", self.0.server_name))
@@ -156,6 +173,9 @@ impl SnxHttpClient {
             .error_for_status()?
             .text()
             .await?;
+
+        trace!("Reply from server: {}", reply);
+
         let (_, server_response) = sexpr::decode::<_, T>(&reply)?;
 
         Ok(server_response)

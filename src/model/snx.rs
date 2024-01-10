@@ -162,11 +162,11 @@ pub struct RequestHeader {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct PasswordData {
+pub struct AuthData {
     pub client_type: String,
     pub endpoint_os: Option<String>,
-    pub username: SecretKey,
-    pub password: SecretKey,
+    pub username: Option<SecretKey>,
+    pub password: Option<SecretKey>,
     pub client_logging_data: Option<ClientLoggingData>,
     #[serde(rename = "selectedLoginOption")]
     pub selected_login_option: Option<String>,
@@ -223,7 +223,7 @@ pub struct LocationAwarenessData {
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
 pub enum RequestData {
-    Password(PasswordData),
+    Auth(AuthData),
     MultiChallenge(MultiChallengeData),
     Ipsec(IpsecData),
     LocationAwareness(LocationAwarenessData),

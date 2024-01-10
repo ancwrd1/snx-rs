@@ -110,7 +110,15 @@ impl SnxController {
     async fn do_connect(&self) -> anyhow::Result<()> {
         let mut params = self.params.clone();
 
-        if params.password.is_empty() {
+        let has_creds = params.client_cert.is_some() || (!params.user_name.is_empty() && !params.password.is_empty());
+
+        if params.server_name.is_empty() || !has_creds {
+            return Err(anyhow!(
+                "Missing required parameters in the config file: server name and/or user credentials"
+            ));
+        }
+
+        if params.password.is_empty() && params.client_cert.is_none() {
             match crate::platform::acquire_password(&params.user_name).await {
                 Ok(password) => params.password = password,
                 Err(e) => return Err(e),

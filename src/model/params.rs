@@ -107,6 +107,13 @@ pub struct CmdlineParams {
         help = "Login type, obtained from running the 'snx-rs -m info -s address', login_options_list::id field"
     )]
     pub login_type: Option<String>,
+
+    #[clap(
+        long = "client-cert",
+        short = 'y',
+        help = "Use client authentication via the provided certificate chain in unencrypted PKCS#8 PEM format"
+    )]
+    pub client_cert: Option<PathBuf>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -151,6 +158,7 @@ pub struct TunnelParams {
     pub tunnel_type: TunnelType,
     pub ca_cert: Option<PathBuf>,
     pub login_type: String,
+    pub client_cert: Option<PathBuf>,
 }
 
 impl Default for TunnelParams {
@@ -171,6 +179,7 @@ impl Default for TunnelParams {
             tunnel_type: TunnelType::Ssl,
             ca_cert: None,
             login_type: "vpn_Microsoft_Authenticator".to_owned(),
+            client_cert: None,
         }
     }
 }
@@ -207,6 +216,7 @@ impl TunnelParams {
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                         "ca-cert" => params.ca_cert = Some(v.into()),
                         "login-type" => params.login_type = v.to_string(),
+                        "client-cert" => params.client_cert = Some(v.into()),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -276,6 +286,10 @@ impl TunnelParams {
 
         if let Some(login_type) = other.login_type {
             self.login_type = login_type;
+        }
+
+        if let Some(client_cert) = other.client_cert {
+            self.client_cert = Some(client_cert);
         }
     }
 }

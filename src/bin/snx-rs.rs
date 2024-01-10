@@ -58,16 +58,19 @@ async fn main() -> anyhow::Result<()> {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
 
-            if params.password.is_empty() {
+            if params.password.is_empty() && params.client_cert.is_none() {
                 match snx_rs::platform::acquire_password(&params.user_name).await {
                     Ok(password) => params.password = password,
                     Err(e) => return Err(e),
                 }
             }
 
-            if params.user_name.is_empty() || params.server_name.is_empty() || params.password.is_empty() {
+            let has_creds =
+                params.client_cert.is_some() || (!params.user_name.is_empty() && !params.password.is_empty());
+
+            if params.server_name.is_empty() || !has_creds {
                 return Err(anyhow!(
-                    "Missing required parameters: server name, user name and password!"
+                    "Missing required parameters: server name and/or user credentials"
                 ));
             }
 
