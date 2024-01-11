@@ -14,7 +14,9 @@ Based on the reverse engineered protocol used by the vendor application.
 
 * SSL tunnel
 * IPSec tunnel
-* Username/password authentication with Microsoft MFA Authenticator
+* Username/password authentication
+* Certificate authentication via the provided client certificate
+* Microsoft Authenticator app support
 * Multi-factor codes input via TTY (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
 
@@ -36,10 +38,13 @@ There are two ways to use the application:
   - `status` - show connection status
   - `info` - dump server information in JSON format
 
-## Additional notes
+## Notes
 
-* If additional MFA code is requested a prompt will be shown on the terminal to enter it. If the application has no attached terminal an authentication error will be triggered
-* If password is not provided in the configuration file or command line it will be prompted for and stored in the OS keychain
+* If additional MFA steps are required a prompt will be shown on the terminal to enter the codes.
+  If the application has no attached terminal an authentication error will be triggered.
+* If password is not provided in the configuration file or command line it will be prompted for and stored
+  in the OS keychain (this will only work when using command mode and `snxctl` because the main application runs
+  as a root user without access to keychain/kwallet).
 
 ## License
 
