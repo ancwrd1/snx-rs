@@ -7,7 +7,7 @@ use tracing::{debug, warn};
 
 use crate::model::{CheckpointSession, SessionState};
 use crate::{
-    controller::{ServiceController, ServiceCommand},
+    controller::{ServiceCommand, ServiceController},
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     tunnel::TunnelConnector,
 };
@@ -148,7 +148,7 @@ impl CommandServer {
         let connector = TunnelConnector::new(params.clone());
         let session = Arc::new(
             connector
-                .challenge_code(self.session_id.as_deref().unwrap_or_default(), &code)
+                .challenge_code(self.session_id.as_deref().unwrap_or_default(), code)
                 .await?,
         );
         self.connect_for_session(params, session).await

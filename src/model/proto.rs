@@ -264,7 +264,7 @@ pub struct AuthResponse {
     pub error_message: Option<SecretKey>,
     pub error_id: Option<SecretKey>,
     pub error_code: Option<u32>,
-    pub prompt: Option<String>,
+    pub prompt: Option<SecretKey>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

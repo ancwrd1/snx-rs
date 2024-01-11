@@ -6,7 +6,7 @@ use directories_next::ProjectDirs;
 use tracing::level_filters::LevelFilter;
 
 use crate::{
-    http::HttpClient,
+    http::CccHttpClient,
     model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
     platform::UdpSocketExt,
     prompt,
@@ -180,7 +180,7 @@ impl ServiceController {
     }
 
     async fn do_info(&self) -> anyhow::Result<()> {
-        let client = HttpClient::new(Arc::new(self.params.clone()));
+        let client = CccHttpClient::new(Arc::new(self.params.clone()));
         let info = client.get_server_info().await?;
         let response_data = info
             .get("ResponseData")

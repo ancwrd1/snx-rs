@@ -4,8 +4,8 @@ use anyhow::anyhow;
 
 use crate::{
     model::{
-        proto::{ClientSettingsResponse, KeyManagementResponse},
         params::TunnelParams,
+        proto::{ClientSettingsResponse, KeyManagementResponse},
     },
     platform::IpsecConfigurator,
 };

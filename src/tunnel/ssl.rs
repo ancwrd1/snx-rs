@@ -23,7 +23,7 @@ use tun::TunPacket;
 use codec::TunnelCodec;
 
 use crate::{
-    model::{proto::*, params::TunnelParams, *},
+    model::{params::TunnelParams, proto::*, *},
     tunnel::CheckpointTunnel,
 };
 
@@ -227,7 +227,7 @@ impl CheckpointTunnel for SslTunnel {
             ..Default::default()
         };
 
-        let result = loop {
+        loop {
             tokio::select! {
                 _ = &mut stop_receiver => {
                     break Ok(());
@@ -248,8 +248,6 @@ impl CheckpointTunnel for SslTunnel {
                     }
                 }
             }
-        };
-
-        result
+        }
     }
 }

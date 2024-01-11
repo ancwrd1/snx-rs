@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 
-use snx_rs::controller::{ServiceController, ServiceCommand};
+use snx_rs::controller::{ServiceCommand, ServiceController};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

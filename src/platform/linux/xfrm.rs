@@ -10,8 +10,8 @@ use tracing::debug;
 
 use crate::{
     model::{
-        proto::{ClientSettingsResponse, IpsecSA, KeyManagementResponse},
         params::TunnelParams,
+        proto::{ClientSettingsResponse, IpsecSA, KeyManagementResponse},
     },
     platform::{IpsecConfigurator, UdpSocketExt},
     util,

@@ -5,7 +5,7 @@ use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
 use crate::{
-    http::HttpClient,
+    http::CccHttpClient,
     model::{
         params::{TunnelParams, TunnelType},
         proto::AuthResponse,
@@ -35,7 +35,7 @@ impl TunnelConnector {
 
     pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<CheckpointSession> {
         debug!("Authenticating to endpoint: {}", self.0.server_name);
-        let client = HttpClient::new(self.0.clone());
+        let client = CccHttpClient::new(self.0.clone());
 
         let data = client.authenticate(session_id).await?;
 
@@ -47,7 +47,7 @@ impl TunnelConnector {
             "Authenticating with challenge code {} to endpoint: {}",
             user_input, self.0.server_name
         );
-        let client = HttpClient::new(self.0.clone());
+        let client = CccHttpClient::new(self.0.clone());
 
         let data = client.challenge_code(session_id, user_input).await?;
 
@@ -61,7 +61,7 @@ impl TunnelConnector {
             "continue" => {
                 return Ok(CheckpointSession {
                     session_id,
-                    state: SessionState::Pending(data.prompt),
+                    state: SessionState::Pending(data.prompt.map(|p| p.0)),
                 })
             }
             "done" => {}

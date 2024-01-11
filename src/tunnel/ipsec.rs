@@ -6,7 +6,7 @@ use tracing::debug;
 
 use crate::model::ConnectionStatus;
 use crate::{
-    http::HttpClient,
+    http::CccHttpClient,
     model::{params::TunnelParams, CheckpointSession},
     platform::IpsecConfigurator,
     tunnel::{ipsec::keepalive::KeepaliveRunner, CheckpointTunnel},
@@ -22,7 +22,7 @@ pub(crate) struct IpsecTunnel {
 
 impl IpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CheckpointSession>) -> anyhow::Result<Self> {
-        let client = HttpClient::new(params.clone());
+        let client = CccHttpClient::new(params.clone());
         let client_settings = client.get_client_settings(&session.session_id).await?;
         debug!("Client settings: {:?}", client_settings);
 

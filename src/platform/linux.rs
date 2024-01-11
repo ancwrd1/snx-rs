@@ -70,12 +70,9 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
     let collection = match ss {
         Ok(ref ss) => match ss.get_default_collection().await {
             Ok(collection) => {
-                match collection.is_locked().await {
-                    Ok(true) => {
-                        debug!("Unlocking secret collection");
-                        let _ = collection.unlock().await;
-                    }
-                    _ => {}
+                if let Ok(true) = collection.is_locked().await {
+                    debug!("Unlocking secret collection");
+                    let _ = collection.unlock().await;
                 }
                 Some(collection)
             }
@@ -92,7 +89,7 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
 
     if let Ok(ref ss) = ss {
         if let Ok(search_items) = ss.search_items(props.clone()).await {
-            if let Some(item) = search_items.unlocked.get(0) {
+            if let Some(item) = search_items.unlocked.first() {
                 if let Ok(secret) = item.get_secret().await {
                     debug!("Acquired user password from the secret service");
                     return Ok(String::from_utf8_lossy(&secret).into_owned());
@@ -103,19 +100,21 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
 
     let password = prompt::get_input_from_tty(&format!("Enter password for {} (echo is off): ", user_name))?;
 
-    if let Some(collection) = collection {
-        debug!("Attempting to store user password in the secret service");
-        if let Err(e) = collection
-            .create_item(
-                &format!("snx-rs - {}", user_name),
-                props,
-                password.as_bytes(),
-                true,
-                "text/plain",
-            )
-            .await
-        {
-            warn!("Warning: cannot store user password in the secret service: {}", e);
+    if !password.is_empty() {
+        if let Some(collection) = collection {
+            debug!("Attempting to store user password in the secret service");
+            if let Err(e) = collection
+                .create_item(
+                    &format!("snx-rs - {}", user_name),
+                    props,
+                    password.as_bytes(),
+                    true,
+                    "text/plain",
+                )
+                .await
+            {
+                warn!("Warning: cannot store user password in the secret service: {}", e);
+            }
         }
     }
 

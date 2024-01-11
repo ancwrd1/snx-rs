@@ -20,9 +20,9 @@ use crate::{
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
 
-pub struct HttpClient(Arc<TunnelParams>);
+pub struct CccHttpClient(Arc<TunnelParams>);
 
-impl HttpClient {
+impl CccHttpClient {
     pub fn new(params: Arc<TunnelParams>) -> Self {
         Self(params)
     }

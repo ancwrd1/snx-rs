@@ -28,8 +28,8 @@ pub use macos::{
 };
 
 use crate::model::{
-    proto::{ClientSettingsResponse, KeyManagementResponse},
     params::TunnelParams,
+    proto::{ClientSettingsResponse, KeyManagementResponse},
 };
 
 #[cfg(target_os = "linux")]

@@ -8,7 +8,7 @@ use tokio::{signal::unix, sync::oneshot};
 use tracing::{debug, metadata::LevelFilter, warn};
 
 use snx_rs::{
-    http::HttpClient,
+    http::CccHttpClient,
     model::{
         params::{CmdlineParams, OperationMode, TunnelParams},
         ConnectionStatus, SessionState,
@@ -109,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
             if params.server_name.is_empty() {
                 return Err(anyhow!("Missing required parameters: server name!"));
             }
-            let client = HttpClient::new(Arc::new(params));
+            let client = CccHttpClient::new(Arc::new(params));
             let info = client.get_server_info().await?;
             println!("{}", serde_json::to_string_pretty(&info)?);
             Box::pin(futures::future::ok(()))
