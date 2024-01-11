@@ -74,8 +74,14 @@ impl ServiceController {
 
         match command {
             ServiceCommand::Status => self.do_status().await,
-            ServiceCommand::Connect => self.do_connect().await,
-            ServiceCommand::Disconnect => self.do_disconnect().await,
+            ServiceCommand::Connect => {
+                self.do_status().await?;
+                self.do_connect().await
+            }
+            ServiceCommand::Disconnect => {
+                self.do_status().await?;
+                self.do_disconnect().await
+            }
             ServiceCommand::Reconnect => {
                 let _ = self.do_disconnect().await;
                 self.do_connect().await
