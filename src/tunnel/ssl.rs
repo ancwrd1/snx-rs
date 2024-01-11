@@ -20,7 +20,7 @@ use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
-use codec::TunnelCodec;
+use codec::CheckpointPacketCodec;
 
 use crate::{
     model::{params::TunnelParams, proto::*, *},
@@ -36,14 +36,14 @@ const MAX_KEEP_ALIVE_ATTEMPTS: u64 = 3;
 const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 const CHANNEL_SIZE: usize = 1024;
 
-type PacketSender = Sender<SslPacketType>;
-type PacketReceiver = Receiver<SslPacketType>;
+type PacketSender = Sender<CheckpointPacketType>;
+type PacketReceiver = Receiver<CheckpointPacketType>;
 
 fn make_channel<S>(stream: S) -> (PacketSender, PacketReceiver)
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let framed = tokio_util::codec::Framed::new(stream, TunnelCodec);
+    let framed = tokio_util::codec::Framed::new(stream, CheckpointPacketCodec);
 
     let (tx_in, rx_in) = mpsc::channel(CHANNEL_SIZE);
     let (tx_out, rx_out) = mpsc::channel(CHANNEL_SIZE);
@@ -138,7 +138,7 @@ impl SslTunnel {
         let reply = receiver.next().await.ok_or_else(|| anyhow!("Channel closed!"))?;
 
         let reply = match reply {
-            SslPacketType::Control(name, value) if name == HelloReply::NAME => {
+            CheckpointPacketType::Control(name, value) if name == HelloReply::NAME => {
                 let result = serde_json::from_value::<HelloReply>(value)?;
                 self.ip_address = result.office_mode.ipaddr.clone();
                 self.auth_timeout = Duration::from_secs(result.timeouts.authentication) - REAUTH_LEEWAY;
@@ -169,7 +169,7 @@ impl SslTunnel {
 
     async fn send<P>(&mut self, packet: P) -> anyhow::Result<()>
     where
-        P: Into<SslPacketType>,
+        P: Into<CheckpointPacketType>,
     {
         tokio::time::timeout(SEND_TIMEOUT, self.sender.send(packet.into())).await??;
 
@@ -205,13 +205,13 @@ impl CheckpointTunnel for SslTunnel {
         tokio::spawn(async move {
             while let Some(item) = snx_receiver.next().await {
                 match item {
-                    SslPacketType::Control(name, _) => {
+                    CheckpointPacketType::Control(name, _) => {
                         debug!("Control packet received: {name}");
                         if name == KeepaliveRequest::NAME {
                             keepalive_counter.fetch_sub(1, Ordering::SeqCst);
                         }
                     }
-                    SslPacketType::Data(data) => {
+                    CheckpointPacketType::Data(data) => {
                         trace!("snx => {}: {}", data.len(), dev_name2);
                         keepalive_counter.store(0, Ordering::SeqCst);
                         let tun_packet = TunPacket::new(data);

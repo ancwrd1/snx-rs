@@ -2,12 +2,12 @@ use anyhow::anyhow;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::{model::proto::SslPacketType, sexpr};
+use crate::{model::proto::CheckpointPacketType, sexpr};
 
-pub(crate) struct TunnelCodec;
+pub(crate) struct CheckpointPacketCodec;
 
-impl Decoder for TunnelCodec {
-    type Item = SslPacketType;
+impl Decoder for CheckpointPacketCodec {
+    type Item = CheckpointPacketType;
     type Error = anyhow::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -27,29 +27,29 @@ impl Decoder for TunnelCodec {
                 let s_data = String::from_utf8_lossy(&src[8..8 + len]).into_owned();
                 src.advance(8 + len);
                 let (name, value) = sexpr::decode::<_, serde_json::Value>(&s_data)?;
-                Ok(Some(SslPacketType::Control(name, value)))
+                Ok(Some(CheckpointPacketType::Control(name, value)))
             }
             2 => {
                 let data = src[8..8 + len].to_vec();
                 src.advance(8 + len);
-                Ok(Some(SslPacketType::Data(data)))
+                Ok(Some(CheckpointPacketType::Data(data)))
             }
             _ => Err(anyhow!("Unknown packet type!")),
         }
     }
 }
 
-impl Encoder<SslPacketType> for TunnelCodec {
+impl Encoder<CheckpointPacketType> for CheckpointPacketCodec {
     type Error = anyhow::Error;
 
-    fn encode(&mut self, item: SslPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: CheckpointPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (data, packet_type) = match item {
-            SslPacketType::Control(name, value) => {
+            CheckpointPacketType::Control(name, value) => {
                 let mut data = sexpr::encode(name, value)?.into_bytes();
                 data.push(b'\x00');
                 (data, 1u32)
             }
-            SslPacketType::Data(data) => (data, 2u32),
+            CheckpointPacketType::Data(data) => (data, 2u32),
         };
 
         dst.reserve(data.len() + 8);

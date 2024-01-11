@@ -8,52 +8,52 @@ use crate::model::{
     AuthenticationAlgorithm, EncryptionAlgorithm,
 };
 
-pub enum SslPacketType {
+pub enum CheckpointPacketType {
     Control(String, serde_json::Value),
     Data(Vec<u8>),
 }
 
-impl fmt::Debug for SslPacketType {
+impl fmt::Debug for CheckpointPacketType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SslPacketType::Control(name, _) => write!(f, "CONTROL: {}", name),
-            SslPacketType::Data(data) => write!(f, "DATA: {} bytes", data.len()),
+            CheckpointPacketType::Control(name, _) => write!(f, "CONTROL: {}", name),
+            CheckpointPacketType::Data(data) => write!(f, "DATA: {} bytes", data.len()),
         }
     }
 }
 
-impl SslPacketType {
+impl CheckpointPacketType {
     pub fn control<S, T>(name: S, data: T) -> Self
     where
         S: AsRef<str>,
         T: Serialize + Default,
     {
         let value = serde_json::to_value(data).unwrap_or_default();
-        SslPacketType::Control(name.as_ref().to_owned(), value)
+        CheckpointPacketType::Control(name.as_ref().to_owned(), value)
     }
 }
 
-impl From<Vec<u8>> for SslPacketType {
+impl From<Vec<u8>> for CheckpointPacketType {
     fn from(value: Vec<u8>) -> Self {
-        SslPacketType::Data(value)
+        CheckpointPacketType::Data(value)
     }
 }
 
-impl From<ClientHello> for SslPacketType {
+impl From<ClientHello> for CheckpointPacketType {
     fn from(value: ClientHello) -> Self {
-        SslPacketType::control(ClientHello::NAME, value)
+        CheckpointPacketType::control(ClientHello::NAME, value)
     }
 }
 
-impl From<KeepaliveRequest> for SslPacketType {
+impl From<KeepaliveRequest> for CheckpointPacketType {
     fn from(value: KeepaliveRequest) -> Self {
-        SslPacketType::control(KeepaliveRequest::NAME, value)
+        CheckpointPacketType::control(KeepaliveRequest::NAME, value)
     }
 }
 
-impl From<DisconnectRequest> for SslPacketType {
+impl From<DisconnectRequest> for CheckpointPacketType {
     fn from(value: DisconnectRequest) -> Self {
-        SslPacketType::control(DisconnectRequest::NAME, value)
+        CheckpointPacketType::control(DisconnectRequest::NAME, value)
     }
 }
 
