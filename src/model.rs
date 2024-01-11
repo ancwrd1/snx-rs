@@ -3,9 +3,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::model::params::TunnelParams;
 
-pub mod newtype;
 pub mod params;
 pub mod proto;
+pub mod wrappers;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SessionState {

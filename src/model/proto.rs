@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    newtype::{HexKey, QuotedString, SecretKey},
+    wrappers::{HexKey, QuotedString, SecretKey},
     AuthenticationAlgorithm, EncryptionAlgorithm,
 };
 
