@@ -8,14 +8,14 @@ use tokio::{signal::unix, sync::oneshot};
 use tracing::{debug, metadata::LevelFilter, warn};
 
 use snx_rs::{
-    http::SnxHttpClient,
+    http::HttpClient,
     model::{
         params::{CmdlineParams, OperationMode, TunnelParams},
-        ConnectionStatus,
+        ConnectionStatus, SessionState,
     },
     prompt,
     server::CommandServer,
-    tunnel::SnxTunnelConnector,
+    tunnel::TunnelConnector,
 };
 
 fn is_root() -> bool {
@@ -65,20 +65,18 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
-            let has_creds =
-                params.client_cert.is_some() || (!params.user_name.is_empty() && !params.password.is_empty());
+            let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
 
             if params.server_name.is_empty() || !has_creds {
-                return Err(anyhow!(
-                    "Missing required parameters: server name and/or user credentials"
-                ));
+                return Err(anyhow!("Missing required parameters: server name and/or user name"));
             }
 
-            let connector = SnxTunnelConnector::new(Arc::new(params));
+            let connector = TunnelConnector::new(Arc::new(params));
             let mut session = connector.authenticate(None).await?;
 
-            while session.cookie.is_none() {
-                match prompt::get_input_from_tty("Enter challenge code: ") {
+            while let SessionState::Pending(ref prompt) = session.state {
+                let prompt = prompt.as_deref().unwrap_or("Multi-factor code: ");
+                match prompt::get_input_from_tty(prompt) {
                     Ok(input) => {
                         session = connector.challenge_code(&session.session_id, &input).await?;
                     }
@@ -111,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
             if params.server_name.is_empty() {
                 return Err(anyhow!("Missing required parameters: server name!"));
             }
-            let client = SnxHttpClient::new(Arc::new(params));
+            let client = HttpClient::new(Arc::new(params));
             let info = client.get_server_info().await?;
             println!("{}", serde_json::to_string_pretty(&info)?);
             Box::pin(futures::future::ok(()))

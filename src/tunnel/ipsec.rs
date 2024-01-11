@@ -6,23 +6,23 @@ use tracing::debug;
 
 use crate::model::ConnectionStatus;
 use crate::{
-    http::SnxHttpClient,
-    model::{params::TunnelParams, SnxSession},
+    http::HttpClient,
+    model::{params::TunnelParams, CheckpointSession},
     platform::IpsecConfigurator,
-    tunnel::{ipsec::keepalive::KeepaliveRunner, SnxTunnel},
+    tunnel::{ipsec::keepalive::KeepaliveRunner, CheckpointTunnel},
 };
 
 mod decap;
 mod keepalive;
 
-pub(crate) struct SnxIpsecTunnel {
+pub(crate) struct IpsecTunnel {
     configurator: Box<dyn IpsecConfigurator + Send>,
     keepalive_runner: KeepaliveRunner,
 }
 
-impl SnxIpsecTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<Self> {
-        let client = SnxHttpClient::new(params.clone());
+impl IpsecTunnel {
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CheckpointSession>) -> anyhow::Result<Self> {
+        let client = HttpClient::new(params.clone());
         let client_settings = client.get_client_settings(&session.session_id).await?;
         debug!("Client settings: {:?}", client_settings);
 
@@ -42,7 +42,7 @@ impl SnxIpsecTunnel {
 }
 
 #[async_trait::async_trait]
-impl SnxTunnel for SnxIpsecTunnel {
+impl CheckpointTunnel for IpsecTunnel {
     async fn run(
         self: Box<Self>,
         stop_receiver: oneshot::Receiver<()>,
@@ -54,7 +54,7 @@ impl SnxTunnel for SnxIpsecTunnel {
 
         *connected.lock().unwrap() = ConnectionStatus {
             connected_since: Some(Local::now()),
-            mfa_pending: false,
+            ..Default::default()
         };
 
         let result = tokio::select! {
@@ -75,7 +75,7 @@ impl SnxTunnel for SnxIpsecTunnel {
     }
 }
 
-impl Drop for SnxIpsecTunnel {
+impl Drop for IpsecTunnel {
     fn drop(&mut self) {
         debug!("Cleaning up ipsec tunnel");
         std::thread::scope(|s| {

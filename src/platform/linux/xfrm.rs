@@ -10,8 +10,8 @@ use tracing::debug;
 
 use crate::{
     model::{
+        proto::{ClientSettingsResponse, IpsecSA, KeyManagementResponse},
         params::TunnelParams,
-        snx::{ClientSettingsResponseData, IpsecResponseData, IpsecSA},
     },
     platform::{IpsecConfigurator, UdpSocketExt},
     util,
@@ -54,8 +54,8 @@ impl PolicyDir {
 
 pub struct XfrmConfigurator {
     tunnel_params: Arc<TunnelParams>,
-    ipsec_params: IpsecResponseData,
-    client_settings: ClientSettingsResponseData,
+    ipsec_params: KeyManagementResponse,
+    client_settings: ClientSettingsResponse,
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
 }
@@ -63,8 +63,8 @@ pub struct XfrmConfigurator {
 impl XfrmConfigurator {
     pub fn new(
         tunnel_params: Arc<TunnelParams>,
-        ipsec_params: IpsecResponseData,
-        client_settings: ClientSettingsResponseData,
+        ipsec_params: KeyManagementResponse,
+        client_settings: ClientSettingsResponse,
     ) -> Self {
         Self {
             tunnel_params,

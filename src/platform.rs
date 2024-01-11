@@ -28,8 +28,8 @@ pub use macos::{
 };
 
 use crate::model::{
+    proto::{ClientSettingsResponse, KeyManagementResponse},
     params::TunnelParams,
-    snx::{ClientSettingsResponseData, IpsecResponseData},
 };
 
 #[cfg(target_os = "linux")]
@@ -46,8 +46,8 @@ pub trait IpsecConfigurator {
 
 pub fn new_ipsec_configurator(
     tunnel_params: Arc<TunnelParams>,
-    ipsec_params: IpsecResponseData,
-    client_settings: ClientSettingsResponseData,
+    ipsec_params: KeyManagementResponse,
+    client_settings: ClientSettingsResponse,
 ) -> impl IpsecConfigurator {
     IpsecImpl::new(tunnel_params, ipsec_params, client_settings)
 }

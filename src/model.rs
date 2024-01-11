@@ -5,12 +5,27 @@ use crate::model::params::TunnelParams;
 
 pub mod newtype;
 pub mod params;
-pub mod snx;
+pub mod proto;
 
-#[derive(Default, Debug, Clone, PartialEq)]
-pub struct SnxSession {
+#[derive(Debug, Clone, PartialEq)]
+pub enum SessionState {
+    Authenticated(String),
+    Pending(Option<String>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CheckpointSession {
     pub session_id: String,
-    pub cookie: Option<String>,
+    pub state: SessionState,
+}
+
+impl CheckpointSession {
+    pub fn cookie(&self) -> &str {
+        match self.state {
+            SessionState::Authenticated(ref cookie) => cookie.as_str(),
+            SessionState::Pending(_) => "",
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
@@ -99,6 +114,7 @@ impl Serialize for AuthenticationAlgorithm {
 pub struct ConnectionStatus {
     pub connected_since: Option<DateTime<Local>>,
     pub mfa_pending: bool,
+    pub mfa_prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

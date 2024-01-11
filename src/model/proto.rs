@@ -1,6 +1,6 @@
-use anyhow::anyhow;
 use std::{fmt, net::Ipv4Addr};
 
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
@@ -8,52 +8,52 @@ use crate::model::{
     AuthenticationAlgorithm, EncryptionAlgorithm,
 };
 
-pub enum SnxPacket {
+pub enum SslPacketType {
     Control(String, serde_json::Value),
     Data(Vec<u8>),
 }
 
-impl fmt::Debug for SnxPacket {
+impl fmt::Debug for SslPacketType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SnxPacket::Control(name, _) => write!(f, "CONTROL: {}", name),
-            SnxPacket::Data(data) => write!(f, "DATA: {} bytes", data.len()),
+            SslPacketType::Control(name, _) => write!(f, "CONTROL: {}", name),
+            SslPacketType::Data(data) => write!(f, "DATA: {} bytes", data.len()),
         }
     }
 }
 
-impl SnxPacket {
+impl SslPacketType {
     pub fn control<S, T>(name: S, data: T) -> Self
     where
         S: AsRef<str>,
         T: Serialize + Default,
     {
         let value = serde_json::to_value(data).unwrap_or_default();
-        SnxPacket::Control(name.as_ref().to_owned(), value)
+        SslPacketType::Control(name.as_ref().to_owned(), value)
     }
 }
 
-impl From<Vec<u8>> for SnxPacket {
+impl From<Vec<u8>> for SslPacketType {
     fn from(value: Vec<u8>) -> Self {
-        SnxPacket::Data(value)
+        SslPacketType::Data(value)
     }
 }
 
-impl From<ClientHello> for SnxPacket {
+impl From<ClientHello> for SslPacketType {
     fn from(value: ClientHello) -> Self {
-        SnxPacket::control(ClientHello::NAME, value)
+        SslPacketType::control(ClientHello::NAME, value)
     }
 }
 
-impl From<KeepaliveRequest> for SnxPacket {
+impl From<KeepaliveRequest> for SslPacketType {
     fn from(value: KeepaliveRequest) -> Self {
-        SnxPacket::control(KeepaliveRequest::NAME, value)
+        SslPacketType::control(KeepaliveRequest::NAME, value)
     }
 }
 
-impl From<DisconnectRequest> for SnxPacket {
+impl From<DisconnectRequest> for SslPacketType {
     fn from(value: DisconnectRequest) -> Self {
-        SnxPacket::control(DisconnectRequest::NAME, value)
+        SslPacketType::control(DisconnectRequest::NAME, value)
     }
 }
 
@@ -162,7 +162,7 @@ pub struct RequestHeader {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AuthData {
+pub struct AuthRequest {
     pub client_type: String,
     pub endpoint_os: Option<String>,
     pub username: Option<SecretKey>,
@@ -173,7 +173,7 @@ pub struct AuthData {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MultiChallengeData {
+pub struct MultiChallengeRequest {
     pub client_type: String,
     pub auth_session_id: String,
     pub user_input: SecretKey,
@@ -196,7 +196,7 @@ pub struct ClientLoggingData {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct IpsecData {
+pub struct KeyManagementRequest {
     #[serde(rename = "SPI")]
     pub spi: u32,
     pub rekey: bool,
@@ -215,7 +215,7 @@ pub struct PoliciesAndVersions {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct LocationAwarenessData {
+pub struct LocationAwarenessRequest {
     pub source_ip: Ipv4Addr,
 }
 
@@ -223,12 +223,12 @@ pub struct LocationAwarenessData {
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
 pub enum RequestData {
-    Auth(AuthData),
-    MultiChallenge(MultiChallengeData),
-    Ipsec(IpsecData),
-    LocationAwareness(LocationAwarenessData),
-    ClientInfo { client_info: ClientInfo },
-    Wrapped(String),
+    Auth(AuthRequest),
+    MultiChallenge(MultiChallengeRequest),
+    KeyManagement(KeyManagementRequest),
+    LocationAwareness(LocationAwarenessRequest),
+    ServerInfo { client_info: ClientInfo },
+    Custom(String),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -244,16 +244,16 @@ pub struct ResponseHeader {
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
 pub enum ResponseData {
-    Auth(AuthResponseData),
-    Ipsec(IpsecResponseData),
-    ClientSettings(ClientSettingsResponseData),
-    LocationAwareness(LocationAwarenessResponseData),
-    ServerInfo(ServerInfo),
+    Auth(AuthResponse),
+    KeyManagement(KeyManagementResponse),
+    ClientSettings(ClientSettingsResponse),
+    LocationAwareness(LocationAwarenessResponse),
+    ServerInfo(ServerInfoResponse),
     Generic(serde_json::Value),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AuthResponseData {
+pub struct AuthResponse {
     pub authn_status: String,
     pub is_authenticated: Option<bool>,
     pub active_key: Option<SecretKey>,
@@ -264,10 +264,11 @@ pub struct AuthResponseData {
     pub error_message: Option<SecretKey>,
     pub error_id: Option<SecretKey>,
     pub error_code: Option<u32>,
+    pub prompt: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct IpsecResponseData {
+pub struct KeyManagementResponse {
     pub client_encsa: IpsecSA,
     pub client_decsa: IpsecSA,
     pub om_addr: u32,
@@ -294,7 +295,7 @@ pub struct IpsecSA {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ClientSettingsResponseData {
+pub struct ClientSettingsResponse {
     pub gw_internal_ip: String,
     pub updated_policies: UpdatedPolicies,
 }
@@ -310,7 +311,7 @@ pub struct Range {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct LocationAwarenessResponseData {
+pub struct LocationAwarenessResponse {
     pub location: String,
     pub source_ip: String,
 }
@@ -342,7 +343,7 @@ pub struct ClientInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ServerInfo {
+pub struct ServerInfoResponse {
     pub protocol_version: ProtocolVersion,
     pub upgrade_configuration: UpgradeConfiguration,
     pub connectivity_info: ConnectivityInfo,

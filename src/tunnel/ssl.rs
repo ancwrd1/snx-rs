@@ -20,11 +20,11 @@ use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
-use codec::SnxCodec;
+use codec::TunnelCodec;
 
 use crate::{
-    model::{params::TunnelParams, snx::*, *},
-    tunnel::SnxTunnel,
+    model::{proto::*, params::TunnelParams, *},
+    tunnel::CheckpointTunnel,
 };
 
 pub mod codec;
@@ -36,14 +36,14 @@ const MAX_KEEP_ALIVE_ATTEMPTS: u64 = 3;
 const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 const CHANNEL_SIZE: usize = 1024;
 
-type SnxPacketSender = Sender<SnxPacket>;
-type SnxPacketReceiver = Receiver<SnxPacket>;
+type PacketSender = Sender<SslPacketType>;
+type PacketReceiver = Receiver<SslPacketType>;
 
-fn make_channel<S>(stream: S) -> (SnxPacketSender, SnxPacketReceiver)
+fn make_channel<S>(stream: S) -> (PacketSender, PacketReceiver)
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let framed = tokio_util::codec::Framed::new(stream, SnxCodec);
+    let framed = tokio_util::codec::Framed::new(stream, TunnelCodec);
 
     let (tx_in, rx_in) = mpsc::channel(CHANNEL_SIZE);
     let (tx_out, rx_out) = mpsc::channel(CHANNEL_SIZE);
@@ -65,19 +65,19 @@ where
     (tx_out, rx_in)
 }
 
-pub(crate) struct SnxSslTunnel {
+pub(crate) struct SslTunnel {
     params: Arc<TunnelParams>,
-    session: Arc<SnxSession>,
+    session: Arc<CheckpointSession>,
     auth_timeout: Duration,
     keepalive: Duration,
     ip_address: String,
-    sender: SnxPacketSender,
-    receiver: Option<SnxPacketReceiver>,
+    sender: PacketSender,
+    receiver: Option<PacketReceiver>,
     keepalive_counter: Arc<AtomicU64>,
 }
 
-impl SnxSslTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<Self> {
+impl SslTunnel {
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CheckpointSession>) -> anyhow::Result<Self> {
         let tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
 
         let mut builder = TlsConnector::builder();
@@ -125,7 +125,7 @@ impl SnxSslTunnel {
             optional: Some(OptionalRequest {
                 client_type: "4".to_string(),
             }),
-            cookie: self.session.cookie.clone().unwrap_or_default(),
+            cookie: self.session.cookie().to_owned(),
         }
     }
 
@@ -138,7 +138,7 @@ impl SnxSslTunnel {
         let reply = receiver.next().await.ok_or_else(|| anyhow!("Channel closed!"))?;
 
         let reply = match reply {
-            SnxPacket::Control(name, value) if name == HelloReply::NAME => {
+            SslPacketType::Control(name, value) if name == HelloReply::NAME => {
                 let result = serde_json::from_value::<HelloReply>(value)?;
                 self.ip_address = result.office_mode.ipaddr.clone();
                 self.auth_timeout = Duration::from_secs(result.timeouts.authentication) - REAUTH_LEEWAY;
@@ -169,7 +169,7 @@ impl SnxSslTunnel {
 
     async fn send<P>(&mut self, packet: P) -> anyhow::Result<()>
     where
-        P: Into<SnxPacket>,
+        P: Into<SslPacketType>,
     {
         tokio::time::timeout(SEND_TIMEOUT, self.sender.send(packet.into())).await??;
 
@@ -178,7 +178,7 @@ impl SnxSslTunnel {
 }
 
 #[async_trait::async_trait]
-impl SnxTunnel for SnxSslTunnel {
+impl CheckpointTunnel for SslTunnel {
     async fn run(
         mut self: Box<Self>,
         mut stop_receiver: oneshot::Receiver<()>,
@@ -205,13 +205,13 @@ impl SnxTunnel for SnxSslTunnel {
         tokio::spawn(async move {
             while let Some(item) = snx_receiver.next().await {
                 match item {
-                    SnxPacket::Control(name, _) => {
+                    SslPacketType::Control(name, _) => {
                         debug!("Control packet received: {name}");
                         if name == KeepaliveRequest::NAME {
                             keepalive_counter.fetch_sub(1, Ordering::SeqCst);
                         }
                     }
-                    SnxPacket::Data(data) => {
+                    SslPacketType::Data(data) => {
                         trace!("snx => {}: {}", data.len(), dev_name2);
                         keepalive_counter.store(0, Ordering::SeqCst);
                         let tun_packet = TunPacket::new(data);
@@ -224,7 +224,7 @@ impl SnxTunnel for SnxSslTunnel {
 
         *connected.lock().unwrap() = ConnectionStatus {
             connected_since: Some(Local::now()),
-            mfa_pending: false,
+            ..Default::default()
         };
 
         let result = loop {

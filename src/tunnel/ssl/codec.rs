@@ -2,12 +2,12 @@ use anyhow::anyhow;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::{model::snx::SnxPacket, sexpr};
+use crate::{model::proto::SslPacketType, sexpr};
 
-pub(crate) struct SnxCodec;
+pub(crate) struct TunnelCodec;
 
-impl Decoder for SnxCodec {
-    type Item = SnxPacket;
+impl Decoder for TunnelCodec {
+    type Item = SslPacketType;
     type Error = anyhow::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -27,29 +27,29 @@ impl Decoder for SnxCodec {
                 let s_data = String::from_utf8_lossy(&src[8..8 + len]).into_owned();
                 src.advance(8 + len);
                 let (name, value) = sexpr::decode::<_, serde_json::Value>(&s_data)?;
-                Ok(Some(SnxPacket::Control(name, value)))
+                Ok(Some(SslPacketType::Control(name, value)))
             }
             2 => {
                 let data = src[8..8 + len].to_vec();
                 src.advance(8 + len);
-                Ok(Some(SnxPacket::Data(data)))
+                Ok(Some(SslPacketType::Data(data)))
             }
             _ => Err(anyhow!("Unknown packet type!")),
         }
     }
 }
 
-impl Encoder<SnxPacket> for SnxCodec {
+impl Encoder<SslPacketType> for TunnelCodec {
     type Error = anyhow::Error;
 
-    fn encode(&mut self, item: SnxPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: SslPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (data, packet_type) = match item {
-            SnxPacket::Control(name, value) => {
+            SslPacketType::Control(name, value) => {
                 let mut data = sexpr::encode(name, value)?.into_bytes();
                 data.push(b'\x00');
                 (data, 1u32)
             }
-            SnxPacket::Data(data) => (data, 2u32),
+            SslPacketType::Data(data) => (data, 2u32),
         };
 
         dst.reserve(data.len() + 8);

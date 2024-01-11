@@ -5,11 +5,11 @@ use anyhow::anyhow;
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
-use crate::model::SnxSession;
+use crate::model::{CheckpointSession, SessionState};
 use crate::{
-    controller::{SnxController, SnxCtlCommand},
+    controller::{ServiceController, ServiceCommand},
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
-    tunnel::SnxTunnelConnector,
+    tunnel::TunnelConnector,
 };
 
 pub const LISTEN_PORT: u16 = 7779;
@@ -91,18 +91,23 @@ impl CommandServer {
         self.connected.lock().unwrap().connected_since.is_some()
     }
 
-    async fn connect_for_session(&mut self, params: Arc<TunnelParams>, session: Arc<SnxSession>) -> anyhow::Result<()> {
-        if session.cookie.is_none() {
-            debug!("Challenge code requested, awaiting for it");
+    async fn connect_for_session(
+        &mut self,
+        params: Arc<TunnelParams>,
+        session: Arc<CheckpointSession>,
+    ) -> anyhow::Result<()> {
+        if let SessionState::Pending(ref prompt) = session.state {
+            debug!("Pending multi-factor, awaiting for it");
             self.session_id = Some(session.session_id.clone());
             *self.connected.lock().unwrap() = ConnectionStatus {
                 mfa_pending: true,
+                mfa_prompt: prompt.clone(),
                 ..Default::default()
             };
             return Ok(());
         }
 
-        let connector = SnxTunnelConnector::new(params.clone());
+        let connector = TunnelConnector::new(params.clone());
         let tunnel = connector.create_tunnel(session).await?;
 
         let (tx, rx) = oneshot::channel();
@@ -115,8 +120,8 @@ impl CommandServer {
                 warn!("Tunnel error: {}", e);
                 *connected.lock().unwrap() = ConnectionStatus::default();
                 if params.reauthenticate {
-                    let controller = SnxController::with_params((*params).clone());
-                    if let Err(e) = controller.command(SnxCtlCommand::Connect).await {
+                    let controller = ServiceController::with_params((*params).clone());
+                    if let Err(e) = controller.command(ServiceCommand::Connect).await {
                         warn!("{}", e);
                     }
                 }
@@ -131,7 +136,7 @@ impl CommandServer {
         if !self.is_connected() {
             self.session_id = None;
 
-            let connector = SnxTunnelConnector::new(params.clone());
+            let connector = TunnelConnector::new(params.clone());
             let session = Arc::new(connector.authenticate(None).await?);
             self.connect_for_session(params, session).await
         } else {
@@ -140,7 +145,7 @@ impl CommandServer {
     }
 
     async fn challenge_code(&mut self, code: &str, params: Arc<TunnelParams>) -> anyhow::Result<()> {
-        let connector = SnxTunnelConnector::new(params.clone());
+        let connector = TunnelConnector::new(params.clone());
         let session = Arc::new(
             connector
                 .challenge_code(self.session_id.as_deref().unwrap_or_default(), &code)

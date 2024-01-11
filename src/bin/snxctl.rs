@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 
-use snx_rs::controller::{SnxController, SnxCtlCommand};
+use snx_rs::controller::{ServiceController, ServiceCommand};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -13,8 +13,8 @@ async fn main() -> anyhow::Result<()> {
         ));
     }
 
-    let controller = SnxController::new()?;
-    let command: SnxCtlCommand = args.get(1).map(AsRef::as_ref).unwrap_or("status").parse()?;
+    let controller = ServiceController::new()?;
+    let command: ServiceCommand = args.get(1).map(AsRef::as_ref).unwrap_or("status").parse()?;
     controller.command(command).await?;
     Ok(())
 }

@@ -5,20 +5,20 @@ use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
 use crate::{
-    http::SnxHttpClient,
+    http::HttpClient,
     model::{
         params::{TunnelParams, TunnelType},
-        snx::AuthResponseData,
+        proto::AuthResponse,
         *,
     },
-    tunnel::{ipsec::SnxIpsecTunnel, ssl::SnxSslTunnel},
+    tunnel::{ipsec::IpsecTunnel, ssl::SslTunnel},
 };
 
 mod ipsec;
 mod ssl;
 
 #[async_trait::async_trait]
-pub trait SnxTunnel {
+pub trait CheckpointTunnel {
     async fn run(
         mut self: Box<Self>,
         stop_receiver: oneshot::Receiver<()>,
@@ -26,42 +26,42 @@ pub trait SnxTunnel {
     ) -> anyhow::Result<()>;
 }
 
-pub struct SnxTunnelConnector(Arc<TunnelParams>);
+pub struct TunnelConnector(Arc<TunnelParams>);
 
-impl SnxTunnelConnector {
+impl TunnelConnector {
     pub fn new(params: Arc<TunnelParams>) -> Self {
         Self(params)
     }
 
-    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<SnxSession> {
+    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<CheckpointSession> {
         debug!("Authenticating to endpoint: {}", self.0.server_name);
-        let client = SnxHttpClient::new(self.0.clone());
+        let client = HttpClient::new(self.0.clone());
 
         let data = client.authenticate(session_id).await?;
 
         self.process_auth_response(data).await
     }
 
-    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<SnxSession> {
+    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<CheckpointSession> {
         debug!(
             "Authenticating with challenge code {} to endpoint: {}",
             user_input, self.0.server_name
         );
-        let client = SnxHttpClient::new(self.0.clone());
+        let client = HttpClient::new(self.0.clone());
 
         let data = client.challenge_code(session_id, user_input).await?;
 
         self.process_auth_response(data).await
     }
 
-    async fn process_auth_response(&self, data: AuthResponseData) -> anyhow::Result<SnxSession> {
+    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<CheckpointSession> {
         let session_id = data.session_id.unwrap_or_default();
 
         match data.authn_status.as_str() {
             "continue" => {
-                return Ok(SnxSession {
+                return Ok(CheckpointSession {
                     session_id,
-                    cookie: None,
+                    state: SessionState::Pending(data.prompt),
                 })
             }
             "done" => {}
@@ -85,16 +85,19 @@ impl SnxTunnelConnector {
 
         debug!("Authentication OK, session id: {session_id}");
 
-        Ok(SnxSession {
+        Ok(CheckpointSession {
             session_id,
-            cookie: Some(cookie.0),
+            state: SessionState::Authenticated(cookie.0),
         })
     }
 
-    pub async fn create_tunnel(&self, session: Arc<SnxSession>) -> anyhow::Result<Box<dyn SnxTunnel + Send>> {
+    pub async fn create_tunnel(
+        &self,
+        session: Arc<CheckpointSession>,
+    ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
         match self.0.tunnel_type {
-            TunnelType::Ssl => Ok(Box::new(SnxSslTunnel::create(self.0.clone(), session).await?)),
-            TunnelType::Ipsec => Ok(Box::new(SnxIpsecTunnel::create(self.0.clone(), session).await?)),
+            TunnelType::Ssl => Ok(Box::new(SslTunnel::create(self.0.clone(), session).await?)),
+            TunnelType::Ipsec => Ok(Box::new(IpsecTunnel::create(self.0.clone(), session).await?)),
         }
     }
 }

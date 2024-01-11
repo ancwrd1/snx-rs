@@ -6,7 +6,7 @@ use directories_next::ProjectDirs;
 use tracing::level_filters::LevelFilter;
 
 use crate::{
-    http::SnxHttpClient,
+    http::HttpClient,
     model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
     platform::UdpSocketExt,
     prompt,
@@ -16,7 +16,7 @@ const RECV_TIMEOUT: Duration = Duration::from_secs(2);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(120);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum SnxCtlCommand {
+pub enum ServiceCommand {
     Status,
     Connect,
     Disconnect,
@@ -24,7 +24,7 @@ pub enum SnxCtlCommand {
     Info,
 }
 
-impl FromStr for SnxCtlCommand {
+impl FromStr for ServiceCommand {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -39,11 +39,11 @@ impl FromStr for SnxCtlCommand {
     }
 }
 
-pub struct SnxController {
+pub struct ServiceController {
     params: TunnelParams,
 }
 
-impl SnxController {
+impl ServiceController {
     pub fn with_params(params: TunnelParams) -> Self {
         Self { params }
     }
@@ -66,21 +66,21 @@ impl SnxController {
         Ok(Self { params })
     }
 
-    pub async fn command(&self, command: SnxCtlCommand) -> anyhow::Result<()> {
+    pub async fn command(&self, command: ServiceCommand) -> anyhow::Result<()> {
         let subscriber = tracing_subscriber::fmt()
             .with_max_level(self.params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))
             .finish();
         tracing::subscriber::set_global_default(subscriber)?;
 
         match command {
-            SnxCtlCommand::Status => self.do_status().await,
-            SnxCtlCommand::Connect => self.do_connect().await,
-            SnxCtlCommand::Disconnect => self.do_disconnect().await,
-            SnxCtlCommand::Reconnect => {
+            ServiceCommand::Status => self.do_status().await,
+            ServiceCommand::Connect => self.do_connect().await,
+            ServiceCommand::Disconnect => self.do_disconnect().await,
+            ServiceCommand::Reconnect => {
                 let _ = self.do_disconnect().await;
                 self.do_connect().await
             }
-            SnxCtlCommand::Info => self.do_info().await,
+            ServiceCommand::Info => self.do_info().await,
         }
     }
 
@@ -93,7 +93,8 @@ impl SnxController {
                     Some(timestamp) => println!("Connected since {}", timestamp),
                     None => {
                         if status.mfa_pending {
-                            let input = prompt::get_input_from_tty("Enter challenge code: ")?;
+                            let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
+                            let input = prompt::get_input_from_tty(prompt)?;
                             self.do_challenge_code(input).await?;
                         } else {
                             println!("Disconnected");
@@ -110,7 +111,7 @@ impl SnxController {
     async fn do_connect(&self) -> anyhow::Result<()> {
         let mut params = self.params.clone();
 
-        let has_creds = params.client_cert.is_some() || (!params.user_name.is_empty() && !params.password.is_empty());
+        let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
 
         if params.server_name.is_empty() || !has_creds {
             return Err(anyhow!(
@@ -179,7 +180,7 @@ impl SnxController {
     }
 
     async fn do_info(&self) -> anyhow::Result<()> {
-        let client = SnxHttpClient::new(Arc::new(self.params.clone()));
+        let client = HttpClient::new(Arc::new(self.params.clone()));
         let info = client.get_server_info().await?;
         let response_data = info
             .get("ResponseData")

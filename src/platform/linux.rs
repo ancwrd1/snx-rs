@@ -62,7 +62,7 @@ impl UdpSocketExt for UdpSocket {
 }
 
 pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
-    let props = HashMap::from([("snx-rs.password", user_name)]);
+    let props = HashMap::from([("snx-rs.username", user_name)]);
 
     debug!("Attempting to acquire password from the secret service");
 
@@ -91,11 +91,12 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
     };
 
     if let Ok(ref ss) = ss {
-        let search_items = ss.search_items(props.clone()).await?;
-        if let Some(item) = search_items.unlocked.get(0) {
-            if let Ok(secret) = item.get_secret().await {
-                debug!("Acquired user password from the secret service");
-                return Ok(String::from_utf8_lossy(&secret).into_owned());
+        if let Ok(search_items) = ss.search_items(props.clone()).await {
+            if let Some(item) = search_items.unlocked.get(0) {
+                if let Ok(secret) = item.get_secret().await {
+                    debug!("Acquired user password from the secret service");
+                    return Ok(String::from_utf8_lossy(&secret).into_owned());
+                }
             }
         }
     }
@@ -105,7 +106,13 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
     if let Some(collection) = collection {
         debug!("Attempting to store user password in the secret service");
         if let Err(e) = collection
-            .create_item("snx-rs user password", props, password.as_bytes(), true, "text/plain")
+            .create_item(
+                &format!("snx-rs - {}", user_name),
+                props,
+                password.as_bytes(),
+                true,
+                "text/plain",
+            )
             .await
         {
             warn!("Warning: cannot store user password in the secret service: {}", e);

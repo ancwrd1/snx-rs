@@ -4,7 +4,7 @@ use ipnet::Ipv4Subnets;
 use tracing::debug;
 use tun::Device;
 
-use crate::model::{params::TunnelParams, snx::HelloReply};
+use crate::model::{proto::HelloReply, params::TunnelParams};
 
 pub struct TunDevice {
     inner: tun::AsyncDevice,

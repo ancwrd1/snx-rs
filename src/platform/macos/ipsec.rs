@@ -4,8 +4,8 @@ use anyhow::anyhow;
 
 use crate::{
     model::{
+        proto::{ClientSettingsResponse, KeyManagementResponse},
         params::TunnelParams,
-        snx::{ClientSettingsResponseData, IpsecResponseData},
     },
     platform::IpsecConfigurator,
 };
@@ -15,8 +15,8 @@ pub struct BsdIpsecConfigurator;
 impl BsdIpsecConfigurator {
     pub fn new(
         _tunnel_params: Arc<TunnelParams>,
-        _ipsec_params: IpsecResponseData,
-        _client_settings: ClientSettingsResponseData,
+        _ipsec_params: KeyManagementResponse,
+        _client_settings: ClientSettingsResponse,
     ) -> Self {
         Self
     }

@@ -13,16 +13,16 @@ use serde::Deserialize;
 use tracing::trace;
 
 use crate::{
-    model::{params::TunnelParams, snx::*},
+    model::{params::TunnelParams, proto::*},
     sexpr,
 };
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
 
-pub struct SnxHttpClient(Arc<TunnelParams>);
+pub struct HttpClient(Arc<TunnelParams>);
 
-impl SnxHttpClient {
+impl HttpClient {
     pub fn new(params: Arc<TunnelParams>) -> Self {
         Self(params)
     }
@@ -44,7 +44,7 @@ impl SnxHttpClient {
                 session_id: session_id.map(ToOwned::to_owned),
                 protocol_version: None,
             },
-            data: RequestData::Auth(AuthData {
+            data: RequestData::Auth(AuthRequest {
                 client_type: self.0.tunnel_type.as_client_type().to_owned(),
                 username,
                 password,
@@ -67,7 +67,7 @@ impl SnxHttpClient {
                 session_id: Some(session_id.to_owned()),
                 protocol_version: None,
             },
-            data: RequestData::MultiChallenge(MultiChallengeData {
+            data: RequestData::MultiChallenge(MultiChallengeRequest {
                 client_type: self.0.tunnel_type.as_client_type().to_owned(),
                 auth_session_id: session_id.to_owned(),
                 user_input: user_input.into(),
@@ -83,7 +83,7 @@ impl SnxHttpClient {
                 session_id: Some(session_id.to_string()),
                 protocol_version: Some(100),
             },
-            data: RequestData::Ipsec(IpsecData {
+            data: RequestData::KeyManagement(KeyManagementRequest {
                 spi: rand::random::<u32>(),
                 rekey: false,
                 req_om_addr: 0x00000000,
@@ -102,7 +102,7 @@ impl SnxHttpClient {
                 session_id: Some(session_id.to_string()),
                 protocol_version: Some(100),
             },
-            data: RequestData::Wrapped(wrapped),
+            data: RequestData::Custom(wrapped),
         }
     }
 
@@ -114,7 +114,7 @@ impl SnxHttpClient {
                 session_id: None,
                 protocol_version: Some(100),
             },
-            data: RequestData::LocationAwareness(LocationAwarenessData { source_ip }),
+            data: RequestData::LocationAwareness(LocationAwarenessRequest { source_ip }),
         }
     }
 
@@ -126,7 +126,7 @@ impl SnxHttpClient {
                 session_id: None,
                 protocol_version: None,
             },
-            data: RequestData::ClientInfo {
+            data: RequestData::ServerInfo {
                 client_info: ClientInfo {
                     client_type: self.0.tunnel_type.as_client_type().to_owned(),
                     client_version: 1,
@@ -181,7 +181,7 @@ impl SnxHttpClient {
         Ok(server_response)
     }
 
-    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<AuthResponseData> {
+    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<AuthResponse> {
         let server_response = self
             .send_request::<CccServerResponse>(self.new_auth_request(session_id))
             .await?;
@@ -192,7 +192,7 @@ impl SnxHttpClient {
         }
     }
 
-    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<AuthResponseData> {
+    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<AuthResponse> {
         let server_response = self
             .send_request::<CccServerResponse>(self.new_challenge_code_request(session_id, user_input))
             .await?;
@@ -203,18 +203,18 @@ impl SnxHttpClient {
         }
     }
 
-    pub async fn get_ipsec_tunnel_params(&self, session_id: &str) -> anyhow::Result<IpsecResponseData> {
+    pub async fn get_ipsec_tunnel_params(&self, session_id: &str) -> anyhow::Result<KeyManagementResponse> {
         let server_response = self
             .send_request::<CccServerResponse>(self.new_key_management_request(session_id))
             .await?;
 
         match server_response.to_data()? {
-            ResponseData::Ipsec(data) => Ok(data),
+            ResponseData::KeyManagement(data) => Ok(data),
             _ => Err(anyhow!("Invalid ipsec response!")),
         }
     }
 
-    pub async fn get_client_settings(&self, session_id: &str) -> anyhow::Result<ClientSettingsResponseData> {
+    pub async fn get_client_settings(&self, session_id: &str) -> anyhow::Result<ClientSettingsResponse> {
         let server_response = self
             .send_request::<CccServerResponse>(self.new_client_settings_request(session_id))
             .await?;
@@ -225,7 +225,7 @@ impl SnxHttpClient {
         }
     }
 
-    pub async fn get_external_ip(&self, source_ip: Ipv4Addr) -> anyhow::Result<LocationAwarenessResponseData> {
+    pub async fn get_external_ip(&self, source_ip: Ipv4Addr) -> anyhow::Result<LocationAwarenessResponse> {
         let server_response = self
             .send_request::<CccServerResponse>(self.new_location_awareness_request(source_ip))
             .await?;
