@@ -1,22 +1,23 @@
 use anyhow::anyhow;
 use tracing::level_filters::LevelFilter;
 
-use snx_rs::controller::{ServiceCommand, ServiceController};
-use snx_rs::prompt::SecurePrompt;
+use snx_rs::{
+    controller::{ServiceCommand, ServiceController},
+    prompt::SecurePrompt,
+};
 
 #[cfg(feature = "tray-icon")]
 mod tray_icon {
-    use std::path::PathBuf;
-    use std::{sync::mpsc, time::Duration};
+    use std::{path::PathBuf, sync::mpsc, time::Duration};
 
     use anyhow::anyhow;
     use ksni::{menu::StandardItem, MenuItem, Tray};
     use tracing::debug;
 
-    use snx_rs::prompt::SecurePrompt;
     use snx_rs::{
         controller::{ServiceCommand, ServiceController},
         model::ConnectionStatus,
+        prompt::SecurePrompt,
         util,
     };
 
