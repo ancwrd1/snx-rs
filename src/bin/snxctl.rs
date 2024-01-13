@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use tracing::level_filters::LevelFilter;
 
 use snx_rs::controller::{ServiceCommand, ServiceController};
+use snx_rs::prompt::SecurePrompt;
 
 #[cfg(feature = "tray-icon")]
 mod tray_icon {
@@ -11,6 +12,7 @@ mod tray_icon {
     use ksni::{menu::StandardItem, MenuItem, Tray};
     use tracing::debug;
 
+    use snx_rs::prompt::SecurePrompt;
     use snx_rs::{
         controller::{ServiceCommand, ServiceController},
         model::ConnectionStatus,
@@ -144,7 +146,7 @@ mod tray_icon {
             std::thread::sleep(PING_DURATION);
         });
 
-        let controller = ServiceController::new()?;
+        let controller = ServiceController::new(SecurePrompt::gui())?;
 
         while let Ok(Some(command)) = rx.recv() {
             debug!("UI command received: {:?}", command);
@@ -174,7 +176,7 @@ mod tray_icon {
 async fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
 
-    let controller = ServiceController::new()?;
+    let controller = ServiceController::new(SecurePrompt::tty())?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(

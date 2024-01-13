@@ -4,12 +4,11 @@ use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
 
-use crate::model::ConnectionStatus;
 use crate::{
     http::CccHttpClient,
-    model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
+    model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     platform::UdpSocketExt,
-    prompt,
+    prompt::SecurePrompt,
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -41,14 +40,18 @@ impl FromStr for ServiceCommand {
 
 pub struct ServiceController {
     pub params: TunnelParams,
+    prompt: SecurePrompt,
 }
 
 impl ServiceController {
     pub fn with_params(params: TunnelParams) -> Self {
-        Self { params }
+        Self {
+            params,
+            prompt: SecurePrompt::tty(),
+        }
     }
 
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(prompt: SecurePrompt) -> anyhow::Result<Self> {
         let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
         let config_file = dir.config_dir().join("snx-rs.conf");
 
@@ -63,7 +66,7 @@ impl ServiceController {
                     .into_owned();
         }
 
-        Ok(Self { params })
+        Ok(Self { params, prompt })
     }
 
     pub async fn command(&self, command: ServiceCommand) -> anyhow::Result<ConnectionStatus> {
@@ -95,7 +98,7 @@ impl ServiceController {
                     None => {
                         if status.mfa_pending {
                             let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
-                            let input = prompt::get_input_from_tty(prompt)?;
+                            let input = self.prompt.get_secure_input(prompt)?;
                             self.do_challenge_code(input).await?;
                         } else {
                             println!("Disconnected");
@@ -121,7 +124,7 @@ impl ServiceController {
         }
 
         if params.password.is_empty() && params.client_cert.is_none() {
-            match crate::platform::acquire_password(&params.user_name).await {
+            match crate::platform::acquire_password(&params.user_name, self.prompt.clone()).await {
                 Ok(password) => params.password = password,
                 Err(e) => return Err(e),
             }

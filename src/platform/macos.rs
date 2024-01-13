@@ -4,7 +4,7 @@ use tokio::net::UdpSocket;
 
 use crate::{
     platform::{UdpEncap, UdpSocketExt},
-    prompt,
+    prompt::SecurePrompt,
 };
 
 pub mod ipsec;
@@ -25,9 +25,9 @@ impl UdpSocketExt for UdpSocket {
     }
 }
 
-pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
-    Ok(prompt::get_input_from_tty(&format!(
-        "Enter password for {} (echo is off): ",
-        user_name
-    ))?)
+pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::Result<String> {
+    Ok(prompt
+        .get_secure_input(&format!("Enter password for {}: ", user_name))?
+        .trim()
+        .to_owned())
 }
