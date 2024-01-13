@@ -19,6 +19,7 @@ Based on the reverse engineered protocol used by the vendor application.
 * Microsoft Authenticator app support
 * Multi-factor codes input via TTY (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
+* Tray icon and menu support (optional via 'tray-icon' flag)
 
 ## Roadmap
  
