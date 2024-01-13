@@ -16,6 +16,10 @@ codegen-units = 1
 strip = true
 panic = "abort"
 
+[features]
+default = []
+tray-icon = ["dep:ksni"]
+
 [dependencies]
 pest = "2"
 pest_derive = "2"
@@ -42,6 +46,7 @@ rand = "0.8"
 directories-next = "2"
 chrono = { version = "0.4", features = ["serde"] }
 passterm = "2"
+ksni = { version = "0.2", optional = true}
 
 [target.'cfg(target_os = "linux")'.dependencies]
 zbus = "3"

@@ -3,8 +3,8 @@ use std::{str::FromStr, sync::Arc, time::Duration};
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
-use tracing::level_filters::LevelFilter;
 
+use crate::model::ConnectionStatus;
 use crate::{
     http::CccHttpClient,
     model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
@@ -40,7 +40,7 @@ impl FromStr for ServiceCommand {
 }
 
 pub struct ServiceController {
-    params: TunnelParams,
+    pub params: TunnelParams,
 }
 
 impl ServiceController {
@@ -66,12 +66,7 @@ impl ServiceController {
         Ok(Self { params })
     }
 
-    pub async fn command(&self, command: ServiceCommand) -> anyhow::Result<()> {
-        let subscriber = tracing_subscriber::fmt()
-            .with_max_level(self.params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))
-            .finish();
-        tracing::subscriber::set_global_default(subscriber)?;
-
+    pub async fn command(&self, command: ServiceCommand) -> anyhow::Result<ConnectionStatus> {
         match command {
             ServiceCommand::Status => self.do_status().await,
             ServiceCommand::Connect => {
@@ -91,7 +86,7 @@ impl ServiceController {
     }
 
     #[async_recursion::async_recursion]
-    async fn do_status(&self) -> anyhow::Result<()> {
+    pub async fn do_status(&self) -> anyhow::Result<ConnectionStatus> {
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
@@ -107,14 +102,14 @@ impl ServiceController {
                         }
                     }
                 }
-                Ok(())
+                Ok(status)
             }
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }
     }
 
-    async fn do_connect(&self) -> anyhow::Result<()> {
+    async fn do_connect(&self) -> anyhow::Result<ConnectionStatus> {
         let mut params = self.params.clone();
 
         let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
@@ -139,7 +134,7 @@ impl ServiceController {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,
             Ok(TunnelServiceResponse::Error(error)) => {
                 println!("Error: {}", error);
-                Ok(())
+                Err(anyhow!(error))
             }
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
@@ -154,7 +149,10 @@ impl ServiceController {
             )
             .await;
         match response {
-            Ok(TunnelServiceResponse::Ok) => self.do_status().await,
+            Ok(TunnelServiceResponse::Ok) => {
+                self.do_status().await?;
+                Ok(())
+            }
             Ok(TunnelServiceResponse::Error(error)) => {
                 println!("Error: {}", error);
                 Ok(())
@@ -164,10 +162,10 @@ impl ServiceController {
         }
     }
 
-    async fn do_disconnect(&self) -> anyhow::Result<()> {
+    async fn do_disconnect(&self) -> anyhow::Result<ConnectionStatus> {
         self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
             .await?;
-        Ok(())
+        self.do_status().await
     }
 
     async fn send_receive(
@@ -185,7 +183,7 @@ impl ServiceController {
         Ok(serde_json::from_slice(&result)?)
     }
 
-    async fn do_info(&self) -> anyhow::Result<()> {
+    async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
         let client = CccHttpClient::new(Arc::new(self.params.clone()));
         let info = client.get_server_info().await?;
         let response_data = info
@@ -195,6 +193,6 @@ impl ServiceController {
 
         println!("{}", serde_json::to_string_pretty(&response_data)?);
 
-        Ok(())
+        Ok(ConnectionStatus::default())
     }
 }
