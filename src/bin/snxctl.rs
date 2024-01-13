@@ -61,7 +61,7 @@ mod tray_icon {
                                 format!("Connected since: {}", since.to_rfc2822())
                             }
                         } else {
-                            "Disconnected".to_owned()
+                            "Tunnel disconnected".to_owned()
                         }
                     }
                     Err(ref e) => e.to_string(),
