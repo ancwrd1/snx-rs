@@ -5,17 +5,17 @@ use snx_rs::controller::{ServiceCommand, ServiceController};
 
 #[cfg(feature = "tray-icon")]
 mod tray_icon {
-    use std::sync::mpsc;
-    use std::time::Duration;
+    use std::{sync::mpsc, time::Duration};
 
     use anyhow::anyhow;
-    use ksni::menu::StandardItem;
-    use ksni::{MenuItem, Tray};
+    use ksni::{menu::StandardItem, MenuItem, Tray};
     use tracing::debug;
 
-    use snx_rs::controller::{ServiceCommand, ServiceController};
-    use snx_rs::model::ConnectionStatus;
-    use snx_rs::util;
+    use snx_rs::{
+        controller::{ServiceCommand, ServiceController},
+        model::ConnectionStatus,
+        util,
+    };
 
     const TITLE: &str = "SNX-RS VPN client";
     const PING_DURATION: Duration = Duration::from_secs(1);
@@ -46,7 +46,7 @@ mod tray_icon {
 
         fn status_label(&self) -> String {
             if self.connecting {
-                "Command pending".to_owned()
+                "...".to_owned()
             } else {
                 match self.status {
                     Ok(ref status) => {
