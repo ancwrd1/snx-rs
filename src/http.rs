@@ -181,56 +181,50 @@ impl CccHttpClient {
         Ok(server_response)
     }
 
-    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<AuthResponse> {
-        let server_response = self
-            .send_request::<CccServerResponse>(self.new_auth_request(session_id))
-            .await?;
+    async fn send_ccc_request(&self, req: CccClientRequest) -> anyhow::Result<ResponseData> {
+        self.send_request::<CccServerResponse>(req).await?.into_data()
+    }
 
-        match server_response.to_data()? {
+    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<AuthResponse> {
+        let req = self.new_auth_request(session_id);
+
+        match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
-            _ => Err(anyhow!("Invalid auth response!")),
+            _ => Err(anyhow!("Invalid authentication response!")),
         }
     }
 
     pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<AuthResponse> {
-        let server_response = self
-            .send_request::<CccServerResponse>(self.new_challenge_code_request(session_id, user_input))
-            .await?;
+        let req = self.new_challenge_code_request(session_id, user_input);
 
-        match server_response.to_data()? {
+        match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
-            _ => Err(anyhow!("Invalid auth response!")),
+            _ => Err(anyhow!("Invalid authentication response!")),
         }
     }
 
     pub async fn get_ipsec_tunnel_params(&self, session_id: &str) -> anyhow::Result<KeyManagementResponse> {
-        let server_response = self
-            .send_request::<CccServerResponse>(self.new_key_management_request(session_id))
-            .await?;
+        let req = self.new_key_management_request(session_id);
 
-        match server_response.to_data()? {
+        match self.send_ccc_request(req).await? {
             ResponseData::KeyManagement(data) => Ok(data),
-            _ => Err(anyhow!("Invalid ipsec response!")),
+            _ => Err(anyhow!("Invalid key management response!")),
         }
     }
 
     pub async fn get_client_settings(&self, session_id: &str) -> anyhow::Result<ClientSettingsResponse> {
-        let server_response = self
-            .send_request::<CccServerResponse>(self.new_client_settings_request(session_id))
-            .await?;
+        let req = self.new_client_settings_request(session_id);
 
-        match server_response.to_data()? {
+        match self.send_ccc_request(req).await? {
             ResponseData::ClientSettings(data) => Ok(data),
             _ => Err(anyhow!("Invalid client settings response!")),
         }
     }
 
     pub async fn get_external_ip(&self, source_ip: Ipv4Addr) -> anyhow::Result<LocationAwarenessResponse> {
-        let server_response = self
-            .send_request::<CccServerResponse>(self.new_location_awareness_request(source_ip))
-            .await?;
+        let req = self.new_location_awareness_request(source_ip);
 
-        match server_response.to_data()? {
+        match self.send_ccc_request(req).await? {
             ResponseData::LocationAwareness(data) => Ok(data),
             _ => Err(anyhow!("Invalid location awareness response!")),
         }

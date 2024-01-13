@@ -58,13 +58,6 @@ async fn main() -> anyhow::Result<()> {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
 
-            if params.password.is_empty() && params.client_cert.is_none() {
-                match snx_rs::platform::acquire_password(&params.user_name).await {
-                    Ok(password) => params.password = password,
-                    Err(e) => return Err(e),
-                }
-            }
-
             let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
 
             if params.server_name.is_empty() || !has_creds {

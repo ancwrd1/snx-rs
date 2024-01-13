@@ -198,11 +198,12 @@ impl TunnelParams {
                     .and_then(|(k, v)| if v.is_empty() { None } else { Some((k, v)) });
 
                 if let Some((k, v)) = parts {
+                    let v = v.to_owned();
                     match k {
-                        "server-name" => params.server_name = v.to_string(),
-                        "user-name" => params.user_name = v.to_string(),
-                        "password" => params.password = v.to_string(),
-                        "log-level" => params.log_level = v.to_string(),
+                        "server-name" => params.server_name = v,
+                        "user-name" => params.user_name = v,
+                        "password" => params.password = v,
+                        "log-level" => params.log_level = v,
                         "reauthenticate" => params.reauthenticate = v.parse().unwrap_or_default(),
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "ignore-search-domains" => {
@@ -215,7 +216,7 @@ impl TunnelParams {
                         "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                         "ca-cert" => params.ca_cert = Some(v.into()),
-                        "login-type" => params.login_type = v.to_string(),
+                        "login-type" => params.login_type = v,
                         "client-cert" => params.client_cert = Some(v.into()),
                         other => {
                             warn!("Ignoring unknown option: {}", other);

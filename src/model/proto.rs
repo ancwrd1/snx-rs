@@ -138,7 +138,7 @@ pub struct CccServerResponse {
 }
 
 impl CccServerResponse {
-    pub fn to_data(self) -> anyhow::Result<ResponseData> {
+    pub fn into_data(self) -> anyhow::Result<ResponseData> {
         match self.data {
             ResponseData::Generic(v) if v.as_str().is_some_and(|s| s.is_empty()) => {
                 Err(anyhow!("Request failed, error code: {}", self.header.return_code))
@@ -211,7 +211,7 @@ pub struct ClientSettingsData {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PoliciesAndVersions {
     pub range: Vec<NetworkRange>,
-    pub nemo_client_1: String,
+    pub nemo_client_1: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

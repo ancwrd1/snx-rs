@@ -8,7 +8,7 @@ Based on the reverse engineered protocol used by the vendor application.
 * IPSec support (faster tunnel)
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
-* Integration with libsecret and keychains
+* Integration with libsecret and OS keychain (only in command mode)
 
 ## Implemented features
 
