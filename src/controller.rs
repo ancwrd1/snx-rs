@@ -93,17 +93,10 @@ impl ServiceController {
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
-                match status.connected_since {
-                    Some(timestamp) => println!("Connected since {}", timestamp),
-                    None => {
-                        if status.mfa_pending {
-                            let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
-                            let input = self.prompt.get_secure_input(prompt)?;
-                            self.do_challenge_code(input).await?;
-                        } else {
-                            println!("Disconnected");
-                        }
-                    }
+                if status.connected_since.is_none() && status.mfa_pending {
+                    let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
+                    let input = self.prompt.get_secure_input(prompt)?;
+                    self.do_challenge_code(input).await?;
                 }
                 Ok(status)
             }
@@ -135,10 +128,7 @@ impl ServiceController {
             .await;
         match response {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,
-            Ok(TunnelServiceResponse::Error(error)) => {
-                println!("Error: {}", error);
-                Err(anyhow!(error))
-            }
+            Ok(TunnelServiceResponse::Error(error)) => Err(anyhow!(error)),
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }
@@ -156,10 +146,7 @@ impl ServiceController {
                 self.do_status().await?;
                 Ok(())
             }
-            Ok(TunnelServiceResponse::Error(error)) => {
-                println!("Error: {}", error);
-                Ok(())
-            }
+            Ok(TunnelServiceResponse::Error(e)) => Err(anyhow!(e)),
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }

@@ -218,7 +218,20 @@ async fn main() -> anyhow::Result<()> {
         .ok_or_else(|| anyhow!("No command"))?
         .parse()?;
 
-    controller.command(command).await?;
+    match controller.command(command).await {
+        Ok(status) => {
+            if let Some(since) = status.connected_since {
+                println!(
+                    "{} since: {}",
+                    if status.mfa_pending { "MFA pending" } else { "Connected" },
+                    since
+                );
+            } else {
+                println!("Disconnected");
+            }
+        }
+        Err(e) => println!("Error: {}", e),
+    }
 
     Ok(())
 }
