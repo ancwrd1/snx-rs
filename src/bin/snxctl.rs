@@ -6,6 +6,7 @@ use snx_rs::prompt::SecurePrompt;
 
 #[cfg(feature = "tray-icon")]
 mod tray_icon {
+    use std::path::PathBuf;
     use std::{sync::mpsc, time::Duration};
 
     use anyhow::anyhow;
@@ -66,6 +67,11 @@ mod tray_icon {
                 }
             }
         }
+        fn edit_config(&mut self) {
+            if let Ok(home) = std::env::var("HOME") {
+                let _ = opener::open(PathBuf::from(home).join(".config").join("snx-rs").join("snx-rs.conf"));
+            }
+        }
     }
 
     impl Tray for MyTray {
@@ -119,6 +125,12 @@ mod tray_icon {
                     activate: Box::new(|this: &mut Self| this.disconnect()),
                     ..Default::default()
                 }),
+                MenuItem::Standard(StandardItem {
+                    label: "Edit configuration".to_string(),
+                    icon_name: "edit-text".to_owned(),
+                    activate: Box::new(|this: &mut Self| this.edit_config()),
+                    ..Default::default()
+                }),
                 MenuItem::Separator,
                 MenuItem::Standard(StandardItem {
                     label: "Exit".to_string(),
@@ -146,25 +158,25 @@ mod tray_icon {
             std::thread::sleep(PING_DURATION);
         });
 
-        let controller = ServiceController::new(SecurePrompt::gui())?;
-
         while let Ok(Some(command)) = rx.recv() {
             debug!("UI command received: {:?}", command);
-            if command == ServiceCommand::Connect {
-                handle.update(|tray: &mut MyTray| tray.connecting = true);
-            }
+            if let Ok(controller) = ServiceController::new(SecurePrompt::gui()) {
+                if command == ServiceCommand::Connect {
+                    handle.update(|tray: &mut MyTray| tray.connecting = true);
+                }
 
-            let result = std::thread::scope(|s| s.spawn(|| util::block_on(controller.command(command))).join());
-            let status = match result {
-                Ok(result) => result,
-                Err(_) => Err(anyhow!("Internal error")),
-            };
+                let result = std::thread::scope(|s| s.spawn(|| util::block_on(controller.command(command))).join());
+                let status = match result {
+                    Ok(result) => result,
+                    Err(_) => Err(anyhow!("Internal error")),
+                };
 
-            if command == ServiceCommand::Status {
-                handle.update(|tray: &mut MyTray| {
-                    tray.connecting = false;
-                    tray.status = status;
-                });
+                if command == ServiceCommand::Status {
+                    handle.update(|tray: &mut MyTray| {
+                        tray.connecting = false;
+                        tray.status = status;
+                    });
+                }
             }
         }
 
