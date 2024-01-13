@@ -3,13 +3,12 @@ use std::{str::FromStr, sync::Arc, time::Duration};
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
-use tracing::level_filters::LevelFilter;
 
 use crate::{
     http::CccHttpClient,
-    model::{params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
+    model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     platform::UdpSocketExt,
-    prompt,
+    prompt::SecurePrompt,
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -40,15 +39,19 @@ impl FromStr for ServiceCommand {
 }
 
 pub struct ServiceController {
-    params: TunnelParams,
+    pub params: TunnelParams,
+    prompt: SecurePrompt,
 }
 
 impl ServiceController {
     pub fn with_params(params: TunnelParams) -> Self {
-        Self { params }
+        Self {
+            params,
+            prompt: SecurePrompt::tty(),
+        }
     }
 
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(prompt: SecurePrompt) -> anyhow::Result<Self> {
         let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
         let config_file = dir.config_dir().join("snx-rs.conf");
 
@@ -63,15 +66,10 @@ impl ServiceController {
                     .into_owned();
         }
 
-        Ok(Self { params })
+        Ok(Self { params, prompt })
     }
 
-    pub async fn command(&self, command: ServiceCommand) -> anyhow::Result<()> {
-        let subscriber = tracing_subscriber::fmt()
-            .with_max_level(self.params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))
-            .finish();
-        tracing::subscriber::set_global_default(subscriber)?;
-
+    pub async fn command(&self, command: ServiceCommand) -> anyhow::Result<ConnectionStatus> {
         match command {
             ServiceCommand::Status => self.do_status().await,
             ServiceCommand::Connect => {
@@ -91,30 +89,23 @@ impl ServiceController {
     }
 
     #[async_recursion::async_recursion]
-    async fn do_status(&self) -> anyhow::Result<()> {
+    pub async fn do_status(&self) -> anyhow::Result<ConnectionStatus> {
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
-                match status.connected_since {
-                    Some(timestamp) => println!("Connected since {}", timestamp),
-                    None => {
-                        if status.mfa_pending {
-                            let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
-                            let input = prompt::get_input_from_tty(prompt)?;
-                            self.do_challenge_code(input).await?;
-                        } else {
-                            println!("Disconnected");
-                        }
-                    }
+                if status.connected_since.is_none() && status.mfa_pending {
+                    let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
+                    let input = self.prompt.get_secure_input(prompt)?;
+                    self.do_challenge_code(input).await?;
                 }
-                Ok(())
+                Ok(status)
             }
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }
     }
 
-    async fn do_connect(&self) -> anyhow::Result<()> {
+    async fn do_connect(&self) -> anyhow::Result<ConnectionStatus> {
         let mut params = self.params.clone();
 
         let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
@@ -126,7 +117,7 @@ impl ServiceController {
         }
 
         if params.password.is_empty() && params.client_cert.is_none() {
-            match crate::platform::acquire_password(&params.user_name).await {
+            match crate::platform::acquire_password(&params.user_name, self.prompt.clone()).await {
                 Ok(password) => params.password = password,
                 Err(e) => return Err(e),
             }
@@ -137,10 +128,7 @@ impl ServiceController {
             .await;
         match response {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,
-            Ok(TunnelServiceResponse::Error(error)) => {
-                println!("Error: {}", error);
-                Ok(())
-            }
+            Ok(TunnelServiceResponse::Error(error)) => Err(anyhow!(error)),
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }
@@ -154,20 +142,20 @@ impl ServiceController {
             )
             .await;
         match response {
-            Ok(TunnelServiceResponse::Ok) => self.do_status().await,
-            Ok(TunnelServiceResponse::Error(error)) => {
-                println!("Error: {}", error);
+            Ok(TunnelServiceResponse::Ok) => {
+                self.do_status().await?;
                 Ok(())
             }
+            Ok(TunnelServiceResponse::Error(e)) => Err(anyhow!(e)),
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }
     }
 
-    async fn do_disconnect(&self) -> anyhow::Result<()> {
+    async fn do_disconnect(&self) -> anyhow::Result<ConnectionStatus> {
         self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
             .await?;
-        Ok(())
+        self.do_status().await
     }
 
     async fn send_receive(
@@ -185,7 +173,7 @@ impl ServiceController {
         Ok(serde_json::from_slice(&result)?)
     }
 
-    async fn do_info(&self) -> anyhow::Result<()> {
+    async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
         let client = CccHttpClient::new(Arc::new(self.params.clone()));
         let info = client.get_server_info().await?;
         let response_data = info
@@ -195,6 +183,6 @@ impl ServiceController {
 
         println!("{}", serde_json::to_string_pretty(&response_data)?);
 
-        Ok(())
+        Ok(ConnectionStatus::default())
     }
 }

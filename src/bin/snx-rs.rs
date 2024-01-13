@@ -13,7 +13,7 @@ use snx_rs::{
         params::{CmdlineParams, OperationMode, TunnelParams},
         ConnectionStatus, SessionState,
     },
-    prompt,
+    prompt::SecurePrompt,
     server::CommandServer,
     tunnel::TunnelConnector,
 };
@@ -69,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
 
             while let SessionState::Pending(ref prompt) = session.state {
                 let prompt = prompt.as_deref().unwrap_or("Multi-factor code: ");
-                match prompt::get_input_from_tty(prompt) {
+                match SecurePrompt::tty().get_secure_input(prompt) {
                     Ok(input) => {
                         session = connector.challenge_code(&session.session_id, &input).await?;
                     }

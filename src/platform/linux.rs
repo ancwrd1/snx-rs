@@ -5,10 +5,8 @@ use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
 use tracing::{debug, warn};
 
-use crate::{
-    platform::{UdpEncap, UdpSocketExt},
-    prompt,
-};
+use crate::platform::{UdpEncap, UdpSocketExt};
+use crate::prompt::SecurePrompt;
 
 pub mod net;
 pub mod xfrm;
@@ -61,7 +59,7 @@ impl UdpSocketExt for UdpSocket {
     }
 }
 
-pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
+pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::Result<String> {
     let props = HashMap::from([("snx-rs.username", user_name)]);
 
     debug!("Attempting to acquire password from the secret service");
@@ -98,7 +96,10 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
         }
     }
 
-    let password = prompt::get_input_from_tty(&format!("Enter password for {} (echo is off): ", user_name))?;
+    let password = prompt
+        .get_secure_input(&format!("Enter password for {}: ", user_name))?
+        .trim()
+        .to_owned();
 
     if !password.is_empty() {
         if let Some(collection) = collection {
