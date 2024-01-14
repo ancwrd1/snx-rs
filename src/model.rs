@@ -110,7 +110,7 @@ impl Serialize for AuthenticationAlgorithm {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct ConnectionStatus {
     pub connected_since: Option<DateTime<Local>>,
     pub mfa_pending: bool,

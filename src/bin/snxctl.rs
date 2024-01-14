@@ -12,7 +12,6 @@ mod tray_icon {
 
     use anyhow::anyhow;
     use ksni::{menu::StandardItem, MenuItem, Tray};
-    use tracing::debug;
 
     use snx_rs::{
         controller::{ServiceCommand, ServiceController},
@@ -159,8 +158,10 @@ mod tray_icon {
             std::thread::sleep(PING_DURATION);
         });
 
+        let mut prev_command = ServiceCommand::Info;
+        let mut prev_status = String::new();
+
         while let Ok(Some(command)) = rx.recv() {
-            debug!("UI command received: {:?}", command);
             if let Ok(controller) = ServiceController::new(SecurePrompt::gui()) {
                 if command == ServiceCommand::Connect {
                     handle.update(|tray: &mut MyTray| tray.connecting = true);
@@ -172,12 +173,15 @@ mod tray_icon {
                     Err(_) => Err(anyhow!("Internal error")),
                 };
 
-                if command == ServiceCommand::Status {
+                let status_str = format!("{:?}", status);
+                if command != prev_command || status_str != prev_status {
                     handle.update(|tray: &mut MyTray| {
                         tray.connecting = false;
                         tray.status = status;
                     });
                 }
+                prev_command = command;
+                prev_status = status_str;
             }
         }
 
