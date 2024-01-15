@@ -77,6 +77,7 @@ impl KeepaliveRunner {
                 }
             } else {
                 num_failures = 0;
+                crate::platform::poll_online();
             }
 
             let interval = if num_failures == 0 {

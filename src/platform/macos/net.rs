@@ -11,6 +11,8 @@ pub fn is_online() -> bool {
     true
 }
 
+pub fn poll_online() {}
+
 pub async fn add_route(route: &str, _device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
     let ip_str = ipaddr.to_string();
 

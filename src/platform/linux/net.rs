@@ -49,18 +49,18 @@ impl NetworkManagerState {
     default_path = "/org/freedesktop/NetworkManager"
 )]
 pub trait NetworkManager {
-    #[dbus_proxy(signal)]
-    fn state_changed(&self, state: u32) -> zbus::Result<()>;
+    #[dbus_proxy(property)]
+    fn state(&self) -> zbus::Result<u32>;
 }
 
 pub async fn start_network_state_monitoring() -> anyhow::Result<()> {
     let connection = Connection::system().await?;
     let proxy = NetworkManagerProxy::new(&connection).await?;
 
-    let mut stream = proxy.receive_state_changed().await?;
+    let mut stream = proxy.receive_state_changed().await;
     tokio::spawn(async move {
         while let Some(signal) = stream.next().await {
-            let state: NetworkManagerState = signal.args()?.state.into();
+            let state: NetworkManagerState = signal.get().await?.into();
             debug!("NetworkManager state changed to {:?}", state);
             ONLINE_STATE.store(state.is_online(), Ordering::SeqCst);
         }
@@ -73,6 +73,18 @@ pub async fn start_network_state_monitoring() -> anyhow::Result<()> {
 
 pub fn is_online() -> bool {
     ONLINE_STATE.load(Ordering::SeqCst)
+}
+
+pub fn poll_online() {
+    tokio::spawn(async move {
+        let connection = Connection::system().await?;
+        let proxy = NetworkManagerProxy::new(&connection).await?;
+        let state = proxy.state().await?;
+        let state: NetworkManagerState = state.into();
+        debug!("Acquired network state via polling: {:?}", state);
+        ONLINE_STATE.store(state.is_online(), Ordering::SeqCst);
+        Ok::<_, anyhow::Error>(())
+    });
 }
 
 pub async fn get_default_ip() -> anyhow::Result<String> {
