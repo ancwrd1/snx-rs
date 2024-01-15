@@ -98,10 +98,5 @@ mod tests {
 
         let decoded = snx_decrypt(secret.as_bytes()).unwrap();
         assert_eq!(decoded, b"testuser");
-
-        println!(
-            "{},",
-            String::from_utf8_lossy(&snx_decrypt(b"771c203726313a372e5d").unwrap())
-        );
     }
 }
