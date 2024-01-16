@@ -188,7 +188,13 @@ impl CheckpointTunnel for SslTunnel {
 
         let reply = self.client_hello().await?;
 
-        let tun = device::TunDevice::new(&reply)?;
+        let tun_name = self
+            .params
+            .if_name
+            .clone()
+            .unwrap_or(TunnelParams::DEFAULT_IF_NAME.to_owned());
+
+        let tun = device::TunDevice::new(&tun_name, &reply)?;
         tun.setup_dns_and_routing(&self.params).await?;
 
         let dev_name = tun.name().to_owned();

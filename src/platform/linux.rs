@@ -5,8 +5,12 @@ use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
 use tracing::{debug, warn};
 
-use crate::platform::{UdpEncap, UdpSocketExt};
-use crate::prompt::SecurePrompt;
+use crate::{
+    platform::{UdpEncap, UdpSocketExt},
+    prompt::SecurePrompt,
+};
+
+pub use xfrm::XfrmConfigurator as IpsecImpl;
 
 pub mod net;
 pub mod xfrm;

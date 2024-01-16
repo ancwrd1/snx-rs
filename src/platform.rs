@@ -12,10 +12,8 @@ pub use platform_impl::{
         add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online, poll_online,
         start_network_state_monitoring,
     },
+    IpsecImpl,
 };
-
-#[cfg(target_os = "linux")]
-use linux::xfrm::XfrmConfigurator as IpsecImpl;
 
 use crate::model::{
     params::TunnelParams,
@@ -29,7 +27,7 @@ pub mod linux;
 pub trait IpsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
-    fn get_decap_listener(&self) -> Arc<UdpSocket>;
+    fn decap_socket(&self) -> Arc<UdpSocket>;
 }
 
 pub async fn new_ipsec_configurator(

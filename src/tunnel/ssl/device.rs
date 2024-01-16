@@ -14,11 +14,13 @@ pub struct TunDevice {
 }
 
 impl TunDevice {
-    pub fn new(reply: &HelloReply) -> anyhow::Result<Self> {
+    pub fn new(name: &str, reply: &HelloReply) -> anyhow::Result<Self> {
         let mut config = tun::Configuration::default();
         let ipaddr = reply.office_mode.ipaddr.parse::<Ipv4Addr>()?;
 
         config.address(reply.office_mode.ipaddr.as_str()).up();
+        config.name(name);
+
         if let Some(ref netmask) = reply.optional {
             config.netmask(netmask.subnet.as_str());
         }

@@ -114,6 +114,9 @@ pub struct CmdlineParams {
         help = "Use client authentication via the provided certificate chain in unencrypted PKCS#8 PEM format"
     )]
     pub client_cert: Option<PathBuf>,
+
+    #[clap(long = "if-name", short = 'f', help = "Interface name for tun or vti device")]
+    pub if_name: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -159,6 +162,7 @@ pub struct TunnelParams {
     pub ca_cert: Option<PathBuf>,
     pub login_type: String,
     pub client_cert: Option<PathBuf>,
+    pub if_name: Option<String>,
 }
 
 impl Default for TunnelParams {
@@ -180,12 +184,14 @@ impl Default for TunnelParams {
             ca_cert: None,
             login_type: "vpn_Microsoft_Authenticator".to_owned(),
             client_cert: None,
+            if_name: None,
         }
     }
 }
 
 impl TunnelParams {
     pub const IPSEC_KEEPALIVE_PORT: u16 = 18234;
+    pub const DEFAULT_IF_NAME: &'static str = "snx-vti";
 
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut params = Self::default();
@@ -218,6 +224,7 @@ impl TunnelParams {
                         "ca-cert" => params.ca_cert = Some(v.into()),
                         "login-type" => params.login_type = v,
                         "client-cert" => params.client_cert = Some(v.into()),
+                        "if-name" => params.if_name = Some(v),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -291,6 +298,10 @@ impl TunnelParams {
 
         if let Some(client_cert) = other.client_cert {
             self.client_cert = Some(client_cert);
+        }
+
+        if let Some(if_name) = other.if_name {
+            self.if_name = Some(if_name);
         }
     }
 }

@@ -538,7 +538,7 @@ impl IpsecConfigurator for XfrmConfigurator {
         self.cleanup_iptables().await;
     }
 
-    fn get_decap_listener(&self) -> Arc<UdpSocket> {
+    fn decap_socket(&self) -> Arc<UdpSocket> {
         self.decap_socket.clone()
     }
 }
