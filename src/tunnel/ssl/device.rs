@@ -4,19 +4,19 @@ use tracing::debug;
 use tun::{Device, IntoAddress};
 
 use crate::{
-    model::{params::TunnelParams, proto::HelloReply},
+    model::{params::TunnelParams, proto::HelloReplyData},
     platform, util,
 };
 
 pub struct TunDevice {
     inner: tun::AsyncDevice,
-    reply: HelloReply,
+    reply: HelloReplyData,
     ipaddr: Ipv4Addr,
     dev_name: String,
 }
 
 impl TunDevice {
-    pub fn new(name: &str, reply: &HelloReply) -> anyhow::Result<Self> {
+    pub fn new(name: &str, reply: &HelloReplyData) -> anyhow::Result<Self> {
         let mut config = platform::new_tun_config();
         let ipaddr = reply.office_mode.ipaddr.parse::<Ipv4Addr>()?;
 

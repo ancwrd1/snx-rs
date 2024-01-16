@@ -9,12 +9,11 @@ use std::{
 
 use anyhow::anyhow;
 use reqwest::{Certificate, Identity};
-use serde::Deserialize;
 use tracing::{trace, warn};
 
 use crate::{
     model::{params::TunnelParams, proto::*, CccSession},
-    sexpr,
+    sexpr2::SExpression,
 };
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
@@ -38,7 +37,7 @@ impl CccHttpClient {
         REQUEST_ID.fetch_add(1, Ordering::SeqCst)
     }
 
-    fn new_auth_request(&self) -> CccClientRequest {
+    fn new_auth_request(&self) -> CccClientRequestData {
         let (request_type, username, password) = if self.params.client_cert.is_none() {
             (
                 "UserPass",
@@ -48,7 +47,7 @@ impl CccHttpClient {
         } else {
             ("CertAuth", None, None)
         };
-        CccClientRequest {
+        CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
                 request_type: request_type.to_owned(),
@@ -70,8 +69,8 @@ impl CccHttpClient {
         }
     }
 
-    fn new_challenge_code_request(&self, user_input: &str) -> CccClientRequest {
-        CccClientRequest {
+    fn new_challenge_code_request(&self, user_input: &str) -> CccClientRequestData {
+        CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
                 request_type: "MultiChallange".to_string(),
@@ -86,8 +85,8 @@ impl CccHttpClient {
         }
     }
 
-    fn new_key_management_request(&self) -> CccClientRequest {
-        CccClientRequest {
+    fn new_key_management_request(&self) -> CccClientRequestData {
+        CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
                 request_type: "KeyManagement".to_string(),
@@ -102,23 +101,20 @@ impl CccHttpClient {
         }
     }
 
-    fn new_client_settings_request(&self) -> CccClientRequest {
-        let data = sexpr::encode_value(ClientSettingsData::default()).unwrap_or_default();
-        let wrapped = format!("ClientSettings {}", data);
-
-        CccClientRequest {
+    fn new_client_settings_request(&self) -> CccClientRequestData {
+        CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
                 request_type: "ClientSettings".to_string(),
                 session_id: self.session_id(),
                 protocol_version: Some(100),
             },
-            data: RequestData::Custom(wrapped),
+            data: RequestData::ClientSettings(ClientSettingsRequest::default()),
         }
     }
 
-    fn new_location_awareness_request(&self, source_ip: Ipv4Addr) -> CccClientRequest {
-        CccClientRequest {
+    fn new_location_awareness_request(&self, source_ip: Ipv4Addr) -> CccClientRequestData {
+        CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
                 request_type: "LocationAwareness".to_string(),
@@ -129,8 +125,8 @@ impl CccHttpClient {
         }
     }
 
-    fn new_client_hello_request(&self) -> CccClientRequest {
-        CccClientRequest {
+    fn new_client_hello_request(&self) -> CccClientRequestData {
+        CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
                 request_type: "ClientHello".to_string(),
@@ -147,11 +143,8 @@ impl CccHttpClient {
         }
     }
 
-    async fn send_request<T>(&self, req: CccClientRequest) -> anyhow::Result<T>
-    where
-        for<'de> T: Deserialize<'de>,
-    {
-        let expr = sexpr::encode(CccClientRequest::NAME, req)?;
+    async fn send_raw_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
+        let expr = SExpression::from(CccClientRequest { data: request });
 
         let mut builder = reqwest::Client::builder();
 
@@ -197,7 +190,7 @@ impl CccHttpClient {
 
         let req = client
             .post(format!("https://{}{}", self.params.server_name, path))
-            .body(expr)
+            .body(expr.to_string())
             .build()?;
 
         let reply = tokio::time::timeout(REQUEST_TIMEOUT, client.execute(req))
@@ -208,13 +201,19 @@ impl CccHttpClient {
 
         trace!("Reply from server: {}", reply);
 
-        let (_, server_response) = sexpr::decode::<_, T>(&reply)?;
-
-        Ok(server_response)
+        reply.parse::<SExpression>()
     }
 
-    async fn send_ccc_request(&self, req: CccClientRequest) -> anyhow::Result<ResponseData> {
-        self.send_request::<CccServerResponse>(req).await?.into_data()
+    async fn send_request(&self, request: CccClientRequestData) -> anyhow::Result<CccServerResponseData> {
+        Ok(self
+            .send_raw_request(request)
+            .await?
+            .try_into::<CccServerResponse>()?
+            .data)
+    }
+
+    async fn send_ccc_request(&self, req: CccClientRequestData) -> anyhow::Result<ResponseData> {
+        self.send_request(req).await?.into_data()
     }
 
     pub async fn authenticate(&self) -> anyhow::Result<AuthResponse> {
@@ -262,10 +261,7 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn get_server_info(&self) -> anyhow::Result<serde_json::Value> {
-        let server_response = self
-            .send_request::<serde_json::Value>(self.new_client_hello_request())
-            .await?;
-        Ok(server_response)
+    pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
+        self.send_raw_request(self.new_client_hello_request()).await
     }
 }

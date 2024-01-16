@@ -6,32 +6,32 @@ use serde::Serialize;
 use tokio_util::codec::{Decoder, Encoder};
 
 use crate::{
-    model::proto::{ClientHello, DisconnectRequest, KeepaliveRequest},
-    sexpr,
+    model::proto::{
+        ClientHello, ClientHelloData, DisconnectRequest, DisconnectRequestData, KeepaliveRequest, KeepaliveRequestData,
+    },
+    sexpr2::SExpression,
 };
 
 pub enum SslPacketType {
-    Control(String, serde_json::Value),
+    Control(SExpression),
     Data(Vec<u8>),
 }
 
 impl fmt::Debug for SslPacketType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SslPacketType::Control(name, _) => write!(f, "CONTROL: {}", name),
+            SslPacketType::Control(expr) => write!(f, "CONTROL: {}", expr.object_name().unwrap_or("???")),
             SslPacketType::Data(data) => write!(f, "DATA: {} bytes", data.len()),
         }
     }
 }
 
 impl SslPacketType {
-    pub fn control<S, T>(name: S, data: T) -> Self
+    pub fn control<T>(data: T) -> Self
     where
-        S: AsRef<str>,
         T: Serialize + Default,
     {
-        let value = serde_json::to_value(data).unwrap_or_default();
-        SslPacketType::Control(name.as_ref().to_owned(), value)
+        SslPacketType::Control(data.into())
     }
 }
 
@@ -41,21 +41,21 @@ impl From<Vec<u8>> for SslPacketType {
     }
 }
 
-impl From<ClientHello> for SslPacketType {
-    fn from(value: ClientHello) -> Self {
-        SslPacketType::control(ClientHello::NAME, value)
+impl From<ClientHelloData> for SslPacketType {
+    fn from(value: ClientHelloData) -> Self {
+        SslPacketType::control(ClientHello { data: value })
     }
 }
 
-impl From<KeepaliveRequest> for SslPacketType {
-    fn from(value: KeepaliveRequest) -> Self {
-        SslPacketType::control(KeepaliveRequest::NAME, value)
+impl From<KeepaliveRequestData> for SslPacketType {
+    fn from(value: KeepaliveRequestData) -> Self {
+        SslPacketType::control(KeepaliveRequest { data: value })
     }
 }
 
-impl From<DisconnectRequest> for SslPacketType {
-    fn from(value: DisconnectRequest) -> Self {
-        SslPacketType::control(DisconnectRequest::NAME, value)
+impl From<DisconnectRequestData> for SslPacketType {
+    fn from(value: DisconnectRequestData) -> Self {
+        SslPacketType::control(DisconnectRequest { data: value })
     }
 }
 
@@ -81,8 +81,7 @@ impl Decoder for SslPacketCodec {
             1 => {
                 let s_data = String::from_utf8_lossy(&src[8..8 + len]).into_owned();
                 src.advance(8 + len);
-                let (name, value) = sexpr::decode::<_, serde_json::Value>(&s_data)?;
-                Ok(Some(SslPacketType::Control(name, value)))
+                Ok(Some(SslPacketType::Control(s_data.parse()?)))
             }
             2 => {
                 let data = src[8..8 + len].to_vec();
@@ -99,8 +98,8 @@ impl Encoder<SslPacketType> for SslPacketCodec {
 
     fn encode(&mut self, item: SslPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (data, packet_type) = match item {
-            SslPacketType::Control(name, value) => {
-                let mut data = sexpr::encode(name, value)?.into_bytes();
+            SslPacketType::Control(expr) => {
+                let mut data = expr.to_string().into_bytes();
                 data.push(b'\x00');
                 (data, 1u32)
             }

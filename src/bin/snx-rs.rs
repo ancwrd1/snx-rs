@@ -116,7 +116,7 @@ async fn main() -> anyhow::Result<()> {
             }
             let client = CccHttpClient::new(Arc::new(params), None);
             let info = client.get_server_info().await?;
-            println!("{}", serde_json::to_string_pretty(&info)?);
+            snx_rs::util::print_login_options(&info);
             Box::pin(futures::future::ok(()))
         }
     };

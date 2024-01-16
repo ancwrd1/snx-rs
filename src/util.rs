@@ -5,7 +5,7 @@ use ipnet::{Ipv4Net, Ipv4Subnets};
 use tokio::process::Command;
 use tracing::trace;
 
-use crate::model::proto::NetworkRange;
+use crate::{model::proto::NetworkRange, sexpr2::SExpression};
 
 // reverse engineered from vendor snx utility
 const XOR_TABLE: &[u8] = b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";
@@ -82,6 +82,32 @@ where
 
 pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Net> + '_ {
     ranges.iter().flat_map(|r| Ipv4Subnets::new(r.from, r.to, 0))
+}
+
+pub fn print_login_options(server_info: &SExpression) {
+    if let Some(SExpression::Array(items)) =
+        server_info.get("CCCserverResponse:ResponseData:connectivity_info:supported_data_tunnel_protocols")
+    {
+        println!("Supported tunnel protocols:");
+        items.iter().for_each(|item| {
+            if let Some(v) = item.get_value::<String>("") {
+                println!("\t{v}");
+            }
+        });
+    }
+
+    if let Some(options) = server_info.get("CCCserverResponse:ResponseData:login_options_data:login_options_list") {
+        println!("Available login types:");
+        let mut i = 0;
+        while let Some(opt) = options.get(&format!("{i}")) {
+            if let (Some(display_name), Some(id)) =
+                (opt.get_value::<String>("display_name"), opt.get_value::<String>("id"))
+            {
+                println!("\t{id} ({display_name})");
+            }
+            i += 1;
+        }
+    }
 }
 
 #[cfg(test)]

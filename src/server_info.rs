@@ -1,20 +1,22 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use serde_json::Value;
-
 use crate::{
     ccc::CccHttpClient,
     model::{
         params::TunnelParams,
         proto::{LoginDisplayLabelSelect, ServerInfoResponse},
     },
+    sexpr2::SExpression,
 };
 
 pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
     let client = CccHttpClient::new(Arc::new(params.clone()), None);
     let info = client.get_server_info().await?;
-    let response_data = info.get("ResponseData").unwrap_or(&Value::Null);
-    Ok(serde_json::from_value::<ServerInfoResponse>(response_data.clone())?)
+    Ok(info
+        .get("CCCserverResponse:ResponseData")
+        .cloned()
+        .unwrap_or(SExpression::Null)
+        .try_into()?)
 }
 
 pub async fn get_pwd_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<String>> {

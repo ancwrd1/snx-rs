@@ -102,6 +102,12 @@ pub struct OptionalRequest {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientHello {
+    #[serde(rename = "(client_hello")]
+    pub data: ClientHelloData,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClientHelloData {
     pub client_version: u32,
     pub protocol_version: u32,
     pub protocol_minor_version: u32,
@@ -111,12 +117,14 @@ pub struct ClientHello {
     pub cookie: String,
 }
 
-impl ClientHello {
-    pub const NAME: &'static str = "client_hello";
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HelloReply {
+    #[serde(rename = "(hello_reply")]
+    pub data: HelloReplyData,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct HelloReply {
+pub struct HelloReplyData {
     pub version: u32,
     pub protocol_version: u32,
     #[serde(rename = "OM")]
@@ -124,10 +132,6 @@ pub struct HelloReply {
     pub range: Vec<NetworkRange>,
     pub timeouts: Timeouts,
     pub optional: Option<OptionalResponse>,
-}
-
-impl HelloReply {
-    pub const NAME: &'static str = "hello_reply";
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -149,25 +153,33 @@ pub struct OptionalResponse {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CccClientRequest {
+    #[serde(rename = "(CCCclientRequest")]
+    pub data: CccClientRequestData,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CccClientRequestData {
     #[serde(rename = "RequestHeader")]
     pub header: RequestHeader,
     #[serde(rename = "RequestData")]
     pub data: RequestData,
 }
 
-impl CccClientRequest {
-    pub const NAME: &'static str = "CCCclientRequest";
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CccServerResponse {
+    #[serde(rename = "(CCCserverResponse")]
+    pub data: CccServerResponseData,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct CccServerResponse {
+pub struct CccServerResponseData {
     #[serde(rename = "ResponseHeader")]
     pub header: ResponseHeader,
     #[serde(rename = "ResponseData")]
     pub data: ResponseData,
 }
 
-impl CccServerResponse {
+impl CccServerResponseData {
     pub fn into_data(self) -> anyhow::Result<ResponseData> {
         match self.data {
             ResponseData::Generic(v) if v.as_str().is_some_and(|s| s.is_empty()) => {
@@ -176,10 +188,6 @@ impl CccServerResponse {
             other => Ok(other),
         }
     }
-}
-
-impl CccServerResponse {
-    pub const NAME: &'static str = "CCCserverResponse";
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -234,6 +242,12 @@ pub struct KeyManagementRequest {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClientSettingsRequest {
+    #[serde(rename = "(ClientSettings")]
+    pub data: ClientSettingsData,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientSettingsData {
     pub requested_policies_and_current_versions: PoliciesAndVersions,
 }
@@ -258,7 +272,7 @@ pub enum RequestData {
     KeyManagement(KeyManagementRequest),
     LocationAwareness(LocationAwarenessRequest),
     ClientHello { client_info: ClientInfo },
-    Custom(String),
+    ClientSettings(ClientSettingsRequest),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -348,21 +362,24 @@ pub struct LocationAwarenessResponse {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct KeepaliveRequest {
-    pub id: String,
+    #[serde(rename = "(keepalive")]
+    pub data: KeepaliveRequestData,
 }
-
-impl KeepaliveRequest {
-    pub const NAME: &'static str = "keepalive";
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KeepaliveRequestData {
+    pub id: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DisconnectRequest {
-    pub code: String,
-    pub message: Option<String>,
+    #[serde(rename = "(disconnect")]
+    pub data: DisconnectRequestData,
 }
 
-impl DisconnectRequest {
-    pub const NAME: &'static str = "disconnect";
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DisconnectRequestData {
+    pub code: String,
+    pub message: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

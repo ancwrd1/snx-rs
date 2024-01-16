@@ -1,0 +1,20 @@
+top        = _{ SOI ~ sexpr ~ EOI }
+sexpr      = _{ "(" ~ term? ~ ")" }
+term       = _{ obj | array | value }
+obj        = { ident? ~ field+ }
+array      = { elem+ }
+field      = { field_name ~ sexpr }
+elem       = { ":" ~ sexpr }
+field_name = @{ ":" ~ ident }
+ident      = @{ (ASCII_ALPHANUMERIC | "_")+ }
+char       = @{ !("(" | ")") ~ ANY }
+value      = { quoted_str | simple_val }
+simple_val = { char+ }
+quoted_str = ${ "\"" ~ inner ~ "\"" }
+inner      = @{ schar* }
+schar      = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+WHITESPACE = _{ " " | "\n" | "\r" | "\t" | "\x00" }

@@ -25,6 +25,7 @@ use codec::{SslPacketCodec, SslPacketType};
 use crate::{
     model::{params::TunnelParams, proto::*, *},
     platform,
+    sexpr2::SExpression,
     tunnel::CheckpointTunnel,
 };
 
@@ -117,8 +118,8 @@ impl SslTunnel {
         })
     }
 
-    fn new_hello_request(&self, keep_address: bool) -> ClientHello {
-        ClientHello {
+    fn new_hello_request(&self, keep_address: bool) -> ClientHelloData {
+        ClientHelloData {
             client_version: 1,
             protocol_version: 1,
             protocol_minor_version: 1,
@@ -135,7 +136,7 @@ impl SslTunnel {
         }
     }
 
-    async fn client_hello(&mut self) -> anyhow::Result<HelloReply> {
+    async fn client_hello(&mut self) -> anyhow::Result<HelloReplyData> {
         let req = self.new_hello_request(false);
         self.send(req).await?;
 
@@ -144,17 +145,17 @@ impl SslTunnel {
         let reply = receiver.next().await.ok_or_else(|| anyhow!("Channel closed!"))?;
 
         let reply = match reply {
-            SslPacketType::Control(name, value) if name == HelloReply::NAME => {
-                let result = serde_json::from_value::<HelloReply>(value)?;
-                self.ip_address = result.office_mode.ipaddr.clone();
-                self.auth_timeout = Duration::from_secs(result.timeouts.authentication) - REAUTH_LEEWAY;
-                self.keepalive = Duration::from_secs(result.timeouts.keepalive);
+            SslPacketType::Control(expr) => {
+                let result: HelloReply = expr.try_into()?;
+                self.ip_address = result.data.office_mode.ipaddr.clone();
+                self.auth_timeout = Duration::from_secs(result.data.timeouts.authentication) - REAUTH_LEEWAY;
+                self.keepalive = Duration::from_secs(result.data.timeouts.keepalive);
                 result
             }
             _ => return Err(anyhow!("Unexpected reply")),
         };
 
-        Ok(reply)
+        Ok(reply.data)
     }
 
     async fn keepalive(&mut self) -> anyhow::Result<()> {
@@ -164,7 +165,7 @@ impl SslTunnel {
             return Err(anyhow!("{}", msg));
         }
 
-        let req = KeepaliveRequest { id: "0".to_string() };
+        let req = KeepaliveRequestData { id: "0".to_string() };
 
         self.keepalive_counter.fetch_add(1, Ordering::SeqCst);
 
@@ -219,10 +220,13 @@ impl CheckpointTunnel for SslTunnel {
         tokio::spawn(async move {
             while let Some(item) = snx_receiver.next().await {
                 match item {
-                    SslPacketType::Control(name, _) => {
-                        debug!("Control packet received: {name}");
-                        if name == KeepaliveRequest::NAME {
-                            keepalive_counter.fetch_sub(1, Ordering::SeqCst);
+                    SslPacketType::Control(expr) => {
+                        debug!("Control packet received");
+                        match expr {
+                            SExpression::Object(Some(name), _) if name == "keepalive" => {
+                                keepalive_counter.fetch_sub(1, Ordering::SeqCst);
+                            }
+                            _ => {}
                         }
                     }
                     SslPacketType::Data(data) => {

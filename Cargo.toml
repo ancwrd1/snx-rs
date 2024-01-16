@@ -48,6 +48,9 @@ chrono = { version = "0.4", features = ["serde"] }
 passterm = "2"
 which = { version = "6", optional = true }
 opener = { version = "0.6", optional = true }
+enum-as-inner = "0.6"
+num-traits = "0.2"
+parse_int = "0.6"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ksni = { version = "0.2", optional = true }

@@ -5,7 +5,7 @@ pub mod platform;
 pub mod prompt;
 pub mod server;
 pub mod server_info;
-pub mod sexpr;
+pub mod sexpr2;
 #[cfg(feature = "tray-icon")]
 pub mod tray_icon;
 pub mod tunnel;

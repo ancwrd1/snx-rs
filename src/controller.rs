@@ -1,8 +1,9 @@
-use std::{collections::VecDeque, str::FromStr, time::Duration};
+use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use directories_next::ProjectDirs;
 
+use crate::ccc::CccHttpClient;
 use crate::{
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     platform::{self, UdpSocketExt},
@@ -196,14 +197,11 @@ impl ServiceController {
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
-        let response_data = server_info::get(&self.params).await?;
+        let client = CccHttpClient::new(Arc::new(self.params.clone()), None);
+        let info = client.get_server_info().await?;
 
-        println!("{}", serde_json::to_string_pretty(&response_data)?);
-        let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
-        match response {
-            Ok(TunnelServiceResponse::ConnectionStatus(status)) => Ok(status),
-            Ok(_) => Err(anyhow!("Invalid response!")),
-            Err(e) => Err(e),
-        }
+        crate::util::print_login_options(&info);
+
+        Ok(ConnectionStatus::default())
     }
 }
