@@ -17,22 +17,32 @@ Based on the reverse engineered protocol used by the vendor application.
 * Username/password authentication
 * Certificate authentication via the provided client certificate
 * Microsoft Authenticator app support
-* Multi-factor codes input via TTY (SMS/SecurID/TOTP)
+* Multi-factor codes input via TTY/GUI (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
 * Tray icon and menu support (optional via 'tray-icon' flag)
 
+## System requirements
+
+* Recent Linux distribution
+* NetworkManager
+* systemd-resolved
+* iproute2
+* DBus
+* For tray-icon feature: Adwaita theme (icons), zenity or kdialog utility (user prompts)
+
 ## Roadmap
  
-* SAML SSO support
+* SAML SSO (what to do with the OTP acquired from the browser?)
+* macOS support (contributions are welcome)
 
 ## Usage
 
 There are two ways to use the application:
 
-* Standalone service mode, selected by `-m standalone` parameter. This is the default mode. Run `snx-rs --help` to get a help with all command line parameters. In this mode the application takes connection parameters either from the command line or from the specified configuration file.
+* Standalone service mode, selected by `-m standalone` parameter. This is the default mode. Run `snx-rs --help` to get a help with all command line parameters. In this mode the application takes connection parameters either from the command line or from the specified configuration file. Recommended for headless usage.
 * Command mode, selected by `-m command` parameter. In this mode the application runs as a service without
  establishing a connection and awaits for the commands from the external client. Use `snxctl` utility
- to send commands to the service. The following commands are accepted:
+ to send commands to the service. Recommended for desktop usage. The following commands are accepted:
   - `connect` - establish a connection. Parameters are taken from the `~/.config/snx-rs/snx-rs.conf` file.
   - `disconnect` - disconnect a tunnel
   - `reconnect` - drop a connection and then connect again
@@ -41,7 +51,7 @@ There are two ways to use the application:
 
 ## Notes
 
-* If additional MFA steps are required a prompt will be shown on the terminal to enter the codes.
+* If additional MFA steps are required a prompt will be shown to enter the codes.
   If the application has no attached terminal an authentication error will be triggered.
 * If password is not provided in the configuration file or command line it will be prompted for and stored
   in the OS keychain (this will only work when using command mode and `snxctl` because the main application runs
