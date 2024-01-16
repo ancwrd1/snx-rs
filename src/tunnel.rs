@@ -43,10 +43,7 @@ impl TunnelConnector {
     }
 
     pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<CheckpointSession> {
-        debug!(
-            "Authenticating with challenge code {} to endpoint: {}",
-            user_input, self.0.server_name
-        );
+        debug!("Authenticating with challenge code to endpoint: {}", self.0.server_name);
         let client = CccHttpClient::new(self.0.clone());
 
         let data = client.challenge_code(session_id, user_input).await?;

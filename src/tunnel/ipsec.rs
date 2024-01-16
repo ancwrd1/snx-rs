@@ -31,7 +31,13 @@ impl IpsecTunnel {
         let keepalive_runner =
             KeepaliveRunner::new(ipsec_params.om_addr.into(), client_settings.gw_internal_ip.parse()?);
 
-        let mut configurator = crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings);
+        let pid = unsafe { libc::getpid() };
+        let vti_name = format!("snx-{}", pid);
+
+        let mut configurator =
+            crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings, &vti_name, pid as u32)
+                .await?;
+
         configurator.configure().await?;
 
         Ok(Self {
@@ -50,7 +56,7 @@ impl CheckpointTunnel for IpsecTunnel {
     ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
-        let sender = decap::start_decap_listener().await?;
+        let sender = decap::start_decap_listener(self.configurator.get_decap_listener()).await?;
 
         *connected.lock().unwrap() = ConnectionStatus {
             connected_since: Some(Local::now()),

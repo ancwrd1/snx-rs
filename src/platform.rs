@@ -4,7 +4,9 @@ use anyhow::anyhow;
 use tokio::net::UdpSocket;
 
 #[cfg(target_os = "linux")]
-pub use linux::{
+use linux as platform_impl;
+
+pub use platform_impl::{
     acquire_password,
     net::{
         add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online, poll_online,
@@ -15,18 +17,6 @@ pub use linux::{
 #[cfg(target_os = "linux")]
 use linux::xfrm::XfrmConfigurator as IpsecImpl;
 
-#[cfg(target_os = "macos")]
-use macos::ipsec::BsdIpsecConfigurator as IpsecImpl;
-
-#[cfg(target_os = "macos")]
-pub use macos::{
-    acquire_password,
-    net::{
-        add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online, poll_online,
-        start_network_state_monitoring,
-    },
-};
-
 use crate::model::{
     params::TunnelParams,
     proto::{ClientSettingsResponse, KeyManagementResponse},
@@ -35,21 +25,21 @@ use crate::model::{
 #[cfg(target_os = "linux")]
 pub mod linux;
 
-#[cfg(target_os = "macos")]
-pub mod macos;
-
 #[async_trait::async_trait]
 pub trait IpsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
+    fn get_decap_listener(&self) -> Arc<UdpSocket>;
 }
 
-pub fn new_ipsec_configurator(
+pub async fn new_ipsec_configurator(
     tunnel_params: Arc<TunnelParams>,
     ipsec_params: KeyManagementResponse,
     client_settings: ClientSettingsResponse,
-) -> impl IpsecConfigurator {
-    IpsecImpl::new(tunnel_params, ipsec_params, client_settings)
+    vti_name: &str,
+    key: u32,
+) -> anyhow::Result<impl IpsecConfigurator> {
+    IpsecImpl::new(tunnel_params, ipsec_params, client_settings, vti_name, key).await
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]

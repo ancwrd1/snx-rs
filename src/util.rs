@@ -1,5 +1,4 @@
-use std::future::Future;
-use std::{ffi::OsStr, fmt, path::Path, process::Output};
+use std::{ffi::OsStr, fmt, future::Future, path::Path, process::Output};
 
 use anyhow::anyhow;
 use tokio::process::Command;
@@ -62,14 +61,6 @@ where
 
     let mut command = Command::new(command.as_ref().as_os_str());
     command.envs(vec![("LANG", "C"), ("LC_ALL", "C")]).args(args);
-
-    // call setuid on macOS for privileged commands
-    #[cfg(target_os = "macos")]
-    {
-        if unsafe { libc::geteuid() == 0 } {
-            command.uid(0);
-        }
-    }
 
     process_output(command.output().await?)
 }

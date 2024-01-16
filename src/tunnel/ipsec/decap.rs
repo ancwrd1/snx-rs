@@ -1,18 +1,21 @@
+use std::sync::Arc;
+
+use tokio::net::UdpSocket;
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
 use crate::platform::{UdpEncap, UdpSocketExt};
 
-// start a dummy UDP listener on port 4500 with UDP_ENCAP option.
+// start a dummy UDP listener with UDP_ENCAP option.
 // this is necessary in order to perform automatic decapsulation of incoming ESP packets
-pub async fn start_decap_listener() -> anyhow::Result<oneshot::Sender<()>> {
-    let udp = tokio::net::UdpSocket::bind("0.0.0.0:4500").await?;
+pub async fn start_decap_listener(udp: Arc<UdpSocket>) -> anyhow::Result<oneshot::Sender<()>> {
     udp.set_encap(UdpEncap::EspInUdp)?;
 
     let (tx, mut rx) = oneshot::channel();
 
+    debug!("Listening for NAT-T packets on port {}", udp.local_addr()?);
+
     tokio::spawn(async move {
-        debug!("Listening for NAT-T packets on port 4500");
         let mut buf = [0u8; 1024];
 
         loop {
