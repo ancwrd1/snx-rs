@@ -1,8 +1,9 @@
 #![cfg(feature = "tray-icon")]
 
-use std::{path::PathBuf, sync::mpsc, time::Duration};
+use std::{sync::mpsc, time::Duration};
 
 use anyhow::anyhow;
+use directories_next::ProjectDirs;
 use ksni::{menu::StandardItem, MenuItem, Tray, TrayService};
 
 use crate::{
@@ -60,8 +61,9 @@ impl MyTray {
         }
     }
     fn edit_config(&mut self) {
-        if let Ok(home) = std::env::var("HOME") {
-            let _ = opener::open(PathBuf::from(home).join(".config").join("snx-rs").join("snx-rs.conf"));
+        if let Ok(dir) = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!")) {
+            let config_file = dir.config_dir().join("snx-rs.conf");
+            let _ = opener::open(config_file);
         }
     }
 }
