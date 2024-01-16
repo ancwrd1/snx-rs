@@ -293,12 +293,14 @@ impl XfrmConfigurator {
 
     async fn setup_dns(&self) -> anyhow::Result<()> {
         if !self.tunnel_params.no_dns {
-            debug!("Adding acquired DNS suffixes: {}", self.ipsec_params.om_domain_name.0);
+            debug!("Adding acquired DNS suffixes: {:?}", self.ipsec_params.om_domain_name);
             debug!("Adding provided DNS suffixes: {:?}", self.tunnel_params.search_domains);
             let suffixes = self
                 .ipsec_params
                 .om_domain_name
-                .0
+                .as_ref()
+                .map(|s| s.0.as_str())
+                .unwrap_or_default()
                 .split(',')
                 .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()))
                 .filter(|&s| {
@@ -316,7 +318,7 @@ impl XfrmConfigurator {
                 self.ipsec_params.om_dns2,
             ];
 
-            let servers = dns_servers.into_iter().filter_map(|server| {
+            let servers = dns_servers.into_iter().flatten().filter_map(|server| {
                 if server != 0 {
                     let addr: Ipv4Addr = server.into();
                     debug!("Adding DNS server: {}", addr);
