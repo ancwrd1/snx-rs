@@ -187,6 +187,7 @@ impl CheckpointTunnel for SslTunnel {
         debug!("Running SSL tunnel for session {}", self.session.session_id);
 
         let reply = self.client_hello().await?;
+        trace!("Hello reply: {:?}", reply);
 
         let tun_name = self
             .params
