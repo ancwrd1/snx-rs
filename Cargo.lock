@@ -2002,7 +2002,7 @@ checksum = "2593d31f82ead8df961d8bd23a64c2ccf2eb5dd34b0a34bfb4dd54011c72009e"
 
 [[package]]
 name = "snx-rs"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "anyhow",
  "async-recursion",
