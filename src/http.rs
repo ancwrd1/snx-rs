@@ -154,17 +154,20 @@ impl CccHttpClient {
             builder = builder.danger_accept_invalid_hostnames(true);
         }
 
-        if let Some(ref client_cert) = self.0.client_cert {
+        let path = if let Some(ref client_cert) = self.0.client_cert {
             let data = std::fs::read(client_cert)?;
             builder = builder.identity(Identity::from_pkcs8_pem(&data, &data)?);
-        }
+            "/clients/cert/"
+        } else {
+            "/clients/"
+        };
 
         let client = builder.build()?;
 
         trace!("Request to server: {}", expr);
 
         let req = client
-            .post(format!("https://{}/clients/", self.0.server_name))
+            .post(format!("https://{}{}", self.0.server_name, path))
             .body(expr)
             .build()?;
 
