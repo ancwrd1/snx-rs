@@ -156,7 +156,19 @@ impl CccHttpClient {
 
         let path = if let Some(ref client_cert) = self.0.client_cert {
             let data = std::fs::read(client_cert)?;
-            builder = builder.identity(Identity::from_pkcs8_pem(&data, &data)?);
+            let identity = match Identity::from_pkcs12_der(&data, self.0.cert_password.as_deref().unwrap_or_default()) {
+                Ok(identity) => identity,
+                Err(_) => match Identity::from_pkcs8_pem(&data, &data) {
+                    Ok(identity) => identity,
+                    Err(_) => {
+                        return Err(anyhow!(
+                            "Unable to load certificate identity from {}",
+                            client_cert.display()
+                        ));
+                    }
+                },
+            };
+            builder = builder.identity(identity);
             "/clients/cert/"
         } else {
             "/clients/"

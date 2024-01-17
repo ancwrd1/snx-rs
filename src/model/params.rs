@@ -111,9 +111,12 @@ pub struct CmdlineParams {
     #[clap(
         long = "client-cert",
         short = 'y',
-        help = "Use client authentication via the provided certificate chain in unencrypted PKCS#8 PEM format"
+        help = "Use client authentication via the provided certificate chain. It must be either PKCS#12 or unencrypted PKCS#8 PEM file"
     )]
     pub client_cert: Option<PathBuf>,
+
+    #[clap(long = "cert-password", short = 'x', help = "Password for PKCS#12 keychain")]
+    pub cert_password: Option<String>,
 
     #[clap(long = "if-name", short = 'f', help = "Interface name for tun or vti device")]
     pub if_name: Option<String>,
@@ -162,6 +165,7 @@ pub struct TunnelParams {
     pub ca_cert: Option<PathBuf>,
     pub login_type: String,
     pub client_cert: Option<PathBuf>,
+    pub cert_password: Option<String>,
     pub if_name: Option<String>,
 }
 
@@ -184,6 +188,7 @@ impl Default for TunnelParams {
             ca_cert: None,
             login_type: "vpn_Microsoft_Authenticator".to_owned(),
             client_cert: None,
+            cert_password: None,
             if_name: None,
         }
     }
@@ -224,6 +229,7 @@ impl TunnelParams {
                         "ca-cert" => params.ca_cert = Some(v.into()),
                         "login-type" => params.login_type = v,
                         "client-cert" => params.client_cert = Some(v.into()),
+                        "cert-password" => params.cert_password = Some(v),
                         "if-name" => params.if_name = Some(v),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
@@ -298,6 +304,10 @@ impl TunnelParams {
 
         if let Some(client_cert) = other.client_cert {
             self.client_cert = Some(client_cert);
+        }
+
+        if let Some(cert_password) = other.cert_password {
+            self.cert_password = Some(cert_password);
         }
 
         if let Some(if_name) = other.if_name {
