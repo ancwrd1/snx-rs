@@ -88,12 +88,22 @@ pub fn poll_online() {
 }
 
 pub async fn get_default_ip() -> anyhow::Result<String> {
-    let result = crate::util::run_command("ip", ["route", "show", "default"]).await?;
-    let mut parts = result.split_whitespace();
+    let default_route = crate::util::run_command("ip", ["-4", "route", "show", "default"]).await?;
+    let mut parts = default_route.split_whitespace();
     while let Some(part) = parts.next() {
-        if part == "src" {
-            if let Some(ip) = parts.next() {
-                return Ok(ip.to_owned());
+        if part == "dev" {
+            if let Some(dev) = parts.next() {
+                let addr = crate::util::run_command("ip", ["-4", "-o", "addr", "show", "dev", dev]).await?;
+                let mut parts = addr.split_whitespace();
+                while let Some(part) = parts.next() {
+                    if part == "inet" {
+                        if let Some(ip) = parts.next() {
+                            if let Some((ip, _)) = ip.split_once('/') {
+                                return Ok(ip.to_string());
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -146,4 +156,15 @@ where
     crate::util::run_command("resolvectl", args).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_default_ip() {
+        let ip = get_default_ip().await.unwrap();
+        println!("{}", ip);
+    }
 }
