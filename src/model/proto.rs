@@ -233,7 +233,7 @@ pub enum RequestData {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResponseHeader {
-    pub id: Maybe<u64>,
+    pub id: Maybe<u32>,
     #[serde(rename = "type")]
     pub response_type: String,
     pub session_id: String,

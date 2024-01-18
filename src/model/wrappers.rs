@@ -183,20 +183,20 @@ impl<T: Serialize> Serialize for Maybe<T> {
     }
 }
 
-impl<'de> Deserialize<'de> for Maybe<u64> {
+impl<'de, T: TryFrom<u64>> Deserialize<'de> for Maybe<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_any(MaybeVisitor::default())
+        deserializer.deserialize_any(MaybeVisitor(PhantomData::default()))
     }
 }
 
 #[derive(Default)]
 struct MaybeVisitor<T>(PhantomData<T>);
 
-impl<'de> Visitor<'de> for MaybeVisitor<u64> {
-    type Value = Maybe<u64>;
+impl<'de, T: TryFrom<u64>> Visitor<'de> for MaybeVisitor<T> {
+    type Value = Maybe<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "u64 value or empty string")
@@ -206,7 +206,10 @@ impl<'de> Visitor<'de> for MaybeVisitor<u64> {
     where
         E: Error,
     {
-        Ok(Maybe(Some(v)))
+        Ok(Maybe(Some(
+            v.try_into()
+                .map_err(|_| serde::de::Error::custom("Cannot convert from u64"))?,
+        )))
     }
 
     fn visit_string<E>(self, _: String) -> Result<Self::Value, E>
