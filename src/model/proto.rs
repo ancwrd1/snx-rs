@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    wrappers::{HexKey, QuotedString, SecretKey},
+    wrappers::{HexKey, Maybe, QuotedString, SecretKey},
     AuthenticationAlgorithm, EncryptionAlgorithm,
 };
 
@@ -233,7 +233,7 @@ pub enum RequestData {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResponseHeader {
-    pub id: u32,
+    pub id: Maybe<u64>,
     #[serde(rename = "type")]
     pub response_type: String,
     pub session_id: String,

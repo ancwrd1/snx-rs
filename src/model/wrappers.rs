@@ -1,6 +1,9 @@
-use std::fmt;
+use std::{fmt, marker::PhantomData};
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{Error, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
 #[derive(Default, Clone, PartialEq)]
 pub struct QuotedString(pub String);
@@ -162,5 +165,54 @@ impl fmt::Debug for HexKey {
 impl<'a> From<&'a str> for HexKey {
     fn from(value: &'a str) -> Self {
         Self(value.to_owned())
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct Maybe<T>(pub Option<T>);
+
+impl<T: Serialize> Serialize for Maybe<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self.0 {
+            Some(ref v) => v.serialize(serializer),
+            None => "".serialize(serializer),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Maybe<u64> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(MaybeVisitor::default())
+    }
+}
+
+#[derive(Default)]
+struct MaybeVisitor<T>(PhantomData<T>);
+
+impl<'de> Visitor<'de> for MaybeVisitor<u64> {
+    type Value = Maybe<u64>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "u64 value or empty string")
+    }
+
+    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(Maybe(Some(v)))
+    }
+
+    fn visit_string<E>(self, _: String) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(Maybe(None))
     }
 }
