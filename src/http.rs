@@ -126,7 +126,7 @@ impl CccHttpClient {
                 session_id: None,
                 protocol_version: None,
             },
-            data: RequestData::ServerInfo {
+            data: RequestData::ClientHello {
                 client_info: ClientInfo {
                     client_type: self.0.tunnel_type.as_client_type().to_owned(),
                     client_version: 1,

@@ -227,7 +227,7 @@ pub enum RequestData {
     MultiChallenge(MultiChallengeRequest),
     KeyManagement(KeyManagementRequest),
     LocationAwareness(LocationAwarenessRequest),
-    ServerInfo { client_info: ClientInfo },
+    ClientHello { client_info: ClientInfo },
     Custom(String),
 }
 
