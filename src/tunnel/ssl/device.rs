@@ -1,10 +1,12 @@
 use std::net::Ipv4Addr;
 
-use ipnet::Ipv4Subnets;
 use tracing::debug;
 use tun::Device;
 
-use crate::model::{params::TunnelParams, proto::HelloReply};
+use crate::{
+    model::{params::TunnelParams, proto::HelloReply},
+    platform, util,
+};
 
 pub struct TunDevice {
     inner: tun::AsyncDevice,
@@ -15,7 +17,7 @@ pub struct TunDevice {
 
 impl TunDevice {
     pub fn new(name: &str, reply: &HelloReply) -> anyhow::Result<Self> {
-        let mut config = tun::Configuration::default();
+        let mut config = platform::new_tun_config();
         let ipaddr = reply.office_mode.ipaddr.parse::<Ipv4Addr>()?;
 
         config.address(reply.office_mode.ipaddr.as_str()).up();
@@ -24,11 +26,6 @@ impl TunDevice {
         if let Some(ref netmask) = reply.optional {
             config.netmask(netmask.subnet.as_str());
         }
-
-        #[cfg(target_os = "linux")]
-        config.platform(|config| {
-            config.packet_information(true);
-        });
 
         let dev = tun::create_as_async(&config)?;
 
@@ -57,14 +54,11 @@ impl TunDevice {
             if params.default_route {
                 let _ = crate::platform::add_default_route(&self.dev_name, self.ipaddr).await;
             } else {
-                for range in &self.reply.range {
-                    let subnets = Ipv4Subnets::new(range.from, range.to, 0);
-                    for subnet in subnets.into_iter().filter(|s| s.contains(&self.ipaddr)) {
-                        crate::platform::add_route(&subnet.to_string(), &self.dev_name, self.ipaddr).await?;
-                    }
+                for subnet in util::ranges_to_subnets(&self.reply.range).filter(|s| s.contains(&self.ipaddr)) {
+                    crate::platform::add_route(subnet, &self.dev_name, self.ipaddr).await?;
                 }
                 for route in &params.add_routes {
-                    crate::platform::add_route(route, &self.dev_name, self.ipaddr).await?;
+                    crate::platform::add_route(route.parse()?, &self.dev_name, self.ipaddr).await?;
                 }
             }
         }

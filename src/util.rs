@@ -1,8 +1,11 @@
 use std::{ffi::OsStr, fmt, future::Future, path::Path, process::Output};
 
 use anyhow::anyhow;
+use ipnet::{Ipv4Net, Ipv4Subnets};
 use tokio::process::Command;
 use tracing::trace;
+
+use crate::model::proto::NetworkRange;
 
 // reverse engineered from vendor snx utility
 const XOR_TABLE: &[u8] = b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";
@@ -75,6 +78,10 @@ where
         .unwrap();
 
     rt.block_on(f)
+}
+
+pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Net> + '_ {
+    ranges.iter().map(|r| Ipv4Subnets::new(r.from, r.to, 0)).flatten()
 }
 
 #[cfg(test)]

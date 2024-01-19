@@ -63,6 +63,16 @@ impl UdpSocketExt for UdpSocket {
     }
 }
 
+pub fn new_tun_config() -> tun::Configuration {
+    let mut config = tun::Configuration::default();
+
+    config.platform(|config| {
+        config.packet_information(true);
+    });
+
+    config
+}
+
 pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::Result<String> {
     let props = HashMap::from([("snx-rs.username", user_name)]);
 

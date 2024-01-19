@@ -8,6 +8,7 @@ use linux as platform_impl;
 
 pub use platform_impl::{
     acquire_password,
+    new_tun_config,
     net::{
         add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online, poll_online,
         start_network_state_monitoring,

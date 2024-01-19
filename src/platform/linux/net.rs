@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::anyhow;
 use futures::StreamExt;
+use ipnet::Ipv4Net;
 use tracing::debug;
 use zbus::{dbus_proxy, Connection};
 
@@ -110,9 +111,9 @@ pub async fn get_default_ip() -> anyhow::Result<String> {
     Err(anyhow!("Cannot determine default IP!"))
 }
 
-pub async fn add_route(route: &str, device: &str, _ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+pub async fn add_route(route: Ipv4Net, device: &str, _ipaddr: Ipv4Addr) -> anyhow::Result<()> {
     debug!("Adding route: {} via {}", route, device);
-    crate::util::run_command("ip", ["route", "add", &route, "dev", device]).await?;
+    crate::util::run_command("ip", ["route", "add", &route.to_string(), "dev", device]).await?;
     Ok(())
 }
 

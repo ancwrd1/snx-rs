@@ -5,7 +5,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use ipnet::Ipv4Subnets;
 use tokio::net::UdpSocket;
 use tracing::debug;
 
@@ -400,15 +399,14 @@ impl XfrmConfigurator {
             if self.tunnel_params.default_route {
                 let _ = crate::platform::add_default_route(&self.vti_name, addr).await;
             } else {
-                for range in &self.client_settings.updated_policies.range.settings {
-                    let subnets = Ipv4Subnets::new(range.from, range.to, 0);
-                    for subnet in subnets.into_iter().filter(|s| s.contains(&addr)) {
-                        crate::platform::add_route(&subnet.to_string(), &self.vti_name, addr).await?;
-                    }
+                for subnet in util::ranges_to_subnets(&self.client_settings.updated_policies.range.settings)
+                    .filter(|s| s.contains(&addr))
+                {
+                    crate::platform::add_route(subnet, &self.vti_name, addr).await?;
                 }
 
                 for route in &self.tunnel_params.add_routes {
-                    crate::platform::add_route(route, &self.vti_name, addr).await?;
+                    crate::platform::add_route(route.parse()?, &self.vti_name, addr).await?;
                 }
             }
         }
