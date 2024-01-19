@@ -95,3 +95,28 @@ impl TunDevice {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::net::Ipv4Addr;
+
+    use ipnet::Ipv4Subnets;
+
+    use crate::model::proto::NetworkRange;
+
+    #[test]
+    fn parse_range() {
+        let ipaddr = "10.0.10.10".parse::<Ipv4Addr>().unwrap();
+        let range = NetworkRange {
+            from: "10.0.0.0".parse().unwrap(),
+            to: "10.255.255.255".parse().unwrap(),
+        };
+
+        let subnets = Ipv4Subnets::new(range.from, range.to, 0);
+        assert!(subnets.clone().any(|s| s.contains(&ipaddr)));
+
+        for subnet in subnets {
+            assert_eq!(subnet.to_string(), "10.0.0.0/8");
+        }
+    }
+}
