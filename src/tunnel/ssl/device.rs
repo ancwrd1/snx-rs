@@ -78,10 +78,11 @@ impl TunDevice {
                     .split(',')
                     .chain(params.search_domains.iter().map(|s| s.as_ref()))
                     .filter(|&s| {
-                        !params
-                            .ignore_search_domains
-                            .iter()
-                            .any(|d| d.to_lowercase() == s.to_lowercase())
+                        !s.is_empty()
+                            && !params
+                                .ignore_search_domains
+                                .iter()
+                                .any(|d| d.to_lowercase() == s.to_lowercase())
                     });
                 let _ = crate::platform::add_dns_suffixes(suffixes, &self.dev_name).await;
             }
