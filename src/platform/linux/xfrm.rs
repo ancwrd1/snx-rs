@@ -241,7 +241,6 @@ pub struct XfrmConfigurator {
     client_settings: ClientSettingsResponse,
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
-    vti_name: String,
     key: u32,
     decap_socket: Arc<UdpSocket>,
 }
@@ -251,25 +250,31 @@ impl XfrmConfigurator {
         tunnel_params: Arc<TunnelParams>,
         ipsec_params: KeyManagementResponse,
         client_settings: ClientSettingsResponse,
-        vti_name: &str,
         xfrm_key: u32,
     ) -> anyhow::Result<Self> {
         let udp = UdpSocket::bind("0.0.0.0:0").await?;
+
         Ok(Self {
             tunnel_params,
             ipsec_params,
             client_settings,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip: Ipv4Addr::new(0, 0, 0, 0),
-            vti_name: vti_name.to_owned(),
             key: xfrm_key,
             decap_socket: Arc::new(udp),
         })
     }
 
+    fn vti_name(&self) -> &str {
+        self.tunnel_params
+            .if_name
+            .as_deref()
+            .unwrap_or(TunnelParams::DEFAULT_IF_NAME)
+    }
+
     fn new_vti_device(&self) -> VtiDevice {
         VtiDevice {
-            name: self.vti_name.clone(),
+            name: self.vti_name().to_owned(),
             key: self.key,
             address: self.ipsec_params.om_addr.into(),
             prefix: ipnet::ip_mask_to_prefix(IpAddr::from(self.ipsec_params.om_subnet_mask.to_be_bytes()))
@@ -397,16 +402,16 @@ impl XfrmConfigurator {
         if !self.tunnel_params.no_routing {
             let addr: Ipv4Addr = self.ipsec_params.om_addr.into();
             if self.tunnel_params.default_route {
-                let _ = crate::platform::add_default_route(&self.vti_name, addr).await;
+                let _ = crate::platform::add_default_route(self.vti_name(), addr).await;
             } else {
                 for subnet in util::ranges_to_subnets(&self.client_settings.updated_policies.range.settings)
                     .filter(|s| s.contains(&addr))
                 {
-                    crate::platform::add_route(subnet, &self.vti_name, addr).await?;
+                    crate::platform::add_route(subnet, self.vti_name(), addr).await?;
                 }
 
                 for route in &self.tunnel_params.add_routes {
-                    crate::platform::add_route(route.parse()?, &self.vti_name, addr).await?;
+                    crate::platform::add_route(route.parse()?, self.vti_name(), addr).await?;
                 }
             }
         }
@@ -415,7 +420,7 @@ impl XfrmConfigurator {
         let dst = self.dest_ip.to_string();
 
         // set up routing correctly so that keepalive packets are not wrapped into ESP
-        iproute2(&["route", "add", "table", &port, &dst, "dev", &self.vti_name]).await?;
+        iproute2(&["route", "add", "table", &port, &dst, "dev", self.vti_name()]).await?;
 
         iproute2(&[
             "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
@@ -444,7 +449,7 @@ impl XfrmConfigurator {
                         .iter()
                         .any(|d| d.to_lowercase() == s.to_lowercase())
                 });
-            let _ = crate::platform::add_dns_suffixes(suffixes, &self.vti_name).await;
+            let _ = crate::platform::add_dns_suffixes(suffixes, self.vti_name()).await;
 
             let dns_servers = [
                 self.ipsec_params.om_dns0,
@@ -462,7 +467,7 @@ impl XfrmConfigurator {
                 }
             });
 
-            let _ = crate::platform::add_dns_servers(servers, &self.vti_name).await;
+            let _ = crate::platform::add_dns_servers(servers, self.vti_name()).await;
         }
         Ok(())
     }

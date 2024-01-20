@@ -81,7 +81,7 @@ where
 }
 
 pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Net> + '_ {
-    ranges.iter().map(|r| Ipv4Subnets::new(r.from, r.to, 0)).flatten()
+    ranges.iter().flat_map(|r| Ipv4Subnets::new(r.from, r.to, 0))
 }
 
 #[cfg(test)]

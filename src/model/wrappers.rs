@@ -188,7 +188,7 @@ impl<'de, T: TryFrom<u64>> Deserialize<'de> for Maybe<T> {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_any(MaybeVisitor(PhantomData::default()))
+        deserializer.deserialize_any(MaybeVisitor(PhantomData))
     }
 }
 
@@ -210,6 +210,13 @@ impl<'de, T: TryFrom<u64>> Visitor<'de> for MaybeVisitor<T> {
             v.try_into()
                 .map_err(|_| serde::de::Error::custom("Cannot convert from u64"))?,
         )))
+    }
+
+    fn visit_str<E>(self, _: &str) -> Result<Self::Value, E>
+        where
+            E: Error,
+    {
+        Ok(Maybe(None))
     }
 
     fn visit_string<E>(self, _: String) -> Result<Self::Value, E>

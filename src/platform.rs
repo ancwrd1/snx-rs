@@ -8,12 +8,11 @@ use linux as platform_impl;
 
 pub use platform_impl::{
     acquire_password,
-    new_tun_config,
     net::{
         add_default_route, add_dns_servers, add_dns_suffixes, add_route, get_default_ip, is_online, poll_online,
         start_network_state_monitoring,
     },
-    IpsecImpl,
+    new_tun_config, IpsecImpl,
 };
 
 use crate::model::{
@@ -35,10 +34,9 @@ pub async fn new_ipsec_configurator(
     tunnel_params: Arc<TunnelParams>,
     ipsec_params: KeyManagementResponse,
     client_settings: ClientSettingsResponse,
-    vti_name: &str,
     key: u32,
 ) -> anyhow::Result<impl IpsecConfigurator> {
-    IpsecImpl::new(tunnel_params, ipsec_params, client_settings, vti_name, key).await
+    IpsecImpl::new(tunnel_params, ipsec_params, client_settings, key).await
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]

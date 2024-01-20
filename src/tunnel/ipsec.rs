@@ -32,14 +32,8 @@ impl IpsecTunnel {
 
         let pid = unsafe { libc::getpid() };
 
-        let vti_name = params
-            .if_name
-            .clone()
-            .unwrap_or(TunnelParams::DEFAULT_IF_NAME.to_owned());
-
         let mut configurator =
-            crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings, &vti_name, pid as u32)
-                .await?;
+            crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings, pid as u32).await?;
 
         configurator.configure().await?;
 
