@@ -14,12 +14,12 @@ pub enum SessionState {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CheckpointSession {
+pub struct TunnelSession {
     pub session_id: String,
     pub state: SessionState,
 }
 
-impl CheckpointSession {
+impl TunnelSession {
     pub fn cookie(&self) -> &str {
         match self.state {
             SessionState::Authenticated(ref cookie) => cookie.as_str(),

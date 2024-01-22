@@ -213,8 +213,8 @@ impl<'de, T: TryFrom<u64>> Visitor<'de> for MaybeVisitor<T> {
     }
 
     fn visit_str<E>(self, _: &str) -> Result<Self::Value, E>
-        where
-            E: Error,
+    where
+        E: Error,
     {
         Ok(Maybe(None))
     }

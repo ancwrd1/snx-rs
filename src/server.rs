@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
-use crate::model::{CheckpointSession, SessionState};
+use crate::model::{SessionState, TunnelSession};
 use crate::{
     controller::{ServiceCommand, ServiceController},
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
@@ -94,7 +94,7 @@ impl CommandServer {
     async fn connect_for_session(
         &mut self,
         params: Arc<TunnelParams>,
-        session: Arc<CheckpointSession>,
+        session: Arc<TunnelSession>,
     ) -> anyhow::Result<()> {
         if let SessionState::Pending(ref prompt) = session.state {
             debug!("Pending multi-factor, awaiting for it");

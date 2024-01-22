@@ -2,12 +2,12 @@ use anyhow::anyhow;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::{model::proto::CheckpointPacketType, sexpr};
+use crate::{model::proto::SslPacketType, sexpr};
 
-pub(crate) struct CheckpointPacketCodec;
+pub(crate) struct SslPacketCodec;
 
-impl Decoder for CheckpointPacketCodec {
-    type Item = CheckpointPacketType;
+impl Decoder for SslPacketCodec {
+    type Item = SslPacketType;
     type Error = anyhow::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -27,29 +27,29 @@ impl Decoder for CheckpointPacketCodec {
                 let s_data = String::from_utf8_lossy(&src[8..8 + len]).into_owned();
                 src.advance(8 + len);
                 let (name, value) = sexpr::decode::<_, serde_json::Value>(&s_data)?;
-                Ok(Some(CheckpointPacketType::Control(name, value)))
+                Ok(Some(SslPacketType::Control(name, value)))
             }
             2 => {
                 let data = src[8..8 + len].to_vec();
                 src.advance(8 + len);
-                Ok(Some(CheckpointPacketType::Data(data)))
+                Ok(Some(SslPacketType::Data(data)))
             }
             _ => Err(anyhow!("Unknown packet type!")),
         }
     }
 }
 
-impl Encoder<CheckpointPacketType> for CheckpointPacketCodec {
+impl Encoder<SslPacketType> for SslPacketCodec {
     type Error = anyhow::Error;
 
-    fn encode(&mut self, item: CheckpointPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: SslPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (data, packet_type) = match item {
-            CheckpointPacketType::Control(name, value) => {
+            SslPacketType::Control(name, value) => {
                 let mut data = sexpr::encode(name, value)?.into_bytes();
                 data.push(b'\x00');
                 (data, 1u32)
             }
-            CheckpointPacketType::Data(data) => (data, 2u32),
+            SslPacketType::Data(data) => (data, 2u32),
         };
 
         dst.reserve(data.len() + 8);
