@@ -20,7 +20,7 @@ use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
-use codec::SslPacketCodec;
+use codec::{SslPacketCodec, SslPacketType};
 
 use crate::{
     model::{params::TunnelParams, proto::*, *},

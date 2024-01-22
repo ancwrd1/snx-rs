@@ -1,61 +1,12 @@
-use std::{fmt, net::Ipv4Addr};
+use std::net::Ipv4Addr;
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    wrappers::{HexKey, Maybe, QuotedString, SecretKey},
-    AuthenticationAlgorithm, EncryptionAlgorithm,
+    AuthenticationAlgorithm,
+    EncryptionAlgorithm, wrappers::{HexKey, Maybe, QuotedString, SecretKey},
 };
-
-pub enum SslPacketType {
-    Control(String, serde_json::Value),
-    Data(Vec<u8>),
-}
-
-impl fmt::Debug for SslPacketType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SslPacketType::Control(name, _) => write!(f, "CONTROL: {}", name),
-            SslPacketType::Data(data) => write!(f, "DATA: {} bytes", data.len()),
-        }
-    }
-}
-
-impl SslPacketType {
-    pub fn control<S, T>(name: S, data: T) -> Self
-    where
-        S: AsRef<str>,
-        T: Serialize + Default,
-    {
-        let value = serde_json::to_value(data).unwrap_or_default();
-        SslPacketType::Control(name.as_ref().to_owned(), value)
-    }
-}
-
-impl From<Vec<u8>> for SslPacketType {
-    fn from(value: Vec<u8>) -> Self {
-        SslPacketType::Data(value)
-    }
-}
-
-impl From<ClientHello> for SslPacketType {
-    fn from(value: ClientHello) -> Self {
-        SslPacketType::control(ClientHello::NAME, value)
-    }
-}
-
-impl From<KeepaliveRequest> for SslPacketType {
-    fn from(value: KeepaliveRequest) -> Self {
-        SslPacketType::control(KeepaliveRequest::NAME, value)
-    }
-}
-
-impl From<DisconnectRequest> for SslPacketType {
-    fn from(value: DisconnectRequest) -> Self {
-        SslPacketType::control(DisconnectRequest::NAME, value)
-    }
-}
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OfficeMode {
