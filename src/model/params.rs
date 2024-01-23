@@ -60,9 +60,6 @@ pub struct CmdlineParams {
     )]
     pub log_level: Option<LevelFilter>,
 
-    #[clap(long = "reauthenticate", short = 'r', help = "Enable automatic re-authentication")]
-    pub reauthenticate: Option<bool>,
-
     #[clap(long = "search-domains", short = 'd', help = "Additional search domains")]
     pub search_domains: Vec<String>,
 
@@ -168,7 +165,6 @@ pub struct TunnelParams {
     pub user_name: String,
     pub password: String,
     pub log_level: String,
-    pub reauthenticate: bool,
     pub search_domains: Vec<String>,
     pub ignore_search_domains: Vec<String>,
     pub default_route: bool,
@@ -193,7 +189,6 @@ impl Default for TunnelParams {
             user_name: String::new(),
             password: String::new(),
             log_level: "off".to_owned(),
-            reauthenticate: false,
             search_domains: Vec::new(),
             ignore_search_domains: Vec::new(),
             default_route: false,
@@ -234,7 +229,6 @@ impl TunnelParams {
                         "user-name" => params.user_name = v,
                         "password" => params.password = v,
                         "log-level" => params.log_level = v,
-                        "reauthenticate" => params.reauthenticate = v.parse().unwrap_or_default(),
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "ignore-search-domains" => {
                             params.ignore_search_domains = v.split(',').map(|s| s.trim().to_owned()).collect()
@@ -275,10 +269,6 @@ impl TunnelParams {
 
         if let Some(password) = other.password {
             self.password = password;
-        }
-
-        if let Some(reauthenticate) = other.reauthenticate {
-            self.reauthenticate = reauthenticate;
         }
 
         if let Some(log_level) = other.log_level {

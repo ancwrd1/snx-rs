@@ -5,10 +5,11 @@ use anyhow::anyhow;
 use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
-use crate::model::{SessionState, TunnelSession};
 use crate::{
-    controller::{ServiceCommand, ServiceController},
-    model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
+    model::{
+        params::TunnelParams, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
+        TunnelSession,
+    },
     tunnel::TunnelConnector,
 };
 
@@ -118,16 +119,8 @@ impl CommandServer {
         tokio::spawn(async move {
             if let Err(e) = tunnel.run(rx, connected.clone()).await {
                 warn!("Tunnel error: {}", e);
-                *connected.lock().unwrap() = ConnectionStatus::default();
-                if params.reauthenticate {
-                    let controller = ServiceController::with_params((*params).clone());
-                    if let Err(e) = controller.command(ServiceCommand::Connect).await {
-                        warn!("{}", e);
-                    }
-                }
-            } else {
-                *connected.lock().unwrap() = ConnectionStatus::default();
             }
+            *connected.lock().unwrap() = ConnectionStatus::default();
         });
         Ok(())
     }
