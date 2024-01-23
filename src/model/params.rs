@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::anyhow;
 use clap::Parser;
+use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use tracing::{metadata::LevelFilter, warn};
 
@@ -83,7 +84,14 @@ pub struct CmdlineParams {
     pub no_routing: Option<bool>,
 
     #[clap(long = "add-routes", short = 'a', help = "Additional routes through the tunnel")]
-    pub add_routes: Vec<String>,
+    pub add_routes: Vec<Ipv4Net>,
+
+    #[clap(
+        long = "ignore-routes",
+        short = 'I',
+        help = "Ignore specified routes from the acquired list"
+    )]
+    pub ignore_routes: Vec<Ipv4Net>,
 
     #[clap(long = "no-dns", short = 'N', help = "Do not change DNS resolver configuration")]
     pub no_dns: Option<bool>,
@@ -158,7 +166,8 @@ pub struct TunnelParams {
     pub ignore_search_domains: Vec<String>,
     pub default_route: bool,
     pub no_routing: bool,
-    pub add_routes: Vec<String>,
+    pub add_routes: Vec<Ipv4Net>,
+    pub ignore_routes: Vec<Ipv4Net>,
     pub no_dns: bool,
     pub no_cert_check: bool,
     pub tunnel_type: TunnelType,
@@ -182,6 +191,7 @@ impl Default for TunnelParams {
             default_route: false,
             no_routing: false,
             add_routes: Vec::new(),
+            ignore_routes: Vec::new(),
             no_dns: false,
             no_cert_check: false,
             tunnel_type: TunnelType::Ssl,
@@ -222,7 +232,10 @@ impl TunnelParams {
                         }
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
-                        "add-routes" => params.add_routes = v.split(',').map(|s| s.trim().to_owned()).collect(),
+                        "add-routes" => params.add_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect(),
+                        "ignore-routes" => {
+                            params.ignore_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect()
+                        }
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                         "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
@@ -284,6 +297,10 @@ impl TunnelParams {
 
         if !other.add_routes.is_empty() {
             self.add_routes = other.add_routes;
+        }
+
+        if !other.ignore_routes.is_empty() {
+            self.ignore_routes = other.ignore_routes;
         }
 
         if let Some(tunnel_type) = other.tunnel_type {

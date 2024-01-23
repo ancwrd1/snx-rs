@@ -34,7 +34,7 @@ futures = "0.3"
 bytes = "1"
 hex = "0.4"
 tun = { version = "0.6", features = ["async"] }
-ipnet = "2"
+ipnet = {  version = "2", features = ["serde"] }
 clap = { version = "4", features = ["derive"] }
 libc = "0.2"
 base64 = "0.21"

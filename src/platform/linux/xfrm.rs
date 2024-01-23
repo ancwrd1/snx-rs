@@ -15,7 +15,7 @@ use crate::{
         wrappers::HexKey,
         AuthenticationAlgorithm, EncryptionAlgorithm,
     },
-    platform::{IpsecConfigurator, UdpSocketExt},
+    platform::{self, IpsecConfigurator, UdpSocketExt},
     util,
 };
 
@@ -402,17 +402,15 @@ impl XfrmConfigurator {
         if !self.tunnel_params.no_routing {
             let addr: Ipv4Addr = self.ipsec_params.om_addr.into();
             if self.tunnel_params.default_route {
-                let _ = crate::platform::add_default_route(self.vti_name(), addr).await;
+                let _ = platform::add_default_route(self.vti_name(), addr).await;
             } else {
-                for subnet in util::ranges_to_subnets(&self.client_settings.updated_policies.range.settings)
-                    .filter(|s| s.contains(&addr))
-                {
-                    crate::platform::add_route(subnet, self.vti_name(), addr).await?;
-                }
+                debug!("Ignoring acquired routes to {}", self.dest_ip);
+                let subnets = util::ranges_to_subnets(&self.client_settings.updated_policies.range.settings)
+                    .chain(self.tunnel_params.add_routes.clone())
+                    .filter(|s| s.addr() != self.dest_ip)
+                    .collect::<Vec<_>>();
 
-                for route in &self.tunnel_params.add_routes {
-                    crate::platform::add_route(route.parse()?, self.vti_name(), addr).await?;
-                }
+                let _ = platform::add_routes(&subnets, self.vti_name(), addr).await;
             }
         }
 

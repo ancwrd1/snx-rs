@@ -4,8 +4,8 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    AuthenticationAlgorithm,
-    EncryptionAlgorithm, wrappers::{HexKey, Maybe, QuotedString, SecretKey},
+    wrappers::{HexKey, Maybe, QuotedString, SecretKey},
+    AuthenticationAlgorithm, EncryptionAlgorithm,
 };
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -117,6 +117,26 @@ pub async fn add_route(route: Ipv4Net, device: &str, _ipaddr: Ipv4Addr) -> anyho
     Ok(())
 }
 
+fn subnet_overlaps(index: usize, subnet: Ipv4Net, other: &[Ipv4Net]) -> bool {
+    other
+        .iter()
+        .enumerate()
+        .any(|(i, s)| i != index && (*s == subnet || s.contains(&subnet) || subnet.contains(s)))
+}
+
+pub async fn add_routes(routes: &[Ipv4Net], device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+    debug!("Routes to add: {:?}", routes);
+    for (_, subnet) in routes
+        .iter()
+        .enumerate()
+        .filter(|(i, s)| !subnet_overlaps(*i, **s, routes))
+    {
+        let _ = add_route(*subnet, device, ipaddr).await;
+    }
+
+    Ok(())
+}
+
 pub async fn add_default_route(device: &str, _ipaddr: Ipv4Addr) -> anyhow::Result<()> {
     debug!("Adding default route for {}", device);
     let _ = crate::util::run_command("ip", ["route", "add", "default", "dev", device]).await?;
