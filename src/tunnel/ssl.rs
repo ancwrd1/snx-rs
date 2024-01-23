@@ -92,6 +92,11 @@ impl SslTunnel {
             builder.danger_accept_invalid_hostnames(true);
         }
 
+        if params.ignore_server_cert {
+            warn!("Disabling all certificate checks!!!");
+            builder.danger_accept_invalid_certs(true);
+        }
+
         let tls: tokio_native_tls::TlsConnector = builder.build()?.into();
         let stream = tls.connect(params.server_name.as_str(), tcp).await?;
 

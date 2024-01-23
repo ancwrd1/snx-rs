@@ -103,6 +103,13 @@ pub struct CmdlineParams {
     )]
     pub no_cert_check: Option<bool>,
 
+    #[clap(
+        long = "ignore-server-cert",
+        short = 'X',
+        help = "Disable all certificate validations (NOT SECURE!)"
+    )]
+    pub ignore_server_cert: Option<bool>,
+
     #[clap(long = "tunnel-type", short = 'e', help = "Tunnel type, one of: ssl, ipsec")]
     pub tunnel_type: Option<TunnelType>,
 
@@ -170,6 +177,7 @@ pub struct TunnelParams {
     pub ignore_routes: Vec<Ipv4Net>,
     pub no_dns: bool,
     pub no_cert_check: bool,
+    pub ignore_server_cert: bool,
     pub tunnel_type: TunnelType,
     pub ca_cert: Option<PathBuf>,
     pub login_type: String,
@@ -194,6 +202,7 @@ impl Default for TunnelParams {
             ignore_routes: Vec::new(),
             no_dns: false,
             no_cert_check: false,
+            ignore_server_cert: false,
             tunnel_type: TunnelType::Ssl,
             ca_cert: None,
             login_type: "vpn_Microsoft_Authenticator".to_owned(),
@@ -238,6 +247,7 @@ impl TunnelParams {
                         }
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                         "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
+                        "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                         "ca-cert" => params.ca_cert = Some(v.into()),
                         "login-type" => params.login_type = v,
@@ -313,6 +323,10 @@ impl TunnelParams {
 
         if let Some(no_cert_check) = other.no_cert_check {
             self.no_cert_check = no_cert_check;
+        }
+
+        if let Some(ignore_server_cert) = other.ignore_server_cert {
+            self.ignore_server_cert = ignore_server_cert;
         }
 
         if let Some(login_type) = other.login_type {

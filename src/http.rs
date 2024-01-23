@@ -10,7 +10,7 @@ use std::{
 use anyhow::anyhow;
 use reqwest::{Certificate, Identity};
 use serde::Deserialize;
-use tracing::trace;
+use tracing::{trace, warn};
 
 use crate::{
     model::{params::TunnelParams, proto::*},
@@ -152,6 +152,11 @@ impl CccHttpClient {
 
         if self.0.no_cert_check {
             builder = builder.danger_accept_invalid_hostnames(true);
+        }
+
+        if self.0.ignore_server_cert {
+            warn!("Disabling all certificate checks!!!");
+            builder = builder.danger_accept_invalid_certs(true);
         }
 
         let path = if let Some(ref client_cert) = self.0.client_cert {
