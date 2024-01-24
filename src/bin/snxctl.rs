@@ -23,7 +23,7 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    if args.len() != 2 {
+    if args.len() == 1 {
         #[cfg(feature = "tray-icon")]
         return snx_rs::tray_icon::show_tray_icon();
 
