@@ -76,7 +76,7 @@ pub fn new_tun_config() -> tun::Configuration {
 pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::Result<String> {
     let props = HashMap::from([("snx-rs.username", user_name)]);
 
-    debug!("Attempting to acquire password from the secret service");
+    debug!("Attempting to acquire password from the keychain");
 
     let ss = SecretService::connect(EncryptionType::Dh).await;
     let collection = match ss {
@@ -103,7 +103,7 @@ pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::
         if let Ok(search_items) = ss.search_items(props.clone()).await {
             if let Some(item) = search_items.unlocked.first() {
                 if let Ok(secret) = item.get_secret().await {
-                    debug!("Acquired user password from the secret service");
+                    debug!("Acquired user password from the keychain");
                     return Ok(String::from_utf8_lossy(&secret).into_owned());
                 }
             }
@@ -117,7 +117,7 @@ pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::
 
     if !password.is_empty() {
         if let Some(collection) = collection {
-            debug!("Attempting to store user password in the secret service");
+            debug!("Attempting to store user password in the keychain");
             if let Err(e) = collection
                 .create_item(
                     &format!("snx-rs - {}", user_name),
@@ -128,7 +128,7 @@ pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::
                 )
                 .await
             {
-                warn!("Warning: cannot store user password in the secret service: {}", e);
+                warn!("Warning: cannot store user password in the keychain: {}", e);
             }
         }
     }
