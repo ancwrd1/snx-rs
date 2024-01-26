@@ -1,14 +1,15 @@
-# Rust client for Checkpoint VPN tunnels
+# Open source client for Checkpoint VPN tunnels
 
 This project contains a Rust source code of the unofficial client for Checkpoint VPN.
-Based on the reverse engineered protocol used by the vendor application.
+Based on the reverse engineered protocol from the vendor application (Windows, Linux, Android).
 
-## Advantages over the 'official' snx client for Linux:
+## Advantages over the official snx client for Linux:
 
+* Open source
 * IPSec support (faster tunnel)
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
-* Integration with libsecret and OS keychain (only in command mode)
+* Integration with Gnome Keyring or KDE KWallet via libsecret (only when using snxctl in command mode)
 
 ## Implemented features
 
@@ -19,7 +20,7 @@ Based on the reverse engineered protocol used by the vendor application.
 * Microsoft Authenticator app support
 * Multi-factor codes input via TTY/GUI (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
-* Tray icon and menu support (optional via 'tray-icon' flag)
+* Tray icon and menu support (optional via 'tray-icon' compile-time feature)
 
 ## System requirements
 
@@ -28,12 +29,7 @@ Based on the reverse engineered protocol used by the vendor application.
 * systemd-resolved
 * iproute2
 * DBus
-* For tray-icon feature: Adwaita theme (icons), zenity or kdialog utility (user prompts)
-
-## Roadmap
- 
-* SAML SSO (what to do with the OTP acquired from the browser?)
-* macOS support (contributions are welcome)
+* For tray-icon build-time feature: libsecret, Adwaita theme (icons), zenity or kdialog utility (user prompts)
 
 ## Usage
 
@@ -49,13 +45,29 @@ There are two ways to use the application:
   - `status` - show connection status
   - `info` - dump server information in JSON format
 
-## Notes
+Configuration file may contain all options which are accepted via the command line, without the leading double dashes.
+
+## Tray icon and UI
+
+* The application can be built with `tray-icon` feature. In this case if `snxctl` utility runs without parameters
+ it displays the notification icon with the popup menu. Prompts for MFA codes are displayed using zenity or kdialog.
+
+ ## Additional usage notes
 
 * If additional MFA steps are required a prompt will be shown to enter the codes.
   If the application has no attached terminal an authentication error will be triggered.
 * If password is not provided in the configuration file or command line it will be prompted for and stored
   in the OS keychain (this will only work when using command mode and `snxctl` because the main application runs
   as a root user without access to keychain/kwallet).
+
+## Building from sources
+
+Rust compiler 1.75 or later (https://rustup.rs) is required. Run `cargo build --release --all-features`
+ to build the release version with tray icon support.
+
+## Roadmap
+ 
+* SAML SSO (help needed; what to do with the OTP acquired from the browser?)
 
 ## License
 
