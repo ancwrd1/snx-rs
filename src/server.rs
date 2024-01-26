@@ -7,8 +7,7 @@ use tracing::{debug, warn};
 
 use crate::{
     model::{
-        params::TunnelParams, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
-        TunnelSession,
+        params::TunnelParams, CccSession, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
     },
     tunnel::TunnelConnector,
 };
@@ -92,11 +91,7 @@ impl CommandServer {
         self.connected.lock().unwrap().connected_since.is_some()
     }
 
-    async fn connect_for_session(
-        &mut self,
-        params: Arc<TunnelParams>,
-        session: Arc<TunnelSession>,
-    ) -> anyhow::Result<()> {
+    async fn connect_for_session(&mut self, params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<()> {
         if let SessionState::Pending(ref prompt) = session.state {
             debug!("Pending multi-factor, awaiting for it");
             self.session_id = Some(session.session_id.clone());

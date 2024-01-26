@@ -5,7 +5,7 @@ use base64::Engine;
 use directories_next::ProjectDirs;
 
 use crate::{
-    http::CccHttpClient,
+    ccc::CccHttpClient,
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     platform::UdpSocketExt,
     prompt::SecurePrompt,

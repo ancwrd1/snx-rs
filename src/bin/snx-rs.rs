@@ -8,7 +8,7 @@ use tokio::{signal::unix, sync::oneshot};
 use tracing::{debug, metadata::LevelFilter, warn};
 
 use snx_rs::{
-    http::CccHttpClient,
+    ccc::CccHttpClient,
     model::{
         params::{CmdlineParams, OperationMode, TunnelParams},
         ConnectionStatus, SessionState,

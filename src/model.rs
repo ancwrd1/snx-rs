@@ -14,12 +14,12 @@ pub enum SessionState {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TunnelSession {
+pub struct CccSession {
     pub session_id: String,
     pub state: SessionState,
 }
 
-impl TunnelSession {
+impl CccSession {
     pub fn cookie(&self) -> &str {
         match self.state {
             SessionState::Authenticated(ref cookie) => cookie.as_str(),

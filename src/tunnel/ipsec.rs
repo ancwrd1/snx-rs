@@ -6,8 +6,8 @@ use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
 use crate::{
-    http::CccHttpClient,
-    model::{params::TunnelParams, ConnectionStatus, TunnelSession},
+    ccc::CccHttpClient,
+    model::{params::TunnelParams, CccSession, ConnectionStatus},
     platform::{IpsecConfigurator, UdpEncap, UdpSocketExt},
     tunnel::{ipsec::keepalive::KeepaliveRunner, CheckpointTunnel},
 };
@@ -20,7 +20,7 @@ pub(crate) struct IpsecTunnel {
 }
 
 impl IpsecTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<TunnelSession>) -> anyhow::Result<Self> {
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<Self> {
         let client = CccHttpClient::new(params.clone());
         let client_settings = client.get_client_settings(&session.session_id).await?;
         debug!("Client settings: {:?}", client_settings);

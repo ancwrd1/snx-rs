@@ -5,7 +5,7 @@ use tokio::sync::oneshot;
 use tracing::{debug, warn};
 
 use crate::{
-    http::CccHttpClient,
+    ccc::CccHttpClient,
     model::{
         params::{TunnelParams, TunnelType},
         proto::AuthResponse,
@@ -33,7 +33,7 @@ impl TunnelConnector {
         Self(params)
     }
 
-    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<TunnelSession> {
+    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<CccSession> {
         debug!("Authenticating to endpoint: {}", self.0.server_name);
         let client = CccHttpClient::new(self.0.clone());
 
@@ -42,7 +42,7 @@ impl TunnelConnector {
         self.process_auth_response(data).await
     }
 
-    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<TunnelSession> {
+    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<CccSession> {
         debug!("Authenticating with challenge code to endpoint: {}", self.0.server_name);
         let client = CccHttpClient::new(self.0.clone());
 
@@ -51,12 +51,12 @@ impl TunnelConnector {
         self.process_auth_response(data).await
     }
 
-    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<TunnelSession> {
+    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<CccSession> {
         let session_id = data.session_id.unwrap_or_default();
 
         match data.authn_status.as_str() {
             "continue" => {
-                return Ok(TunnelSession {
+                return Ok(CccSession {
                     session_id,
                     state: SessionState::Pending(data.prompt.map(|p| p.0)),
                 })
@@ -82,13 +82,13 @@ impl TunnelConnector {
 
         debug!("Authentication OK, session id: {session_id}");
 
-        Ok(TunnelSession {
+        Ok(CccSession {
             session_id,
             state: SessionState::Authenticated(cookie.0),
         })
     }
 
-    pub async fn create_tunnel(&self, session: Arc<TunnelSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
+    pub async fn create_tunnel(&self, session: Arc<CccSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
         match self.0.tunnel_type {
             TunnelType::Ssl => Ok(Box::new(SslTunnel::create(self.0.clone(), session).await?)),
             TunnelType::Ipsec => Ok(Box::new(IpsecTunnel::create(self.0.clone(), session).await?)),

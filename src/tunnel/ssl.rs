@@ -67,7 +67,7 @@ where
 
 pub(crate) struct SslTunnel {
     params: Arc<TunnelParams>,
-    session: Arc<TunnelSession>,
+    session: Arc<CccSession>,
     auth_timeout: Duration,
     keepalive: Duration,
     ip_address: String,
@@ -77,7 +77,7 @@ pub(crate) struct SslTunnel {
 }
 
 impl SslTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<TunnelSession>) -> anyhow::Result<Self> {
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<Self> {
         let tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
 
         let mut builder = TlsConnector::builder();
