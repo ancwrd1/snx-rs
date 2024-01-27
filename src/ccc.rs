@@ -34,6 +34,10 @@ impl CccHttpClient {
         self.session.as_ref().map(|s| s.session_id.clone())
     }
 
+    fn new_request_id(&self) -> u32 {
+        REQUEST_ID.fetch_add(1, Ordering::SeqCst)
+    }
+
     fn new_auth_request(&self) -> CccClientRequest {
         let (request_type, username, password) = if self.params.client_cert.is_none() {
             (
@@ -46,7 +50,7 @@ impl CccHttpClient {
         };
         CccClientRequest {
             header: RequestHeader {
-                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                id: self.new_request_id(),
                 request_type: request_type.to_owned(),
                 session_id: self.session_id(),
                 protocol_version: None,
@@ -69,7 +73,7 @@ impl CccHttpClient {
     fn new_challenge_code_request(&self, user_input: &str) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
-                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                id: self.new_request_id(),
                 request_type: "MultiChallange".to_string(),
                 session_id: self.session_id(),
                 protocol_version: None,
@@ -85,7 +89,7 @@ impl CccHttpClient {
     fn new_key_management_request(&self) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
-                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                id: self.new_request_id(),
                 request_type: "KeyManagement".to_string(),
                 session_id: self.session_id(),
                 protocol_version: Some(100),
@@ -104,7 +108,7 @@ impl CccHttpClient {
 
         CccClientRequest {
             header: RequestHeader {
-                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                id: self.new_request_id(),
                 request_type: "ClientSettings".to_string(),
                 session_id: self.session_id(),
                 protocol_version: Some(100),
@@ -116,7 +120,7 @@ impl CccHttpClient {
     fn new_location_awareness_request(&self, source_ip: Ipv4Addr) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
-                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                id: self.new_request_id(),
                 request_type: "LocationAwareness".to_string(),
                 session_id: None,
                 protocol_version: Some(100),
@@ -128,7 +132,7 @@ impl CccHttpClient {
     fn new_client_hello_request(&self) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
-                id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
+                id: self.new_request_id(),
                 request_type: "ClientHello".to_string(),
                 session_id: None,
                 protocol_version: None,
