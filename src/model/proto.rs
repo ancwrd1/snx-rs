@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    wrappers::{HexKey, Maybe, QuotedString, SecretKey},
+    wrappers::{HexKey, Maybe, QuotedString, EncryptedString},
     AuthenticationAlgorithm, EncryptionAlgorithm,
 };
 
@@ -116,8 +116,8 @@ pub struct RequestHeader {
 pub struct AuthRequest {
     pub client_type: String,
     pub endpoint_os: Option<String>,
-    pub username: Option<SecretKey>,
-    pub password: Option<SecretKey>,
+    pub username: Option<EncryptedString>,
+    pub password: Option<EncryptedString>,
     pub client_logging_data: Option<ClientLoggingData>,
     #[serde(rename = "selectedLoginOption")]
     pub selected_login_option: Option<String>,
@@ -127,7 +127,7 @@ pub struct AuthRequest {
 pub struct MultiChallengeRequest {
     pub client_type: String,
     pub auth_session_id: String,
-    pub user_input: SecretKey,
+    pub user_input: EncryptedString,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -207,15 +207,15 @@ pub enum ResponseData {
 pub struct AuthResponse {
     pub authn_status: String,
     pub is_authenticated: Option<bool>,
-    pub active_key: Option<SecretKey>,
+    pub active_key: Option<EncryptedString>,
     pub server_fingerprint: Option<String>,
     pub server_cn: Option<String>,
     pub session_id: Option<String>,
     pub active_key_timeout: Option<u64>,
-    pub error_message: Option<SecretKey>,
-    pub error_id: Option<SecretKey>,
+    pub error_message: Option<EncryptedString>,
+    pub error_id: Option<EncryptedString>,
     pub error_code: Option<u32>,
-    pub prompt: Option<SecretKey>,
+    pub prompt: Option<EncryptedString>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

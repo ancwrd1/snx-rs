@@ -5,6 +5,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
+/// String encoded with double quotes
 #[derive(Default, Clone, PartialEq)]
 pub struct QuotedString(pub String);
 
@@ -56,10 +57,11 @@ impl fmt::Debug for QuotedString {
     }
 }
 
+/// Encrypted string. 'Encryption' here is a simple xor operation.
 #[derive(Default, Clone, PartialEq)]
-pub struct SecretKey(pub String);
+pub struct EncryptedString(pub String);
 
-impl Serialize for SecretKey {
+impl Serialize for EncryptedString {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -68,7 +70,7 @@ impl Serialize for SecretKey {
     }
 }
 
-impl<'de> Deserialize<'de> for SecretKey {
+impl<'de> Deserialize<'de> for EncryptedString {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -79,36 +81,37 @@ impl<'de> Deserialize<'de> for SecretKey {
     }
 }
 
-impl From<String> for SecretKey {
+impl From<String> for EncryptedString {
     fn from(value: String) -> Self {
         Self(value)
     }
 }
 
-impl From<SecretKey> for String {
-    fn from(value: SecretKey) -> Self {
+impl From<EncryptedString> for String {
+    fn from(value: EncryptedString) -> Self {
         value.0
     }
 }
 
-impl<'a> From<&'a str> for SecretKey {
+impl<'a> From<&'a str> for EncryptedString {
     fn from(value: &'a str) -> Self {
         Self(value.to_owned())
     }
 }
 
-impl fmt::Display for SecretKey {
+impl fmt::Display for EncryptedString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "****")
     }
 }
 
-impl fmt::Debug for SecretKey {
+impl fmt::Debug for EncryptedString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "****")
     }
 }
 
+/// Hex-encoded key in reverse byte order
 #[derive(Default, Clone, PartialEq)]
 pub struct HexKey(pub String);
 
@@ -168,6 +171,7 @@ impl<'a> From<&'a str> for HexKey {
     }
 }
 
+/// Wrapper over possibly empty non-string values
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Maybe<T>(pub Option<T>);
 
