@@ -1,22 +1,26 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::Local;
-use tokio::net::UdpSocket;
-use tokio::sync::oneshot;
+use tokio::{net::UdpSocket, sync::oneshot};
 use tracing::{debug, warn};
 
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, CccSession, ConnectionStatus},
     platform::{IpsecConfigurator, UdpEncap, UdpSocketExt},
-    tunnel::{ipsec::keepalive::KeepaliveRunner, CheckpointTunnel},
+    tunnel::{
+        ipsec::{isakmp::Isakmp, keepalive::KeepaliveRunner},
+        CheckpointTunnel,
+    },
 };
 
+mod isakmp;
 mod keepalive;
 
 pub(crate) struct IpsecTunnel {
-    configurator: Box<dyn IpsecConfigurator + Send>,
+    configurator: Box<dyn IpsecConfigurator + Send + Sync>,
     keepalive_runner: KeepaliveRunner,
+    natt_socket: Arc<UdpSocket>,
 }
 
 impl IpsecTunnel {
@@ -25,22 +29,68 @@ impl IpsecTunnel {
         let client_settings = client.get_client_settings(&session.session_id).await?;
         debug!("Client settings: {:?}", client_settings);
 
+        let dest_ip = client_settings.gw_internal_ip.parse()?;
+
+        let isakmp = Isakmp::new(dest_ip, 4500);
+        isakmp.probe().await?;
+
         let ipsec_params = client.get_ipsec_tunnel_params(&session.session_id).await?;
 
         let keepalive_runner =
             KeepaliveRunner::new(ipsec_params.om_addr.into(), client_settings.gw_internal_ip.parse()?);
 
-        let pid = unsafe { libc::getpid() };
+        let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
+        natt_socket.set_encap(UdpEncap::EspInUdp)?;
 
-        let mut configurator =
-            crate::platform::new_ipsec_configurator(params, ipsec_params, client_settings, pid as u32).await?;
+        let mut configurator = crate::platform::new_ipsec_configurator(
+            params,
+            ipsec_params,
+            client_settings,
+            unsafe { libc::getpid() } as u32,
+            natt_socket.local_addr()?.port(),
+        )
+        .await?;
 
         configurator.configure().await?;
 
         Ok(Self {
             configurator: Box::new(configurator),
             keepalive_runner,
+            natt_socket: Arc::new(natt_socket),
         })
+    }
+
+    // start a dummy UDP listener with UDP_ENCAP option.
+    // this is necessary in order to perform automatic decapsulation of incoming ESP packets
+    pub async fn start_natt_listener(&self) -> anyhow::Result<oneshot::Sender<()>> {
+        let (tx, mut rx) = oneshot::channel();
+
+        debug!(
+            "Listening for NAT-T packets on port {}",
+            self.natt_socket.local_addr()?
+        );
+
+        let udp = self.natt_socket.clone();
+
+        tokio::spawn(async move {
+            let mut buf = [0u8; 1024];
+
+            loop {
+                tokio::select! {
+                    result = udp.recv_from(&mut buf) => {
+                        if let Ok((size, from)) = result {
+                            warn!("Received unexpected NON-ESP data from {}, length: {}", from, size);
+                        }
+                    }
+                    _ = &mut rx => {
+                        break;
+                    }
+                }
+            }
+            debug!("NAT-T listener stopped");
+        });
+
+        Ok(tx)
     }
 }
 
@@ -53,7 +103,7 @@ impl CheckpointTunnel for IpsecTunnel {
     ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
-        let sender = start_decap_listener(self.configurator.decap_socket()).await?;
+        let sender = self.start_natt_listener().await?;
 
         *connected.lock().unwrap() = ConnectionStatus {
             connected_since: Some(Local::now()),
@@ -85,34 +135,4 @@ impl Drop for IpsecTunnel {
             s.spawn(|| crate::util::block_on(self.configurator.cleanup()));
         });
     }
-}
-
-// start a dummy UDP listener with UDP_ENCAP option.
-// this is necessary in order to perform automatic decapsulation of incoming ESP packets
-pub async fn start_decap_listener(udp: Arc<UdpSocket>) -> anyhow::Result<oneshot::Sender<()>> {
-    udp.set_encap(UdpEncap::EspInUdp)?;
-
-    let (tx, mut rx) = oneshot::channel();
-
-    debug!("Listening for NAT-T packets on port {}", udp.local_addr()?);
-
-    tokio::spawn(async move {
-        let mut buf = [0u8; 1024];
-
-        loop {
-            tokio::select! {
-                result = udp.recv_from(&mut buf) => {
-                    if let Ok((size, from)) = result {
-                        warn!("Received unexpected NON-ESP data from {}, length: {}", from, size);
-                    }
-                }
-                _ = &mut rx => {
-                    break;
-                }
-            }
-        }
-        debug!("NAT-T listener stopped");
-    });
-
-    Ok(tx)
 }

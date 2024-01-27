@@ -1,11 +1,8 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::Arc,
-    time::Duration,
 };
 
-use anyhow::anyhow;
-use tokio::net::UdpSocket;
 use tracing::debug;
 
 use crate::{
@@ -15,11 +12,9 @@ use crate::{
         wrappers::HexKey,
         AuthenticationAlgorithm, EncryptionAlgorithm,
     },
-    platform::{self, IpsecConfigurator, UdpSocketExt},
+    platform::{self, IpsecConfigurator},
     util,
 };
-
-const MAX_ISAKMP_PROBES: usize = 5;
 
 async fn iproute2(args: &[&str]) -> anyhow::Result<String> {
     util::run_command("ip", args).await
@@ -242,7 +237,7 @@ pub struct XfrmConfigurator {
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
     key: u32,
-    decap_socket: Arc<UdpSocket>,
+    src_port: u16,
 }
 
 impl XfrmConfigurator {
@@ -251,9 +246,8 @@ impl XfrmConfigurator {
         ipsec_params: KeyManagementResponse,
         client_settings: ClientSettingsResponse,
         xfrm_key: u32,
+        src_port: u16,
     ) -> anyhow::Result<Self> {
-        let udp = UdpSocket::bind("0.0.0.0:0").await?;
-
         Ok(Self {
             tunnel_params,
             ipsec_params,
@@ -261,7 +255,7 @@ impl XfrmConfigurator {
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip: Ipv4Addr::new(0, 0, 0, 0),
             key: xfrm_key,
-            decap_socket: Arc::new(udp),
+            src_port,
         })
     }
 
@@ -284,41 +278,6 @@ impl XfrmConfigurator {
         }
     }
 
-    async fn send_isakmp_probes(&self) -> anyhow::Result<()> {
-        for _ in 0..MAX_ISAKMP_PROBES {
-            if self.send_isakmp_probe().await.is_ok() {
-                return Ok(());
-            }
-        }
-        Err(anyhow!("Probing failed, server is not reachable via ESPinUDP tunnel!"))
-    }
-
-    async fn send_isakmp_probe(&self) -> anyhow::Result<()> {
-        debug!("Sending isakmp probe to {}", self.dest_ip);
-        let udp = UdpSocket::bind("0.0.0.0:0").await?;
-        udp.connect(format!("{}:4500", self.dest_ip)).await?;
-
-        let data = vec![0u8; 32];
-
-        let result = udp.send_receive(&data, Duration::from_secs(5)).await;
-
-        match result {
-            Ok(reply) if reply.len() == 32 => {
-                let srcport: [u8; 4] = reply[8..12].try_into().unwrap();
-                let dstport: [u8; 4] = reply[12..16].try_into().unwrap();
-                debug!(
-                    "Received isakmp reply from {}: srcport: {}, dstport: {}, hash: {}",
-                    self.dest_ip,
-                    u32::from_be_bytes(srcport),
-                    u32::from_be_bytes(dstport),
-                    hex::encode(&reply[reply.len() - 16..reply.len()])
-                );
-                Ok(())
-            }
-            _ => Err(anyhow!("No isakmp reply!")),
-        }
-    }
-
     async fn setup_vti(&self) -> anyhow::Result<()> {
         let device = self.new_vti_device();
 
@@ -335,7 +294,7 @@ impl XfrmConfigurator {
         let state = XfrmState {
             src,
             dst,
-            src_port: self.decap_socket.local_addr()?.port(),
+            src_port: self.src_port,
             dst_port: 4500,
             spi: params.spi,
             auth_alg: self.ipsec_params.authalg,
@@ -447,7 +406,7 @@ impl XfrmConfigurator {
                         .iter()
                         .any(|d| d.to_lowercase() == s.to_lowercase())
                 });
-            let _ = crate::platform::add_dns_suffixes(suffixes, self.vti_name()).await;
+            let _ = platform::add_dns_suffixes(suffixes, self.vti_name()).await;
 
             let dns_servers = [
                 self.ipsec_params.om_dns0,
@@ -465,16 +424,10 @@ impl XfrmConfigurator {
                 }
             });
 
-            let _ = crate::platform::add_dns_servers(servers, self.vti_name()).await;
+            let _ = platform::add_dns_servers(servers, self.vti_name()).await;
         }
         Ok(())
     }
-
-    async fn setup_iptables(&self) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    async fn cleanup_iptables(&self) {}
 }
 
 #[async_trait::async_trait]
@@ -487,9 +440,7 @@ impl IpsecConfigurator for XfrmConfigurator {
         debug!("Target IP: {}", self.dest_ip);
 
         self.cleanup().await;
-        self.send_isakmp_probes().await?;
         self.setup_vti().await?;
-        self.setup_iptables().await?;
         self.setup_xfrm().await?;
         self.setup_routing().await?;
         self.setup_dns().await?;
@@ -535,11 +486,5 @@ impl IpsecConfigurator for XfrmConfigurator {
             "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
         ])
         .await;
-
-        self.cleanup_iptables().await;
-    }
-
-    fn decap_socket(&self) -> Arc<UdpSocket> {
-        self.decap_socket.clone()
     }
 }

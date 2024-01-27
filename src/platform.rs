@@ -27,7 +27,6 @@ pub mod linux;
 pub trait IpsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
-    fn decap_socket(&self) -> Arc<UdpSocket>;
 }
 
 pub async fn new_ipsec_configurator(
@@ -35,8 +34,9 @@ pub async fn new_ipsec_configurator(
     ipsec_params: KeyManagementResponse,
     client_settings: ClientSettingsResponse,
     key: u32,
+    src_port: u16,
 ) -> anyhow::Result<impl IpsecConfigurator> {
-    IpsecImpl::new(tunnel_params, ipsec_params, client_settings, key).await
+    IpsecImpl::new(tunnel_params, ipsec_params, client_settings, key, src_port).await
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
