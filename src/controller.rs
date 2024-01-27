@@ -174,7 +174,7 @@ impl ServiceController {
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
-        let client = CccHttpClient::new(Arc::new(self.params.clone()));
+        let client = CccHttpClient::new(Arc::new(self.params.clone()), None);
         let info = client.get_server_info().await?;
         let response_data = info
             .get("ResponseData")

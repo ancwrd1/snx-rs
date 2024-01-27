@@ -13,26 +13,33 @@ use serde::Deserialize;
 use tracing::{trace, warn};
 
 use crate::{
-    model::{params::TunnelParams, proto::*},
+    model::{params::TunnelParams, proto::*, CccSession},
     sexpr,
 };
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
 
-pub struct CccHttpClient(Arc<TunnelParams>);
+pub struct CccHttpClient {
+    params: Arc<TunnelParams>,
+    session: Option<Arc<CccSession>>,
+}
 
 impl CccHttpClient {
-    pub fn new(params: Arc<TunnelParams>) -> Self {
-        Self(params)
+    pub fn new(params: Arc<TunnelParams>, session: Option<Arc<CccSession>>) -> Self {
+        Self { params, session }
     }
 
-    fn new_auth_request(&self, session_id: Option<&str>) -> CccClientRequest {
-        let (request_type, username, password) = if self.0.client_cert.is_none() {
+    fn session_id(&self) -> Option<String> {
+        self.session.as_ref().map(|s| s.session_id.clone())
+    }
+
+    fn new_auth_request(&self) -> CccClientRequest {
+        let (request_type, username, password) = if self.params.client_cert.is_none() {
             (
                 "UserPass",
-                Some(self.0.user_name.as_str().into()),
-                Some(self.0.password.as_str().into()),
+                Some(self.params.user_name.as_str().into()),
+                Some(self.params.password.as_str().into()),
             )
         } else {
             ("CertAuth", None, None)
@@ -41,11 +48,11 @@ impl CccHttpClient {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: request_type.to_owned(),
-                session_id: session_id.map(ToOwned::to_owned),
+                session_id: self.session_id(),
                 protocol_version: None,
             },
             data: RequestData::Auth(AuthRequest {
-                client_type: self.0.tunnel_type.as_client_type().to_owned(),
+                client_type: self.params.tunnel_type.as_client_type().to_owned(),
                 username,
                 password,
                 client_logging_data: Some(ClientLoggingData {
@@ -53,34 +60,34 @@ impl CccHttpClient {
                     os_name: Some("Android".into()),
                     ..Default::default()
                 }),
-                selected_login_option: Some(self.0.login_type.clone()),
+                selected_login_option: Some(self.params.login_type.clone()),
                 endpoint_os: None,
             }),
         }
     }
 
-    fn new_challenge_code_request(&self, session_id: &str, user_input: &str) -> CccClientRequest {
+    fn new_challenge_code_request(&self, user_input: &str) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: "MultiChallange".to_string(),
-                session_id: Some(session_id.to_owned()),
+                session_id: self.session_id(),
                 protocol_version: None,
             },
             data: RequestData::MultiChallenge(MultiChallengeRequest {
-                client_type: self.0.tunnel_type.as_client_type().to_owned(),
-                auth_session_id: session_id.to_owned(),
+                client_type: self.params.tunnel_type.as_client_type().to_owned(),
+                auth_session_id: self.session_id().unwrap_or_default(),
                 user_input: user_input.into(),
             }),
         }
     }
 
-    fn new_key_management_request(&self, session_id: &str) -> CccClientRequest {
+    fn new_key_management_request(&self) -> CccClientRequest {
         CccClientRequest {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: "KeyManagement".to_string(),
-                session_id: Some(session_id.to_string()),
+                session_id: self.session_id(),
                 protocol_version: Some(100),
             },
             data: RequestData::KeyManagement(KeyManagementRequest {
@@ -91,7 +98,7 @@ impl CccHttpClient {
         }
     }
 
-    fn new_client_settings_request(&self, session_id: &str) -> CccClientRequest {
+    fn new_client_settings_request(&self) -> CccClientRequest {
         let data = sexpr::encode_value(ClientSettingsData::default()).unwrap_or_default();
         let wrapped = format!("ClientSettings {}", data);
 
@@ -99,7 +106,7 @@ impl CccHttpClient {
             header: RequestHeader {
                 id: REQUEST_ID.fetch_add(1, Ordering::SeqCst),
                 request_type: "ClientSettings".to_string(),
-                session_id: Some(session_id.to_string()),
+                session_id: self.session_id(),
                 protocol_version: Some(100),
             },
             data: RequestData::Custom(wrapped),
@@ -128,7 +135,7 @@ impl CccHttpClient {
             },
             data: RequestData::ClientHello {
                 client_info: ClientInfo {
-                    client_type: self.0.tunnel_type.as_client_type().to_owned(),
+                    client_type: self.params.tunnel_type.as_client_type().to_owned(),
                     client_version: 1,
                     client_support_saml: true,
                 },
@@ -144,35 +151,36 @@ impl CccHttpClient {
 
         let mut builder = reqwest::Client::builder();
 
-        if let Some(ref ca_cert) = self.0.ca_cert {
+        if let Some(ref ca_cert) = self.params.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;
             let cert = Certificate::from_pem(&data).or_else(|_| Certificate::from_der(&data))?;
             builder = builder.add_root_certificate(cert);
         }
 
-        if self.0.no_cert_check {
+        if self.params.no_cert_check {
             builder = builder.danger_accept_invalid_hostnames(true);
         }
 
-        if self.0.ignore_server_cert {
+        if self.params.ignore_server_cert {
             warn!("Disabling all certificate checks!!!");
             builder = builder.danger_accept_invalid_certs(true);
         }
 
-        let path = if let Some(ref client_cert) = self.0.client_cert {
+        let path = if let Some(ref client_cert) = self.params.client_cert {
             let data = std::fs::read(client_cert)?;
-            let identity = match Identity::from_pkcs12_der(&data, self.0.cert_password.as_deref().unwrap_or_default()) {
-                Ok(identity) => identity,
-                Err(_) => match Identity::from_pkcs8_pem(&data, &data) {
+            let identity =
+                match Identity::from_pkcs12_der(&data, self.params.cert_password.as_deref().unwrap_or_default()) {
                     Ok(identity) => identity,
-                    Err(_) => {
-                        return Err(anyhow!(
-                            "Unable to load certificate identity from {}",
-                            client_cert.display()
-                        ));
-                    }
-                },
-            };
+                    Err(_) => match Identity::from_pkcs8_pem(&data, &data) {
+                        Ok(identity) => identity,
+                        Err(_) => {
+                            return Err(anyhow!(
+                                "Unable to load certificate identity from {}",
+                                client_cert.display()
+                            ));
+                        }
+                    },
+                };
             builder = builder.identity(identity);
             "/clients/cert/"
         } else {
@@ -184,7 +192,7 @@ impl CccHttpClient {
         trace!("Request to server: {}", expr);
 
         let req = client
-            .post(format!("https://{}{}", self.0.server_name, path))
+            .post(format!("https://{}{}", self.params.server_name, path))
             .body(expr)
             .build()?;
 
@@ -205,8 +213,8 @@ impl CccHttpClient {
         self.send_request::<CccServerResponse>(req).await?.into_data()
     }
 
-    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<AuthResponse> {
-        let req = self.new_auth_request(session_id);
+    pub async fn authenticate(&self) -> anyhow::Result<AuthResponse> {
+        let req = self.new_auth_request();
 
         match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
@@ -214,8 +222,8 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<AuthResponse> {
-        let req = self.new_challenge_code_request(session_id, user_input);
+    pub async fn challenge_code(&self, user_input: &str) -> anyhow::Result<AuthResponse> {
+        let req = self.new_challenge_code_request(user_input);
 
         match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
@@ -223,8 +231,8 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn get_ipsec_tunnel_params(&self, session_id: &str) -> anyhow::Result<KeyManagementResponse> {
-        let req = self.new_key_management_request(session_id);
+    pub async fn get_ipsec_tunnel_params(&self) -> anyhow::Result<KeyManagementResponse> {
+        let req = self.new_key_management_request();
 
         match self.send_ccc_request(req).await? {
             ResponseData::KeyManagement(data) => Ok(data),
@@ -232,8 +240,8 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn get_client_settings(&self, session_id: &str) -> anyhow::Result<ClientSettingsResponse> {
-        let req = self.new_client_settings_request(session_id);
+    pub async fn get_client_settings(&self) -> anyhow::Result<ClientSettingsResponse> {
+        let req = self.new_client_settings_request();
 
         match self.send_ccc_request(req).await? {
             ResponseData::ClientSettings(data) => Ok(data),

@@ -33,20 +33,20 @@ impl TunnelConnector {
         Self(params)
     }
 
-    pub async fn authenticate(&self, session_id: Option<&str>) -> anyhow::Result<CccSession> {
+    pub async fn authenticate(&self) -> anyhow::Result<CccSession> {
         debug!("Authenticating to endpoint: {}", self.0.server_name);
-        let client = CccHttpClient::new(self.0.clone());
+        let client = CccHttpClient::new(self.0.clone(), None);
 
-        let data = client.authenticate(session_id).await?;
+        let data = client.authenticate().await?;
 
         self.process_auth_response(data).await
     }
 
-    pub async fn challenge_code(&self, session_id: &str, user_input: &str) -> anyhow::Result<CccSession> {
+    pub async fn challenge_code(&self, session: Arc<CccSession>, user_input: &str) -> anyhow::Result<CccSession> {
         debug!("Authenticating with challenge code to endpoint: {}", self.0.server_name);
-        let client = CccHttpClient::new(self.0.clone());
+        let client = CccHttpClient::new(self.0.clone(), Some(session));
 
-        let data = client.challenge_code(session_id, user_input).await?;
+        let data = client.challenge_code(user_input).await?;
 
         self.process_auth_response(data).await
     }

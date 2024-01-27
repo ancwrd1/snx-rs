@@ -25,8 +25,8 @@ pub(crate) struct IpsecTunnel {
 
 impl IpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<Self> {
-        let client = CccHttpClient::new(params.clone());
-        let client_settings = client.get_client_settings(&session.session_id).await?;
+        let client = CccHttpClient::new(params.clone(), Some(session));
+        let client_settings = client.get_client_settings().await?;
         debug!("Client settings: {:?}", client_settings);
 
         let dest_ip = client_settings.gw_internal_ip.parse()?;
@@ -34,7 +34,7 @@ impl IpsecTunnel {
         let isakmp = Isakmp::new(dest_ip, 4500);
         isakmp.probe().await?;
 
-        let ipsec_params = client.get_ipsec_tunnel_params(&session.session_id).await?;
+        let ipsec_params = client.get_ipsec_tunnel_params().await?;
 
         let keepalive_runner =
             KeepaliveRunner::new(ipsec_params.om_addr.into(), client_settings.gw_internal_ip.parse()?);
@@ -65,10 +65,7 @@ impl IpsecTunnel {
     pub async fn start_natt_listener(&self) -> anyhow::Result<oneshot::Sender<()>> {
         let (tx, mut rx) = oneshot::channel();
 
-        debug!(
-            "Listening for NAT-T packets on port {}",
-            self.natt_socket.local_addr()?
-        );
+        debug!("Listening for NAT-T packets on port {}", self.natt_socket.local_addr()?);
 
         let udp = self.natt_socket.clone();
 

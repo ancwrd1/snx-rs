@@ -65,13 +65,13 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let connector = TunnelConnector::new(Arc::new(params));
-            let mut session = connector.authenticate(None).await?;
+            let mut session = Arc::new(connector.authenticate().await?);
 
             while let SessionState::Pending(ref prompt) = session.state {
                 let prompt = prompt.as_deref().unwrap_or("Multi-factor code: ");
                 match SecurePrompt::tty().get_secure_input(prompt) {
                     Ok(input) => {
-                        session = connector.challenge_code(&session.session_id, &input).await?;
+                        session = Arc::new(connector.challenge_code(session, &input).await?);
                     }
                     Err(e) => {
                         return Err(e);
@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let status = Arc::new(Mutex::new(ConnectionStatus::default()));
-            let tunnel = connector.create_tunnel(Arc::new(session)).await?;
+            let tunnel = connector.create_tunnel(session).await?;
 
             if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
@@ -102,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
             if params.server_name.is_empty() {
                 return Err(anyhow!("Missing required parameters: server name!"));
             }
-            let client = CccHttpClient::new(Arc::new(params));
+            let client = CccHttpClient::new(Arc::new(params), None);
             let info = client.get_server_info().await?;
             println!("{}", serde_json::to_string_pretty(&info)?);
             Box::pin(futures::future::ok(()))
