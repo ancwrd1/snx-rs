@@ -1,7 +1,7 @@
-# Open source client for Checkpoint VPN tunnels
+# Open source Linux client for Checkpoint VPN tunnels
 
-This project contains a Rust source code of the unofficial client for Checkpoint VPN.
-Based on the reverse engineered protocol from the vendor application (Windows, Linux, Android).
+This project contains a Rust source code of the unofficial Linux client for Checkpoint VPN.
+Based on the reverse engineered protocol from the vendor application.
 
 ## Advantages over the official snx client for Linux:
 
@@ -15,7 +15,7 @@ Based on the reverse engineered protocol from the vendor application (Windows, L
 
 * SSL tunnel
 * IPSec tunnel
-* Username/password authentication
+* Username/password authentication with MFA support
 * Certificate authentication via the provided client certificate
 * Microsoft Authenticator app support
 * Multi-factor codes input via TTY/GUI (SMS/SecurID/TOTP)
@@ -26,7 +26,7 @@ Based on the reverse engineered protocol from the vendor application (Windows, L
 
 * Recent Linux distribution
 * NetworkManager
-* systemd-resolved
+* systemd-resolved configured as a global DNS resolver
 * iproute2
 * DBus
 * For tray-icon build-time feature: libsecret, Adwaita theme (icons), zenity or kdialog utility (user prompts)
@@ -67,7 +67,7 @@ Rust compiler 1.75 or later (https://rustup.rs) is required. Run `cargo build --
 
 ## Roadmap
  
-* SAML SSO (help needed; what to do with the OTP acquired from the browser?)
+* SAML SSO (help needed)
 
 ## License
 
