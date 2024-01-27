@@ -131,7 +131,7 @@ impl SslTunnel {
             optional: Some(OptionalRequest {
                 client_type: "4".to_string(),
             }),
-            cookie: self.session.cookie().to_owned(),
+            cookie: self.session.active_key().to_owned(),
         }
     }
 

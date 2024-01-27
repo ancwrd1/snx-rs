@@ -92,7 +92,7 @@ impl CommandServer {
     }
 
     async fn connect_for_session(&mut self, params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<()> {
-        if let SessionState::Pending(ref prompt) = session.state {
+        if let SessionState::Pending { ref prompt } = session.state {
             debug!("Pending multi-factor, awaiting for it");
             self.session = Some(session.clone());
             *self.connected.lock().unwrap() = ConnectionStatus {

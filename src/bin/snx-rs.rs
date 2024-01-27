@@ -67,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
             let connector = TunnelConnector::new(Arc::new(params));
             let mut session = Arc::new(connector.authenticate().await?);
 
-            while let SessionState::Pending(ref prompt) = session.state {
+            while let SessionState::Pending { ref prompt } = session.state {
                 let prompt = prompt.as_deref().unwrap_or("Multi-factor code: ");
                 match SecurePrompt::tty().get_secure_input(prompt) {
                     Ok(input) => {

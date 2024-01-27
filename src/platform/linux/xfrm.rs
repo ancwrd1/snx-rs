@@ -8,9 +8,8 @@ use tracing::debug;
 use crate::{
     model::{
         params::TunnelParams,
-        proto::{ClientSettingsResponse, IpsecSA, KeyManagementResponse},
+        proto::{AuthenticationAlgorithm, ClientSettingsResponse, EncryptionAlgorithm, IpsecSA, KeyManagementResponse},
         wrappers::HexKey,
-        AuthenticationAlgorithm, EncryptionAlgorithm,
     },
     platform::{self, IpsecConfigurator},
     util,

@@ -58,7 +58,9 @@ impl TunnelConnector {
             "continue" => {
                 return Ok(CccSession {
                     session_id,
-                    state: SessionState::Pending(data.prompt.map(|p| p.0)),
+                    state: SessionState::Pending {
+                        prompt: data.prompt.map(|p| p.0),
+                    },
                 })
             }
             "done" => {}
@@ -68,7 +70,7 @@ impl TunnelConnector {
             }
         }
 
-        let cookie = match (data.is_authenticated, data.active_key) {
+        let active_key = match (data.is_authenticated, data.active_key) {
             (Some(true), Some(ref key)) => key.clone(),
             _ => {
                 let msg = match (data.error_message, data.error_id, data.error_code) {
@@ -84,7 +86,9 @@ impl TunnelConnector {
 
         Ok(CccSession {
             session_id,
-            state: SessionState::Authenticated(cookie.0),
+            state: SessionState::Authenticated {
+                active_key: active_key.0,
+            },
         })
     }
 
