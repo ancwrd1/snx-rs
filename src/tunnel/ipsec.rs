@@ -7,7 +7,7 @@ use tracing::{debug, warn};
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, CccSession, ConnectionStatus},
-    platform::{IpsecConfigurator, UdpEncap, UdpSocketExt},
+    platform::{self, IpsecConfigurator, UdpEncap, UdpSocketExt},
     tunnel::{
         ipsec::{isakmp::Isakmp, keepalive::KeepaliveRunner},
         CheckpointTunnel,
@@ -29,20 +29,17 @@ impl IpsecTunnel {
         let client_settings = client.get_client_settings().await?;
         debug!("Client settings: {:?}", client_settings);
 
-        let dest_ip = client_settings.gw_internal_ip.parse()?;
-
-        let isakmp = Isakmp::new(dest_ip, 4500);
+        let isakmp = Isakmp::new(client_settings.gw_internal_ip, 4500);
         isakmp.probe().await?;
 
         let ipsec_params = client.get_ipsec_tunnel_params().await?;
 
-        let keepalive_runner =
-            KeepaliveRunner::new(ipsec_params.om_addr.into(), client_settings.gw_internal_ip.parse()?);
+        let keepalive_runner = KeepaliveRunner::new(ipsec_params.om_addr.into(), client_settings.gw_internal_ip);
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
 
-        let mut configurator = crate::platform::new_ipsec_configurator(
+        let mut configurator = platform::new_ipsec_configurator(
             params,
             ipsec_params,
             client_settings,

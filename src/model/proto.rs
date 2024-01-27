@@ -3,17 +3,14 @@ use std::net::Ipv4Addr;
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
-use crate::model::{
-    wrappers::{HexKey, Maybe, QuotedString, EncryptedString},
-    AuthenticationAlgorithm, EncryptionAlgorithm,
-};
+use crate::model::{wrappers::*, AuthenticationAlgorithm, EncryptionAlgorithm};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OfficeMode {
     pub ipaddr: String,
     pub keep_address: Option<bool>,
     pub dns_servers: Option<Vec<String>>,
-    pub dns_suffix: Option<QuotedString>,
+    pub dns_suffix: Option<QuotedStringList>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -142,7 +139,7 @@ pub struct ClientLoggingData {
     pub machine_name: Option<String>,
     pub device_id: Option<String>,
     pub mac_address: Option<String>,
-    pub physical_ip: Option<String>,
+    pub physical_ip: Option<Ipv4Addr>,
     pub is_compliant: Option<String>,
 }
 
@@ -245,9 +242,9 @@ pub struct IpsecSA {
     pub spi: u32,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientSettingsResponse {
-    pub gw_internal_ip: String,
+    pub gw_internal_ip: Ipv4Addr,
     pub updated_policies: UpdatedPolicies,
 }
 
@@ -261,10 +258,10 @@ pub struct Range {
     pub settings: Vec<NetworkRange>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LocationAwarenessResponse {
     pub location: String,
-    pub source_ip: String,
+    pub source_ip: Ipv4Addr,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

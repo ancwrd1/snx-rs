@@ -24,6 +24,7 @@ use codec::{SslPacketCodec, SslPacketType};
 
 use crate::{
     model::{params::TunnelParams, proto::*, *},
+    platform,
     tunnel::CheckpointTunnel,
 };
 
@@ -245,7 +246,7 @@ impl CheckpointTunnel for SslTunnel {
                     break Ok(());
                 }
                 _ = tokio::time::sleep(self.keepalive) => {
-                    if crate::platform::is_online() {
+                    if platform::is_online() {
                         self.keepalive().await?;
                     }
                 }

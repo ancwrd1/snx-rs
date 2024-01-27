@@ -72,25 +72,21 @@ impl TunDevice {
 
         if !params.no_dns {
             if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-                debug!("Adding acquired DNS suffixes: {}", suffixes.0);
+                debug!("Adding acquired DNS suffixes: {:?}", suffixes.0);
                 debug!("Adding provided DNS suffixes: {:?}", params.search_domains);
-                let suffixes = suffixes
-                    .0
-                    .split(',')
-                    .chain(params.search_domains.iter().map(|s| s.as_ref()))
-                    .filter(|&s| {
-                        !s.is_empty()
-                            && !params
-                                .ignore_search_domains
-                                .iter()
-                                .any(|d| d.to_lowercase() == s.to_lowercase())
-                    });
-                let _ = crate::platform::add_dns_suffixes(suffixes, &self.dev_name).await;
+                let suffixes = suffixes.0.iter().chain(params.search_domains.iter()).filter(|&s| {
+                    !s.is_empty()
+                        && !params
+                            .ignore_search_domains
+                            .iter()
+                            .any(|d| d.to_lowercase() == s.to_lowercase())
+                });
+                let _ = platform::add_dns_suffixes(suffixes, &self.dev_name).await;
             }
 
             if let Some(ref servers) = self.reply.office_mode.dns_servers {
                 debug!("Adding DNS servers: {servers:?}");
-                let _ = crate::platform::add_dns_servers(servers, &self.dev_name).await;
+                let _ = platform::add_dns_servers(servers, &self.dev_name).await;
             }
         }
 

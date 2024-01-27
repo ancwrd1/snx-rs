@@ -6,7 +6,10 @@ use std::{
 use anyhow::anyhow;
 use tracing::{debug, trace, warn};
 
-use crate::{model::params::TunnelParams, platform::UdpSocketExt};
+use crate::{
+    model::params::TunnelParams,
+    platform::{self, UdpSocketExt},
+};
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
 const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(5);
@@ -55,7 +58,7 @@ impl KeepaliveRunner {
         let mut num_failures = 0;
 
         loop {
-            if crate::platform::is_online() {
+            if platform::is_online() {
                 trace!("Sending keepalive to {}", self.dst);
 
                 let data = make_keepalive_packet();
@@ -77,7 +80,7 @@ impl KeepaliveRunner {
                 }
             } else {
                 num_failures = 0;
-                crate::platform::poll_online();
+                platform::poll_online();
             }
 
             let interval = if num_failures == 0 {

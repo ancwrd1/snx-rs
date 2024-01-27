@@ -57,6 +57,52 @@ impl fmt::Debug for QuotedString {
     }
 }
 
+/// String encoded with double quotes and separated with commas
+#[derive(Default, Clone, PartialEq)]
+pub struct QuotedStringList(pub Vec<String>);
+
+impl Serialize for QuotedStringList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        format!("\"{}\"", self.0.join(",")).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for QuotedStringList {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self(
+            String::deserialize(deserializer)?
+                .trim_matches('"')
+                .split(',')
+                .map(ToOwned::to_owned)
+                .collect(),
+        ))
+    }
+}
+
+impl From<Vec<String>> for QuotedStringList {
+    fn from(value: Vec<String>) -> Self {
+        Self(value)
+    }
+}
+
+impl From<QuotedStringList> for Vec<String> {
+    fn from(value: QuotedStringList) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Debug for QuotedStringList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
+    }
+}
+
 /// Encrypted string. 'Encryption' here is a simple xor operation.
 #[derive(Default, Clone, PartialEq)]
 pub struct EncryptedString(pub String);

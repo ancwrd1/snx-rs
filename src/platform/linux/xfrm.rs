@@ -433,10 +433,10 @@ impl XfrmConfigurator {
 #[async_trait::async_trait]
 impl IpsecConfigurator for XfrmConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()> {
-        self.source_ip = crate::platform::get_default_ip().await?.parse()?;
+        self.source_ip = platform::get_default_ip().await?.parse()?;
         debug!("Source IP: {}", self.source_ip);
 
-        self.dest_ip = self.client_settings.gw_internal_ip.parse()?;
+        self.dest_ip = self.client_settings.gw_internal_ip;
         debug!("Target IP: {}", self.dest_ip);
 
         self.cleanup().await;

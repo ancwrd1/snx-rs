@@ -7,7 +7,7 @@ use directories_next::ProjectDirs;
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
-    platform::UdpSocketExt,
+    platform::{self, UdpSocketExt},
     prompt::SecurePrompt,
 };
 
@@ -117,7 +117,7 @@ impl ServiceController {
         }
 
         if params.password.is_empty() && params.client_cert.is_none() {
-            match crate::platform::acquire_password(&params.user_name, self.prompt.clone()).await {
+            match platform::acquire_password(&params.user_name, self.prompt.clone()).await {
                 Ok(password) => params.password = password,
                 Err(e) => return Err(e),
             }
