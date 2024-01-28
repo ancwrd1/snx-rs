@@ -63,7 +63,7 @@ impl TunDevice {
             } else {
                 let subnets = util::ranges_to_subnets(&self.reply.range)
                     .chain(params.add_routes.clone())
-                    .filter(|s| !dest_ips.iter().any(|i| *i == s.addr()))
+                    .filter(|s| dest_ips.iter().all(|i| !s.contains(i)))
                     .collect::<Vec<_>>();
 
                 let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr).await;

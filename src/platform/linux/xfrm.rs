@@ -362,10 +362,9 @@ impl XfrmConfigurator {
             if self.tunnel_params.default_route {
                 let _ = platform::add_default_route(self.vti_name(), addr).await;
             } else {
-                debug!("Ignoring acquired routes to {}", self.dest_ip);
                 let subnets = util::ranges_to_subnets(&self.client_settings.updated_policies.range.settings)
                     .chain(self.tunnel_params.add_routes.clone())
-                    .filter(|s| s.addr() != self.dest_ip)
+                    .filter(|s| !s.contains(&self.dest_ip))
                     .collect::<Vec<_>>();
 
                 let _ = platform::add_routes(&subnets, self.vti_name(), addr).await;
