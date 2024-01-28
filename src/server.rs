@@ -87,7 +87,11 @@ impl CommandServer {
                 debug!("Handling challenge code command");
                 match self.challenge_code(&code, Arc::new(params)).await {
                     Ok(_) => TunnelServiceResponse::Ok,
-                    Err(e) => TunnelServiceResponse::Error(e.to_string()),
+                    Err(e) => {
+                        self.session = None;
+                        *self.connected.lock().unwrap() = ConnectionStatus::default();
+                        TunnelServiceResponse::Error(e.to_string())
+                    }
                 }
             }
         }
