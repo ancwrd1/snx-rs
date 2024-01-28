@@ -63,11 +63,17 @@ impl CommandServer {
                 debug!("Handling connect command");
                 match self.connect(Arc::new(params)).await {
                     Ok(_) => TunnelServiceResponse::Ok,
-                    Err(e) => TunnelServiceResponse::Error(e.to_string()),
+                    Err(e) => {
+                        self.session = None;
+                        *self.connected.lock().unwrap() = ConnectionStatus::default();
+                        TunnelServiceResponse::Error(e.to_string())
+                    }
                 }
             }
             TunnelServiceRequest::Disconnect => {
                 debug!("Handling disconnect command");
+                self.session = None;
+
                 match self.disconnect().await {
                     Ok(_) => TunnelServiceResponse::Ok,
                     Err(e) => TunnelServiceResponse::Error(e.to_string()),
