@@ -33,6 +33,38 @@ Based on the reverse engineered protocol from the vendor application.
 
 ## Usage
 
+Before the client can establish a connection it must know the login (authentication) type to use
+ (`--login-type` or `-o` option). In order to find the supported login types run it with "-m info" parameter:
+
+ `snx-rs -m info -s remote.acme.com`
+
+ This command will dump the server information in JSON format. Part of this information is **login_options_list** array.
+ Each object in this array contains a display name and an **id** field which indicates the login type.
+ The value of this field must be passed to snx-rs as a login-type parameter.
+
+ Example (may differ for your server):
+
+ ```json
+      "login_options_list": [
+        {
+          "display_name": "Microsoft Authenticator",
+          "id": "vpn_Microsoft_Authenticator",
+        },
+        {
+          "display_name": "Emergency Access",
+          "id": "vpn_Emergency_Access",
+        },
+        {
+          "display_name": "Username Password",
+          "id": "vpn_Username_Password",
+        },
+        {
+          "display_name": "Standard",
+          "id": "vpn",
+        }
+      ]
+ ```
+
 There are two ways to use the application:
 
 * Standalone service mode, selected by `-m standalone` parameter. This is the default mode. Run `snx-rs --help` to get a help with all command line parameters. In this mode the application takes connection parameters either from the command line or from the specified configuration file. Recommended for headless usage.
