@@ -12,7 +12,7 @@ pub use platform_impl::{
         add_default_route, add_dns_servers, add_dns_suffixes, add_route, add_routes, get_default_ip, is_online,
         poll_online, start_network_state_monitoring,
     },
-    new_tun_config, IpsecImpl,
+    new_tun_config, send_notification, IpsecImpl,
 };
 
 use crate::model::{

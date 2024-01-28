@@ -4,13 +4,14 @@ use anyhow::anyhow;
 use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
 use tracing::{debug, warn};
+use zbus::{dbus_proxy, zvariant, Connection};
+
+pub use xfrm::XfrmConfigurator as IpsecImpl;
 
 use crate::{
     platform::{UdpEncap, UdpSocketExt},
     prompt::SecurePrompt,
 };
-
-pub use xfrm::XfrmConfigurator as IpsecImpl;
 
 pub mod net;
 pub mod xfrm;
@@ -134,4 +135,41 @@ pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::
     }
 
     Ok(password)
+}
+
+#[dbus_proxy(
+    interface = "org.freedesktop.Notifications",
+    default_service = "org.freedesktop.Notifications",
+    default_path = "/org/freedesktop/Notifications"
+)]
+pub trait Notifications {
+    fn notify(
+        &self,
+        app_name: &str,
+        replaces_id: u32,
+        app_icon: &str,
+        summary: &str,
+        body: &str,
+        actions: &[&str],
+        hints: HashMap<String, zvariant::OwnedValue>,
+        expire_timeout: i32,
+    ) -> zbus::Result<u32>;
+}
+
+pub async fn send_notification(summary: &str, message: &str) -> anyhow::Result<()> {
+    let connection = Connection::session().await?;
+    let proxy = NotificationsProxy::new(&connection).await?;
+    proxy
+        .notify(
+            "SNX-RS VPN client",
+            0,
+            "emblem-error",
+            summary,
+            message,
+            &[],
+            HashMap::default(),
+            10000,
+        )
+        .await?;
+    Ok(())
 }

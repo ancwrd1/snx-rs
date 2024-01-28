@@ -33,6 +33,13 @@ impl SecurePrompt {
             PromptSource::Gui => get_input_from_gui(prompt),
         }
     }
+
+    pub fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
+        match self.source {
+            PromptSource::Tty => show_notification_tty(summary, message),
+            PromptSource::Gui => show_notification_gui(summary, message),
+        }
+    }
 }
 
 fn get_input_from_tty(prompt: &str) -> anyhow::Result<String> {
@@ -76,4 +83,23 @@ fn get_input_from_gui(prompt: &str) -> anyhow::Result<String> {
     } else {
         Err(anyhow!("Password not acquired"))
     }
+}
+
+fn show_notification_tty(summary: &str, message: &str) -> anyhow::Result<()> {
+    println!("{}: {}", summary, message);
+    Ok(())
+}
+
+#[cfg(feature = "tray-icon")]
+fn show_notification_gui(summary: &str, message: &str) -> anyhow::Result<()> {
+    Ok(std::thread::scope(|s| {
+        s.spawn(|| crate::util::block_on(crate::platform::send_notification(summary, message)))
+            .join()
+            .unwrap()
+    })?)
+}
+
+#[cfg(not(feature = "tray-icon"))]
+fn show_notification_gui(_summary: &str, _message: &str) -> anyhow::Result<()> {
+    Err(anyhow!("Not implemented"))
 }

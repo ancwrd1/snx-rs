@@ -168,6 +168,14 @@ pub fn show_tray_icon() -> anyhow::Result<()> {
             };
 
             let status_str = format!("{:?}", status);
+
+            match status {
+                Err(ref e) if command == ServiceCommand::Connect => {
+                    let _ = SecurePrompt::gui().show_notification("Connection failed", &e.to_string());
+                }
+                _ => {}
+            }
+
             if command != prev_command || status_str != prev_status {
                 handle.update(|tray: &mut MyTray| {
                     tray.connecting = false;
