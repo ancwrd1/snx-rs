@@ -69,7 +69,7 @@ impl ServiceController {
         Ok(Self { params, prompt })
     }
 
-    pub async fn command(&self, command: ServiceCommand) -> anyhow::Result<ConnectionStatus> {
+    pub async fn command(&mut self, command: ServiceCommand) -> anyhow::Result<ConnectionStatus> {
         match command {
             ServiceCommand::Status => self.do_status().await,
             ServiceCommand::Connect => {
@@ -96,16 +96,21 @@ impl ServiceController {
                 if status.connected_since.is_none() && status.mfa_pending {
                     let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
                     let input = self.prompt.get_secure_input(prompt)?;
-                    self.do_challenge_code(input).await?;
+                    self.do_challenge_code(input).await
+                } else {
+                    if status.connected_since.is_some() && !self.params.password.is_empty() && !self.params.no_keychain
+                    {
+                        let _ = platform::store_password(&self.params.user_name, &self.params.password).await;
+                    }
+                    Ok(status)
                 }
-                Ok(status)
             }
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }
     }
 
-    async fn do_connect(&self) -> anyhow::Result<ConnectionStatus> {
+    async fn do_connect(&mut self) -> anyhow::Result<ConnectionStatus> {
         let mut params = self.params.clone();
 
         let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
@@ -117,14 +122,23 @@ impl ServiceController {
         }
 
         if params.password.is_empty() && params.client_cert.is_none() {
-            match platform::acquire_password(&params.user_name, self.prompt.clone()).await {
-                Ok(password) => params.password = password,
-                Err(e) => return Err(e),
+            if !params.no_keychain {
+                if let Ok(password) = platform::acquire_password(&params.user_name).await {
+                    params.password = password;
+                }
             }
+            if params.password.is_empty() && !params.no_keychain {
+                params.password = self
+                    .prompt
+                    .get_secure_input(&format!("Enter password for {}: ", params.user_name))?
+                    .trim()
+                    .to_owned();
+            }
+            self.params = params;
         }
 
         let response = self
-            .send_receive(TunnelServiceRequest::Connect(params), CONNECT_TIMEOUT)
+            .send_receive(TunnelServiceRequest::Connect(self.params.clone()), CONNECT_TIMEOUT)
             .await;
         match response {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,
@@ -134,7 +148,7 @@ impl ServiceController {
         }
     }
 
-    async fn do_challenge_code(&self, code: String) -> anyhow::Result<()> {
+    async fn do_challenge_code(&self, code: String) -> anyhow::Result<ConnectionStatus> {
         let response = self
             .send_receive(
                 TunnelServiceRequest::ChallengeCode(code, self.params.clone()),
@@ -142,10 +156,7 @@ impl ServiceController {
             )
             .await;
         match response {
-            Ok(TunnelServiceResponse::Ok) => {
-                self.do_status().await?;
-                Ok(())
-            }
+            Ok(TunnelServiceResponse::Ok) => self.do_status().await,
             Ok(TunnelServiceResponse::Error(e)) => Err(anyhow!(e)),
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),

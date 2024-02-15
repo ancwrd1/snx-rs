@@ -132,6 +132,13 @@ pub struct CmdlineParams {
 
     #[clap(long = "if-name", short = 'f', help = "Interface name for tun or vti device")]
     pub if_name: Option<String>,
+
+    #[clap(
+        long = "no-keychain",
+        short = 'K',
+        help = "Do not use OS keychain to store or retrieve user password"
+    )]
+    pub no_keychain: Option<bool>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -180,6 +187,7 @@ pub struct TunnelParams {
     pub client_cert: Option<PathBuf>,
     pub cert_password: Option<String>,
     pub if_name: Option<String>,
+    pub no_keychain: bool,
 }
 
 impl Default for TunnelParams {
@@ -204,6 +212,7 @@ impl Default for TunnelParams {
             client_cert: None,
             cert_password: None,
             if_name: None,
+            no_keychain: false,
         }
     }
 }
@@ -248,6 +257,7 @@ impl TunnelParams {
                         "client-cert" => params.client_cert = Some(v.into()),
                         "cert-password" => params.cert_password = Some(v),
                         "if-name" => params.if_name = Some(v),
+                        "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -333,6 +343,10 @@ impl TunnelParams {
 
         if let Some(if_name) = other.if_name {
             self.if_name = Some(if_name);
+        }
+
+        if let Some(no_keychain) = other.no_keychain {
+            self.no_keychain = no_keychain;
         }
     }
 }

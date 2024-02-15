@@ -8,10 +8,7 @@ use zbus::{dbus_proxy, zvariant, Connection};
 
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
-use crate::{
-    platform::{UdpEncap, UdpSocketExt},
-    prompt::SecurePrompt,
-};
+use crate::platform::{UdpEncap, UdpSocketExt};
 
 pub mod net;
 pub mod xfrm;
@@ -74,10 +71,28 @@ pub fn new_tun_config() -> tun::Configuration {
     config
 }
 
-pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::Result<String> {
+pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
     let props = HashMap::from([("snx-rs.username", user_name)]);
 
     debug!("Attempting to acquire password from the keychain");
+
+    let ss = SecretService::connect(EncryptionType::Dh).await;
+    if let Ok(ref ss) = ss {
+        if let Ok(search_items) = ss.search_items(props.clone()).await {
+            if let Some(item) = search_items.unlocked.first() {
+                if let Ok(secret) = item.get_secret().await {
+                    debug!("Acquired user password from the keychain");
+                    return Ok(String::from_utf8_lossy(&secret).into_owned());
+                }
+            }
+        }
+    }
+
+    Err(anyhow!("No password in the keychain"))
+}
+
+pub async fn store_password(user_name: &str, password: &str) -> anyhow::Result<()> {
+    let props = HashMap::from([("snx-rs.username", user_name)]);
 
     let ss = SecretService::connect(EncryptionType::Dh).await;
     let collection = match ss {
@@ -100,41 +115,23 @@ pub async fn acquire_password(user_name: &str, prompt: SecurePrompt) -> anyhow::
         }
     };
 
-    if let Ok(ref ss) = ss {
-        if let Ok(search_items) = ss.search_items(props.clone()).await {
-            if let Some(item) = search_items.unlocked.first() {
-                if let Ok(secret) = item.get_secret().await {
-                    debug!("Acquired user password from the keychain");
-                    return Ok(String::from_utf8_lossy(&secret).into_owned());
-                }
-            }
+    if let Some(collection) = collection {
+        debug!("Attempting to store user password in the keychain");
+        if let Err(e) = collection
+            .create_item(
+                &format!("snx-rs - {}", user_name),
+                props,
+                password.as_bytes(),
+                true,
+                "text/plain",
+            )
+            .await
+        {
+            warn!("Warning: cannot store user password in the keychain: {}", e);
         }
     }
 
-    let password = prompt
-        .get_secure_input(&format!("Enter password for {}: ", user_name))?
-        .trim()
-        .to_owned();
-
-    if !password.is_empty() {
-        if let Some(collection) = collection {
-            debug!("Attempting to store user password in the keychain");
-            if let Err(e) = collection
-                .create_item(
-                    &format!("snx-rs - {}", user_name),
-                    props,
-                    password.as_bytes(),
-                    true,
-                    "text/plain",
-                )
-                .await
-            {
-                warn!("Warning: cannot store user password in the keychain: {}", e);
-            }
-        }
-    }
-
-    Ok(password)
+    Ok(())
 }
 
 #[dbus_proxy(

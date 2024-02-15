@@ -10,7 +10,7 @@ use snx_rs::{
 async fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
 
-    let controller = ServiceController::new(SecurePrompt::tty())?;
+    let mut controller = ServiceController::new(SecurePrompt::tty())?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(

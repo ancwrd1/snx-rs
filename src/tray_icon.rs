@@ -156,7 +156,7 @@ pub fn show_tray_icon() -> anyhow::Result<()> {
     let mut prev_status = String::new();
 
     while let Ok(Some(command)) = rx.recv() {
-        if let Ok(controller) = ServiceController::new(SecurePrompt::gui()) {
+        if let Ok(mut controller) = ServiceController::new(SecurePrompt::gui()) {
             if command == ServiceCommand::Connect {
                 handle.update(|tray: &mut MyTray| tray.connecting = true);
             }
