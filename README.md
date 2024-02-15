@@ -9,7 +9,7 @@ Based on the reverse engineered protocol from the vendor application.
 * IPSec support (faster tunnel)
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
-* Integration with Gnome Keyring or KDE KWallet via libsecret (only when using snxctl in command mode)
+* Optional integration with Gnome Keyring or KDE KWallet via libsecret (only when using snxctl in command mode)
 
 ## Implemented features
 
@@ -29,7 +29,8 @@ Based on the reverse engineered protocol from the vendor application.
 * systemd-resolved configured as a global DNS resolver
 * iproute2
 * DBus
-* For tray-icon build-time feature: libsecret, Adwaita theme (icons), zenity or kdialog utility (user prompts)
+* libsecret
+* For tray-icon build-time feature: Adwaita theme (icons), zenity or kdialog utility (user prompts)
 
 ## Usage
 
@@ -89,8 +90,8 @@ Configuration file may contain all options which are accepted via the command li
 * If additional MFA steps are required a prompt will be shown to enter the codes.
   If the application has no attached terminal an authentication error will be triggered.
 * If password is not provided in the configuration file or command line it will be prompted for and stored
-  in the OS keychain (this will only work when using command mode and `snxctl` because the main application runs
-  as a root user without access to keychain/kwallet).
+  in the OS keychain unless `no-keychain` parameter is specified. Keychain integration is provided only when
+  using command mode and `snxctl` because the main application runs as a root user.
 
 ## Building from sources
 
