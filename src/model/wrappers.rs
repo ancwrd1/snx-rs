@@ -79,6 +79,7 @@ impl<'de> Deserialize<'de> for QuotedStringList {
             String::deserialize(deserializer)?
                 .trim_matches('"')
                 .split(',')
+                .map(|s| s.trim())
                 .map(ToOwned::to_owned)
                 .collect(),
         ))
