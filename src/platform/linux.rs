@@ -3,7 +3,7 @@ use std::{collections::HashMap, os::fd::AsRawFd, time::Duration};
 use anyhow::anyhow;
 use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
-use tracing::{debug, warn};
+use tracing::debug;
 use zbus::{dbus_proxy, zvariant, Connection};
 
 pub use xfrm::XfrmConfigurator as IpsecImpl;
@@ -76,67 +76,49 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
 
     debug!("Attempting to acquire password from the keychain");
 
-    let ss = SecretService::connect(EncryptionType::Dh).await;
-    if let Ok(ref ss) = ss {
-        if let Ok(collection) = ss.get_default_collection().await {
-            if let Ok(true) = collection.is_locked().await {
-                debug!("Unlocking secret collection");
-                let _ = collection.unlock().await;
-            }
-        }
-
-        if let Ok(search_items) = ss.search_items(props.clone()).await {
-            if let Some(item) = search_items.unlocked.first() {
-                if let Ok(secret) = item.get_secret().await {
-                    debug!("Acquired user password from the keychain");
-                    return Ok(String::from_utf8_lossy(&secret).into_owned());
-                }
-            }
-        }
+    let ss = SecretService::connect(EncryptionType::Dh).await?;
+    let collection = ss.get_default_collection().await?;
+    if let Ok(true) = collection.is_locked().await {
+        debug!("Unlocking secret collection");
+        let _ = collection.unlock().await;
     }
 
-    Err(anyhow!("No password in the keychain"))
+    let search_items = ss.search_items(props.clone()).await?;
+
+    let item = search_items
+        .unlocked
+        .first()
+        .ok_or_else(|| anyhow!("No item in collection"))?;
+
+    let secret = item.get_secret().await?;
+
+    debug!("Password acquired successfully");
+
+    Ok(String::from_utf8_lossy(&secret).into_owned())
 }
 
 pub async fn store_password(user_name: &str, password: &str) -> anyhow::Result<()> {
     let props = HashMap::from([("snx-rs.username", user_name)]);
 
-    let ss = SecretService::connect(EncryptionType::Dh).await;
-    let collection = match ss {
-        Ok(ref ss) => match ss.get_default_collection().await {
-            Ok(collection) => {
-                if let Ok(true) = collection.is_locked().await {
-                    debug!("Unlocking secret collection");
-                    let _ = collection.unlock().await;
-                }
-                Some(collection)
-            }
-            Err(e) => {
-                warn!("{}", e);
-                None
-            }
-        },
-        Err(ref e) => {
-            warn!("{}", e);
-            None
-        }
-    };
+    let ss = SecretService::connect(EncryptionType::Dh).await?;
+    let collection = ss.get_default_collection().await?;
 
-    if let Some(collection) = collection {
-        debug!("Attempting to store user password in the keychain");
-        if let Err(e) = collection
-            .create_item(
-                &format!("snx-rs - {}", user_name),
-                props,
-                password.as_bytes(),
-                true,
-                "text/plain",
-            )
-            .await
-        {
-            warn!("Warning: cannot store user password in the keychain: {}", e);
-        }
+    if let Ok(true) = collection.is_locked().await {
+        debug!("Unlocking secret collection");
+        let _ = collection.unlock().await;
     }
+
+    debug!("Attempting to store user password in the keychain");
+
+    collection
+        .create_item(
+            &format!("snx-rs - {}", user_name),
+            props,
+            password.as_bytes(),
+            true,
+            "text/plain",
+        )
+        .await?;
 
     Ok(())
 }
