@@ -157,6 +157,8 @@ where
 
     crate::util::run_command("resolvectl", args).await?;
 
+    crate::util::run_command("resolvectl", ["default-route", device, "false"]).await?;
+
     Ok(())
 }
 
