@@ -8,5 +8,12 @@ field      = { ":" ~ ident ~ "(" ~ data? ~ ")" }
 elem       = { ":" ~ ASCII_DIGIT* ~ "(" ~ data? ~ ")" }
 ident      = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 char       = @{ !("(" | ")") ~ ANY }
-value      = { char+ }
+value      = { char+ | quoted_str }
+quoted_str = ${ "\"" ~ inner ~ "\"" }
+inner      = @{ schar* }
+schar      = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
 WHITESPACE = _{ " " | "\n" | "\r" | "\t" | "\x00" }
