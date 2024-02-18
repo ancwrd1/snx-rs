@@ -208,7 +208,7 @@ impl Default for TunnelParams {
             ignore_server_cert: false,
             tunnel_type: TunnelType::Ssl,
             ca_cert: None,
-            login_type: "vpn_Microsoft_Authenticator".to_owned(),
+            login_type: String::new(),
             client_cert: None,
             cert_password: None,
             if_name: None,

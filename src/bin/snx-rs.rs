@@ -58,10 +58,8 @@ async fn main() -> anyhow::Result<()> {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
 
-            let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
-
-            if params.server_name.is_empty() || !has_creds {
-                return Err(anyhow!("Missing required parameters: server name and/or user name"));
+            if params.server_name.is_empty() || params.login_type.is_empty() {
+                return Err(anyhow!("Missing required parameters: server name and/or login type"));
             }
 
             let connector = TunnelConnector::new(Arc::new(params));

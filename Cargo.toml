@@ -46,10 +46,10 @@ rand = "0.8"
 directories-next = "2"
 chrono = { version = "0.4", features = ["serde"] }
 passterm = "2"
-ksni = { version = "0.2", optional = true }
 which = { version = "6", optional = true }
 opener = { version = "0.6", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-zbus = "3"
+ksni = { version = "0.2", optional = true }
+zbus = { version = "3", default-features = false, features = ["tokio"] }
 secret-service = {  version = "3", features = ["rt-tokio-crypto-rust"] }

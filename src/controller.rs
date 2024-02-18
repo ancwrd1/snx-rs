@@ -113,11 +113,9 @@ impl ServiceController {
     async fn do_connect(&mut self) -> anyhow::Result<ConnectionStatus> {
         let mut params = self.params.clone();
 
-        let has_creds = params.client_cert.is_some() || !params.user_name.is_empty();
-
-        if params.server_name.is_empty() || !has_creds {
+        if params.server_name.is_empty() || params.login_type.is_empty() {
             return Err(anyhow!(
-                "Missing required parameters in the config file: server name and/or user credentials"
+                "Missing required parameters in the config file: server name and/or login type"
             ));
         }
 
