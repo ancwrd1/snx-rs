@@ -57,18 +57,16 @@ impl TunDevice {
 
         debug!("Ignoring acquired routes to {:?}", dest_ips);
 
+        let mut subnets = params.add_routes.clone().into_iter().collect::<Vec<_>>();
         if !params.no_routing {
             if params.default_route {
                 let _ = platform::add_default_route(&self.dev_name, self.ipaddr).await;
             } else {
-                let subnets = util::ranges_to_subnets(&self.reply.range)
-                    .chain(params.add_routes.clone())
-                    .filter(|s| dest_ips.iter().all(|i| !s.contains(i)))
-                    .collect::<Vec<_>>();
-
-                let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr).await;
+                subnets.extend(util::ranges_to_subnets(&self.reply.range));
+                subnets.retain(|s| dest_ips.iter().all(|i| !s.contains(i)));
             }
         }
+        let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr).await;
 
         if !params.no_dns {
             if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
