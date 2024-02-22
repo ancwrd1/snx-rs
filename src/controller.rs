@@ -124,8 +124,7 @@ impl ServiceController {
                 if let Ok(password) = platform::acquire_password(&params.user_name).await {
                     params.password = password;
                 }
-            }
-            if params.password.is_empty() && !params.no_keychain {
+            } else {
                 params.password = self
                     .prompt
                     .get_secure_input(&format!("Enter password for {}: ", params.user_name))?
