@@ -84,7 +84,9 @@ async fn main() -> anyhow::Result<()> {
                 warn!("Unable to start network monitoring: {}", e);
             }
 
-            Box::pin(tunnel.run(rx, status))
+            let (status_sender, _) = oneshot::channel();
+            let result = Box::pin(tunnel.run(rx, status, status_sender));
+            result
         }
         OperationMode::Command => {
             debug!("Running in command mode");

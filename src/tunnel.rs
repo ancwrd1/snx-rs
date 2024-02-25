@@ -23,6 +23,7 @@ pub trait CheckpointTunnel {
         mut self: Box<Self>,
         stop_receiver: oneshot::Receiver<()>,
         connected: Arc<Mutex<ConnectionStatus>>,
+        status_sender: oneshot::Sender<()>,
     ) -> anyhow::Result<()>;
 }
 
