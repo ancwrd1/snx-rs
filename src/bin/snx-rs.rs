@@ -62,6 +62,13 @@ async fn main() -> anyhow::Result<()> {
                 return Err(anyhow!("Missing required parameters: server name and/or login type"));
             }
 
+            if params.password.is_empty() && params.client_cert.is_none() {
+                params.password = SecurePrompt::tty()
+                    .get_secure_input(&format!("Enter password for {}: ", params.user_name))?
+                    .trim()
+                    .to_owned();
+            }
+
             let connector = TunnelConnector::new(Arc::new(params));
             let mut session = Arc::new(connector.authenticate().await?);
 
