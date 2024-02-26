@@ -189,6 +189,7 @@ impl CheckpointTunnel for SslTunnel {
         mut self: Box<Self>,
         mut stop_receiver: oneshot::Receiver<()>,
         connected: Arc<Mutex<ConnectionStatus>>,
+        status_sender: oneshot::Sender<()>,
     ) -> anyhow::Result<()> {
         debug!("Running SSL tunnel for session {}", self.session.session_id);
 
@@ -239,6 +240,9 @@ impl CheckpointTunnel for SslTunnel {
             connected_since: Some(Local::now()),
             ..Default::default()
         };
+        if status_sender.send(()).is_ok() {
+            debug!("SSL tunnel connection status set")
+        }
 
         loop {
             tokio::select! {

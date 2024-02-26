@@ -117,16 +117,18 @@ impl CommandServer {
         let tunnel = connector.create_tunnel(session).await?;
 
         let (tx, rx) = oneshot::channel();
+        let (status_sender, status_receiver) = oneshot::channel();
         self.stopper = Some(tx);
 
         let connected = self.connected.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = tunnel.run(rx, connected.clone()).await {
+            if let Err(e) = tunnel.run(rx, connected.clone(), status_sender).await {
                 warn!("Tunnel error: {}", e);
             }
             *connected.lock().unwrap() = ConnectionStatus::default();
         });
+        status_receiver.await?;
         Ok(())
     }
 

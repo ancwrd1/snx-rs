@@ -151,7 +151,7 @@ where
 {
     let mut args = vec!["domain", device];
 
-    let suffixes = suffixes.into_iter().map(|s| s.as_ref().to_owned()).collect::<Vec<_>>();
+    let suffixes = suffixes.into_iter().map(|s| s.as_ref().trim().to_owned()).collect::<Vec<_>>();
 
     args.extend(suffixes.iter().map(|s| s.as_str()));
 

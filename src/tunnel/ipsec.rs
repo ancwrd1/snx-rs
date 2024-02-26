@@ -94,6 +94,7 @@ impl CheckpointTunnel for IpsecTunnel {
         self: Box<Self>,
         stop_receiver: oneshot::Receiver<()>,
         connected: Arc<Mutex<ConnectionStatus>>,
+        status_sender: oneshot::Sender<()>,
     ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
@@ -103,6 +104,9 @@ impl CheckpointTunnel for IpsecTunnel {
             connected_since: Some(Local::now()),
             ..Default::default()
         };
+        if status_sender.send(()).is_ok() {
+            debug!("IPSec tunnel connection status set")
+        }
 
         let result = tokio::select! {
             _ = stop_receiver => {
