@@ -1,7 +1,10 @@
-use std::{future::Future, pin::Pin, sync::Arc, sync::Mutex};
+use std::{
+    future::Future,
+    pin::Pin,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::anyhow;
-use base64::Engine;
 use clap::Parser;
 use futures::pin_mut;
 use tokio::{signal::unix, sync::oneshot};
@@ -13,6 +16,7 @@ use snx_rs::{
         params::{CmdlineParams, OperationMode, TunnelParams},
         ConnectionStatus, SessionState,
     },
+    platform,
     prompt::SecurePrompt,
     server::CommandServer,
     tunnel::TunnelConnector,
@@ -39,11 +43,7 @@ async fn main() -> anyhow::Result<()> {
     };
     params.merge(cmdline_params);
 
-    if !params.password.is_empty() {
-        // decode password
-        params.password =
-            String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?).into_owned();
-    }
+    params.decode_password()?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))
@@ -62,19 +62,23 @@ async fn main() -> anyhow::Result<()> {
                 return Err(anyhow!("Missing required parameters: server name and/or login type"));
             }
 
+            let mut pwd_prompts = platform::get_server_pwd_prompts(&params).await.unwrap_or_default();
+
             if params.password.is_empty() && params.client_cert.is_none() {
-                params.password = SecurePrompt::tty()
-                    .get_secure_input(&format!("Enter password for {}: ", params.user_name))?
-                    .trim()
-                    .to_owned();
+                let prompt = pwd_prompts
+                    .pop_front()
+                    .unwrap_or(format!("Enter password for {}: ", params.user_name));
+                params.password = SecurePrompt::tty().get_secure_input(&prompt)?.trim().to_owned();
             }
 
             let connector = TunnelConnector::new(Arc::new(params));
             let mut session = Arc::new(connector.authenticate().await?);
 
-            while let SessionState::Pending { ref prompt } = session.state {
-                let prompt = prompt.as_deref().unwrap_or("Multi-factor code: ");
-                match SecurePrompt::tty().get_secure_input(prompt) {
+            while let SessionState::Pending { prompt } = session.state.clone() {
+                let prompt = pwd_prompts
+                    .pop_front()
+                    .unwrap_or(prompt.unwrap_or("Multi-factor code: ".to_string()));
+                match SecurePrompt::tty().get_secure_input(&prompt) {
                     Ok(input) => {
                         session = Arc::new(connector.challenge_code(session, &input).await?);
                     }
@@ -87,7 +91,7 @@ async fn main() -> anyhow::Result<()> {
             let status = Arc::new(Mutex::new(ConnectionStatus::default()));
             let tunnel = connector.create_tunnel(session).await?;
 
-            if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
+            if let Err(e) = platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
 
@@ -98,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
         OperationMode::Command => {
             debug!("Running in command mode");
 
-            if let Err(e) = snx_rs::platform::start_network_state_monitoring().await {
+            if let Err(e) = platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
             let server = CommandServer::new(snx_rs::server::LISTEN_PORT);

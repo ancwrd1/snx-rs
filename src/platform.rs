@@ -5,7 +5,6 @@ use tokio::net::UdpSocket;
 
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
-
 pub use platform_impl::{
     acquire_password,
     net::{
@@ -14,6 +13,7 @@ pub use platform_impl::{
     },
     new_tun_config, send_notification, store_password, IpsecImpl,
 };
+pub use server_info::{get as get_server_info, get_pwd_prompts as get_server_pwd_prompts};
 
 use crate::model::{
     params::TunnelParams,
@@ -21,7 +21,8 @@ use crate::model::{
 };
 
 #[cfg(target_os = "linux")]
-pub mod linux;
+mod linux;
+mod server_info;
 
 #[async_trait::async_trait]
 pub trait IpsecConfigurator {

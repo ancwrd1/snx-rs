@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use base64::Engine;
 use clap::Parser;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
@@ -139,6 +140,14 @@ pub struct CmdlineParams {
         help = "Do not use OS keychain to store or retrieve user password"
     )]
     pub no_keychain: Option<bool>,
+
+    #[clap(
+        long = "server-prompt",
+        short = 'P',
+        default_value = "true",
+        help = "Ask server for authentication data prompt values"
+    )]
+    pub server_prompt: Option<bool>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -188,6 +197,7 @@ pub struct TunnelParams {
     pub cert_password: Option<String>,
     pub if_name: Option<String>,
     pub no_keychain: bool,
+    pub server_prompt: bool,
 }
 
 impl Default for TunnelParams {
@@ -213,6 +223,7 @@ impl Default for TunnelParams {
             cert_password: None,
             if_name: None,
             no_keychain: false,
+            server_prompt: true,
         }
     }
 }
@@ -258,6 +269,7 @@ impl TunnelParams {
                         "cert-password" => params.cert_password = Some(v),
                         "if-name" => params.if_name = Some(v),
                         "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
+                        "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -348,5 +360,17 @@ impl TunnelParams {
         if let Some(no_keychain) = other.no_keychain {
             self.no_keychain = no_keychain;
         }
+
+        if let Some(server_prompt) = other.server_prompt {
+            self.server_prompt = server_prompt;
+        }
+    }
+
+    pub fn decode_password(&mut self) -> anyhow::Result<()> {
+        if !self.password.is_empty() {
+            self.password = String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&self.password)?)
+                .into_owned();
+        }
+        Ok(())
     }
 }

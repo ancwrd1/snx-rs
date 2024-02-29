@@ -1,12 +1,10 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{collections::VecDeque, str::FromStr, time::Duration};
 
 use anyhow::anyhow;
-use base64::Engine;
 use directories_next::ProjectDirs;
 
 use crate::{
-    ccc::CccHttpClient,
-    model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
+    model::{ConnectionStatus, params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
     platform::{self, UdpSocketExt},
     prompt::SecurePrompt,
 };
@@ -41,6 +39,7 @@ impl FromStr for ServiceCommand {
 pub struct ServiceController {
     pub params: TunnelParams,
     prompt: SecurePrompt,
+    pwd_prompts: Option<VecDeque<String>>,
 }
 
 impl ServiceController {
@@ -48,6 +47,7 @@ impl ServiceController {
         Self {
             params,
             prompt: SecurePrompt::tty(),
+            pwd_prompts: None,
         }
     }
 
@@ -60,19 +60,20 @@ impl ServiceController {
         }
         let mut params = TunnelParams::load(config_file)?;
 
-        if !params.password.is_empty() {
-            params.password =
-                String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?)
-                    .into_owned();
-        }
+        params.decode_password()?;
 
-        Ok(Self { params, prompt })
+        Ok(Self {
+            params,
+            prompt,
+            pwd_prompts: None,
+        })
     }
 
     pub async fn command(&mut self, command: ServiceCommand) -> anyhow::Result<ConnectionStatus> {
         match command {
             ServiceCommand::Status => self.do_status().await,
             ServiceCommand::Connect => {
+                self.fill_pwd_prompts().await.unwrap_or_default();
                 self.do_status().await?;
                 self.do_connect().await
             }
@@ -82,6 +83,7 @@ impl ServiceController {
             }
             ServiceCommand::Reconnect => {
                 let _ = self.do_disconnect().await;
+                self.fill_pwd_prompts().await.unwrap_or_default();
                 self.do_connect().await
             }
             ServiceCommand::Info => self.do_info().await,
@@ -89,13 +91,17 @@ impl ServiceController {
     }
 
     #[async_recursion::async_recursion]
-    pub async fn do_status(&self) -> anyhow::Result<ConnectionStatus> {
+    pub async fn do_status(&mut self) -> anyhow::Result<ConnectionStatus> {
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
                 if status.connected_since.is_none() && status.mfa_pending {
-                    let prompt = status.mfa_prompt.as_deref().unwrap_or("Multi-factor code: ");
-                    let input = self.prompt.get_secure_input(prompt)?;
+                    let prompt = self
+                        .pwd_prompts
+                        .as_mut()
+                        .and_then(|deque| deque.pop_front())
+                        .unwrap_or(status.mfa_prompt.unwrap_or("Multi-factor code: ".to_string()));
+                    let input = self.prompt.get_secure_input(prompt.as_str())?;
                     self.do_challenge_code(input).await
                 } else {
                     if status.connected_since.is_some() && !self.params.password.is_empty() && !self.params.no_keychain
@@ -125,11 +131,12 @@ impl ServiceController {
                     params.password = password;
                 }
             } else {
-                params.password = self
-                    .prompt
-                    .get_secure_input(&format!("Enter password for {}: ", params.user_name))?
-                    .trim()
-                    .to_owned();
+                let prompt = self
+                    .pwd_prompts
+                    .as_mut()
+                    .and_then(|deque| deque.pop_front())
+                    .unwrap_or(format!("Enter password for {}: ", params.user_name));
+                params.password = self.prompt.get_secure_input(&prompt)?.trim().to_owned();
             }
             self.params = params;
         }
@@ -145,7 +152,7 @@ impl ServiceController {
         }
     }
 
-    async fn do_challenge_code(&self, code: String) -> anyhow::Result<ConnectionStatus> {
+    async fn do_challenge_code(&mut self, code: String) -> anyhow::Result<ConnectionStatus> {
         let response = self
             .send_receive(
                 TunnelServiceRequest::ChallengeCode(code, self.params.clone()),
@@ -160,7 +167,7 @@ impl ServiceController {
         }
     }
 
-    async fn do_disconnect(&self) -> anyhow::Result<ConnectionStatus> {
+    async fn do_disconnect(&mut self) -> anyhow::Result<ConnectionStatus> {
         self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
             .await?;
         self.do_status().await
@@ -181,16 +188,21 @@ impl ServiceController {
         Ok(serde_json::from_slice(&result)?)
     }
 
+    async fn fill_pwd_prompts(&mut self) -> anyhow::Result<()> {
+        self.pwd_prompts
+            .replace(platform::get_server_pwd_prompts(&self.params).await.unwrap_or_default());
+        Ok(())
+    }
+
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
-        let client = CccHttpClient::new(Arc::new(self.params.clone()), None);
-        let info = client.get_server_info().await?;
-        let response_data = info
-            .get("ResponseData")
-            .and_then(|v| v.as_object().cloned())
-            .unwrap_or_default();
+        let response_data = platform::get_server_info(&self.params).await?;
 
         println!("{}", serde_json::to_string_pretty(&response_data)?);
-
-        Ok(ConnectionStatus::default())
+        let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
+        match response {
+            Ok(TunnelServiceResponse::ConnectionStatus(status)) => Ok(status),
+            Ok(_) => Err(anyhow!("Invalid response!")),
+            Err(e) => Err(e),
+        }
     }
 }
