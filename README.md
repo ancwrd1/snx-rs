@@ -13,14 +13,18 @@ Based on the reverse engineered protocol from the vendor application.
 
 ## Implemented features
 
-* SSL tunnel
-* IPSec tunnel
+* SSL tunnel via TUN device
+* IPSec tunnel. Supported features: AES-CBC-256 and HMAC-SHA-256 algorithms, ESPinUDP tunnel encapsulation
 * Username/password authentication with MFA support
 * Certificate authentication via the provided client certificate
 * Microsoft Authenticator app support
 * Multi-factor codes input via TTY/GUI (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
 * Tray icon and menu support (optional via 'tray-icon' compile-time feature)
+
+## Coming soon
+ 
+* SAML SSO support (in development)
 
 ## System requirements
 
@@ -97,10 +101,6 @@ Configuration file may contain all options which are accepted via the command li
 
 Rust compiler 1.75 or later (https://rustup.rs) is required. Run `cargo build --release --all-features`
  to build the release version with tray icon support.
-
-## Roadmap
- 
-* SAML SSO (help needed)
 
 ## License
 
