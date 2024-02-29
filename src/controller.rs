@@ -1,18 +1,13 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
-use std::collections::VecDeque;
+use std::{collections::VecDeque, str::FromStr, time::Duration};
 
 use anyhow::anyhow;
-use base64::Engine;
 use directories_next::ProjectDirs;
-use serde_json::Value;
 
 use crate::{
-    ccc::CccHttpClient,
     model::{ConnectionStatus, params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
     platform::{self, UdpSocketExt},
     prompt::SecurePrompt,
 };
-use crate::model::proto::{LoginDisplayLabelSelect, ServerInfoResponse};
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(120);
@@ -44,7 +39,7 @@ impl FromStr for ServiceCommand {
 pub struct ServiceController {
     pub params: TunnelParams,
     prompt: SecurePrompt,
-    pwd_prompts: VecDeque<String>,
+    pwd_prompts: Option<VecDeque<String>>,
 }
 
 impl ServiceController {
@@ -52,7 +47,7 @@ impl ServiceController {
         Self {
             params,
             prompt: SecurePrompt::tty(),
-            pwd_prompts: VecDeque::new(),
+            pwd_prompts: None,
         }
     }
 
@@ -65,16 +60,12 @@ impl ServiceController {
         }
         let mut params = TunnelParams::load(config_file)?;
 
-        if !params.password.is_empty() {
-            params.password =
-                String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&params.password)?)
-                    .into_owned();
-        }
+        params.decode_password()?;
 
         Ok(Self {
             params,
             prompt,
-            pwd_prompts: VecDeque::new(),
+            pwd_prompts: None,
         })
     }
 
@@ -105,7 +96,10 @@ impl ServiceController {
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
                 if status.connected_since.is_none() && status.mfa_pending {
-                    let prompt = self.pwd_prompts.pop_front()
+                    let prompt = self
+                        .pwd_prompts
+                        .as_mut()
+                        .and_then(|deque| deque.pop_front())
                         .unwrap_or(status.mfa_prompt.unwrap_or("Multi-factor code: ".to_string()));
                     let input = self.prompt.get_secure_input(prompt.as_str())?;
                     self.do_challenge_code(input).await
@@ -137,12 +131,12 @@ impl ServiceController {
                     params.password = password;
                 }
             } else {
-                let prompt = self.pwd_prompts.pop_front().unwrap_or(format!("Enter password for {}: ", params.user_name));
-                params.password = self
-                    .prompt
-                    .get_secure_input(&prompt)?
-                    .trim()
-                    .to_owned();
+                let prompt = self
+                    .pwd_prompts
+                    .as_mut()
+                    .and_then(|deque| deque.pop_front())
+                    .unwrap_or(format!("Enter password for {}: ", params.user_name));
+                params.password = self.prompt.get_secure_input(&prompt)?.trim().to_owned();
             }
             self.params = params;
         }
@@ -195,38 +189,13 @@ impl ServiceController {
     }
 
     async fn fill_pwd_prompts(&mut self) -> anyhow::Result<()> {
-        if !self.params.server_prompt { 
-            return Ok(())
-        }
-        let server_info = self.get_server_info().await?;
-        let login_type = &self.params.login_type;
-        let login_factors = server_info
-            .login_options_data
-            .login_options_list
-            .iter()
-            .find(|login_option| login_option.id == *login_type)
-            .map(|login_option| login_option.to_owned())
-            .unwrap()
-            .factors;
-        login_factors
-            .iter()
-            .filter_map(|factor| match &factor.custom_display_labels {
-                LoginDisplayLabelSelect::LoginDisplayLabel(label) => Some(&label.password),
-                LoginDisplayLabelSelect::Empty(_) => None,
-            })
-            .for_each(|prompt| { self.pwd_prompts.push_back(format!("{}: ", prompt.0.clone())) });
+        self.pwd_prompts
+            .replace(platform::get_server_pwd_prompts(&self.params).await.unwrap_or_default());
         Ok(())
     }
 
-    async fn get_server_info(&self) -> anyhow::Result<ServerInfoResponse> {
-        let client = CccHttpClient::new(Arc::new(self.params.clone()), None);
-        let info = client.get_server_info().await?;
-        let response_data = info.get("ResponseData").unwrap_or(&Value::Null);
-        Ok(serde_json::from_value::<ServerInfoResponse>(response_data.clone())?)
-    }
-
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
-        let response_data = self.get_server_info().await?;
+        let response_data = platform::get_server_info(&self.params).await?;
 
         println!("{}", serde_json::to_string_pretty(&response_data)?);
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;

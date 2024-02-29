@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use base64::Engine;
 use clap::Parser;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
@@ -363,5 +364,13 @@ impl TunnelParams {
         if let Some(server_prompt) = other.server_prompt {
             self.server_prompt = server_prompt;
         }
+    }
+
+    pub fn decode_password(&mut self) -> anyhow::Result<()> {
+        if !self.password.is_empty() {
+            self.password = String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&self.password)?)
+                .into_owned();
+        }
+        Ok(())
     }
 }
