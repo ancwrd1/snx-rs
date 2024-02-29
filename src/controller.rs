@@ -4,9 +4,10 @@ use anyhow::anyhow;
 use directories_next::ProjectDirs;
 
 use crate::{
-    model::{ConnectionStatus, params::TunnelParams, TunnelServiceRequest, TunnelServiceResponse},
+    model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     platform::{self, UdpSocketExt},
     prompt::SecurePrompt,
+    server_info,
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -190,12 +191,12 @@ impl ServiceController {
 
     async fn fill_pwd_prompts(&mut self) -> anyhow::Result<()> {
         self.pwd_prompts
-            .replace(platform::get_server_pwd_prompts(&self.params).await.unwrap_or_default());
+            .replace(server_info::get_pwd_prompts(&self.params).await.unwrap_or_default());
         Ok(())
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
-        let response_data = platform::get_server_info(&self.params).await?;
+        let response_data = server_info::get(&self.params).await?;
 
         println!("{}", serde_json::to_string_pretty(&response_data)?);
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;

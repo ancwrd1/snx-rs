@@ -19,6 +19,7 @@ use snx_rs::{
     platform,
     prompt::SecurePrompt,
     server::CommandServer,
+    server_info,
     tunnel::TunnelConnector,
 };
 
@@ -62,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
                 return Err(anyhow!("Missing required parameters: server name and/or login type"));
             }
 
-            let mut pwd_prompts = platform::get_server_pwd_prompts(&params).await.unwrap_or_default();
+            let mut pwd_prompts = server_info::get_pwd_prompts(&params).await.unwrap_or_default();
 
             if params.password.is_empty() && params.client_cert.is_none() {
                 let prompt = pwd_prompts
