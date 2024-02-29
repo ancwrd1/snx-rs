@@ -13,9 +13,12 @@ Based on the reverse engineered protocol from the vendor application.
 
 ## Implemented features
 
-* SSL tunnel via TUN device
-* IPSec tunnel. Supported features: AES-CBC-256 and HMAC-SHA-256 algorithms, ESPinUDP tunnel encapsulation
 * **NEW**: SAML SSO authentication (only with IPSec tunnel)
+* SSL tunnel via Linux TUN device
+* IPSec tunnel via Linux native kernel XFRM interface and VTI device with the following features:
+  * `AES-CBC-256` encryption algorithm
+  * `HMAC-SHA-256-128` authentication algorithm
+  * `ESPinUDP` tunnel encapsulation via UDP port 4500
 * Username/password authentication with MFA support
 * Certificate authentication via the provided client certificate
 * Microsoft Authenticator app support
