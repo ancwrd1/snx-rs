@@ -9,7 +9,7 @@ use crate::{
     model::{
         params::TunnelParams, CccSession, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
     },
-    tunnel::TunnelConnector,
+    tunnel,
 };
 
 pub const LISTEN_PORT: u16 = 7779;
@@ -102,18 +102,17 @@ impl CommandServer {
     }
 
     async fn connect_for_session(&mut self, params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<()> {
-        if let SessionState::Pending { ref prompt } = session.state {
+        if let SessionState::PendingChallenge(ref challenge) = session.state {
             debug!("Pending multi-factor, awaiting for it");
             self.session = Some(session.clone());
             *self.connected.lock().unwrap() = ConnectionStatus {
-                mfa_pending: true,
-                mfa_prompt: prompt.clone(),
+                mfa: Some(challenge.clone()),
                 ..Default::default()
             };
             return Ok(());
         }
 
-        let connector = TunnelConnector::new(params.clone());
+        let connector = tunnel::new_tunnel_connector(params.clone()).await?;
         let tunnel = connector.create_tunnel(session).await?;
 
         let (tx, rx) = oneshot::channel();
@@ -136,8 +135,8 @@ impl CommandServer {
         if !self.is_connected() {
             self.session = None;
 
-            let connector = TunnelConnector::new(params.clone());
-            let session = Arc::new(connector.authenticate().await?);
+            let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
+            let session = connector.authenticate().await?;
             self.connect_for_session(params, session).await
         } else {
             Err(anyhow!("Tunnel is already connected!"))
@@ -145,10 +144,10 @@ impl CommandServer {
     }
 
     async fn challenge_code(&mut self, code: &str, params: Arc<TunnelParams>) -> anyhow::Result<()> {
-        let connector = TunnelConnector::new(params.clone());
+        let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
         match self.session.as_ref() {
             Some(session) => {
-                let new_session = Arc::new(connector.challenge_code(session.clone(), code).await?);
+                let new_session = connector.challenge_code(session.clone(), code).await?;
                 self.connect_for_session(params, new_session).await
             }
             None => Err(anyhow!("No session")),

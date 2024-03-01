@@ -19,8 +19,7 @@ use snx_rs::{
     platform,
     prompt::SecurePrompt,
     server::CommandServer,
-    server_info,
-    tunnel::TunnelConnector,
+    server_info, tunnel,
 };
 
 fn is_root() -> bool {
@@ -72,16 +71,13 @@ async fn main() -> anyhow::Result<()> {
                 params.password = SecurePrompt::tty().get_secure_input(&prompt)?.trim().to_owned();
             }
 
-            let connector = TunnelConnector::new(Arc::new(params));
-            let mut session = Arc::new(connector.authenticate().await?);
+            let mut connector = tunnel::new_tunnel_connector(Arc::new(params)).await?;
+            let mut session = connector.authenticate().await?;
 
-            while let SessionState::Pending { prompt } = session.state.clone() {
-                let prompt = pwd_prompts
-                    .pop_front()
-                    .unwrap_or(prompt.unwrap_or("Multi-factor code: ".to_string()));
-                match SecurePrompt::tty().get_secure_input(&prompt) {
+            while let SessionState::PendingChallenge(challenge) = session.state.clone() {
+                match SecurePrompt::tty().get_secure_input(&challenge.prompt) {
                     Ok(input) => {
-                        session = Arc::new(connector.challenge_code(session, &input).await?);
+                        session = connector.challenge_code(session, &input).await?;
                     }
                     Err(e) => {
                         return Err(e);

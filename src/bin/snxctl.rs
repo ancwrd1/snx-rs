@@ -45,7 +45,11 @@ async fn main() -> anyhow::Result<()> {
             if let Some(since) = status.connected_since {
                 println!(
                     "{} since: {}",
-                    if status.mfa_pending { "MFA pending" } else { "Connected" },
+                    if status.mfa.is_some() {
+                        "MFA pending"
+                    } else {
+                        "Connected"
+                    },
                     since
                 );
             } else {

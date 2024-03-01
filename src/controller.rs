@@ -97,13 +97,8 @@ impl ServiceController {
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
-                if status.connected_since.is_none() && status.mfa_pending {
-                    let prompt = self
-                        .pwd_prompts
-                        .as_mut()
-                        .and_then(|deque| deque.pop_front())
-                        .unwrap_or(status.mfa_prompt.unwrap_or("Multi-factor code: ".to_string()));
-                    let input = self.prompt.get_secure_input(prompt.as_str())?;
+                if let (None, Some(mfa)) = (status.connected_since, &status.mfa) {
+                    let input = self.prompt.get_secure_input(mfa.prompt.as_str())?;
                     self.do_challenge_code(input).await
                 } else {
                     if status.connected_since.is_some() && !self.params.password.is_empty() && !self.params.no_keychain

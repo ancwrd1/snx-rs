@@ -1,5 +1,7 @@
 use chrono::{DateTime, Local};
+use isakmp::session::EspCryptMaterial;
 use serde::{Deserialize, Serialize};
+use std::net::Ipv4Addr;
 
 use crate::model::params::TunnelParams;
 
@@ -7,32 +9,75 @@ pub mod params;
 pub mod proto;
 pub mod wrappers;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum SessionState {
-    Authenticated { active_key: String },
-    Pending { prompt: Option<String> },
+    #[default]
+    NoState,
+    Authenticated(String),
+    PendingChallenge(MfaChallenge),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IpsecSession {
+    pub address: Ipv4Addr,
+    pub netmask: Ipv4Addr,
+    pub dns: Vec<Ipv4Addr>,
+    pub domains: Vec<String>,
+    pub esp_in: EspCryptMaterial,
+    pub esp_out: EspCryptMaterial,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CccSession {
     pub session_id: String,
+    pub ipsec_session: Option<IpsecSession>,
     pub state: SessionState,
 }
 
 impl CccSession {
+    pub fn empty() -> Self {
+        Self {
+            session_id: String::new(),
+            ipsec_session: None,
+            state: Default::default(),
+        }
+    }
+
     pub fn active_key(&self) -> &str {
         match self.state {
-            SessionState::Authenticated { ref active_key } => active_key.as_str(),
-            SessionState::Pending { .. } => "",
+            SessionState::Authenticated(ref active_key) => active_key.as_str(),
+            _ => "",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
+pub enum MfaType {
+    #[default]
+    UserInput,
+    SamlSso,
+}
+
+impl MfaType {
+    pub fn from_id(id: &str) -> Self {
+        if id == "CPSC_SP_URL" {
+            Self::SamlSso
+        } else {
+            Self::UserInput
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
+pub struct MfaChallenge {
+    pub mfa_type: MfaType,
+    pub prompt: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct ConnectionStatus {
     pub connected_since: Option<DateTime<Local>>,
-    pub mfa_pending: bool,
-    pub mfa_prompt: Option<String>,
+    pub mfa: Option<MfaChallenge>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

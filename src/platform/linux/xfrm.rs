@@ -1,15 +1,14 @@
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    sync::Arc,
-};
+use bytes::Bytes;
+use isakmp::session::EspCryptMaterial;
+use std::{net::Ipv4Addr, sync::Arc};
 
 use tracing::debug;
 
+use crate::model::IpsecSession;
 use crate::{
     model::{
         params::TunnelParams,
-        proto::{AuthenticationAlgorithm, ClientSettingsResponse, EncryptionAlgorithm, IpsecSA, KeyManagementResponse},
-        wrappers::HexKey,
+        proto::{AuthenticationAlgorithm, ClientSettingsResponse, EncryptionAlgorithm},
     },
     platform::{self, IpsecConfigurator},
     util,
@@ -85,15 +84,15 @@ struct XfrmState {
     dst_port: u16,
     spi: u32,
     auth_alg: AuthenticationAlgorithm,
-    auth_key: HexKey,
+    auth_key: Bytes,
     enc_alg: EncryptionAlgorithm,
-    enc_key: HexKey,
+    enc_key: Bytes,
 }
 
 impl XfrmState {
     async fn add(&self) -> anyhow::Result<()> {
-        let authkey = format!("0x{}", self.auth_key.0);
-        let enckey = format!("0x{}", self.enc_key.0);
+        let authkey = format!("0x{}", hex::encode(&self.auth_key));
+        let enckey = format!("0x{}", hex::encode(&self.enc_key));
         let trunc_len = self.auth_alg.trunc_length().to_string();
 
         let spi = format!("0x{:x}", self.spi);
@@ -231,7 +230,7 @@ impl PolicyDir {
 
 pub struct XfrmConfigurator {
     tunnel_params: Arc<TunnelParams>,
-    ipsec_params: KeyManagementResponse,
+    ipsec_session: IpsecSession,
     client_settings: ClientSettingsResponse,
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
@@ -242,14 +241,14 @@ pub struct XfrmConfigurator {
 impl XfrmConfigurator {
     pub async fn new(
         tunnel_params: Arc<TunnelParams>,
-        ipsec_params: KeyManagementResponse,
+        ipsec_session: IpsecSession,
         client_settings: ClientSettingsResponse,
         xfrm_key: u32,
         src_port: u16,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             tunnel_params,
-            ipsec_params,
+            ipsec_session,
             client_settings,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip: Ipv4Addr::new(0, 0, 0, 0),
@@ -269,9 +268,8 @@ impl XfrmConfigurator {
         VtiDevice {
             name: self.vti_name().to_owned(),
             key: self.key,
-            address: self.ipsec_params.om_addr.into(),
-            prefix: ipnet::ip_mask_to_prefix(IpAddr::from(self.ipsec_params.om_subnet_mask.to_be_bytes()))
-                .unwrap_or_default(),
+            address: self.ipsec_session.address,
+            prefix: ipnet::ipv4_mask_to_prefix(self.ipsec_session.netmask).unwrap_or_default(),
             local: self.source_ip,
             remote: self.dest_ip,
         }
@@ -288,7 +286,7 @@ impl XfrmConfigurator {
         command: CommandType,
         src: Ipv4Addr,
         dst: Ipv4Addr,
-        params: &IpsecSA,
+        params: &EspCryptMaterial,
     ) -> anyhow::Result<()> {
         let state = XfrmState {
             src,
@@ -296,10 +294,10 @@ impl XfrmConfigurator {
             src_port: self.src_port,
             dst_port: 4500,
             spi: params.spi,
-            auth_alg: self.ipsec_params.authalg,
-            auth_key: params.authkey.clone(),
-            enc_alg: self.ipsec_params.encalg,
-            enc_key: params.enckey.clone(),
+            auth_alg: AuthenticationAlgorithm::HmacSha256,
+            auth_key: params.sk_a.clone(),
+            enc_alg: EncryptionAlgorithm::Aes256Cbc,
+            enc_key: params.sk_e.clone(),
         };
         match command {
             CommandType::Add => state.add().await?,
@@ -337,14 +335,14 @@ impl XfrmConfigurator {
             CommandType::Add,
             self.source_ip,
             self.dest_ip,
-            &self.ipsec_params.client_encsa,
+            &self.ipsec_session.esp_out,
         )
         .await?;
         self.configure_xfrm_state(
             CommandType::Add,
             self.dest_ip,
             self.source_ip,
-            &self.ipsec_params.client_decsa,
+            &self.ipsec_session.esp_in,
         )
         .await?;
 
@@ -358,16 +356,15 @@ impl XfrmConfigurator {
 
     async fn setup_routing(&self) -> anyhow::Result<()> {
         if !self.tunnel_params.no_routing {
-            let addr: Ipv4Addr = self.ipsec_params.om_addr.into();
             if self.tunnel_params.default_route {
-                let _ = platform::add_default_route(self.vti_name(), addr).await;
+                let _ = platform::add_default_route(self.vti_name(), self.ipsec_session.address).await;
             } else {
                 let subnets = util::ranges_to_subnets(&self.client_settings.updated_policies.range.settings)
                     .chain(self.tunnel_params.add_routes.clone())
                     .filter(|s| !s.contains(&self.dest_ip))
                     .collect::<Vec<_>>();
 
-                let _ = platform::add_routes(&subnets, self.vti_name(), addr).await;
+                let _ = platform::add_routes(&subnets, self.vti_name(), self.ipsec_session.address).await;
             }
         }
 
@@ -387,15 +384,13 @@ impl XfrmConfigurator {
 
     async fn setup_dns(&self) -> anyhow::Result<()> {
         if !self.tunnel_params.no_dns {
-            debug!("Adding acquired DNS suffixes: {:?}", self.ipsec_params.om_domain_name);
+            debug!("Adding acquired DNS suffixes: {:?}", self.ipsec_session.domains);
             debug!("Adding provided DNS suffixes: {:?}", self.tunnel_params.search_domains);
             let suffixes = self
-                .ipsec_params
-                .om_domain_name
-                .as_ref()
-                .map(|s| s.0.as_str())
-                .unwrap_or_default()
-                .split(',')
+                .ipsec_session
+                .domains
+                .iter()
+                .map(|s| s.as_str())
                 .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()))
                 .filter(|&s| {
                     !self
@@ -406,22 +401,7 @@ impl XfrmConfigurator {
                 });
             let _ = platform::add_dns_suffixes(suffixes, self.vti_name()).await;
 
-            let dns_servers = [
-                self.ipsec_params.om_dns0,
-                self.ipsec_params.om_dns1,
-                self.ipsec_params.om_dns2,
-            ];
-
-            let servers = dns_servers.into_iter().flatten().filter_map(|server| {
-                if server != 0 {
-                    let addr: Ipv4Addr = server.into();
-                    debug!("Adding DNS server: {}", addr);
-                    Some(addr.to_string())
-                } else {
-                    None
-                }
-            });
-
+            let servers = self.ipsec_session.dns.iter().map(|server| server.to_string());
             let _ = platform::add_dns_servers(servers, self.vti_name()).await;
         }
         Ok(())
@@ -452,7 +432,7 @@ impl IpsecConfigurator for XfrmConfigurator {
                 CommandType::Delete,
                 self.source_ip,
                 self.dest_ip,
-                &self.ipsec_params.client_encsa,
+                &self.ipsec_session.esp_out,
             )
             .await;
 
@@ -461,7 +441,7 @@ impl IpsecConfigurator for XfrmConfigurator {
                 CommandType::Delete,
                 self.dest_ip,
                 self.source_ip,
-                &self.ipsec_params.client_decsa,
+                &self.ipsec_session.esp_in,
             )
             .await;
 

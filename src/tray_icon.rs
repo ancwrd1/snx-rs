@@ -47,7 +47,7 @@ impl MyTray {
             match self.status {
                 Ok(ref status) => {
                     if let Some(since) = status.connected_since {
-                        if status.mfa_pending {
+                        if status.mfa.is_some() {
                             "Pending MFA prompt".to_owned()
                         } else {
                             format!("Connected since: {}", since.to_rfc2822())
@@ -104,7 +104,7 @@ impl Tray for MyTray {
                 enabled: self
                     .status
                     .as_ref()
-                    .is_ok_and(|status| status.connected_since.is_none() && !status.mfa_pending)
+                    .is_ok_and(|status| status.connected_since.is_none() && status.mfa.is_none())
                     && !self.connecting,
                 activate: Box::new(|this: &mut Self| this.connect()),
                 ..Default::default()

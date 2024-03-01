@@ -14,10 +14,7 @@ pub use platform_impl::{
     new_tun_config, send_notification, store_password, IpsecImpl,
 };
 
-use crate::model::{
-    params::TunnelParams,
-    proto::{ClientSettingsResponse, KeyManagementResponse},
-};
+use crate::model::{params::TunnelParams, proto::ClientSettingsResponse, IpsecSession};
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -30,12 +27,12 @@ pub trait IpsecConfigurator {
 
 pub async fn new_ipsec_configurator(
     tunnel_params: Arc<TunnelParams>,
-    ipsec_params: KeyManagementResponse,
+    ipsec_session: IpsecSession,
     client_settings: ClientSettingsResponse,
     key: u32,
     src_port: u16,
 ) -> anyhow::Result<impl IpsecConfigurator> {
-    IpsecImpl::new(tunnel_params, ipsec_params, client_settings, key, src_port).await
+    IpsecImpl::new(tunnel_params, ipsec_session, client_settings, key, src_port).await
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]

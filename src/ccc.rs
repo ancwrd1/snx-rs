@@ -85,7 +85,7 @@ impl CccHttpClient {
         }
     }
 
-    fn new_key_management_request(&self) -> CccClientRequestData {
+    fn new_key_management_request(&self, spi: u32) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
@@ -94,7 +94,7 @@ impl CccHttpClient {
                 protocol_version: Some(100),
             },
             data: RequestData::KeyManagement(KeyManagementRequest {
-                spi: rand::random::<u32>(),
+                spi,
                 rekey: false,
                 req_om_addr: 0x00000000,
             }),
@@ -234,8 +234,8 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn get_ipsec_tunnel_params(&self) -> anyhow::Result<KeyManagementResponse> {
-        let req = self.new_key_management_request();
+    pub async fn get_ipsec_tunnel_params(&self, spi: u32) -> anyhow::Result<KeyManagementResponse> {
+        let req = self.new_key_management_request(spi);
 
         match self.send_ccc_request(req).await? {
             ResponseData::KeyManagement(data) => Ok(data),
