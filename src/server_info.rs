@@ -12,11 +12,10 @@ use crate::{
 pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
     let client = CccHttpClient::new(Arc::new(params.clone()), None);
     let info = client.get_server_info().await?;
-    Ok(info
-        .get("CCCserverResponse:ResponseData")
+    info.get("CCCserverResponse:ResponseData")
         .cloned()
         .unwrap_or(SExpression::Null)
-        .try_into()?)
+        .try_into()
 }
 
 pub async fn get_pwd_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<String>> {
