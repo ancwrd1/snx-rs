@@ -144,7 +144,7 @@ pub struct CmdlineParams {
     #[clap(
         long = "server-prompt",
         short = 'P',
-        default_value = "true",
+        default_value = "false",
         help = "Ask server for authentication data prompt values"
     )]
     pub server_prompt: Option<bool>,

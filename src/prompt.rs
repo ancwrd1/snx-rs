@@ -9,7 +9,7 @@ use tokio::{
     net::TcpListener,
 };
 
-pub const OTP_TIMEOUT: Duration = Duration::from_secs(300);
+pub const OTP_TIMEOUT: Duration = Duration::from_secs(120);
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 enum PromptSource {

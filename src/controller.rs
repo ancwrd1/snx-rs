@@ -3,13 +3,13 @@ use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 use anyhow::anyhow;
 use directories_next::ProjectDirs;
 
-use crate::ccc::CccHttpClient;
-use crate::model::{MfaChallenge, MfaType};
-use crate::prompt::{run_otp_listener, OTP_TIMEOUT};
 use crate::{
-    model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
+    ccc::CccHttpClient,
+    model::{
+        params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest, TunnelServiceResponse,
+    },
     platform::{self, UdpSocketExt},
-    prompt::SecurePrompt,
+    prompt::{run_otp_listener, SecurePrompt, OTP_TIMEOUT},
     server_info,
 };
 
@@ -43,7 +43,8 @@ impl FromStr for ServiceCommand {
 pub struct ServiceController {
     pub params: TunnelParams,
     prompt: SecurePrompt,
-    pwd_prompts: Option<VecDeque<String>>,
+    mfa_prompts: Option<VecDeque<String>>,
+    password: String,
 }
 
 impl ServiceController {
@@ -51,7 +52,8 @@ impl ServiceController {
         Self {
             params,
             prompt: SecurePrompt::tty(),
-            pwd_prompts: None,
+            mfa_prompts: None,
+            password: String::new(),
         }
     }
 
@@ -69,7 +71,8 @@ impl ServiceController {
         Ok(Self {
             params,
             prompt,
-            pwd_prompts: None,
+            mfa_prompts: None,
+            password: String::new(),
         })
     }
 
@@ -77,7 +80,6 @@ impl ServiceController {
         match command {
             ServiceCommand::Status => self.do_status().await,
             ServiceCommand::Connect => {
-                self.fill_pwd_prompts().await.unwrap_or_default();
                 self.do_status().await?;
                 self.do_connect().await
             }
@@ -87,7 +89,6 @@ impl ServiceController {
             }
             ServiceCommand::Reconnect => {
                 let _ = self.do_disconnect().await;
-                self.fill_pwd_prompts().await.unwrap_or_default();
                 self.do_connect().await
             }
             ServiceCommand::Info => self.do_info().await,
@@ -101,12 +102,17 @@ impl ServiceController {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
                 if let (None, Some(mfa)) = (status.connected_since, &status.mfa) {
                     let input = self.get_mfa_input(mfa).await?;
-                    self.do_challenge_code(input).await
-                } else {
-                    if status.connected_since.is_some() && !self.params.password.is_empty() && !self.params.no_keychain
+                    let result = self.do_challenge_code(input.clone()).await;
+                    if result.is_ok()
+                        && mfa.mfa_type == MfaType::UserInput
+                        && !self.password.is_empty()
+                        && !self.params.no_keychain
                     {
-                        let _ = platform::store_password(&self.params.user_name, &self.params.password).await;
+                        let _ = platform::store_password(&self.params.user_name, &input).await;
+                        self.password.clear();
                     }
+                    result
+                } else {
                     Ok(status)
                 }
             }
@@ -115,9 +121,14 @@ impl ServiceController {
         }
     }
 
-    async fn get_mfa_input(&self, mfa: &MfaChallenge) -> anyhow::Result<String> {
+    async fn get_mfa_input(&mut self, mfa: &MfaChallenge) -> anyhow::Result<String> {
         match mfa.mfa_type {
-            MfaType::UserInput => self.prompt.get_secure_input(mfa.prompt.as_str()),
+            MfaType::UserInput => {
+                if self.password.is_empty() {
+                    self.password = self.prompt.get_secure_input(mfa.prompt.as_str())?;
+                }
+                Ok(self.password.clone())
+            }
             MfaType::SamlSso => {
                 opener::open(&mfa.prompt)?;
                 Ok(tokio::time::timeout(OTP_TIMEOUT, run_otp_listener()).await??)
@@ -126,7 +137,9 @@ impl ServiceController {
     }
 
     async fn do_connect(&mut self) -> anyhow::Result<ConnectionStatus> {
-        let mut params = self.params.clone();
+        self.fill_pwd_prompts().await;
+
+        let params = self.params.clone();
 
         if params.server_name.is_empty() || params.login_type.is_empty() {
             return Err(anyhow!(
@@ -134,20 +147,10 @@ impl ServiceController {
             ));
         }
 
-        if params.password.is_empty() && params.client_cert.is_none() {
-            if !params.no_keychain {
-                if let Ok(password) = platform::acquire_password(&params.user_name).await {
-                    params.password = password;
-                }
-            } else {
-                let prompt = self
-                    .pwd_prompts
-                    .as_mut()
-                    .and_then(|deque| deque.pop_front())
-                    .unwrap_or(format!("Enter password for {}: ", params.user_name));
-                params.password = self.prompt.get_secure_input(&prompt)?.trim().to_owned();
+        if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {
+            if let Ok(password) = platform::acquire_password(&self.params.user_name).await {
+                self.password = password;
             }
-            self.params = params;
         }
 
         let response = self
@@ -197,10 +200,9 @@ impl ServiceController {
         Ok(serde_json::from_slice(&result)?)
     }
 
-    async fn fill_pwd_prompts(&mut self) -> anyhow::Result<()> {
-        self.pwd_prompts
-            .replace(server_info::get_pwd_prompts(&self.params).await.unwrap_or_default());
-        Ok(())
+    async fn fill_pwd_prompts(&mut self) {
+        self.mfa_prompts
+            .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {

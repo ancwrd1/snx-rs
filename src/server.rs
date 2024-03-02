@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::anyhow;
 use tokio::sync::oneshot;
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
@@ -46,14 +46,14 @@ impl CommandServer {
         loop {
             let (size, addr) = socket.recv_from(&mut buf).await?;
             let resp = self.handle(&buf[0..size]).await;
-            debug!("Response: {:?}", resp);
+            trace!("Response: {:?}", resp);
             let json = serde_json::to_vec(&resp)?;
             let _ = socket.send_to(&json, addr).await;
         }
     }
 
     async fn handle(&mut self, packet: &[u8]) -> TunnelServiceResponse {
-        debug!("Command received");
+        trace!("Command received");
         let req = match serde_json::from_slice::<TunnelServiceRequest>(packet) {
             Ok(req) => req,
             Err(e) => {
@@ -64,7 +64,7 @@ impl CommandServer {
 
         match req {
             TunnelServiceRequest::Connect(params) => {
-                debug!("Handling connect command");
+                trace!("Handling connect command");
                 match self.connect(Arc::new(params)).await {
                     Ok(_) => TunnelServiceResponse::Ok,
                     Err(e) => {
@@ -84,7 +84,7 @@ impl CommandServer {
                 }
             }
             TunnelServiceRequest::GetStatus => {
-                debug!("Handling get status command");
+                trace!("Handling get status command");
                 TunnelServiceResponse::ConnectionStatus(self.get_status())
             }
             TunnelServiceRequest::ChallengeCode(code, _) => {

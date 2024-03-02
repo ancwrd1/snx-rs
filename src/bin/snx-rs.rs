@@ -12,16 +12,14 @@ use tracing::{debug, metadata::LevelFilter, warn};
 use snx_rs::{
     ccc::CccHttpClient,
     model::{
-        ConnectionStatus,
-        params::{CmdlineParams, OperationMode, TunnelParams}, SessionState,
+        params::{CmdlineParams, OperationMode, TunnelParams},
+        ConnectionStatus, MfaType, SessionState,
     },
     platform,
-    prompt::SecurePrompt,
+    prompt::{run_otp_listener, SecurePrompt, OTP_TIMEOUT},
     server::CommandServer,
-    tunnel,
+    server_info, tunnel,
 };
-use snx_rs::model::MfaType;
-use snx_rs::prompt::{OTP_TIMEOUT, run_otp_listener};
 
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
@@ -89,19 +87,24 @@ async fn main() -> anyhow::Result<()> {
                 return Err(anyhow!("Missing required parameters: server name and/or login type"));
             }
 
+            let mut mfa_prompts = server_info::get_mfa_prompts(&params).await.unwrap_or_default();
+
             let mut connector = tunnel::new_tunnel_connector(Arc::new(params)).await?;
             let mut session = connector.authenticate().await?;
 
             while let SessionState::PendingChallenge(challenge) = session.state.clone() {
                 match challenge.mfa_type {
-                    MfaType::UserInput => match SecurePrompt::tty().get_secure_input(&challenge.prompt) {
-                        Ok(input) => {
-                            session = connector.challenge_code(session, &input).await?;
+                    MfaType::UserInput => {
+                        let prompt = mfa_prompts.pop_front().unwrap_or_else(|| challenge.prompt.clone());
+                        match SecurePrompt::tty().get_secure_input(&prompt) {
+                            Ok(input) => {
+                                session = connector.challenge_code(session, &input).await?;
+                            }
+                            Err(e) => {
+                                return Err(e);
+                            }
                         }
-                        Err(e) => {
-                            return Err(e);
-                        }
-                    },
+                    }
                     MfaType::SamlSso => {
                         println!("For SAML authentication please open the following URL in your browser:");
                         println!("{}", challenge.prompt);

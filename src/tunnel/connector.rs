@@ -348,6 +348,9 @@ impl IpsecTunnelConnector {
                         if self.last_challenge_type == ConfigAttributeType::UserName {
                             return Err(anyhow!("Endless loop of username challenges!"));
                         }
+                        if self.params.user_name.is_empty() {
+                            return Err(anyhow!("No user name in configuration!"));
+                        }
                         self.last_challenge_type = ConfigAttributeType::UserName;
                         let user_name = self.params.user_name.clone();
                         self.challenge_code(Arc::new(CccSession::empty()), &user_name).await

@@ -18,10 +18,10 @@ pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
         .try_into()
 }
 
-pub async fn get_pwd_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<String>> {
-    let mut pwd_prompts = VecDeque::new();
+pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<String>> {
+    let mut mfa_prompts = VecDeque::new();
     if !params.server_prompt {
-        return Ok(pwd_prompts);
+        return Ok(mfa_prompts);
     }
     let server_info = get(params).await?;
     let login_type = &params.login_type;
@@ -43,6 +43,6 @@ pub async fn get_pwd_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<S
             LoginDisplayLabelSelect::LoginDisplayLabel(label) => Some(label.password.clone()),
             LoginDisplayLabelSelect::Empty(_) => None,
         })
-        .for_each(|prompt| pwd_prompts.push_back(format!("{}: ", prompt.0.clone())));
-    Ok(pwd_prompts)
+        .for_each(|prompt| mfa_prompts.push_back(format!("{}: ", prompt.0.clone())));
+    Ok(mfa_prompts)
 }
