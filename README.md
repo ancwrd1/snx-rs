@@ -42,7 +42,7 @@ Before the client can establish a connection it must know the login (authenticat
 
  This command will dump the supported login types. Use the `vpn_XXX` identifier as the login type.
 
- Example output (may differ from your server):
+ Example output (may differ for your server):
 
  ```text
  Supported tunnel protocols:
