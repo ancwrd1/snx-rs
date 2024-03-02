@@ -26,6 +26,7 @@ pub trait TunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>>;
     async fn challenge_code(&mut self, session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>>;
     async fn create_tunnel(&self, session: Arc<CccSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>>;
+    async fn terminate_tunnel(&mut self) -> anyhow::Result<()>;
 }
 
 pub async fn new_tunnel_connector(params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send>> {

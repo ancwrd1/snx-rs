@@ -1,6 +1,5 @@
 use std::{
     future::Future,
-    pin::Pin,
     sync::{Arc, Mutex},
 };
 
@@ -19,11 +18,37 @@ use snx_rs::{
     platform,
     prompt::SecurePrompt,
     server::CommandServer,
-    server_info, tunnel,
+    tunnel,
 };
 
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
+}
+
+async fn await_termination<F, R>(f: F) -> anyhow::Result<()>
+where
+    F: Future<Output = anyhow::Result<R>>,
+{
+    let ctrl_c = tokio::signal::ctrl_c();
+    pin_mut!(ctrl_c);
+
+    let mut sig = unix::signal(unix::SignalKind::terminate())?;
+    let term = sig.recv();
+    pin_mut!(term);
+
+    let select = futures::future::select(ctrl_c, term);
+
+    tokio::select! {
+        result = f => {
+            result?;
+            Ok(())
+        }
+
+        _ = select => {
+            debug!("Application terminated due to a signal");
+            Ok(())
+        }
+    }
 }
 
 #[tokio::main]
@@ -54,21 +79,12 @@ async fn main() -> anyhow::Result<()> {
 
     let (_tx, rx) = oneshot::channel();
 
-    let fut: Pin<Box<dyn Future<Output = anyhow::Result<()>>>> = match mode {
+    match mode {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
 
             if params.server_name.is_empty() || params.login_type.is_empty() {
                 return Err(anyhow!("Missing required parameters: server name and/or login type"));
-            }
-
-            let mut pwd_prompts = server_info::get_pwd_prompts(&params).await.unwrap_or_default();
-
-            if params.password.is_empty() && params.client_cert.is_none() {
-                let prompt = pwd_prompts
-                    .pop_front()
-                    .unwrap_or(format!("Enter password for {}: ", params.user_name));
-                params.password = SecurePrompt::tty().get_secure_input(&prompt)?.trim().to_owned();
             }
 
             let mut connector = tunnel::new_tunnel_connector(Arc::new(params)).await?;
@@ -93,7 +109,8 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let (status_sender, _) = oneshot::channel();
-            let result = Box::pin(tunnel.run(rx, status, status_sender));
+            let result = await_termination(tunnel.run(rx, status, status_sender)).await;
+            let _ = connector.terminate_tunnel().await;
             result
         }
         OperationMode::Command => {
@@ -104,7 +121,7 @@ async fn main() -> anyhow::Result<()> {
             }
             let server = CommandServer::new(snx_rs::server::LISTEN_PORT);
 
-            Box::pin(server.run())
+            await_termination(server.run()).await
         }
         OperationMode::Info => {
             if params.server_name.is_empty() {
@@ -113,31 +130,8 @@ async fn main() -> anyhow::Result<()> {
             let client = CccHttpClient::new(Arc::new(params), None);
             let info = client.get_server_info().await?;
             snx_rs::util::print_login_options(&info);
-            Box::pin(futures::future::ok(()))
-        }
-    };
 
-    let ctrl_c = tokio::signal::ctrl_c();
-    pin_mut!(ctrl_c);
-
-    let mut sig = unix::signal(unix::SignalKind::terminate())?;
-    let term = sig.recv();
-    pin_mut!(term);
-
-    let select = futures::future::select(ctrl_c, term);
-
-    let result = tokio::select! {
-        result = fut => {
-            result
-        }
-
-        _ = select => {
-            debug!("Application terminated due to a signal");
             Ok(())
         }
-    };
-
-    debug!("<<< Stopping snx-rs client");
-
-    result
+    }
 }

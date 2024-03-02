@@ -140,6 +140,10 @@ impl TunnelConnector for CccTunnelConnector {
     async fn create_tunnel(&self, session: Arc<CccSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
         Ok(Box::new(SslTunnel::create(self.0.clone(), session).await?))
     }
+
+    async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 pub struct IpsecTunnelConnector {
@@ -412,5 +416,9 @@ impl TunnelConnector for IpsecTunnelConnector {
 
     async fn create_tunnel(&self, session: Arc<CccSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
         Ok(Box::new(IpsecTunnel::create(self.params.clone(), session).await?))
+    }
+
+    async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
+        self.ikev1.delete_sa().await
     }
 }
