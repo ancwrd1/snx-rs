@@ -15,16 +15,13 @@ Based on the reverse engineered protocol from the vendor application.
 
 * SSL tunnel via TUN device
 * IPSec tunnel. Supported features: AES-CBC-256 and HMAC-SHA-256 algorithms, ESPinUDP tunnel encapsulation
+* **NEW**: SAML SSO authentication (only with IPSec tunnel)
 * Username/password authentication with MFA support
 * Certificate authentication via the provided client certificate
 * Microsoft Authenticator app support
 * Multi-factor codes input via TTY/GUI (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
 * Tray icon and menu support (optional via 'tray-icon' compile-time feature)
-
-## Coming soon
- 
-* SAML SSO support (in development)
 
 ## System requirements
 
@@ -43,32 +40,22 @@ Before the client can establish a connection it must know the login (authenticat
 
  `snx-rs -m info -s remote.acme.com`
 
- This command will dump the server information in JSON format. Part of this information is **login_options_list** array.
- Each object in this array contains a display name and an **id** field which indicates the login type.
- The value of this field must be passed to snx-rs as a login-type parameter.
+ This command will dump the supported login types. Use the `vpn_XXX` identifier as the login type.
 
- Example (may differ for your server):
+ Example output (may differ from your server):
 
- ```json
-      "login_options_list": [
-        {
-          "display_name": "Microsoft Authenticator",
-          "id": "vpn_Microsoft_Authenticator",
-        },
-        {
-          "display_name": "Emergency Access",
-          "id": "vpn_Emergency_Access",
-        },
-        {
-          "display_name": "Username Password",
-          "id": "vpn_Username_Password",
-        },
-        {
-          "display_name": "Standard",
-          "id": "vpn",
-        }
-      ]
- ```
+ ```text
+ Supported tunnel protocols:
+        IPSec
+        SSL
+        L2TP
+Available login types:
+        vpn_Microsoft_Authenticator (Microsoft Authenticator)
+        vpn_Emergency_Access (Emergency Access)
+        vpn_Username_Password (Username Password)
+        vpn_Azure_Authentication (Azure Authentication)
+        vpn (Standard)
+```
 
 There are two ways to use the application:
 
@@ -84,6 +71,11 @@ There are two ways to use the application:
 
 Configuration file may contain all options which are accepted via the command line, without the leading double dashes.
 
+## Authentication types
+
+* For authentications which require additional password or challenge codes the `user-name` option must be provided in the configuration.
+* For SAML SSO authentication the `user-name` and `password` options should NOT be specified.
+
 ## Tray icon and UI
 
 * The application can be built with `tray-icon` feature. In this case if `snxctl` utility runs without parameters
@@ -91,6 +83,8 @@ Configuration file may contain all options which are accepted via the command li
 
  ## Additional usage notes
 
+* If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console.
+  The user must open this URL manually. In command mode the browser will be opened automtically.
 * If additional MFA steps are required a prompt will be shown to enter the codes.
   If the application has no attached terminal an authentication error will be triggered.
 * If password is not provided in the configuration file or command line it will be prompted for and stored
