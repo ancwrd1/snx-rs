@@ -4,6 +4,8 @@ use anyhow::anyhow;
 use directories_next::ProjectDirs;
 
 use crate::ccc::CccHttpClient;
+use crate::model::{MfaChallenge, MfaType};
+use crate::prompt::{run_otp_listener, OTP_TIMEOUT};
 use crate::{
     model::{params::TunnelParams, ConnectionStatus, TunnelServiceRequest, TunnelServiceResponse},
     platform::{self, UdpSocketExt},
@@ -98,7 +100,7 @@ impl ServiceController {
         match response {
             Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
                 if let (None, Some(mfa)) = (status.connected_since, &status.mfa) {
-                    let input = self.prompt.get_secure_input(mfa.prompt.as_str())?;
+                    let input = self.get_mfa_input(mfa).await?;
                     self.do_challenge_code(input).await
                 } else {
                     if status.connected_since.is_some() && !self.params.password.is_empty() && !self.params.no_keychain
@@ -110,6 +112,16 @@ impl ServiceController {
             }
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
+        }
+    }
+
+    async fn get_mfa_input(&self, mfa: &MfaChallenge) -> anyhow::Result<String> {
+        match mfa.mfa_type {
+            MfaType::UserInput => self.prompt.get_secure_input(mfa.prompt.as_str()),
+            MfaType::SamlSso => {
+                opener::open(&mfa.prompt)?;
+                Ok(tokio::time::timeout(OTP_TIMEOUT, run_otp_listener()).await??)
+            }
         }
     }
 

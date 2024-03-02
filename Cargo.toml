@@ -1,6 +1,6 @@
 [package]
 name = "snx-rs"
-version = "0.11.0"
+version = "1.0.0-rc.1"
 license = "AGPL-3.0"
 edition = "2021"
 authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]
@@ -18,7 +18,7 @@ panic = "abort"
 
 [features]
 default = []
-tray-icon = ["ksni", "which", "opener"]
+tray-icon = ["ksni", "which"]
 
 [dependencies]
 isakmp = { git = "https://github.com/ancwrd1/isakmp.git" }
@@ -48,12 +48,14 @@ directories-next = "2"
 chrono = { version = "0.4", features = ["serde"] }
 passterm = "2"
 which = { version = "6", optional = true }
-opener = { version = "0.6", optional = true }
+opener = { version = "0.6"}
 enum-as-inner = "0.6"
 num-traits = "0.2"
 parse_int = "0.6"
 parking_lot = "0.12"
 byteorder = "1"
+regex = "1"
+once_cell = "1"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ksni = { version = "0.2", optional = true }

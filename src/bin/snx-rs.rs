@@ -12,14 +12,16 @@ use tracing::{debug, metadata::LevelFilter, warn};
 use snx_rs::{
     ccc::CccHttpClient,
     model::{
-        params::{CmdlineParams, OperationMode, TunnelParams},
-        ConnectionStatus, SessionState,
+        ConnectionStatus,
+        params::{CmdlineParams, OperationMode, TunnelParams}, SessionState,
     },
     platform,
     prompt::SecurePrompt,
     server::CommandServer,
     tunnel,
 };
+use snx_rs::model::MfaType;
+use snx_rs::prompt::{OTP_TIMEOUT, run_otp_listener};
 
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
@@ -91,12 +93,20 @@ async fn main() -> anyhow::Result<()> {
             let mut session = connector.authenticate().await?;
 
             while let SessionState::PendingChallenge(challenge) = session.state.clone() {
-                match SecurePrompt::tty().get_secure_input(&challenge.prompt) {
-                    Ok(input) => {
-                        session = connector.challenge_code(session, &input).await?;
-                    }
-                    Err(e) => {
-                        return Err(e);
+                match challenge.mfa_type {
+                    MfaType::UserInput => match SecurePrompt::tty().get_secure_input(&challenge.prompt) {
+                        Ok(input) => {
+                            session = connector.challenge_code(session, &input).await?;
+                        }
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    },
+                    MfaType::SamlSso => {
+                        println!("For SAML authentication please open the following URL in your browser:");
+                        println!("{}", challenge.prompt);
+                        let otp = tokio::time::timeout(OTP_TIMEOUT, run_otp_listener()).await??;
+                        session = connector.challenge_code(session, &otp).await?;
                     }
                 }
             }
