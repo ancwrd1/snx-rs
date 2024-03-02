@@ -1,5 +1,7 @@
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use anyhow::anyhow;
 use tokio::sync::oneshot;
@@ -9,7 +11,7 @@ use crate::{
     model::{
         params::TunnelParams, CccSession, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
     },
-    tunnel,
+    tunnel::{self, TunnelConnector},
 };
 
 pub const LISTEN_PORT: u16 = 7779;
@@ -21,6 +23,7 @@ pub struct CommandServer {
     stopper: Option<oneshot::Sender<()>>,
     connected: Arc<Mutex<ConnectionStatus>>,
     session: Option<Arc<CccSession>>,
+    connector: Option<Box<dyn TunnelConnector + Send>>,
 }
 
 impl CommandServer {
@@ -30,6 +33,7 @@ impl CommandServer {
             stopper: None,
             connected: Arc::new(Mutex::new(ConnectionStatus::default())),
             session: None,
+            connector: None,
         }
     }
 
@@ -65,6 +69,7 @@ impl CommandServer {
                     Ok(_) => TunnelServiceResponse::Ok,
                     Err(e) => {
                         self.session = None;
+                        self.connector = None;
                         *self.connected.lock().unwrap() = ConnectionStatus::default();
                         TunnelServiceResponse::Error(e.to_string())
                     }
@@ -72,7 +77,6 @@ impl CommandServer {
             }
             TunnelServiceRequest::Disconnect => {
                 debug!("Handling disconnect command");
-                self.session = None;
 
                 match self.disconnect().await {
                     Ok(_) => TunnelServiceResponse::Ok,
@@ -83,12 +87,13 @@ impl CommandServer {
                 debug!("Handling get status command");
                 TunnelServiceResponse::ConnectionStatus(self.get_status())
             }
-            TunnelServiceRequest::ChallengeCode(code, params) => {
+            TunnelServiceRequest::ChallengeCode(code, _) => {
                 debug!("Handling challenge code command");
-                match self.challenge_code(&code, Arc::new(params)).await {
+                match self.challenge_code(&code).await {
                     Ok(_) => TunnelServiceResponse::Ok,
                     Err(e) => {
                         self.session = None;
+                        self.connector = None;
                         *self.connected.lock().unwrap() = ConnectionStatus::default();
                         TunnelServiceResponse::Error(e.to_string())
                     }
@@ -101,7 +106,13 @@ impl CommandServer {
         self.connected.lock().unwrap().connected_since.is_some()
     }
 
-    async fn connect_for_session(&mut self, params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<()> {
+    async fn connect_for_session(&mut self, session: Arc<CccSession>) -> anyhow::Result<()> {
+        let connector = if let Some(ref mut connector) = self.connector {
+            connector
+        } else {
+            return Err(anyhow!("No tunnel connector!"));
+        };
+
         if let SessionState::PendingChallenge(ref challenge) = session.state {
             debug!("Pending multi-factor, awaiting for it");
             self.session = Some(session.clone());
@@ -112,7 +123,6 @@ impl CommandServer {
             return Ok(());
         }
 
-        let connector = tunnel::new_tunnel_connector(params.clone()).await?;
         let tunnel = connector.create_tunnel(session).await?;
 
         let (tx, rx) = oneshot::channel();
@@ -134,28 +144,34 @@ impl CommandServer {
     async fn connect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<()> {
         if !self.is_connected() {
             self.session = None;
+            self.connector = None;
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
             let session = connector.authenticate().await?;
-            self.connect_for_session(params, session).await
+            self.connector = Some(connector);
+            self.connect_for_session(session).await
         } else {
             Err(anyhow!("Tunnel is already connected!"))
         }
     }
 
-    async fn challenge_code(&mut self, code: &str, params: Arc<TunnelParams>) -> anyhow::Result<()> {
-        let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
-        match self.session.as_ref() {
-            Some(session) => {
-                let new_session = connector.challenge_code(session.clone(), code).await?;
-                self.connect_for_session(params, new_session).await
+    async fn challenge_code(&mut self, code: &str) -> anyhow::Result<()> {
+        if let Some(ref mut connector) = self.connector {
+            match self.session.as_ref() {
+                Some(session) => {
+                    let new_session = connector.challenge_code(session.clone(), code).await?;
+                    self.connect_for_session(new_session).await
+                }
+                None => Err(anyhow!("No session")),
             }
-            None => Err(anyhow!("No session")),
+        } else {
+            Err(anyhow!("No connector to send the challenge code to!"))
         }
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
         self.session = None;
+        self.connector = None;
 
         if let Some(stopper) = self.stopper.take() {
             let _ = stopper.send(());
