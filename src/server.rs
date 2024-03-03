@@ -4,15 +4,15 @@ use std::{
 };
 
 use anyhow::anyhow;
+use futures::{future::Either, pin_mut};
 use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, trace, warn};
 
-use crate::tunnel::TunnelCommand;
 use crate::{
     model::{
         params::TunnelParams, CccSession, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
     },
-    tunnel::{self, TunnelConnector},
+    tunnel::{self, TunnelCommand, TunnelConnector},
 };
 
 pub const LISTEN_PORT: u16 = 7779;
@@ -43,14 +43,43 @@ impl CommandServer {
 
         let socket = Arc::new(tokio::net::UdpSocket::bind(("127.0.0.1", self.port)).await?);
 
-        let mut buf = vec![0u8; MAX_PACKET_SIZE];
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+
         loop {
-            let (size, addr) = socket.recv_from(&mut buf).await?;
-            let resp = self.handle(&buf[0..size]).await;
-            trace!("Response: {:?}", resp);
-            let json = serde_json::to_vec(&resp)?;
-            let _ = socket.send_to(&json, addr).await;
+            let tick = interval.tick();
+            pin_mut!(tick);
+
+            let recv = async {
+                let mut buf = vec![0u8; MAX_PACKET_SIZE];
+                let (size, addr) = socket.recv_from(&mut buf).await?;
+                Ok::<_, anyhow::Error>((buf[0..size].to_vec(), addr))
+            };
+            pin_mut!(recv);
+
+            match futures::future::select(tick, recv).await {
+                Either::Left(_) => {
+                    let _ = self.rekey_tunnel().await;
+                }
+                Either::Right(result) => {
+                    let (data, addr) = result.0?;
+                    let resp = self.handle(&data).await;
+                    trace!("Response: {:?}", resp);
+                    let json = serde_json::to_vec(&resp)?;
+                    let _ = socket.send_to(&json, addr).await;
+                }
+            }
         }
+    }
+
+    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
+        if self.is_connected() {
+            if let Some(ref mut connector) = self.connector {
+                if let Some(sender) = self.tunnel_sender.clone() {
+                    return connector.rekey_tunnel(sender).await;
+                }
+            }
+        }
+        Ok(())
     }
 
     async fn handle(&mut self, packet: &[u8]) -> TunnelServiceResponse {
@@ -171,10 +200,6 @@ impl CommandServer {
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
-        if let Some(ref mut connector) = self.connector {
-            let _ = connector.terminate_tunnel().await;
-        }
-
         self.session = None;
         self.connector = None;
 

@@ -145,7 +145,6 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
-            let _ = connector.terminate_tunnel().await;
             result
         }
         OperationMode::Command => {

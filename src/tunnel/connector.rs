@@ -492,3 +492,11 @@ impl TunnelConnector for IpsecTunnelConnector {
         }
     }
 }
+
+impl Drop for IpsecTunnelConnector {
+    fn drop(&mut self) {
+        std::thread::scope(|s| {
+            s.spawn(|| crate::util::block_on(self.terminate_tunnel()));
+        });
+    }
+}
