@@ -4,9 +4,10 @@ use std::{
 };
 
 use anyhow::anyhow;
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, trace, warn};
 
+use crate::tunnel::TunnelCommand;
 use crate::{
     model::{
         params::TunnelParams, CccSession, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
@@ -20,7 +21,7 @@ const MAX_PACKET_SIZE: usize = 1_000_000;
 
 pub struct CommandServer {
     port: u16,
-    stopper: Option<oneshot::Sender<()>>,
+    tunnel_sender: Option<mpsc::Sender<TunnelCommand>>,
     connected: Arc<Mutex<ConnectionStatus>>,
     session: Option<Arc<CccSession>>,
     connector: Option<Box<dyn TunnelConnector + Send>>,
@@ -30,7 +31,7 @@ impl CommandServer {
     pub fn new(port: u16) -> Self {
         Self {
             port,
-            stopper: None,
+            tunnel_sender: None,
             connected: Arc::new(Mutex::new(ConnectionStatus::default())),
             session: None,
             connector: None,
@@ -125,9 +126,9 @@ impl CommandServer {
 
         let tunnel = connector.create_tunnel(session).await?;
 
-        let (tx, rx) = oneshot::channel();
+        let (tx, rx) = mpsc::channel(16);
         let (status_sender, status_receiver) = oneshot::channel();
-        self.stopper = Some(tx);
+        self.tunnel_sender = Some(tx);
 
         let connected = self.connected.clone();
 
@@ -170,11 +171,15 @@ impl CommandServer {
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
+        if let Some(ref mut connector) = self.connector {
+            let _ = connector.terminate_tunnel().await;
+        }
+
         self.session = None;
         self.connector = None;
 
-        if let Some(stopper) = self.stopper.take() {
-            let _ = stopper.send(());
+        if let Some(sender) = self.tunnel_sender.take() {
+            let _ = sender.send(TunnelCommand::Terminate).await;
             let mut num_waits = 0;
             while self.is_connected() && num_waits < 20 {
                 tokio::time::sleep(Duration::from_millis(100)).await;

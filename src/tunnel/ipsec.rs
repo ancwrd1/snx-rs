@@ -2,9 +2,11 @@ use anyhow::anyhow;
 use std::sync::{Arc, Mutex};
 
 use chrono::Local;
+use tokio::sync::mpsc;
 use tokio::{net::UdpSocket, sync::oneshot};
 use tracing::{debug, warn};
 
+use crate::tunnel::TunnelCommand;
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, CccSession, ConnectionStatus},
@@ -95,8 +97,8 @@ impl IpsecTunnel {
 #[async_trait::async_trait]
 impl CheckpointTunnel for IpsecTunnel {
     async fn run(
-        self: Box<Self>,
-        stop_receiver: oneshot::Receiver<()>,
+        mut self: Box<Self>,
+        mut command_receiver: mpsc::Receiver<TunnelCommand>,
         connected: Arc<Mutex<ConnectionStatus>>,
         status_sender: oneshot::Sender<()>,
     ) -> anyhow::Result<()> {
@@ -112,8 +114,19 @@ impl CheckpointTunnel for IpsecTunnel {
             debug!("IPSec tunnel connection status set")
         }
 
+        let fut = async {
+            while let Some(cmd) = command_receiver.recv().await {
+                match cmd {
+                    TunnelCommand::Terminate => break,
+                    TunnelCommand::ReKey(session) => {
+                        debug!("Rekey command received, configuring xfrm");
+                        let _ = self.configurator.re_key(&session).await;
+                    }
+                }
+            }
+        };
         let result = tokio::select! {
-            _ = stop_receiver => {
+            _ = fut => {
                 debug!("Terminating IPSec tunnel due to stop command");
                 Ok(())
             }

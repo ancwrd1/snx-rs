@@ -1,6 +1,6 @@
 [package]
 name = "snx-rs"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 license = "AGPL-3.0"
 edition = "2021"
 authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]

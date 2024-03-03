@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::Arc,
@@ -18,8 +18,10 @@ use isakmp::{
 use parking_lot::RwLock;
 use rand::random;
 use tokio::net::UdpSocket;
+use tokio::sync::mpsc::Sender;
 use tracing::{debug, warn};
 
+use crate::tunnel::TunnelCommand;
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, proto::AuthResponse, CccSession, IpsecSession, MfaChallenge, MfaType, SessionState},
@@ -27,6 +29,11 @@ use crate::{
     sexpr2::SExpression,
     tunnel::{ipsec::IpsecTunnel, ssl::SslTunnel, CheckpointTunnel, TunnelConnector},
 };
+
+const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
+
+// 7 days of rekeying
+const DEFAULT_SA_LIFETIME: Duration = Duration::from_secs(86400 * 7);
 
 pub struct CccTunnelConnector(Arc<TunnelParams>);
 
@@ -144,6 +151,10 @@ impl TunnelConnector for CccTunnelConnector {
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
+
+    async fn rekey_tunnel(&mut self, _sender: Sender<TunnelCommand>) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 pub struct IpsecTunnelConnector {
@@ -155,6 +166,9 @@ pub struct IpsecTunnelConnector {
     last_identifier: u16,
     last_challenge_type: ConfigAttributeType,
     ccc_session: String,
+    address: Ipv4Addr,
+    ipsec_session: IpsecSession,
+    last_rekey: Instant,
 }
 
 impl IpsecTunnelConnector {
@@ -182,6 +196,16 @@ impl IpsecTunnelConnector {
             last_identifier: 0,
             last_challenge_type: ConfigAttributeType::Other(0),
             ccc_session: String::new(),
+            address: Ipv4Addr::new(0, 0, 0, 0),
+            ipsec_session: IpsecSession {
+                address: Ipv4Addr::new(0, 0, 0, 0),
+                netmask: Ipv4Addr::new(0, 0, 0, 0),
+                dns: Vec::new(),
+                domains: Vec::new(),
+                esp_in: Default::default(),
+                esp_out: Default::default(),
+            },
+            last_rekey: Instant::now(),
         })
     }
 
@@ -291,7 +315,7 @@ impl IpsecTunnelConnector {
                     .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
                     .ok_or_else(|| anyhow!("No CCC session in reply!"))?;
 
-                let ipv4addr: Ipv4Addr = self
+                self.address = self
                     .get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
                     .ok_or_else(|| anyhow!("No IPv4 in reply!"))?
                     .reader()
@@ -320,18 +344,26 @@ impl IpsecTunnelConnector {
                     .map(ToOwned::to_owned)
                     .collect();
 
-                self.ikev1.do_esp_proposal(ipv4addr).await?;
+                debug!("ESP lifetime: {} seconds", self.params.esp_lifetime.as_secs());
+
+                self.ikev1
+                    .do_esp_proposal(self.address, self.params.esp_lifetime)
+                    .await?;
+
+                self.last_rekey = Instant::now();
+
+                self.ipsec_session = IpsecSession {
+                    address: self.address,
+                    netmask,
+                    dns,
+                    domains: search_domains,
+                    esp_in: self.session.read().esp_in.clone(),
+                    esp_out: self.session.read().esp_out.clone(),
+                };
 
                 let session = Arc::new(CccSession {
                     session_id: self.ccc_session.clone(),
-                    ipsec_session: Some(IpsecSession {
-                        address: ipv4addr,
-                        netmask,
-                        dns,
-                        domains: search_domains,
-                        esp_in: self.session.read().esp_in.clone(),
-                        esp_out: self.session.read().esp_out.clone(),
-                    }),
+                    ipsec_session: Some(self.ipsec_session.clone()),
                     state: SessionState::Authenticated(String::new()),
                 });
                 Ok(session)
@@ -378,7 +410,7 @@ impl IpsecTunnelConnector {
 impl TunnelConnector for IpsecTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>> {
         let my_address = platform::get_default_ip().await?.parse::<Ipv4Addr>()?;
-        self.ikev1.do_sa_proposal().await?;
+        self.ikev1.do_sa_proposal(DEFAULT_SA_LIFETIME).await?;
         self.ikev1.do_key_exchange(my_address, self.gateway_address).await?;
 
         let realm = format!(
@@ -423,5 +455,40 @@ impl TunnelConnector for IpsecTunnelConnector {
 
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
         self.ikev1.delete_sa().await
+    }
+
+    async fn rekey_tunnel(&mut self, sender: Sender<TunnelCommand>) -> anyhow::Result<()> {
+        let lifetime = if self.params.esp_lifetime < MIN_ESP_LIFETIME {
+            self.params.esp_lifetime
+        } else {
+            self.params.esp_lifetime - MIN_ESP_LIFETIME
+        };
+
+        if (Instant::now() - self.last_rekey) >= lifetime {
+            debug!(
+                "Start rekeying IPSec tunnel, lifetime: {} seconds",
+                self.params.esp_lifetime.as_secs()
+            );
+            self.last_rekey = Instant::now();
+
+            self.ikev1
+                .do_esp_proposal(self.address, self.params.esp_lifetime)
+                .await?;
+
+            self.ipsec_session = IpsecSession {
+                esp_in: self.session.read().esp_in.clone(),
+                esp_out: self.session.read().esp_out.clone(),
+                ..self.ipsec_session.clone()
+            };
+
+            debug!(
+                "New ESP SPI: {:04x}, {:04x}",
+                self.ipsec_session.esp_in.spi, self.ipsec_session.esp_out.spi
+            );
+
+            Ok(sender.send(TunnelCommand::ReKey(self.ipsec_session.clone())).await?)
+        } else {
+            Ok(())
+        }
     }
 }

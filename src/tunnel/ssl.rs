@@ -8,10 +8,7 @@ use std::{
 
 use anyhow::anyhow;
 use chrono::Local;
-use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    SinkExt, StreamExt, TryStreamExt,
-};
+use futures::{channel::mpsc::{self, Receiver, Sender}, pin_mut, SinkExt, StreamExt, TryStreamExt};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     sync::oneshot,
@@ -28,6 +25,7 @@ use crate::{
     sexpr2::SExpression,
     tunnel::CheckpointTunnel,
 };
+use crate::tunnel::TunnelCommand;
 
 pub mod codec;
 #[cfg(unix)]
@@ -188,7 +186,7 @@ impl SslTunnel {
 impl CheckpointTunnel for SslTunnel {
     async fn run(
         mut self: Box<Self>,
-        mut stop_receiver: oneshot::Receiver<()>,
+        mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         connected: Arc<Mutex<ConnectionStatus>>,
         status_sender: oneshot::Sender<()>,
     ) -> anyhow::Result<()> {
@@ -248,9 +246,12 @@ impl CheckpointTunnel for SslTunnel {
             debug!("SSL tunnel connection status set")
         }
 
+        let stop_fut = command_receiver.recv();
+        pin_mut!(stop_fut);
+
         loop {
             tokio::select! {
-                _ = &mut stop_receiver => {
+                _ = &mut stop_fut => {
                     break Ok(());
                 }
                 _ = tokio::time::sleep(self.keepalive) => {

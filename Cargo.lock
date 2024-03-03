@@ -1174,7 +1174,7 @@ dependencies = [
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#1bafe809c922ab24e0957c1f54c80cb08cc51873"
+source = "git+https://github.com/ancwrd1/isakmp.git#1cca4d587c2582a431112cbcda273636cbf13156"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2089,7 +2089,7 @@ checksum = "e6ecd384b10a64542d77071bd64bd7b231f4ed5940fba55e98c3de13824cf3d7"
 
 [[package]]
 name = "snx-rs"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "anyhow",
  "async-recursion",

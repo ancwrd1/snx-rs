@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::{
     future::Future,
     sync::{Arc, Mutex},
@@ -5,7 +6,9 @@ use std::{
 
 use anyhow::anyhow;
 use clap::Parser;
+use futures::future::Either;
 use futures::pin_mut;
+use tokio::sync::mpsc;
 use tokio::{signal::unix, sync::oneshot};
 use tracing::{debug, metadata::LevelFilter, warn};
 
@@ -77,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
 
     debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
-    let (_tx, rx) = oneshot::channel();
+    let (tx, rx) = mpsc::channel(16);
 
     match mode {
         OperationMode::Standalone => {
@@ -122,7 +125,26 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let (status_sender, _) = oneshot::channel();
-            let result = await_termination(tunnel.run(rx, status, status_sender)).await;
+            let tunnel_fut = await_termination(tunnel.run(rx, status, status_sender));
+            let mut interval = tokio::time::interval(Duration::from_secs(60));
+
+            pin_mut!(tunnel_fut);
+
+            let result = loop {
+                let tick = interval.tick();
+                pin_mut!(tick);
+                match futures::future::select(tick, &mut tunnel_fut).await {
+                    Either::Left(_) => match connector.rekey_tunnel(tx.clone()).await {
+                        Ok(_) => {}
+                        Err(e) => {
+                            warn!("Rekey error: {:?}", e);
+                            break Err(e);
+                        }
+                    },
+                    Either::Right(result) => break result.0,
+                }
+            };
+
             let _ = connector.terminate_tunnel().await;
             result
         }

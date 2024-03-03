@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
@@ -9,6 +10,8 @@ use clap::Parser;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use tracing::{metadata::LevelFilter, warn};
+
+const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(86400);
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum OperationMode {
@@ -144,10 +147,12 @@ pub struct CmdlineParams {
     #[clap(
         long = "server-prompt",
         short = 'P',
-        default_value = "false",
         help = "Ask server for authentication data prompt values"
     )]
     pub server_prompt: Option<bool>,
+
+    #[clap(long = "esp-lifetime", short = 'E', help = "IPSec ESP lifetime in seconds")]
+    pub esp_lifetime: Option<u64>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -198,6 +203,7 @@ pub struct TunnelParams {
     pub if_name: Option<String>,
     pub no_keychain: bool,
     pub server_prompt: bool,
+    pub esp_lifetime: Duration,
 }
 
 impl Default for TunnelParams {
@@ -224,6 +230,7 @@ impl Default for TunnelParams {
             if_name: None,
             no_keychain: false,
             server_prompt: true,
+            esp_lifetime: DEFAULT_ESP_LIFETIME,
         }
     }
 }
@@ -270,6 +277,13 @@ impl TunnelParams {
                         "if-name" => params.if_name = Some(v),
                         "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
                         "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
+                        "esp-lifetime" => {
+                            params.esp_lifetime = v
+                                .parse::<u64>()
+                                .ok()
+                                .map(Duration::from_secs)
+                                .unwrap_or(DEFAULT_ESP_LIFETIME)
+                        }
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -363,6 +377,10 @@ impl TunnelParams {
 
         if let Some(server_prompt) = other.server_prompt {
             self.server_prompt = server_prompt;
+        }
+
+        if let Some(esp_lifetime) = other.esp_lifetime {
+            self.esp_lifetime = Duration::from_secs(esp_lifetime);
         }
     }
 

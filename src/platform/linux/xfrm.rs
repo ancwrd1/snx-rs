@@ -1,14 +1,14 @@
-use bytes::Bytes;
-use isakmp::session::EspCryptMaterial;
 use std::{net::Ipv4Addr, sync::Arc};
 
-use tracing::debug;
+use bytes::Bytes;
+use isakmp::session::EspCryptMaterial;
+use tracing::{debug, trace};
 
-use crate::model::IpsecSession;
 use crate::{
     model::{
         params::TunnelParams,
         proto::{AuthenticationAlgorithm, ClientSettingsResponse, EncryptionAlgorithm},
+        IpsecSession,
     },
     platform::{self, IpsecConfigurator},
     util,
@@ -422,6 +422,50 @@ impl IpsecConfigurator for XfrmConfigurator {
         self.setup_xfrm().await?;
         self.setup_routing().await?;
         self.setup_dns().await?;
+
+        Ok(())
+    }
+
+    async fn re_key(&mut self, session: &IpsecSession) -> anyhow::Result<()> {
+        trace!(
+            "Re-keying XFRM state with new session: IN: {:?}, OUT: {:?}",
+            session.esp_in,
+            session.esp_out
+        );
+        let _ = self
+            .configure_xfrm_state(
+                CommandType::Delete,
+                self.source_ip,
+                self.dest_ip,
+                &self.ipsec_session.esp_out,
+            )
+            .await;
+
+        let _ = self
+            .configure_xfrm_state(
+                CommandType::Delete,
+                self.dest_ip,
+                self.source_ip,
+                &self.ipsec_session.esp_in,
+            )
+            .await;
+
+        self.ipsec_session = session.clone();
+
+        self.configure_xfrm_state(
+            CommandType::Add,
+            self.source_ip,
+            self.dest_ip,
+            &self.ipsec_session.esp_out,
+        )
+        .await?;
+        self.configure_xfrm_state(
+            CommandType::Add,
+            self.dest_ip,
+            self.source_ip,
+            &self.ipsec_session.esp_in,
+        )
+        .await?;
 
         Ok(())
     }
