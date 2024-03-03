@@ -11,7 +11,10 @@ use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use tracing::{metadata::LevelFilter, warn};
 
+// 24 hours for ESP
 const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(86400);
+// 7 days for IKE
+const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(86400 * 7);
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum OperationMode {
@@ -153,6 +156,9 @@ pub struct CmdlineParams {
 
     #[clap(long = "esp-lifetime", short = 'E', help = "IPSec ESP lifetime in seconds")]
     pub esp_lifetime: Option<u64>,
+
+    #[clap(long = "ike-lifetime", short = 'L', help = "IPSec IKE lifetime in seconds")]
+    pub ike_lifetime: Option<u64>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -204,6 +210,7 @@ pub struct TunnelParams {
     pub no_keychain: bool,
     pub server_prompt: bool,
     pub esp_lifetime: Duration,
+    pub ike_lifetime: Duration,
 }
 
 impl Default for TunnelParams {
@@ -231,6 +238,7 @@ impl Default for TunnelParams {
             no_keychain: false,
             server_prompt: true,
             esp_lifetime: DEFAULT_ESP_LIFETIME,
+            ike_lifetime: DEFAULT_IKE_LIFETIME,
         }
     }
 }
@@ -283,6 +291,13 @@ impl TunnelParams {
                                 .ok()
                                 .map(Duration::from_secs)
                                 .unwrap_or(DEFAULT_ESP_LIFETIME)
+                        }
+                        "ike-lifetime" => {
+                            params.ike_lifetime = v
+                                .parse::<u64>()
+                                .ok()
+                                .map(Duration::from_secs)
+                                .unwrap_or(DEFAULT_IKE_LIFETIME)
                         }
                         other => {
                             warn!("Ignoring unknown option: {}", other);
@@ -381,6 +396,10 @@ impl TunnelParams {
 
         if let Some(esp_lifetime) = other.esp_lifetime {
             self.esp_lifetime = Duration::from_secs(esp_lifetime);
+        }
+
+        if let Some(ike_lifetime) = other.ike_lifetime {
+            self.ike_lifetime = Duration::from_secs(ike_lifetime);
         }
     }
 

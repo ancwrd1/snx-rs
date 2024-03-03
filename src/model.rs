@@ -1,7 +1,8 @@
+use std::{net::Ipv4Addr, time::Duration};
+
 use chrono::{DateTime, Local};
 use isakmp::session::EspCryptMaterial;
 use serde::{Deserialize, Serialize};
-use std::net::Ipv4Addr;
 
 use crate::model::params::TunnelParams;
 
@@ -19,12 +20,27 @@ pub enum SessionState {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IpsecSession {
+    pub lifetime: Duration,
     pub address: Ipv4Addr,
     pub netmask: Ipv4Addr,
     pub dns: Vec<Ipv4Addr>,
     pub domains: Vec<String>,
     pub esp_in: EspCryptMaterial,
     pub esp_out: EspCryptMaterial,
+}
+
+impl Default for IpsecSession {
+    fn default() -> Self {
+        Self {
+            lifetime: Default::default(),
+            address: Ipv4Addr::new(0, 0, 0, 0),
+            netmask: Ipv4Addr::new(0, 0, 0, 0),
+            dns: Vec::new(),
+            domains: Vec::new(),
+            esp_in: Default::default(),
+            esp_out: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
