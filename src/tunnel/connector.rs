@@ -160,7 +160,7 @@ impl TunnelConnector for CccTunnelConnector {
 pub struct IpsecTunnelConnector {
     params: Arc<TunnelParams>,
     ikev1: Ikev1<UdpTransport>,
-    session: Arc<RwLock<Ikev1Session>>,
+    ikev1_session: Arc<RwLock<Ikev1Session>>,
     gateway_address: Ipv4Addr,
     last_message_id: u32,
     last_identifier: u16,
@@ -172,7 +172,7 @@ pub struct IpsecTunnelConnector {
 
 impl IpsecTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
-        let session = Arc::new(RwLock::new(Ikev1Session::new()?));
+        let ikev1_session = Arc::new(RwLock::new(Ikev1Session::new()?));
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         socket.connect(format!("{}:4500", params.server_name)).await?;
@@ -182,14 +182,14 @@ impl IpsecTunnelConnector {
             _ => return Err(anyhow!("No IPv4 address for {}", params.server_name)),
         };
 
-        let transport = UdpTransport::new(socket, session.clone());
+        let transport = UdpTransport::new(socket, ikev1_session.clone());
 
-        let ikev1 = Ikev1::new(transport, session.clone())?;
+        let ikev1 = Ikev1::new(transport, ikev1_session.clone())?;
 
         Ok(Self {
             params,
             ikev1,
-            session,
+            ikev1_session,
             gateway_address,
             last_message_id: 0,
             last_identifier: 0,
@@ -403,8 +403,8 @@ impl IpsecTunnelConnector {
         debug!("ESP lifetime: {} seconds", lifetime);
 
         self.ipsec_session.lifetime = Duration::from_secs(lifetime as u64);
-        self.ipsec_session.esp_in = self.session.read().esp_in.clone();
-        self.ipsec_session.esp_out = self.session.read().esp_out.clone();
+        self.ipsec_session.esp_in = self.ikev1_session.read().esp_in.clone();
+        self.ipsec_session.esp_out = self.ikev1_session.read().esp_out.clone();
 
         Ok(())
     }

@@ -8,7 +8,10 @@ use std::{
 
 use anyhow::anyhow;
 use chrono::Local;
-use futures::{channel::mpsc::{self, Receiver, Sender}, pin_mut, SinkExt, StreamExt, TryStreamExt};
+use futures::{
+    channel::mpsc::{self, Receiver, Sender},
+    pin_mut, SinkExt, StreamExt, TryStreamExt,
+};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     sync::oneshot,
@@ -23,9 +26,8 @@ use crate::{
     model::{params::TunnelParams, proto::*, *},
     platform,
     sexpr2::SExpression,
-    tunnel::CheckpointTunnel,
+    tunnel::{CheckpointTunnel, TunnelCommand},
 };
-use crate::tunnel::TunnelCommand;
 
 pub mod codec;
 #[cfg(unix)]
