@@ -4,6 +4,7 @@ use std::time::Duration;
 use anyhow::anyhow;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use tokio::sync::oneshot;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
@@ -113,7 +114,7 @@ fn show_notification_gui(_summary: &str, _message: &str) -> anyhow::Result<()> {
     Err(anyhow!("Not implemented"))
 }
 
-pub async fn run_otp_listener() -> anyhow::Result<String> {
+pub async fn run_otp_listener(sender: oneshot::Sender<String>) -> anyhow::Result<String> {
     static OTP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"^GET /(?<otp>[0-9a-f]{60}|[0-9A-F]{60}).*"#).unwrap());
 
     let tcp = TcpListener::bind("127.0.0.1:7779").await?;
@@ -134,7 +135,7 @@ pub async fn run_otp_listener() -> anyhow::Result<String> {
 
     if let Some(captures) = OTP_RE.captures(&data) {
         if let Some(otp) = captures.name("otp") {
-            return Ok(otp.as_str().to_owned());
+            let _ = sender.send(otp.as_str().to_owned());
         }
     }
     Err(anyhow!("No OTP acquired!"))

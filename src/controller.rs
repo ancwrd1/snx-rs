@@ -2,6 +2,7 @@ use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use directories_next::ProjectDirs;
+use tokio::sync::oneshot;
 
 use crate::{
     ccc::CccHttpClient,
@@ -130,8 +131,10 @@ impl ServiceController {
                 Ok(self.password.clone())
             }
             MfaType::SamlSso => {
+                let (tx, rx) = oneshot::channel();
+                tokio::spawn(run_otp_listener(tx));
                 opener::open(&mfa.prompt)?;
-                Ok(tokio::time::timeout(OTP_TIMEOUT, run_otp_listener()).await??)
+                Ok(tokio::time::timeout(OTP_TIMEOUT, rx).await??)
             }
         }
     }

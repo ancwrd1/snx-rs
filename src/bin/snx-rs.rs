@@ -111,7 +111,9 @@ async fn main() -> anyhow::Result<()> {
                     MfaType::SamlSso => {
                         println!("For SAML authentication please open the following URL in your browser:");
                         println!("{}", challenge.prompt);
-                        let otp = tokio::time::timeout(OTP_TIMEOUT, run_otp_listener()).await??;
+                        let (tx, rx) = oneshot::channel();
+                        tokio::spawn(run_otp_listener(tx));
+                        let otp = tokio::time::timeout(OTP_TIMEOUT, rx).await??;
                         session = connector.challenge_code(session, &otp).await?;
                     }
                 }
