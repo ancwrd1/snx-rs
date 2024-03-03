@@ -33,7 +33,6 @@ use crate::{
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
 
-// 7 days of rekeying
 pub struct CccTunnelConnector(Arc<TunnelParams>);
 
 impl CccTunnelConnector {
