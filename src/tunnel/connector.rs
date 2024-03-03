@@ -166,7 +166,6 @@ pub struct IpsecTunnelConnector {
     last_identifier: u16,
     last_challenge_type: ConfigAttributeType,
     ccc_session: String,
-    address: Ipv4Addr,
     ipsec_session: IpsecSession,
     last_rekey: Instant,
 }
@@ -196,7 +195,6 @@ impl IpsecTunnelConnector {
             last_identifier: 0,
             last_challenge_type: ConfigAttributeType::Other(0),
             ccc_session: String::new(),
-            address: Ipv4Addr::new(0, 0, 0, 0),
             ipsec_session: Default::default(),
             last_rekey: Instant::now(),
         })
@@ -388,7 +386,7 @@ impl IpsecTunnelConnector {
 
         let attributes = self
             .ikev1
-            .do_esp_proposal(self.address, self.params.esp_lifetime)
+            .do_esp_proposal(self.ipsec_session.address, self.params.esp_lifetime)
             .await?;
 
         let lifetime = attributes
