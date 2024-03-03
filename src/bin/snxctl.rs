@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use tracing::level_filters::LevelFilter;
 
+use snx_rs::browser::BrowserController;
 use snx_rs::{
     controller::{ServiceCommand, ServiceController},
     prompt::SecurePrompt,
@@ -10,7 +11,9 @@ use snx_rs::{
 async fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
 
-    let mut controller = ServiceController::new(SecurePrompt::tty())?;
+    let browser_controller = BrowserController::new();
+
+    let mut controller = ServiceController::new(SecurePrompt::tty(), &browser_controller)?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(
@@ -25,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
 
     if args.len() == 1 {
         #[cfg(feature = "tray-icon")]
-        return snx_rs::tray_icon::show_tray_icon();
+        return snx_rs::tray_icon::show_tray_icon(&browser_controller);
 
         #[cfg(not(feature = "tray-icon"))]
         return Err(anyhow!(

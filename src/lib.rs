@@ -1,3 +1,4 @@
+pub mod browser;
 pub mod ccc;
 pub mod controller;
 pub mod model;

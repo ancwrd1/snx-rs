@@ -5,6 +5,7 @@ use directories_next::ProjectDirs;
 use tokio::sync::oneshot;
 
 use crate::{
+    browser::BrowserController,
     ccc::CccHttpClient,
     model::{
         params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest, TunnelServiceResponse,
@@ -41,24 +42,16 @@ impl FromStr for ServiceCommand {
     }
 }
 
-pub struct ServiceController {
+pub struct ServiceController<'a> {
     pub params: TunnelParams,
     prompt: SecurePrompt,
     mfa_prompts: Option<VecDeque<String>>,
     password: String,
+    browser_controller: &'a BrowserController,
 }
 
-impl ServiceController {
-    pub fn with_params(params: TunnelParams) -> Self {
-        Self {
-            params,
-            prompt: SecurePrompt::tty(),
-            mfa_prompts: None,
-            password: String::new(),
-        }
-    }
-
-    pub fn new(prompt: SecurePrompt) -> anyhow::Result<Self> {
+impl<'a> ServiceController<'a> {
+    pub fn new(prompt: SecurePrompt, browser_controller: &'a BrowserController) -> anyhow::Result<Self> {
         let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
         let config_file = dir.config_dir().join("snx-rs.conf");
 
@@ -74,6 +67,7 @@ impl ServiceController {
             prompt,
             mfa_prompts: None,
             password: String::new(),
+            browser_controller,
         })
     }
 
@@ -133,8 +127,15 @@ impl ServiceController {
             MfaType::SamlSso => {
                 let (tx, rx) = oneshot::channel();
                 tokio::spawn(run_otp_listener(tx));
-                opener::open(&mfa.prompt)?;
-                Ok(tokio::time::timeout(OTP_TIMEOUT, rx).await??)
+
+                self.browser_controller.open(&mfa.prompt)?;
+
+                let result = match tokio::time::timeout(OTP_TIMEOUT, rx).await {
+                    Ok(Ok(otp)) => Ok(otp),
+                    _ => Err(anyhow!("Unable to acquire OTP from the browser!")),
+                };
+                let _ = self.browser_controller.close();
+                result
             }
         }
     }

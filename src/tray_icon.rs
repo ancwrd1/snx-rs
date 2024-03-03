@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use directories_next::ProjectDirs;
 use ksni::{menu::StandardItem, MenuItem, Tray, TrayService};
 
+use crate::browser::BrowserController;
 use crate::{
     controller::{ServiceCommand, ServiceController},
     model::ConnectionStatus,
@@ -136,7 +137,7 @@ impl Tray for MyTray {
     }
 }
 
-pub fn show_tray_icon() -> anyhow::Result<()> {
+pub fn show_tray_icon(browser_controller: &BrowserController) -> anyhow::Result<()> {
     let (tx, rx) = mpsc::sync_channel(1);
     let service = TrayService::new(MyTray {
         command_sender: tx.clone(),
@@ -156,7 +157,7 @@ pub fn show_tray_icon() -> anyhow::Result<()> {
     let mut prev_status = String::new();
 
     while let Ok(Some(command)) = rx.recv() {
-        if let Ok(mut controller) = ServiceController::new(SecurePrompt::gui()) {
+        if let Ok(mut controller) = ServiceController::new(SecurePrompt::gui(), &browser_controller) {
             if command == ServiceCommand::Connect {
                 handle.update(|tray: &mut MyTray| tray.connecting = true);
             }
