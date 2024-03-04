@@ -53,19 +53,25 @@ impl BrowserController {
 mod webkit {
     use anyhow::anyhow;
     use directories_next::ProjectDirs;
-    use gtk::{glib, prelude::*, Window, WindowType};
+    use gtk::{glib, prelude::*, Window, WindowPosition, WindowType};
+    use std::thread;
+    use std::time::Duration;
     use webkit2gtk::{
         CookieManagerExt, CookiePersistentStorage, UserContentManager, WebContext, WebView, WebViewExt,
         WebViewExtManual, WebsiteDataManager, WebsiteDataManagerExt,
     };
 
     pub fn close_browser() {
-        glib::idle_add(|| {
-            for win in Window::list_toplevels() {
-                unsafe { win.destroy() };
-            }
-            gtk::main_quit();
-            glib::ControlFlow::Break
+        thread::spawn(|| {
+            thread::sleep(Duration::from_secs(3));
+            glib::idle_add(|| {
+                for win in Window::list_toplevels() {
+                    if let Some(w) = win.downcast_ref::<Window>() {
+                        w.close();
+                    }
+                }
+                glib::ControlFlow::Continue
+            });
         });
     }
 
@@ -89,6 +95,7 @@ mod webkit {
 
         webview.load_uri(&format!("{}&notab=1", url));
         window.add(&webview);
+        window.set_position(WindowPosition::Mouse);
         window.show_all();
 
         window.connect_delete_event(|_, _| {
