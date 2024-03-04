@@ -1,4 +1,3 @@
-use std::io::Cursor;
 use std::time::{Duration, Instant};
 use std::{
     net::{IpAddr, Ipv4Addr},
@@ -9,14 +8,12 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
-use isakmp::message::IsakmpMessage;
-use isakmp::model::EspAttributeType;
 use isakmp::{
     ikev1::Ikev1,
-    model::ConfigAttributeType,
+    model::{ConfigAttributeType, EspAttributeType, PayloadType},
     payload::AttributesPayload,
     session::{EspCryptMaterial, Ikev1Session},
-    transport::UdpTransport,
+    transport::{IsakmpTransport, UdpTransport},
 };
 use parking_lot::RwLock;
 use rand::random;
@@ -426,14 +423,16 @@ impl IpsecTunnelConnector {
     }
 
     fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
-        let mut cursor = Cursor::new(data);
-        match IsakmpMessage::parse(&mut cursor, &mut self.ikev1_session.write()) {
-            Ok(msg) => {
-                debug!("{:#?}", msg);
-            }
-            Err(e) => {
-                warn!("{}", e);
-            }
+        if let Some(msg) = self.ikev1.transport_mut().parse_data(&data[4..])? {
+            debug!(
+                "Received unsolicited ISAKMP message, exchange type: {:?}, message id: {:04x}, next payload: {:?}",
+                msg.exchange_type,
+                msg.message_id,
+                msg.payloads
+                    .first()
+                    .map(|p| p.as_payload_type())
+                    .unwrap_or(PayloadType::None)
+            );
         }
         Ok(())
     }
@@ -517,7 +516,7 @@ impl TunnelConnector for IpsecTunnelConnector {
                 debug!("Tunnel connected");
             }
             TunnelEvent::Disconnected => {
-                debug!("Tunnel diconnected");
+                debug!("Tunnel disconnected");
                 self.terminate_tunnel().await?;
             }
             TunnelEvent::RemoteControlData(data) => {
