@@ -33,12 +33,6 @@ impl BrowserController {
         }
     }
 
-    pub fn new() -> Self {
-        let (tx, rx) = mpsc::channel();
-        std::thread::spawn(move || Self::run(rx));
-        Self { sender: tx }
-    }
-
     pub fn open<S: AsRef<str>>(&self, url: S) -> anyhow::Result<()> {
         Ok(self.sender.send(BrowserCommand::Open(url.as_ref().to_owned()))?)
     }
@@ -46,6 +40,14 @@ impl BrowserController {
     pub fn close(&self) -> anyhow::Result<()> {
         Self::close_browser();
         Ok(())
+    }
+}
+
+impl Default for BrowserController {
+    fn default() -> Self {
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || Self::run(rx));
+        Self { sender: tx }
     }
 }
 

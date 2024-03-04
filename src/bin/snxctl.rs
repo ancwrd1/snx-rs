@@ -11,13 +11,13 @@ use snx_rs::{
 async fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
 
-    let browser_controller = BrowserController::new();
+    let browser_controller = BrowserController::default();
 
-    let mut controller = ServiceController::new(SecurePrompt::tty(), &browser_controller)?;
+    let mut service_controller = ServiceController::new(SecurePrompt::tty(), &browser_controller)?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(
-            controller
+            service_controller
                 .params
                 .log_level
                 .parse::<LevelFilter>()
@@ -43,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
         .ok_or_else(|| anyhow!("No command"))?
         .parse()?;
 
-    match controller.command(command).await {
+    match service_controller.command(command).await {
         Ok(status) => {
             if let Some(since) = status.connected_since {
                 println!(
