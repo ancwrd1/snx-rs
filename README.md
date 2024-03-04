@@ -24,7 +24,8 @@ Based on the reverse engineered protocol from the vendor application.
 * Microsoft Authenticator app support
 * Multi-factor codes input via TTY/GUI (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
-* Tray icon and menu support (optional via 'tray-icon' compile-time feature)
+* Tray icon and menu support (optional via 'tray-icon' feature flag)
+* Embedded webview for SAML login via webkit2gtk (optional via 'webkit2gtk' feature flag)
 
 ## System requirements
 
@@ -88,6 +89,7 @@ Configuration file may contain all options which are accepted via the command li
 
 * If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console.
   The user must open this URL manually. In command mode the browser will be opened automatically.
+* If `webkit2gtk` feature flag is enabled the SAML browser login will be shown in the embedded web view
 * If additional MFA steps are required a prompt will be shown to enter the codes.
   If the application has no attached terminal an authentication error will be triggered.
 * If password is not provided in the configuration file or command line it will be prompted for and stored
