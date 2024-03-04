@@ -78,8 +78,12 @@ mod webkit {
     }
 
     pub fn open_browser(url: String) -> anyhow::Result<()> {
-        let window = Window::new(WindowType::Toplevel);
-        window.resize(700, 500);
+        let window = Window::builder()
+            .title("Identity provider login")
+            .type_(WindowType::Toplevel)
+            .width_request(700)
+            .height_request(500)
+            .build();
 
         let data_manager = WebsiteDataManager::default();
         data_manager.set_persistent_credential_storage_enabled(true);
