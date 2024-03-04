@@ -188,7 +188,7 @@ impl IpsecTunnelConnector {
         let ikev1_session = Arc::new(RwLock::new(Ikev1Session::new()?));
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
-        socket.connect(format!("{}:4500", params.server_name)).await?;
+        socket.connect(format!("{}:500", params.server_name)).await?;
 
         let gateway_address = match socket.peer_addr()?.ip() {
             IpAddr::V4(v4) => v4,
