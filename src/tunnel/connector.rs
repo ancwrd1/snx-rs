@@ -21,6 +21,7 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, warn};
 
+use crate::tunnel::ipsec::natt::NattProber;
 use crate::tunnel::{TunnelCommand, TunnelEvent};
 use crate::{
     ccc::CccHttpClient,
@@ -194,6 +195,9 @@ impl IpsecTunnelConnector {
             IpAddr::V4(v4) => v4,
             _ => return Err(anyhow!("No IPv4 address for {}", params.server_name)),
         };
+
+        let prober = NattProber::new(gateway_address);
+        prober.probe().await?;
 
         let transport = UdpTransport::new(socket, ikev1_session.clone());
 

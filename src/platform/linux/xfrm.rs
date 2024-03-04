@@ -1,13 +1,14 @@
 use std::{net::Ipv4Addr, sync::Arc};
 
 use bytes::Bytes;
+use ipnet::Ipv4Net;
 use isakmp::session::EspCryptMaterial;
 use tracing::{debug, trace};
 
 use crate::{
     model::{
         params::TunnelParams,
-        proto::{AuthenticationAlgorithm, ClientSettingsResponse, EncryptionAlgorithm},
+        proto::{AuthenticationAlgorithm, EncryptionAlgorithm},
         IpsecSession,
     },
     platform::{self, IpsecConfigurator},
@@ -231,29 +232,30 @@ impl PolicyDir {
 pub struct XfrmConfigurator {
     tunnel_params: Arc<TunnelParams>,
     ipsec_session: IpsecSession,
-    client_settings: ClientSettingsResponse,
     source_ip: Ipv4Addr,
-    dest_ip: Ipv4Addr,
     key: u32,
     src_port: u16,
+    dest_ip: Ipv4Addr,
+    subnets: Vec<Ipv4Net>,
 }
 
 impl XfrmConfigurator {
     pub async fn new(
         tunnel_params: Arc<TunnelParams>,
         ipsec_session: IpsecSession,
-        client_settings: ClientSettingsResponse,
         xfrm_key: u32,
         src_port: u16,
+        dest_ip: Ipv4Addr,
+        subnets: Vec<Ipv4Net>,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             tunnel_params,
             ipsec_session,
-            client_settings,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
-            dest_ip: Ipv4Addr::new(0, 0, 0, 0),
+            dest_ip,
             key: xfrm_key,
             src_port,
+            subnets,
         })
     }
 
@@ -359,9 +361,12 @@ impl XfrmConfigurator {
             if self.tunnel_params.default_route {
                 let _ = platform::add_default_route(self.vti_name(), self.ipsec_session.address).await;
             } else {
-                let subnets = util::ranges_to_subnets(&self.client_settings.updated_policies.range.settings)
-                    .chain(self.tunnel_params.add_routes.clone())
+                let subnets = self
+                    .subnets
+                    .iter()
+                    .chain(&self.tunnel_params.add_routes)
                     .filter(|s| !s.contains(&self.dest_ip))
+                    .cloned()
                     .collect::<Vec<_>>();
 
                 let _ = platform::add_routes(&subnets, self.vti_name(), self.ipsec_session.address).await;
@@ -413,8 +418,6 @@ impl IpsecConfigurator for XfrmConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()> {
         self.source_ip = platform::get_default_ip().await?.parse()?;
         debug!("Source IP: {}", self.source_ip);
-
-        self.dest_ip = self.client_settings.gw_internal_ip;
         debug!("Target IP: {}", self.dest_ip);
 
         self.cleanup().await;

@@ -1,9 +1,10 @@
-use std::sync::Arc;
+use std::{
+    net::{IpAddr, ToSocketAddrs},
+    sync::Arc,
+};
 
 use anyhow::anyhow;
-use bytes::Bytes;
-use tokio::sync::mpsc;
-use tokio::{net::UdpSocket, sync::oneshot};
+use tokio::{net::UdpSocket, sync::mpsc};
 use tracing::debug;
 
 use crate::{
@@ -11,13 +12,14 @@ use crate::{
     model::{params::TunnelParams, CccSession},
     platform::{self, IpsecConfigurator, UdpEncap, UdpSocketExt},
     tunnel::{
-        ipsec::{isakmp::Isakmp, keepalive::KeepaliveRunner},
+        ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener},
         CheckpointTunnel, TunnelCommand, TunnelEvent,
     },
+    util,
 };
 
-mod isakmp;
-mod keepalive;
+pub mod keepalive;
+pub mod natt;
 
 pub(crate) struct IpsecTunnel {
     configurator: Box<dyn IpsecConfigurator + Send + Sync>,
@@ -34,12 +36,24 @@ impl IpsecTunnel {
 
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
-        debug!("Client settings: {:?}", client_settings);
 
-        let isakmp = Isakmp::new(client_settings.gw_internal_ip, 4500);
-        isakmp.probe().await?;
+        let gateway_address = format!("{}:4500", params.server_name)
+            .to_socket_addrs()?
+            .next()
+            .ok_or_else(|| anyhow!("No gateway address!"))?
+            .ip();
 
-        let keepalive_runner = KeepaliveRunner::new(ipsec_session.address, client_settings.gw_internal_ip);
+        let ipv4address = match gateway_address {
+            IpAddr::V4(v4) => v4,
+            _ => client_settings.gw_internal_ip,
+        };
+
+        debug!(
+            "Resolved gateway address: {}, acquired internal address: {}",
+            ipv4address, client_settings.gw_internal_ip
+        );
+
+        let keepalive_runner = KeepaliveRunner::new(ipsec_session.address, ipv4address);
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
@@ -47,9 +61,10 @@ impl IpsecTunnel {
         let mut configurator = platform::new_ipsec_configurator(
             params,
             ipsec_session.clone(),
-            client_settings,
             unsafe { libc::getpid() } as u32,
             natt_socket.local_addr()?.port(),
+            ipv4address,
+            util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect(),
         )
         .await?;
 
@@ -60,37 +75,6 @@ impl IpsecTunnel {
             keepalive_runner,
             natt_socket: Arc::new(natt_socket),
         })
-    }
-
-    // start a dummy UDP listener with UDP_ENCAP option.
-    // this is necessary in order to perform automatic decapsulation of incoming ESP packets
-    pub async fn start_natt_listener(&self, sender: mpsc::Sender<TunnelEvent>) -> anyhow::Result<oneshot::Sender<()>> {
-        let (tx, mut rx) = oneshot::channel();
-
-        debug!("Listening for NAT-T packets on port {}", self.natt_socket.local_addr()?);
-
-        let udp = self.natt_socket.clone();
-
-        tokio::spawn(async move {
-            let mut buf = [0u8; 1024];
-
-            loop {
-                tokio::select! {
-                    result = udp.recv_from(&mut buf) => {
-                        if let Ok((size, _)) = result {
-                            let data = Bytes::copy_from_slice(&buf[0..size]);
-                            let _ = sender.send(TunnelEvent::RemoteControlData(data)).await;
-                        }
-                    }
-                    _ = &mut rx => {
-                        break;
-                    }
-                }
-            }
-            debug!("NAT-T listener stopped");
-        });
-
-        Ok(tx)
     }
 }
 
@@ -103,7 +87,7 @@ impl CheckpointTunnel for IpsecTunnel {
     ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
-        let natt_stopper = self.start_natt_listener(event_sender.clone()).await?;
+        let natt_stopper = start_natt_listener(self.natt_socket.clone(), event_sender.clone()).await?;
 
         let _ = event_sender.send(TunnelEvent::Connected).await;
 
