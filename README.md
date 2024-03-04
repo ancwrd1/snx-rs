@@ -105,6 +105,10 @@ Configuration file may contain all options which are accepted via the command li
 Rust compiler 1.75 or later (https://rustup.rs) is required. Run `cargo build --release --all-features`
  to build the release version with tray icon support.
 
+## Credits
+
+Special thanks to [cpyvpn](https://gitlab.com/cpvpn/cpyvpn) project for inspiration around SAML and IKEv1 authentication
+
 ## License
 
 Licensed under [GNU Affero General Public License version 3](https://opensource.org/license/agpl-v3/)
