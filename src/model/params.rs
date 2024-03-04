@@ -82,7 +82,7 @@ pub struct CmdlineParams {
     )]
     pub default_route: Option<bool>,
 
-    #[clap(long = "no-routing", short = 'n', help = "Do not change routing table")]
+    #[clap(long = "no-routing", short = 'n', help = "Ignore all routes from the acquired list")]
     pub no_routing: Option<bool>,
 
     #[clap(long = "add-routes", short = 'a', help = "Additional routes through the tunnel")]
