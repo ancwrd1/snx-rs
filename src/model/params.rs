@@ -12,9 +12,9 @@ use serde::{Deserialize, Serialize};
 use tracing::{metadata::LevelFilter, warn};
 
 // 24 hours for ESP
-const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(86400);
+const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 // 7 days for IKE
-const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(86400 * 7);
+const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum OperationMode {
