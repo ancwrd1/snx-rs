@@ -70,7 +70,7 @@ mod webkit {
                         w.close();
                     }
                 }
-                glib::ControlFlow::Continue
+                glib::ControlFlow::Break
             });
         });
     }
