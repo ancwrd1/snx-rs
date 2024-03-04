@@ -11,18 +11,21 @@ Based on the reverse engineered protocol from the vendor application.
 * Better integration with NetworkManager and systemd-resolved
 * Optional integration with Gnome Keyring or KDE KWallet via libsecret (only when using snxctl in command mode)
 
+## Build-time feature flags
+
+* `tray-icon`: enable tray icon support in the snxctl utility
+* `webkit2gtk`: enable embedded web view for SAML login, instead of using the system browser
+
 ## Implemented features
 
 * **NEW**: SAML SSO authentication (only with IPSec tunnel)
+* Username/password authentication with MFA support
+* Certificate authentication via the provided client certificate (only with SSL tunnel)
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface and VTI device with the following features:
   * `AES-CBC-256` encryption algorithm
   * `HMAC-SHA-256-128` authentication algorithm
   * `ESPinUDP` tunnel encapsulation via UDP port 4500
-* Username/password authentication with MFA support
-* Certificate authentication via the provided client certificate
-* Microsoft Authenticator app support
-* Multi-factor codes input via TTY/GUI (SMS/SecurID/TOTP)
 * Store password in the keychain using libsecret
 * Tray icon and menu support (optional via 'tray-icon' feature flag)
 * Embedded webview for SAML login via webkit2gtk (optional via 'webkit2gtk' feature flag)
@@ -35,11 +38,12 @@ Based on the reverse engineered protocol from the vendor application.
 * iproute2
 * DBus
 * libsecret
-* For tray-icon build-time feature: Adwaita theme (icons), zenity or kdialog utility (user prompts)
+* For `tray-icon` feature: Adwaita theme (icons), zenity or kdialog utility (user prompts)
+* For `webkit2gtk` feature: pkg-config, gtk and webkit2gtk development libraries
 
 ## Usage
 
-Before the client can establish a connection it must know the login (authentication) type to use
+Before the client can establish a connection it must know the login (authentication) method to use
  (`--login-type` or `-o` option). In order to find the supported login types run it with "-m info" parameter:
 
  `snx-rs -m info -s remote.acme.com`
@@ -72,12 +76,13 @@ There are two ways to use the application:
   - `reconnect` - drop a connection and then connect again
   - `status` - show connection status
   - `info` - dump server information in JSON format
+  - run without parameters: print usage help or show tray icon
 
 Configuration file may contain all options which are accepted via the command line, without the leading double dashes.
 
 ## Authentication types
 
-* For authentications which require additional password or challenge codes the `user-name` option must be provided in the configuration.
+* For authentications which require additional password or challenge codes the `user-name` option must be provided in the configuration. If the `password` option is provided (base64-encoded) it will be used for the first MFA challenge.
 * For SAML SSO authentication the `user-name` and `password` options should NOT be specified.
 
 ## Tray icon and UI
@@ -88,13 +93,12 @@ Configuration file may contain all options which are accepted via the command li
  ## Additional usage notes
 
 * If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console.
-  The user must open this URL manually. In command mode the browser will be opened automatically.
+  In command mode the browser will be opened automatically.
 * If `webkit2gtk` feature flag is enabled the SAML browser login will be shown in the embedded web view
-* If additional MFA steps are required a prompt will be shown to enter the codes.
-  If the application has no attached terminal an authentication error will be triggered.
-* If password is not provided in the configuration file or command line it will be prompted for and stored
-  in the OS keychain unless `no-keychain` parameter is specified. Keychain integration is provided only when
-  using command mode and `snxctl` because the main application runs as a root user.
+  instead of the default system browser.
+* If password is not provided in the configuration file the first entered MFA challenge code will be stored
+  in the OS keychain unless `no-keychain` parameter is specified. Keychain integration is provided only in the
+  command mode.
 
 ## Building from sources
 
