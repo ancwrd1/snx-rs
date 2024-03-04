@@ -96,6 +96,26 @@ pub struct ConnectionStatus {
     pub mfa: Option<MfaChallenge>,
 }
 
+impl ConnectionStatus {
+    pub fn connected() -> Self {
+        Self {
+            connected_since: Some(Local::now()),
+            ..Default::default()
+        }
+    }
+
+    pub fn disconnected() -> Self {
+        Self::default()
+    }
+
+    pub fn mfa(challenge: MfaChallenge) -> Self {
+        Self {
+            mfa: Some(challenge),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TunnelServiceRequest {
     Connect(TunnelParams),

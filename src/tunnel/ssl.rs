@@ -1,27 +1,24 @@
 use std::{
     sync::{
         atomic::{AtomicU64, Ordering},
-        Arc, Mutex,
+        Arc,
     },
     time::Duration,
 };
 
 use anyhow::anyhow;
-use chrono::Local;
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     pin_mut, SinkExt, StreamExt, TryStreamExt,
 };
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    sync::oneshot,
-};
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 use tun::TunPacket;
 
 use codec::{SslPacketCodec, SslPacketType};
 
+use crate::tunnel::TunnelEvent;
 use crate::{
     model::{params::TunnelParams, proto::*, *},
     platform,
@@ -189,8 +186,7 @@ impl CheckpointTunnel for SslTunnel {
     async fn run(
         mut self: Box<Self>,
         mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
-        connected: Arc<Mutex<ConnectionStatus>>,
-        status_sender: oneshot::Sender<()>,
+        event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
         debug!("Running SSL tunnel for session {}", self.session.session_id);
 
@@ -240,18 +236,12 @@ impl CheckpointTunnel for SslTunnel {
             Ok::<_, anyhow::Error>(())
         });
 
-        *connected.lock().unwrap() = ConnectionStatus {
-            connected_since: Some(Local::now()),
-            ..Default::default()
-        };
-        if status_sender.send(()).is_ok() {
-            debug!("SSL tunnel connection status set")
-        }
+        let _ = event_sender.send(TunnelEvent::Connected).await;
 
         let stop_fut = command_receiver.recv();
         pin_mut!(stop_fut);
 
-        loop {
+        let result = loop {
             tokio::select! {
                 _ = &mut stop_fut => {
                     break Ok(());
@@ -272,6 +262,10 @@ impl CheckpointTunnel for SslTunnel {
                     }
                 }
             }
-        }
+        };
+
+        let _ = event_sender.send(TunnelEvent::Disconnected).await;
+
+        result
     }
 }

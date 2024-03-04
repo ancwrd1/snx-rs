@@ -1,11 +1,16 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use async_trait::async_trait;
-use tokio::sync::{mpsc, oneshot};
+use bytes::Bytes;
+use tokio::sync::mpsc;
 
-use crate::model::params::{TunnelParams, TunnelType};
-use crate::model::*;
-use crate::tunnel::connector::{CccTunnelConnector, IpsecTunnelConnector};
+use crate::{
+    model::{
+        params::{TunnelParams, TunnelType},
+        *,
+    },
+    tunnel::connector::{CccTunnelConnector, IpsecTunnelConnector},
+};
 
 mod connector;
 mod ipsec;
@@ -17,13 +22,19 @@ pub enum TunnelCommand {
     ReKey(IpsecSession),
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum TunnelEvent {
+    Connected,
+    Disconnected,
+    RemoteControlData(Bytes),
+}
+
 #[async_trait]
 pub trait CheckpointTunnel {
     async fn run(
         mut self: Box<Self>,
         command_receiver: mpsc::Receiver<TunnelCommand>,
-        connected: Arc<Mutex<ConnectionStatus>>,
-        status_sender: oneshot::Sender<()>,
+        event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()>;
 }
 
@@ -34,6 +45,7 @@ pub trait TunnelConnector {
     async fn create_tunnel(&self, session: Arc<CccSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>>;
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()>;
     async fn rekey_tunnel(&mut self, sender: mpsc::Sender<TunnelCommand>) -> anyhow::Result<()>;
+    async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }
 
 pub async fn new_tunnel_connector(params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send>> {

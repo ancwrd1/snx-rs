@@ -1,12 +1,8 @@
 use std::time::Duration;
-use std::{
-    future::Future,
-    sync::{Arc, Mutex},
-};
+use std::{future::Future, sync::Arc};
 
 use anyhow::anyhow;
 use clap::Parser;
-use futures::future::Either;
 use futures::pin_mut;
 use tokio::sync::mpsc;
 use tokio::{signal::unix, sync::oneshot};
@@ -16,7 +12,7 @@ use snx_rs::{
     ccc::CccHttpClient,
     model::{
         params::{CmdlineParams, OperationMode, TunnelParams},
-        ConnectionStatus, MfaType, SessionState,
+        MfaType, SessionState,
     },
     platform,
     prompt::{run_otp_listener, SecurePrompt, OTP_TIMEOUT},
@@ -119,31 +115,41 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
-            let status = Arc::new(Mutex::new(ConnectionStatus::default()));
             let tunnel = connector.create_tunnel(session).await?;
 
             if let Err(e) = platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
 
-            let (status_sender, _) = oneshot::channel();
-            let tunnel_fut = await_termination(tunnel.run(rx, status, status_sender));
+            let (event_sender, event_receiver) = mpsc::channel(16);
+            let tunnel_fut = await_termination(tunnel.run(rx, event_sender));
             let mut interval = tokio::time::interval(Duration::from_secs(60));
 
             pin_mut!(tunnel_fut);
+            pin_mut!(event_receiver);
 
             let result = loop {
                 let tick = interval.tick();
                 pin_mut!(tick);
-                match futures::future::select(tick, &mut tunnel_fut).await {
-                    Either::Left(_) => match connector.rekey_tunnel(tx.clone()).await {
-                        Ok(_) => {}
-                        Err(e) => {
-                            warn!("Rekey error: {:?}", e);
-                            break Err(e);
+
+                tokio::select! {
+                    event = event_receiver.recv() => {
+                        if let Some(event) = event {
+                            let _ = connector.handle_tunnel_event(event).await;
                         }
-                    },
-                    Either::Right(result) => break result.0,
+                    }
+                    _ = tick => {
+                        match connector.rekey_tunnel(tx.clone()).await {
+                            Ok(_) => {}
+                            Err(e) => {
+                                warn!("Rekey error: {:?}", e);
+                                break Err(e);
+                            }
+                        }
+                    }
+                    result = &mut tunnel_fut => {
+                        break result;
+                    }
                 }
             };
 

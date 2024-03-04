@@ -1,3 +1,4 @@
+use std::io::Cursor;
 use std::time::{Duration, Instant};
 use std::{
     net::{IpAddr, Ipv4Addr},
@@ -8,6 +9,7 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
+use isakmp::message::IsakmpMessage;
 use isakmp::model::EspAttributeType;
 use isakmp::{
     ikev1::Ikev1,
@@ -22,7 +24,7 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, warn};
 
-use crate::tunnel::TunnelCommand;
+use crate::tunnel::{TunnelCommand, TunnelEvent};
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, proto::AuthResponse, CccSession, IpsecSession, MfaChallenge, MfaType, SessionState},
@@ -152,6 +154,21 @@ impl TunnelConnector for CccTunnelConnector {
     }
 
     async fn rekey_tunnel(&mut self, _sender: Sender<TunnelCommand>) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()> {
+        match event {
+            TunnelEvent::Connected => {
+                debug!("Tunnel connected");
+            }
+            TunnelEvent::Disconnected => {
+                debug!("Tunnel disconnected");
+            }
+            TunnelEvent::RemoteControlData(_) => {
+                warn!("Tunnel data received: shouldn't happen for SSL tunnel!");
+            }
+        }
         Ok(())
     }
 }
@@ -407,6 +424,19 @@ impl IpsecTunnelConnector {
 
         Ok(())
     }
+
+    fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
+        let mut cursor = Cursor::new(data);
+        match IsakmpMessage::parse(&mut cursor, &mut self.ikev1_session.write()) {
+            Ok(msg) => {
+                debug!("{:#?}", msg);
+            }
+            Err(e) => {
+                warn!("{}", e);
+            }
+        }
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -479,6 +509,22 @@ impl TunnelConnector for IpsecTunnelConnector {
         } else {
             Ok(())
         }
+    }
+
+    async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()> {
+        match event {
+            TunnelEvent::Connected => {
+                debug!("Tunnel connected");
+            }
+            TunnelEvent::Disconnected => {
+                debug!("Tunnel diconnected");
+                self.terminate_tunnel().await?;
+            }
+            TunnelEvent::RemoteControlData(data) => {
+                self.parse_isakmp(data)?;
+            }
+        }
+        Ok(())
     }
 }
 

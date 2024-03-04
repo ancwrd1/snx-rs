@@ -1,19 +1,18 @@
-use anyhow::anyhow;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use chrono::Local;
+use anyhow::anyhow;
+use bytes::Bytes;
 use tokio::sync::mpsc;
 use tokio::{net::UdpSocket, sync::oneshot};
-use tracing::{debug, warn};
+use tracing::debug;
 
-use crate::tunnel::TunnelCommand;
 use crate::{
     ccc::CccHttpClient,
-    model::{params::TunnelParams, CccSession, ConnectionStatus},
+    model::{params::TunnelParams, CccSession},
     platform::{self, IpsecConfigurator, UdpEncap, UdpSocketExt},
     tunnel::{
         ipsec::{isakmp::Isakmp, keepalive::KeepaliveRunner},
-        CheckpointTunnel,
+        CheckpointTunnel, TunnelCommand, TunnelEvent,
     },
 };
 
@@ -65,7 +64,7 @@ impl IpsecTunnel {
 
     // start a dummy UDP listener with UDP_ENCAP option.
     // this is necessary in order to perform automatic decapsulation of incoming ESP packets
-    pub async fn start_natt_listener(&self) -> anyhow::Result<oneshot::Sender<()>> {
+    pub async fn start_natt_listener(&self, sender: mpsc::Sender<TunnelEvent>) -> anyhow::Result<oneshot::Sender<()>> {
         let (tx, mut rx) = oneshot::channel();
 
         debug!("Listening for NAT-T packets on port {}", self.natt_socket.local_addr()?);
@@ -78,8 +77,9 @@ impl IpsecTunnel {
             loop {
                 tokio::select! {
                     result = udp.recv_from(&mut buf) => {
-                        if let Ok((size, from)) = result {
-                            warn!("Received unexpected NON-ESP data from {}, length: {}", from, size);
+                        if let Ok((size, _)) = result {
+                            let data = Bytes::copy_from_slice(&buf[0..size]);
+                            let _ = sender.send(TunnelEvent::RemoteControlData(data)).await;
                         }
                     }
                     _ = &mut rx => {
@@ -99,20 +99,13 @@ impl CheckpointTunnel for IpsecTunnel {
     async fn run(
         mut self: Box<Self>,
         mut command_receiver: mpsc::Receiver<TunnelCommand>,
-        connected: Arc<Mutex<ConnectionStatus>>,
-        status_sender: oneshot::Sender<()>,
+        event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
         debug!("Running IPSec tunnel");
 
-        let sender = self.start_natt_listener().await?;
+        let natt_stopper = self.start_natt_listener(event_sender.clone()).await?;
 
-        *connected.lock().unwrap() = ConnectionStatus {
-            connected_since: Some(Local::now()),
-            ..Default::default()
-        };
-        if status_sender.send(()).is_ok() {
-            debug!("IPSec tunnel connection status set")
-        }
+        let _ = event_sender.send(TunnelEvent::Connected).await;
 
         let fut = async {
             while let Some(cmd) = command_receiver.recv().await {
@@ -137,7 +130,8 @@ impl CheckpointTunnel for IpsecTunnel {
             }
         };
 
-        let _ = sender.send(());
+        let _ = natt_stopper.send(());
+        let _ = event_sender.send(TunnelEvent::Disconnected).await;
 
         result
     }
