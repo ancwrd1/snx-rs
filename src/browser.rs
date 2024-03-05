@@ -1,11 +1,14 @@
 use std::sync::mpsc;
+use std::thread::JoinHandle;
 
 enum BrowserCommand {
     Open(String),
+    Exit,
 }
 
 pub struct BrowserController {
     sender: mpsc::Sender<BrowserCommand>,
+    handle: Option<JoinHandle<()>>,
 }
 
 impl BrowserController {
@@ -29,6 +32,7 @@ impl BrowserController {
         while let Ok(command) = receiver.recv() {
             match command {
                 BrowserCommand::Open(url) => Self::open_browser(url),
+                BrowserCommand::Exit => break,
             }
         }
     }
@@ -46,8 +50,18 @@ impl BrowserController {
 impl Default for BrowserController {
     fn default() -> Self {
         let (tx, rx) = mpsc::channel();
-        std::thread::spawn(move || Self::run(rx));
-        Self { sender: tx }
+        let handle = std::thread::spawn(move || Self::run(rx));
+        Self {
+            sender: tx,
+            handle: Some(handle),
+        }
+    }
+}
+
+impl Drop for BrowserController {
+    fn drop(&mut self) {
+        let _ = self.sender.send(BrowserCommand::Exit);
+        let _ = self.handle.take().map(|h| h.join());
     }
 }
 
