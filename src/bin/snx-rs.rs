@@ -123,13 +123,12 @@ async fn main() -> anyhow::Result<()> {
 
             let (event_sender, event_receiver) = mpsc::channel(16);
             let tunnel_fut = await_termination(tunnel.run(rx, event_sender));
-            let mut interval = tokio::time::interval(Duration::from_secs(60));
 
             pin_mut!(tunnel_fut);
             pin_mut!(event_receiver);
 
             let result = loop {
-                let tick = interval.tick();
+                let tick = tokio::time::sleep(Duration::from_secs(60));
                 pin_mut!(tick);
 
                 tokio::select! {

@@ -41,10 +41,8 @@ impl CommandServer {
         let socket = Arc::new(tokio::net::UdpSocket::bind(("127.0.0.1", self.port)).await?);
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
-        let mut interval = tokio::time::interval(Duration::from_secs(60));
-
         loop {
-            let tick = interval.tick();
+            let tick = tokio::time::sleep(Duration::from_secs(60));
             pin_mut!(tick);
 
             let recv = async {
