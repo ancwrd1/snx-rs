@@ -90,6 +90,7 @@ mod webkit {
         data_manager.set_persistent_credential_storage_enabled(true);
 
         let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
+        let _ = std::fs::create_dir_all(dir.config_dir());
         let cookies_file = dir.config_dir().join("cookies.db");
 
         data_manager
