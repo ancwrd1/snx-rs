@@ -58,9 +58,10 @@ mod webkit {
     use gtk::{glib, prelude::*, Window, WindowPosition, WindowType};
     use std::thread;
     use std::time::Duration;
+    use tracing::debug;
     use webkit2gtk::{
-        CookieManagerExt, CookiePersistentStorage, UserContentManager, WebContext, WebView, WebViewExt,
-        WebViewExtManual, WebsiteDataManager, WebsiteDataManagerExt,
+        CookieManagerExt, CookiePersistentStorage, SettingsExt, URIRequestExt, UserContentManager, WebContext, WebView,
+        WebViewExt, WebViewExtManual, WebsiteDataManager, WebsiteDataManagerExt,
     };
 
     pub fn close_browser() {
@@ -99,7 +100,26 @@ mod webkit {
         let context = WebContext::builder().website_data_manager(&data_manager).build();
         let webview = WebView::new_with_context_and_user_content_manager(&context, &UserContentManager::new());
 
-        webview.load_uri(&format!("{}&notab=1", url));
+        let settings = WebViewExt::settings(&webview).unwrap();
+        settings.set_javascript_can_open_windows_automatically(true);
+
+        // redirect inside the same window
+        webview.connect_create(|w, event| {
+            if let Some(req) = event.request() {
+                match (req.uri(), w.uri()) {
+                    (Some(new_uri), Some(current_uri)) if new_uri != current_uri => {
+                        debug!("Redirecting to {}", new_uri);
+                        w.load_uri(&new_uri);
+                    }
+                    _ => {}
+                }
+            }
+            None
+        });
+
+        debug!("Opening {}", url);
+        webview.load_uri(&format!("{}", url));
+
         window.add(&webview);
         window.set_position(WindowPosition::Mouse);
         window.show_all();
