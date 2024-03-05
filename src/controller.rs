@@ -92,27 +92,34 @@ impl<'a> ServiceController<'a> {
 
     #[async_recursion::async_recursion]
     pub async fn do_status(&mut self) -> anyhow::Result<ConnectionStatus> {
-        let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await;
+        let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await?;
         match response {
-            Ok(TunnelServiceResponse::ConnectionStatus(status)) => {
+            TunnelServiceResponse::ConnectionStatus(status) => {
                 if let (None, Some(mfa)) = (status.connected_since, &status.mfa) {
-                    let input = self.get_mfa_input(mfa).await?;
-                    let result = self.do_challenge_code(input.clone()).await;
-                    if result.is_ok()
-                        && mfa.mfa_type == MfaType::UserInput
-                        && !self.password.is_empty()
-                        && !self.params.no_keychain
-                    {
-                        let _ = platform::store_password(&self.params.user_name, &input).await;
-                        self.password.clear();
+                    match self.get_mfa_input(mfa).await {
+                        Ok(input) => {
+                            let result = self.do_challenge_code(input.clone()).await;
+                            if result.is_ok()
+                                && mfa.mfa_type == MfaType::UserInput
+                                && !self.password.is_empty()
+                                && !self.params.no_keychain
+                            {
+                                let _ = platform::store_password(&self.params.user_name, &input).await;
+                                self.password.clear();
+                            }
+                            result
+                        }
+                        Err(e) => {
+                            let _ = self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT).await;
+                            Err(e)
+                        }
                     }
-                    result
                 } else {
                     Ok(status)
                 }
             }
-            Ok(_) => Err(anyhow!("Invalid response!")),
-            Err(e) => Err(e),
+            TunnelServiceResponse::Error(e) => Err(anyhow!(e)),
+            TunnelServiceResponse::Ok => Err(anyhow!("Unexpected response")),
         }
     }
 
@@ -177,7 +184,11 @@ impl<'a> ServiceController<'a> {
             .await;
         match response {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,
-            Ok(TunnelServiceResponse::Error(e)) => Err(anyhow!(e)),
+            Ok(TunnelServiceResponse::Error(e)) => {
+                self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
+                    .await?;
+                Err(anyhow!(e))
+            }
             Ok(_) => Err(anyhow!("Invalid response!")),
             Err(e) => Err(e),
         }
