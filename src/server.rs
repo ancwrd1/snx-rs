@@ -54,7 +54,9 @@ impl CommandServer {
                 event = event_fut => {
                     if let Some(event) = event {
                         if let Some(ref mut connector) = self.connector {
-                            let _ = connector.handle_tunnel_event(event.clone()).await;
+                            if connector.handle_tunnel_event(event.clone()).await.is_err() {
+                                self.reset();
+                            }
                         }
                         match event {
                             TunnelEvent::Connected => {

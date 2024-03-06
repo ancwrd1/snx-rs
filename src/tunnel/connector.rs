@@ -452,7 +452,7 @@ impl IpsecTunnelConnector {
             );
 
             if payload_types.iter().any(|p| *p == PayloadType::SecurityAssociation) {
-                let _ = self.rekey_tunnel().await;
+                self.rekey_tunnel().await?;
             }
         }
         Ok(())
