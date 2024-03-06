@@ -1,7 +1,7 @@
-use std::time::{Duration, Instant};
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::Arc,
+    time::{Duration, Instant},
 };
 
 use anyhow::anyhow;
@@ -19,16 +19,17 @@ use parking_lot::RwLock;
 use rand::random;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
 
-use crate::tunnel::ipsec::natt::NattProber;
-use crate::tunnel::{TunnelCommand, TunnelEvent};
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, proto::AuthResponse, CccSession, IpsecSession, MfaChallenge, MfaType, SessionState},
     platform,
     sexpr2::SExpression,
-    tunnel::{ipsec::IpsecTunnel, ssl::SslTunnel, CheckpointTunnel, TunnelConnector},
+    tunnel::{
+        ipsec::natt::NattProber, ipsec::IpsecTunnel, ssl::SslTunnel, CheckpointTunnel, TunnelCommand, TunnelConnector,
+        TunnelEvent,
+    },
 };
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
@@ -269,6 +270,7 @@ impl IpsecTunnelConnector {
             .collect::<Vec<_>>();
 
         debug!("Challenge msg: {}", parts[0]);
+        trace!("msg_obj: {}", parts[1]);
 
         let msg_obj = parts[1].parse::<SExpression>()?;
 
