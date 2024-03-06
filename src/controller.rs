@@ -126,8 +126,13 @@ impl<'a> ServiceController<'a> {
     async fn get_mfa_input(&mut self, mfa: &MfaChallenge) -> anyhow::Result<String> {
         match mfa.mfa_type {
             MfaType::UserInput => {
+                let prompt = self
+                    .mfa_prompts
+                    .as_mut()
+                    .and_then(|p| p.pop_front())
+                    .unwrap_or_else(|| mfa.prompt.clone());
                 if self.password.is_empty() {
-                    self.password = self.prompt.get_secure_input(mfa.prompt.as_str())?;
+                    self.password = self.prompt.get_secure_input(&prompt)?;
                 }
                 Ok(self.password.clone())
             }
@@ -148,7 +153,7 @@ impl<'a> ServiceController<'a> {
     }
 
     async fn do_connect(&mut self) -> anyhow::Result<ConnectionStatus> {
-        self.fill_pwd_prompts().await;
+        self.fill_mfa_prompts().await;
 
         let params = self.params.clone();
 
@@ -215,7 +220,7 @@ impl<'a> ServiceController<'a> {
         Ok(serde_json::from_slice(&result)?)
     }
 
-    async fn fill_pwd_prompts(&mut self) {
+    async fn fill_mfa_prompts(&mut self) {
         self.mfa_prompts
             .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
     }
