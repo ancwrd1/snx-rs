@@ -3,6 +3,12 @@
 use std::{collections::HashMap, os::fd::AsRawFd, time::Duration};
 
 use anyhow::anyhow;
+use nix::{
+    fcntl,
+    fcntl::{FcntlArg, OFlag},
+    sys::stat::Mode,
+    unistd,
+};
 use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
 use tracing::debug;
@@ -160,4 +166,61 @@ pub async fn send_notification(summary: &str, message: &str) -> anyhow::Result<(
         )
         .await?;
     Ok(())
+}
+
+pub struct SingleInstance {
+    name: String,
+    handle: Option<nix::libc::c_int>,
+}
+
+unsafe impl Send for SingleInstance {}
+unsafe impl Sync for SingleInstance {}
+
+impl SingleInstance {
+    pub fn new<N: AsRef<str>>(name: N) -> anyhow::Result<Self> {
+        let fd = fcntl::open(
+            name.as_ref(),
+            OFlag::O_RDWR | OFlag::O_CREAT,
+            Mode::from_bits_truncate(0o600),
+        );
+        match fd {
+            Err(e) => Err(anyhow!("OS error {}", e)),
+            Ok(fd) => {
+                let fl = nix::libc::flock {
+                    l_type: nix::libc::F_WRLCK as _,
+                    l_whence: nix::libc::SEEK_SET as _,
+                    l_start: 0,
+                    l_len: 0,
+                    l_pid: 0,
+                };
+
+                match fcntl::fcntl(fd, FcntlArg::F_SETLK(&fl)) {
+                    Ok(_) => Ok(SingleInstance {
+                        name: name.as_ref().to_owned(),
+                        handle: Some(fd),
+                    }),
+                    Err(_) => {
+                        let _ = unistd::close(fd);
+                        Ok(SingleInstance {
+                            name: name.as_ref().to_owned(),
+                            handle: None,
+                        })
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn is_single(&self) -> bool {
+        self.handle.is_some()
+    }
+}
+
+impl Drop for SingleInstance {
+    fn drop(&mut self) {
+        if let Some(handle) = self.handle.take() {
+            let _ = unistd::close(handle);
+            let _ = std::fs::remove_file(&self.name);
+        }
+    }
 }
