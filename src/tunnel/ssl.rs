@@ -238,17 +238,22 @@ impl CheckpointTunnel for SslTunnel {
 
         let _ = event_sender.send(TunnelEvent::Connected).await;
 
-        let stop_fut = command_receiver.recv();
-        pin_mut!(stop_fut);
+        let command_fut = command_receiver.recv();
+        pin_mut!(command_fut);
 
         let result = loop {
             tokio::select! {
-                _ = &mut stop_fut => {
-                    break Ok(());
+                event = &mut command_fut => {
+                    match event {
+                        Some(TunnelCommand::Terminate) | None => {
+                            break Ok(());
+                        }
+                        _ => {}
+                    }
                 }
                 _ = tokio::time::sleep(self.keepalive) => {
                     if platform::is_online() {
-                        self.keepalive().await?;
+                        let _ = self.keepalive().await;
                     }
                 }
 

@@ -17,8 +17,7 @@ use isakmp::{
 };
 use parking_lot::RwLock;
 use rand::random;
-use tokio::net::UdpSocket;
-use tokio::sync::mpsc::Sender;
+use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
 use crate::{
@@ -34,11 +33,17 @@ use crate::{
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
 
-pub struct CccTunnelConnector(Arc<TunnelParams>);
+pub struct CccTunnelConnector {
+    params: Arc<TunnelParams>,
+    command_sender: Option<Sender<TunnelCommand>>,
+}
 
 impl CccTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
-        Ok(Self(params))
+        Ok(Self {
+            params,
+            command_sender: None,
+        })
     }
 
     async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<Arc<CccSession>> {
@@ -82,7 +87,7 @@ impl CccTunnelConnector {
             ipsec_session: None,
         });
 
-        let client = CccHttpClient::new(self.0.clone(), Some(session.clone()));
+        let client = CccHttpClient::new(self.params.clone(), Some(session.clone()));
         if let Ok(ipsec_params) = client.get_ipsec_tunnel_params(random()).await {
             let esp_in = EspCryptMaterial {
                 spi: ipsec_params.client_decsa.spi,
@@ -127,8 +132,8 @@ impl CccTunnelConnector {
 #[async_trait]
 impl TunnelConnector for CccTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>> {
-        debug!("Authenticating to endpoint: {}", self.0.server_name);
-        let client = CccHttpClient::new(self.0.clone(), None);
+        debug!("Authenticating to endpoint: {}", self.params.server_name);
+        let client = CccHttpClient::new(self.params.clone(), None);
 
         let data = client.authenticate().await?;
 
@@ -136,23 +141,34 @@ impl TunnelConnector for CccTunnelConnector {
     }
 
     async fn challenge_code(&mut self, session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>> {
-        debug!("Authenticating with challenge code to endpoint: {}", self.0.server_name);
-        let client = CccHttpClient::new(self.0.clone(), Some(session));
+        debug!(
+            "Authenticating with challenge code to endpoint: {}",
+            self.params.server_name
+        );
+        let client = CccHttpClient::new(self.params.clone(), Some(session));
 
         let data = client.challenge_code(user_input).await?;
 
         self.process_auth_response(data).await
     }
 
-    async fn create_tunnel(&self, session: Arc<CccSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
-        Ok(Box::new(SslTunnel::create(self.0.clone(), session).await?))
+    async fn create_tunnel(
+        &mut self,
+        session: Arc<CccSession>,
+        command_sender: Sender<TunnelCommand>,
+    ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
+        self.command_sender = Some(command_sender);
+        Ok(Box::new(SslTunnel::create(self.params.clone(), session).await?))
     }
 
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
+        if let Some(sender) = self.command_sender.take() {
+            let _ = sender.send(TunnelCommand::Terminate).await;
+        }
         Ok(())
     }
 
-    async fn rekey_tunnel(&mut self, _sender: Sender<TunnelCommand>) -> anyhow::Result<()> {
+    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -183,6 +199,7 @@ pub struct IpsecTunnelConnector {
     ccc_session: String,
     ipsec_session: IpsecSession,
     last_rekey: Instant,
+    command_sender: Option<Sender<TunnelCommand>>,
 }
 
 impl IpsecTunnelConnector {
@@ -215,6 +232,7 @@ impl IpsecTunnelConnector {
             ccc_session: String::new(),
             ipsec_session: Default::default(),
             last_rekey: Instant::now(),
+            command_sender: None,
         })
     }
 
@@ -428,19 +446,23 @@ impl IpsecTunnelConnector {
         Ok(())
     }
 
-    fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
+    async fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
         if let Some(msg) = self.ikev1.transport_mut().parse_data(&data[4..])? {
+            let payload_types = msg.payloads.iter().map(|p| p.as_payload_type()).collect::<Vec<_>>();
             debug!(
-                "Received unsolicited ISAKMP message, exchange type: {:?}, message id: {:04x}, next payload: {:?}",
-                msg.exchange_type,
-                msg.message_id,
-                msg.payloads
-                    .first()
-                    .map(|p| p.as_payload_type())
-                    .unwrap_or(PayloadType::None)
+                "Received unsolicited ISAKMP message, exchange type: {:?}, message id: {:04x}, payloads: {:?}",
+                msg.exchange_type, msg.message_id, payload_types,
             );
+
+            if payload_types.iter().any(|p| *p == PayloadType::SecurityAssociation) {
+                let _ = self.rekey_tunnel().await;
+            }
         }
         Ok(())
+    }
+
+    async fn delete_sa(&mut self) -> anyhow::Result<()> {
+        self.ikev1.delete_sa().await
     }
 }
 
@@ -487,15 +509,23 @@ impl TunnelConnector for IpsecTunnelConnector {
         self.process_id_reply(id_reply).await
     }
 
-    async fn create_tunnel(&self, session: Arc<CccSession>) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
+    async fn create_tunnel(
+        &mut self,
+        session: Arc<CccSession>,
+        command_sender: Sender<TunnelCommand>,
+    ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
+        self.command_sender = Some(command_sender);
         Ok(Box::new(IpsecTunnel::create(self.params.clone(), session).await?))
     }
 
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
-        self.ikev1.delete_sa().await
+        if let Some(sender) = self.command_sender.take() {
+            let _ = sender.send(TunnelCommand::Terminate).await;
+        }
+        Ok(())
     }
 
-    async fn rekey_tunnel(&mut self, sender: Sender<TunnelCommand>) -> anyhow::Result<()> {
+    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
         let lifetime = if self.ipsec_session.lifetime < MIN_ESP_LIFETIME {
             self.ipsec_session.lifetime
         } else {
@@ -510,7 +540,11 @@ impl TunnelConnector for IpsecTunnelConnector {
                 self.ipsec_session.esp_in.spi, self.ipsec_session.esp_out.spi
             );
 
-            Ok(sender.send(TunnelCommand::ReKey(self.ipsec_session.clone())).await?)
+            if let Some(ref mut sender) = self.command_sender {
+                Ok(sender.send(TunnelCommand::ReKey(self.ipsec_session.clone())).await?)
+            } else {
+                Err(anyhow!("No sender!"))
+            }
         } else {
             Ok(())
         }
@@ -523,10 +557,10 @@ impl TunnelConnector for IpsecTunnelConnector {
             }
             TunnelEvent::Disconnected => {
                 debug!("Tunnel disconnected");
-                self.terminate_tunnel().await?;
+                let _ = self.delete_sa().await;
             }
             TunnelEvent::RemoteControlData(data) => {
-                self.parse_isakmp(data)?;
+                self.parse_isakmp(data).await?;
             }
         }
         Ok(())
@@ -536,7 +570,12 @@ impl TunnelConnector for IpsecTunnelConnector {
 impl Drop for IpsecTunnelConnector {
     fn drop(&mut self) {
         std::thread::scope(|s| {
-            s.spawn(|| crate::util::block_on(self.terminate_tunnel()));
+            s.spawn(|| {
+                crate::util::block_on(async {
+                    self.delete_sa().await?;
+                    self.terminate_tunnel().await
+                })
+            });
         });
     }
 }

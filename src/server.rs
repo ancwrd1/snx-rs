@@ -2,14 +2,14 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use futures::pin_mut;
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, time::MissedTickBehavior};
 use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
         params::TunnelParams, CccSession, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
     },
-    tunnel::{self, TunnelCommand, TunnelConnector, TunnelEvent},
+    tunnel::{self, TunnelConnector, TunnelEvent},
 };
 
 pub const LISTEN_PORT: u16 = 7779;
@@ -18,7 +18,6 @@ const MAX_PACKET_SIZE: usize = 1_000_000;
 
 pub struct CommandServer {
     port: u16,
-    command_sender: Option<mpsc::Sender<TunnelCommand>>,
     connection_status: ConnectionStatus,
     session: Option<Arc<CccSession>>,
     connector: Option<Box<dyn TunnelConnector + Send>>,
@@ -28,7 +27,6 @@ impl CommandServer {
     pub fn new(port: u16) -> Self {
         Self {
             port,
-            command_sender: None,
             connection_status: ConnectionStatus::default(),
             session: None,
             connector: None,
@@ -41,10 +39,10 @@ impl CommandServer {
         let socket = Arc::new(tokio::net::UdpSocket::bind(("127.0.0.1", self.port)).await?);
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
-        loop {
-            let tick = tokio::time::sleep(Duration::from_secs(60));
-            pin_mut!(tick);
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
+        loop {
             let recv = async {
                 let mut buf = vec![0u8; MAX_PACKET_SIZE];
                 let (size, addr) = socket.recv_from(&mut buf).await?;
@@ -56,7 +54,7 @@ impl CommandServer {
             pin_mut!(event_fut);
 
             tokio::select! {
-                _ = tick => {
+                _ = interval.tick() => {
                     let _ = self.rekey_tunnel().await;
                 }
                 event = event_fut => {
@@ -89,9 +87,7 @@ impl CommandServer {
     async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
         if self.is_connected() {
             if let Some(ref mut connector) = self.connector {
-                if let Some(sender) = self.command_sender.clone() {
-                    return connector.rekey_tunnel(sender).await;
-                }
+                return connector.rekey_tunnel().await;
             }
         }
         Ok(())
@@ -165,10 +161,9 @@ impl CommandServer {
             return Ok(());
         }
 
-        let tunnel = connector.create_tunnel(session).await?;
-
         let (command_sender, command_receiver) = mpsc::channel(16);
-        self.command_sender = Some(command_sender);
+
+        let tunnel = connector.create_tunnel(session, command_sender).await?;
 
         tokio::spawn(async move {
             if let Err(e) = tunnel.run(command_receiver, event_sender).await {
@@ -213,19 +208,11 @@ impl CommandServer {
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
-        self.reset();
-
-        if let Some(sender) = self.command_sender.take() {
-            let _ = sender.send(TunnelCommand::Terminate).await;
-            let mut num_waits = 0;
-            while self.is_connected() && num_waits < 20 {
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                num_waits += 1;
-            }
-            Ok(())
-        } else {
-            Err(anyhow!("Tunnel is already disconnected!"))
+        if let Some(ref mut connector) = self.connector {
+            let _ = connector.terminate_tunnel().await;
         }
+        self.reset();
+        Ok(())
     }
 
     fn reset(&mut self) {

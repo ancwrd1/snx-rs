@@ -1,11 +1,13 @@
-use std::time::Duration;
-use std::{future::Future, sync::Arc};
+use std::{future::Future, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use clap::Parser;
 use futures::pin_mut;
-use tokio::sync::mpsc;
-use tokio::{signal::unix, sync::oneshot};
+use tokio::{
+    signal::unix,
+    sync::{mpsc, oneshot},
+    time::MissedTickBehavior,
+};
 use tracing::{debug, metadata::LevelFilter, warn};
 
 use snx_rs::{
@@ -76,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
 
     debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
-    let (tx, rx) = mpsc::channel(16);
+    let (command_sender, command_receiver) = mpsc::channel(16);
 
     match mode {
         OperationMode::Standalone => {
@@ -115,30 +117,30 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
-            let tunnel = connector.create_tunnel(session).await?;
+            let tunnel = connector.create_tunnel(session, command_sender).await?;
 
             if let Err(e) = platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
 
             let (event_sender, event_receiver) = mpsc::channel(16);
-            let tunnel_fut = await_termination(tunnel.run(rx, event_sender));
+            let tunnel_fut = await_termination(tunnel.run(command_receiver, event_sender));
 
             pin_mut!(tunnel_fut);
             pin_mut!(event_receiver);
 
-            let result = loop {
-                let tick = tokio::time::sleep(Duration::from_secs(60));
-                pin_mut!(tick);
+            let mut interval = tokio::time::interval(Duration::from_secs(60));
+            interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
+            let result = loop {
                 tokio::select! {
                     event = event_receiver.recv() => {
                         if let Some(event) = event {
                             let _ = connector.handle_tunnel_event(event).await;
                         }
                     }
-                    _ = tick => {
-                        match connector.rekey_tunnel(tx.clone()).await {
+                    _ = interval.tick() => {
+                        match connector.rekey_tunnel().await {
                             Ok(_) => {}
                             Err(e) => {
                                 warn!("Rekey error: {:?}", e);
