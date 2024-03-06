@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::net::Ipv4Addr;
 
 use anyhow::anyhow;
@@ -423,7 +424,7 @@ pub struct ConnectivityInfo {
     pub natt_port: u16,
     pub connect_with_certificate_url: QuotedString,
     pub cookie_name: String,
-    pub internal_ca_fingerprint: Vec<String>,
+    pub internal_ca_fingerprint: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -445,7 +446,7 @@ pub struct IcsInfo {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginOptionsData {
-    pub login_options_list: Vec<LoginOption>,
+    pub login_options_list: BTreeMap<String, LoginOption>,
     pub login_options_md5: String,
 }
 
@@ -455,7 +456,7 @@ pub struct LoginOption {
     pub secondary_realm_hash: String,
     pub display_name: QuotedString,
     pub show_realm: u32,
-    pub factors: Vec<LoginFactor>,
+    pub factors: BTreeMap<String, LoginFactor>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

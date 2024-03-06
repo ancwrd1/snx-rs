@@ -126,7 +126,7 @@ impl SExpression {
         format!("(\n{})", formatted_items)
     }
 
-    fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> Value {
         match self {
             Self::Null => Value::Null,
             Self::Value(v) => to_json_value(v),
