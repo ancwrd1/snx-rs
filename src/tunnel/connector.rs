@@ -168,10 +168,6 @@ impl TunnelConnector for CccTunnelConnector {
         Ok(())
     }
 
-    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
-        Ok(())
-    }
-
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()> {
         match event {
             TunnelEvent::Connected => {
@@ -180,6 +176,7 @@ impl TunnelConnector for CccTunnelConnector {
             TunnelEvent::Disconnected => {
                 debug!("Tunnel disconnected");
             }
+            TunnelEvent::RekeyCheck => {}
             TunnelEvent::RemoteControlData(_) => {
                 warn!("Tunnel data received: shouldn't happen for SSL tunnel!");
             }
@@ -461,6 +458,32 @@ impl IpsecTunnelConnector {
         Ok(())
     }
 
+    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
+        let lifetime = if self.ipsec_session.lifetime < MIN_ESP_LIFETIME {
+            self.ipsec_session.lifetime
+        } else {
+            self.ipsec_session.lifetime - MIN_ESP_LIFETIME
+        };
+
+        if (Instant::now() - self.last_rekey) >= lifetime {
+            debug!("Start rekeying IPSec tunnel");
+            self.do_esp_proposal().await?;
+
+            debug!(
+                "New ESP SPI: {:04x}, {:04x}",
+                self.ipsec_session.esp_in.spi, self.ipsec_session.esp_out.spi
+            );
+
+            if let Some(ref mut sender) = self.command_sender {
+                Ok(sender.send(TunnelCommand::ReKey(self.ipsec_session.clone())).await?)
+            } else {
+                Err(anyhow!("No sender!"))
+            }
+        } else {
+            Ok(())
+        }
+    }
+
     async fn delete_sa(&mut self) -> anyhow::Result<()> {
         self.ikev1.delete_sa().await
     }
@@ -525,31 +548,6 @@ impl TunnelConnector for IpsecTunnelConnector {
         Ok(())
     }
 
-    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
-        let lifetime = if self.ipsec_session.lifetime < MIN_ESP_LIFETIME {
-            self.ipsec_session.lifetime
-        } else {
-            self.ipsec_session.lifetime - MIN_ESP_LIFETIME
-        };
-
-        if (Instant::now() - self.last_rekey) >= lifetime {
-            self.do_esp_proposal().await?;
-
-            debug!(
-                "New ESP SPI: {:04x}, {:04x}",
-                self.ipsec_session.esp_in.spi, self.ipsec_session.esp_out.spi
-            );
-
-            if let Some(ref mut sender) = self.command_sender {
-                Ok(sender.send(TunnelCommand::ReKey(self.ipsec_session.clone())).await?)
-            } else {
-                Err(anyhow!("No sender!"))
-            }
-        } else {
-            Ok(())
-        }
-    }
-
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()> {
         match event {
             TunnelEvent::Connected => {
@@ -558,6 +556,9 @@ impl TunnelConnector for IpsecTunnelConnector {
             TunnelEvent::Disconnected => {
                 debug!("Tunnel disconnected");
                 let _ = self.delete_sa().await;
+            }
+            TunnelEvent::RekeyCheck => {
+                self.rekey_tunnel().await?;
             }
             TunnelEvent::RemoteControlData(data) => {
                 self.parse_isakmp(data).await?;

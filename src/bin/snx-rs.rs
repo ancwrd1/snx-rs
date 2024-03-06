@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{future::Future, sync::Arc};
 
 use anyhow::anyhow;
 use clap::Parser;
@@ -6,7 +6,6 @@ use futures::pin_mut;
 use tokio::{
     signal::unix,
     sync::{mpsc, oneshot},
-    time::MissedTickBehavior,
 };
 use tracing::{debug, metadata::LevelFilter, warn};
 
@@ -129,23 +128,11 @@ async fn main() -> anyhow::Result<()> {
             pin_mut!(tunnel_fut);
             pin_mut!(event_receiver);
 
-            let mut interval = tokio::time::interval(Duration::from_secs(60));
-            interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
-
             let result = loop {
                 tokio::select! {
                     event = event_receiver.recv() => {
                         if let Some(event) = event {
                             let _ = connector.handle_tunnel_event(event).await;
-                        }
-                    }
-                    _ = interval.tick() => {
-                        match connector.rekey_tunnel().await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                warn!("Rekey error: {:?}", e);
-                                break Err(e);
-                            }
                         }
                     }
                     result = &mut tunnel_fut => {

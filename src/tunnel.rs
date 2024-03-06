@@ -26,6 +26,7 @@ pub enum TunnelCommand {
 pub enum TunnelEvent {
     Connected,
     Disconnected,
+    RekeyCheck,
     RemoteControlData(Bytes),
 }
 
@@ -48,7 +49,6 @@ pub trait TunnelConnector {
         command_sender: mpsc::Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>>;
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()>;
-    async fn rekey_tunnel(&mut self) -> anyhow::Result<()>;
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }
 

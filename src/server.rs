@@ -1,8 +1,8 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::anyhow;
 use futures::pin_mut;
-use tokio::{sync::mpsc, time::MissedTickBehavior};
+use tokio::sync::mpsc;
 use tracing::{debug, trace, warn};
 
 use crate::{
@@ -39,9 +39,6 @@ impl CommandServer {
         let socket = Arc::new(tokio::net::UdpSocket::bind(("127.0.0.1", self.port)).await?);
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
-        let mut interval = tokio::time::interval(Duration::from_secs(60));
-        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
-
         loop {
             let recv = async {
                 let mut buf = vec![0u8; MAX_PACKET_SIZE];
@@ -54,9 +51,6 @@ impl CommandServer {
             pin_mut!(event_fut);
 
             tokio::select! {
-                _ = interval.tick() => {
-                    let _ = self.rekey_tunnel().await;
-                }
                 event = event_fut => {
                     if let Some(event) = event {
                         if let Some(ref mut connector) = self.connector {
@@ -82,15 +76,6 @@ impl CommandServer {
                 }
             }
         }
-    }
-
-    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
-        if self.is_connected() {
-            if let Some(ref mut connector) = self.connector {
-                return connector.rekey_tunnel().await;
-            }
-        }
-        Ok(())
     }
 
     async fn handle(&mut self, packet: &[u8], event_sender: mpsc::Sender<TunnelEvent>) -> TunnelServiceResponse {

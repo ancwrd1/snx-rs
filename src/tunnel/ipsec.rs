@@ -1,10 +1,11 @@
+use std::time::Duration;
 use std::{
     net::{IpAddr, ToSocketAddrs},
     sync::Arc,
 };
 
 use anyhow::anyhow;
-use tokio::{net::UdpSocket, sync::mpsc};
+use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::debug;
 
 use crate::{
@@ -91,12 +92,26 @@ impl CheckpointTunnel for IpsecTunnel {
 
         let _ = event_sender.send(TunnelEvent::Connected).await;
 
+        let sender = event_sender.clone();
+
+        tokio::task::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(10));
+            interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
+            while sender.send(TunnelEvent::RekeyCheck).await.is_ok() {
+                interval.tick().await;
+            }
+            Ok::<_, anyhow::Error>(())
+        });
+
         let fut = async {
             while let Some(cmd) = command_receiver.recv().await {
                 match cmd {
                     TunnelCommand::Terminate => break,
                     TunnelCommand::ReKey(session) => {
-                        debug!("Rekey command received, configuring xfrm");
+                        debug!(
+                            "Rekey command received, new lifetime: {}, configuring xfrm",
+                            session.lifetime.as_secs()
+                        );
                         let _ = self.configurator.re_key(&session).await;
                     }
                 }
