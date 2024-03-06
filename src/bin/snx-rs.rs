@@ -128,7 +128,7 @@ async fn main() -> anyhow::Result<()> {
             pin_mut!(tunnel_fut);
             pin_mut!(event_receiver);
 
-            let result = loop {
+            loop {
                 tokio::select! {
                     event = event_receiver.recv() => {
                         if let Some(event) = event {
@@ -139,9 +139,7 @@ async fn main() -> anyhow::Result<()> {
                         break result;
                     }
                 }
-            };
-
-            result
+            }
         }
         OperationMode::Command => {
             debug!("Running in command mode");
