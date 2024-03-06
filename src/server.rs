@@ -131,6 +131,7 @@ impl CommandServer {
                 match self.challenge_code(&code, event_sender).await {
                     Ok(_) => TunnelServiceResponse::Ok,
                     Err(e) => {
+                        warn!("{}", e);
                         self.reset();
                         TunnelServiceResponse::Error(e.to_string())
                     }
