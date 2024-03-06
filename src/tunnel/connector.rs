@@ -195,7 +195,7 @@ pub struct IpsecTunnelConnector {
     last_challenge_type: ConfigAttributeType,
     ccc_session: String,
     ipsec_session: IpsecSession,
-    last_rekey: Instant,
+    last_rekey: Option<Instant>,
     command_sender: Option<Sender<TunnelCommand>>,
 }
 
@@ -228,7 +228,7 @@ impl IpsecTunnelConnector {
             last_challenge_type: ConfigAttributeType::Other(0),
             ccc_session: String::new(),
             ipsec_session: Default::default(),
-            last_rekey: Instant::now(),
+            last_rekey: None,
             command_sender: None,
         })
     }
@@ -371,6 +371,8 @@ impl IpsecTunnelConnector {
 
                 self.do_esp_proposal().await?;
 
+                self.last_rekey = Some(Instant::now());
+
                 let session = Arc::new(CccSession {
                     session_id: self.ccc_session.clone(),
                     ipsec_session: Some(self.ipsec_session.clone()),
@@ -416,8 +418,6 @@ impl IpsecTunnelConnector {
     }
 
     async fn do_esp_proposal(&mut self) -> anyhow::Result<()> {
-        self.last_rekey = Instant::now();
-
         let attributes = self
             .ikev1
             .do_esp_proposal(self.ipsec_session.address, self.params.esp_lifetime)
@@ -465,9 +465,14 @@ impl IpsecTunnelConnector {
             self.ipsec_session.lifetime - MIN_ESP_LIFETIME
         };
 
-        if (Instant::now() - self.last_rekey) >= lifetime {
+        if self
+            .last_rekey
+            .is_some_and(|last_rekey| Instant::now() - last_rekey >= lifetime)
+        {
             debug!("Start rekeying IPSec tunnel");
             self.do_esp_proposal().await?;
+
+            self.last_rekey = Some(Instant::now());
 
             debug!(
                 "New ESP SPI: {:04x}, {:04x}",
