@@ -108,12 +108,12 @@ mod webkit {
     }
 
     pub fn open_browser(url: String) -> anyhow::Result<()> {
-        let app = Application::builder().application_id("snxctl").build();
+        let app = Application::builder().application_id("com.github.snx-rs").build();
 
         app.connect_activate(move |app| {
             let window = ApplicationWindow::builder()
                 .application(app)
-                .title("Identity provider login")
+                .title("Identity Provider Authentication")
                 .type_(WindowType::Toplevel)
                 .width_request(700)
                 .height_request(500)
