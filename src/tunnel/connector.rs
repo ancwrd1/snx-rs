@@ -293,7 +293,7 @@ impl IpsecTunnelConnector {
             .get_value::<String>("msg_obj:authentication_state")
             .ok_or_else(|| anyhow!("No state"))?;
 
-        if state != "challenge" {
+        if state != "challenge" && state != "new_factor" {
             return Err(anyhow!("Not a challenge state!"));
         }
 
