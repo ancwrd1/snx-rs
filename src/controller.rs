@@ -3,6 +3,7 @@ use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 use anyhow::anyhow;
 use directories_next::ProjectDirs;
 use tokio::sync::oneshot;
+use tracing::warn;
 
 use crate::{
     browser::BrowserController,
@@ -144,10 +145,15 @@ impl<'a> ServiceController<'a> {
                 self.browser_controller.open(&mfa.prompt)?;
 
                 let result = match tokio::time::timeout(OTP_TIMEOUT, rx).await {
-                    Ok(Ok(otp)) => Ok(otp),
-                    _ => Err(anyhow!("Unable to acquire OTP from the browser!")),
+                    Ok(Ok(otp)) => {
+                        let _ = self.browser_controller.close();
+                        Ok(otp)
+                    }
+                    _ => {
+                        warn!("Unable to acquire OTP from the browser");
+                        Err(anyhow!("Unable to acquire OTP from the browser!"))
+                    }
                 };
-                let _ = self.browser_controller.close();
                 result
             }
         }

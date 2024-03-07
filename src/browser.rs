@@ -26,9 +26,6 @@ impl BrowserController {
     }
 
     fn run(receiver: mpsc::Receiver<BrowserCommand>) {
-        #[cfg(feature = "webkit2gtk")]
-        let _ = gtk::init();
-
         while let Ok(command) = receiver.recv() {
             match command {
                 BrowserCommand::Open(url) => Self::open_browser(url),
@@ -67,23 +64,26 @@ impl Drop for BrowserController {
 
 #[cfg(feature = "webkit2gtk")]
 mod webkit {
-    use anyhow::anyhow;
-    use directories_next::ProjectDirs;
-    use gtk::{glib, prelude::*, Window, WindowPosition, WindowType};
     use std::thread;
     use std::time::Duration;
+
+    use anyhow::anyhow;
+    use directories_next::ProjectDirs;
+    use gtk::{glib, prelude::*, Application, ApplicationWindow, Window, WindowPosition, WindowType};
+    use tokio::{io::AsyncWriteExt, net::TcpStream};
     use tracing::debug;
     use webkit2gtk::{
         CookieManagerExt, CookiePersistentStorage, SettingsExt, URIRequestExt, UserContentManager, WebContext, WebView,
         WebViewExt, WebViewExtManual, WebsiteDataManager, WebsiteDataManagerExt,
     };
 
+    use crate::util;
+
     pub fn close_browser() {
         thread::spawn(|| {
-            thread::sleep(Duration::from_secs(3));
             glib::idle_add(|| {
                 for win in Window::list_toplevels() {
-                    if let Some(w) = win.downcast_ref::<Window>() {
+                    if let Some(w) = win.downcast_ref::<ApplicationWindow>() {
                         w.close();
                     }
                 }
@@ -92,59 +92,75 @@ mod webkit {
         });
     }
 
+    fn notify_listener() {
+        let _ = util::block_on(async {
+            let mut socket =
+                tokio::time::timeout(Duration::from_secs(1), TcpStream::connect("127.0.0.1:7779")).await??;
+
+            socket
+                .write_all(b"GET / HTTP/1.1\r\nHost:localhost\r\nConnection:Close\r\n\r\n")
+                .await?;
+
+            socket.shutdown().await?;
+
+            Ok::<_, anyhow::Error>(())
+        });
+    }
+
     pub fn open_browser(url: String) -> anyhow::Result<()> {
-        let window = Window::builder()
-            .title("Identity provider login")
-            .type_(WindowType::Toplevel)
-            .width_request(700)
-            .height_request(500)
-            .build();
+        let app = Application::builder().application_id("snxctl").build();
 
-        let data_manager = WebsiteDataManager::default();
-        data_manager.set_persistent_credential_storage_enabled(true);
+        app.connect_activate(move |app| {
+            let window = ApplicationWindow::builder()
+                .application(app)
+                .title("Identity provider login")
+                .type_(WindowType::Toplevel)
+                .width_request(700)
+                .height_request(500)
+                .build();
 
-        let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
-        let _ = std::fs::create_dir_all(dir.config_dir());
-        let cookies_file = dir.config_dir().join("cookies.db");
+            let data_manager = WebsiteDataManager::default();
+            data_manager.set_persistent_credential_storage_enabled(true);
 
-        data_manager
-            .cookie_manager()
-            .unwrap()
-            .set_persistent_storage(&format!("{}", cookies_file.display()), CookiePersistentStorage::Sqlite);
+            let dir = ProjectDirs::from("", "", "snx-rs")
+                .ok_or(anyhow!("No project directory!"))
+                .unwrap();
+            let _ = std::fs::create_dir_all(dir.config_dir());
+            let cookies_file = dir.config_dir().join("cookies.db");
 
-        let context = WebContext::builder().website_data_manager(&data_manager).build();
-        let webview = WebView::new_with_context_and_user_content_manager(&context, &UserContentManager::new());
+            data_manager
+                .cookie_manager()
+                .unwrap()
+                .set_persistent_storage(&format!("{}", cookies_file.display()), CookiePersistentStorage::Sqlite);
 
-        let settings = WebViewExt::settings(&webview).unwrap();
-        settings.set_javascript_can_open_windows_automatically(true);
+            let context = WebContext::builder().website_data_manager(&data_manager).build();
+            let webview = WebView::new_with_context_and_user_content_manager(&context, &UserContentManager::new());
 
-        // redirect inside the same window
-        webview.connect_create(|w, event| {
-            if let Some(req) = event.request() {
-                match (req.uri(), w.uri()) {
-                    (Some(new_uri), Some(current_uri)) if new_uri != current_uri => {
-                        debug!("Redirecting to {}", new_uri);
-                        w.load_uri(&new_uri);
+            let settings = WebViewExt::settings(&webview).unwrap();
+            settings.set_javascript_can_open_windows_automatically(true);
+
+            webview.connect_create(|w, event| {
+                if let Some(req) = event.request() {
+                    match (req.uri(), w.uri()) {
+                        (Some(new_uri), Some(current_uri)) if new_uri != current_uri => {
+                            debug!("Redirecting to {}", new_uri);
+                            w.load_uri(&new_uri);
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
-            }
-            None
+                None
+            });
+
+            webview.load_uri(&format!("{}", url));
+
+            window.add(&webview);
+            window.set_position(WindowPosition::Mouse);
+            window.show_all();
         });
 
-        debug!("Opening {}", url);
-        webview.load_uri(&format!("{}", url));
-
-        window.add(&webview);
-        window.set_position(WindowPosition::Mouse);
-        window.show_all();
-
-        window.connect_delete_event(|_, _| {
-            gtk::main_quit();
-            glib::Propagation::Proceed
-        });
-
-        gtk::main();
+        app.run();
+        notify_listener();
 
         Ok(())
     }
