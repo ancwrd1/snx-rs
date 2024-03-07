@@ -131,10 +131,11 @@ impl<'a> ServiceController<'a> {
                     .as_mut()
                     .and_then(|p| p.pop_front())
                     .unwrap_or_else(|| mfa.prompt.clone());
+                let input = self.prompt.get_secure_input(&prompt)?;
                 if self.password.is_empty() {
-                    self.password = self.prompt.get_secure_input(&prompt)?;
+                    self.password = input.clone();
                 }
-                Ok(self.password.clone())
+                Ok(input)
             }
             MfaType::SamlSso => {
                 let (tx, rx) = oneshot::channel();
