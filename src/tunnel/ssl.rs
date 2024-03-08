@@ -18,25 +18,22 @@ use tun::TunPacket;
 
 use codec::{SslPacketCodec, SslPacketType};
 
-use crate::tunnel::TunnelEvent;
 use crate::{
     model::{params::TunnelParams, proto::*, *},
-    platform,
     sexpr2::SExpression,
-    tunnel::{CheckpointTunnel, TunnelCommand},
+    tunnel::{ssl::keepalive::KeepaliveRunner, CheckpointTunnel, TunnelCommand, TunnelEvent},
 };
 
 pub mod codec;
-#[cfg(unix)]
 pub mod device;
+pub mod keepalive;
 
 const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
-const MAX_KEEP_ALIVE_ATTEMPTS: u64 = 3;
 const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 const CHANNEL_SIZE: usize = 1024;
 
-type PacketSender = Sender<SslPacketType>;
-type PacketReceiver = Receiver<SslPacketType>;
+pub type PacketSender = Sender<SslPacketType>;
+pub type PacketReceiver = Receiver<SslPacketType>;
 
 fn make_channel<S>(stream: S) -> (PacketSender, PacketReceiver)
 where
@@ -157,23 +154,6 @@ impl SslTunnel {
         Ok(reply.data)
     }
 
-    async fn keepalive(&mut self) -> anyhow::Result<()> {
-        if self.keepalive_counter.load(Ordering::SeqCst) >= MAX_KEEP_ALIVE_ATTEMPTS {
-            let msg = "No response for keepalive packets, tunnel appears stuck";
-            warn!(msg);
-            return Err(anyhow!("{}", msg));
-        }
-
-        let req = KeepaliveRequestData { id: "0".to_string() };
-        trace!("Keepalive request: {:?}", req);
-
-        self.keepalive_counter.fetch_add(1, Ordering::SeqCst);
-
-        self.send(req).await?;
-
-        Ok(())
-    }
-
     async fn send<P>(&mut self, packet: P) -> anyhow::Result<()>
     where
         P: Into<SslPacketType>,
@@ -230,7 +210,6 @@ impl CheckpointTunnel for SslTunnel {
                     }
                     SslPacketType::Data(data) => {
                         trace!("snx => {}: {}", data.len(), dev_name2);
-                        keepalive_counter.store(0, Ordering::SeqCst);
                         let tun_packet = TunPacket::new(data);
                         tun_sender.send(tun_packet).await?;
                     }
@@ -244,6 +223,11 @@ impl CheckpointTunnel for SslTunnel {
         let command_fut = command_receiver.recv();
         pin_mut!(command_fut);
 
+        let keepalive_runner =
+            KeepaliveRunner::new(self.keepalive, self.sender.clone(), self.keepalive_counter.clone());
+        let ka_run = keepalive_runner.run();
+        pin_mut!(ka_run);
+
         let result = loop {
             tokio::select! {
                 event = &mut command_fut => {
@@ -254,10 +238,9 @@ impl CheckpointTunnel for SslTunnel {
                         _ => {}
                     }
                 }
-                _ = tokio::time::sleep(self.keepalive) => {
-                    if platform::is_online() {
-                        let _ = self.keepalive().await;
-                    }
+                _ = &mut ka_run => {
+                    warn!("Keepalive failed, exiting");
+                    break Err(anyhow!("Keepalive failed"));
                 }
 
                 result = tun_receiver.next() => {

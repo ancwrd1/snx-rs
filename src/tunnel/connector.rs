@@ -12,11 +12,10 @@ use isakmp::{
     ikev1::Ikev1,
     model::{ConfigAttributeType, EspAttributeType, PayloadType},
     payload::AttributesPayload,
-    session::{EspCryptMaterial, Ikev1Session},
+    session::Ikev1Session,
     transport::{IsakmpTransport, UdpTransport},
 };
 use parking_lot::RwLock;
-use rand::random;
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
@@ -86,46 +85,7 @@ impl CccTunnelConnector {
             state: SessionState::Authenticated(active_key.0),
             ipsec_session: None,
         });
-
-        let client = CccHttpClient::new(self.params.clone(), Some(session.clone()));
-        if let Ok(ipsec_params) = client.get_ipsec_tunnel_params(random()).await {
-            let esp_in = EspCryptMaterial {
-                spi: ipsec_params.client_decsa.spi,
-                sk_e: hex::decode(ipsec_params.client_decsa.enckey.0.as_bytes())?.into(),
-                sk_a: hex::decode(ipsec_params.client_decsa.authkey.0.as_bytes())?.into(),
-            };
-            let esp_out = EspCryptMaterial {
-                spi: ipsec_params.client_encsa.spi,
-                sk_e: hex::decode(ipsec_params.client_encsa.enckey.0.as_bytes())?.into(),
-                sk_a: hex::decode(ipsec_params.client_encsa.authkey.0.as_bytes())?.into(),
-            };
-
-            let ipsec_session = IpsecSession {
-                lifetime: Duration::from_secs(ipsec_params.lifetime.unwrap_or(3600)),
-                address: ipsec_params.om_addr.into(),
-                netmask: ipsec_params.om_subnet_mask.into(),
-                dns: [ipsec_params.om_dns0, ipsec_params.om_dns1, ipsec_params.om_dns2]
-                    .into_iter()
-                    .flatten()
-                    .filter(|d| *d != 0)
-                    .map(Into::into)
-                    .collect(),
-                domains: ipsec_params
-                    .om_domain_name
-                    .as_ref()
-                    .map(|s| s.0.split(',').map(|s| s.trim().to_owned()).collect())
-                    .unwrap_or_default(),
-                esp_in,
-                esp_out,
-            };
-
-            Ok(Arc::new(CccSession {
-                ipsec_session: Some(ipsec_session),
-                ..(*session).clone()
-            }))
-        } else {
-            Ok(session)
-        }
+        Ok(session)
     }
 }
 
