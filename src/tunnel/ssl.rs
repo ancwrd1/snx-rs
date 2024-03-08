@@ -135,6 +135,7 @@ impl SslTunnel {
 
     async fn client_hello(&mut self) -> anyhow::Result<HelloReplyData> {
         let req = self.new_hello_request(false);
+        trace!("Hello request: {:?}", req);
         self.send(req).await?;
 
         let receiver = self.receiver.as_mut().unwrap();
@@ -143,6 +144,7 @@ impl SslTunnel {
 
         let reply = match reply {
             SslPacketType::Control(expr) => {
+                trace!("Hello reply: {:?}", expr);
                 let result: HelloReply = expr.try_into()?;
                 self.ip_address = result.data.office_mode.ipaddr.clone();
                 self.auth_timeout = Duration::from_secs(result.data.timeouts.authentication) - REAUTH_LEEWAY;
@@ -163,6 +165,7 @@ impl SslTunnel {
         }
 
         let req = KeepaliveRequestData { id: "0".to_string() };
+        trace!("Keepalive request: {:?}", req);
 
         self.keepalive_counter.fetch_add(1, Ordering::SeqCst);
 
