@@ -1,7 +1,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::Arc,
-    time::{Duration, Instant},
+    time::{Duration, SystemTime},
 };
 
 use anyhow::anyhow;
@@ -155,7 +155,7 @@ pub struct IpsecTunnelConnector {
     last_challenge_type: ConfigAttributeType,
     ccc_session: String,
     ipsec_session: IpsecSession,
-    last_rekey: Option<Instant>,
+    last_rekey: Option<SystemTime>,
     command_sender: Option<Sender<TunnelCommand>>,
 }
 
@@ -331,7 +331,7 @@ impl IpsecTunnelConnector {
 
                 self.do_esp_proposal().await?;
 
-                self.last_rekey = Some(Instant::now());
+                self.last_rekey = Some(SystemTime::now());
 
                 let session = Arc::new(CccSession {
                     session_id: self.ccc_session.clone(),
@@ -427,12 +427,12 @@ impl IpsecTunnelConnector {
 
         if self
             .last_rekey
-            .is_some_and(|last_rekey| Instant::now() - last_rekey >= lifetime)
+            .is_some_and(|last_rekey| SystemTime::now().duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
         {
             debug!("Start rekeying IPSec tunnel");
             self.do_esp_proposal().await?;
 
-            self.last_rekey = Some(Instant::now());
+            self.last_rekey = Some(SystemTime::now());
 
             debug!(
                 "New ESP SPI: {:04x}, {:04x}",
