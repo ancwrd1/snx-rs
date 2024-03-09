@@ -10,7 +10,7 @@ use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use isakmp::{
     ikev1::Ikev1,
-    model::{ConfigAttributeType, EspAttributeType, PayloadType},
+    model::{ConfigAttributeType, EspAttributeType, Identity, PayloadType},
     payload::AttributesPayload,
     session::Ikev1Session,
     transport::{IsakmpTransport, UdpTransport},
@@ -161,7 +161,15 @@ pub struct IpsecTunnelConnector {
 
 impl IpsecTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
-        let ikev1_session = Arc::new(RwLock::new(Ikev1Session::new()?));
+        let identity = if let Some(ref cert) = params.client_cert {
+            Identity::Certificate {
+                path: cert.clone(),
+                password: params.cert_password.clone(),
+            }
+        } else {
+            Identity::None
+        };
+        let ikev1_session = Arc::new(RwLock::new(Ikev1Session::new(identity)?));
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         socket.connect(format!("{}:500", params.server_name)).await?;
@@ -283,7 +291,57 @@ impl IpsecTunnelConnector {
         }))
     }
 
-    async fn process_id_reply(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<CccSession>> {
+    async fn do_session_exchange(&mut self) -> anyhow::Result<Arc<CccSession>> {
+        let om_reply = self.ikev1.send_om_request().await?;
+
+        self.ccc_session = self
+            .get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
+            .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
+            .ok_or_else(|| anyhow!("No CCC session in reply!"))?;
+
+        self.ipsec_session.address = self
+            .get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
+            .ok_or_else(|| anyhow!("No IPv4 in reply!"))?
+            .reader()
+            .read_u32::<BigEndian>()?
+            .into();
+
+        self.ipsec_session.netmask = self
+            .get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Netmask)
+            .ok_or_else(|| anyhow!("No netmask in reply!"))?
+            .reader()
+            .read_u32::<BigEndian>()?
+            .into();
+
+        self.ipsec_session.dns = self
+            .get_long_attributes(&om_reply, ConfigAttributeType::Ipv4Dns)
+            .into_iter()
+            .flat_map(|b| b.reader().read_u32::<BigEndian>().ok())
+            .map(Into::into)
+            .collect();
+
+        self.ipsec_session.domains = self
+            .get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
+            .map(|v| String::from_utf8_lossy(&v).into_owned())
+            .unwrap_or_default()
+            .split(',')
+            .map(ToOwned::to_owned)
+            .collect();
+
+        self.do_esp_proposal().await?;
+
+        self.last_rekey = Some(SystemTime::now());
+
+        let session = Arc::new(CccSession {
+            session_id: self.ccc_session.clone(),
+            ipsec_session: Some(self.ipsec_session.clone()),
+            state: SessionState::Authenticated(String::new()),
+        });
+
+        Ok(session)
+    }
+
+    async fn process_auth_attributes(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<CccSession>> {
         self.last_identifier = id_reply.identifier;
         let status = self.get_short_attribute(&id_reply, ConfigAttributeType::Status);
         match status {
@@ -293,52 +351,7 @@ impl IpsecTunnelConnector {
                     .send_ack_response(id_reply.identifier, self.last_message_id)
                     .await?;
 
-                let om_reply = self.ikev1.send_om_request().await?;
-
-                self.ccc_session = self
-                    .get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
-                    .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
-                    .ok_or_else(|| anyhow!("No CCC session in reply!"))?;
-
-                self.ipsec_session.address = self
-                    .get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
-                    .ok_or_else(|| anyhow!("No IPv4 in reply!"))?
-                    .reader()
-                    .read_u32::<BigEndian>()?
-                    .into();
-
-                self.ipsec_session.netmask = self
-                    .get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Netmask)
-                    .ok_or_else(|| anyhow!("No netmask in reply!"))?
-                    .reader()
-                    .read_u32::<BigEndian>()?
-                    .into();
-
-                self.ipsec_session.dns = self
-                    .get_long_attributes(&om_reply, ConfigAttributeType::Ipv4Dns)
-                    .into_iter()
-                    .flat_map(|b| b.reader().read_u32::<BigEndian>().ok())
-                    .map(Into::into)
-                    .collect();
-
-                self.ipsec_session.domains = self
-                    .get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
-                    .map(|v| String::from_utf8_lossy(&v).into_owned())
-                    .unwrap_or_default()
-                    .split(',')
-                    .map(ToOwned::to_owned)
-                    .collect();
-
-                self.do_esp_proposal().await?;
-
-                self.last_rekey = Some(SystemTime::now());
-
-                let session = Arc::new(CccSession {
-                    session_id: self.ccc_session.clone(),
-                    ipsec_session: Some(self.ipsec_session.clone()),
-                    state: SessionState::Authenticated(String::new()),
-                });
-                Ok(session)
+                self.do_session_exchange().await
             }
             Some(status) => {
                 warn!("IPSec authentication failed, status: {}", status);
@@ -474,13 +487,17 @@ impl TunnelConnector for IpsecTunnelConnector {
             self.params.login_type
         );
 
-        let (id_reply, message_id) = self
-            .ikev1
+        self.ikev1
             .do_identity_protection(Bytes::copy_from_slice(realm.as_bytes()))
             .await?;
 
-        self.last_message_id = message_id;
-        self.process_id_reply(id_reply).await
+        if self.params.client_cert.is_some() {
+            self.do_session_exchange().await
+        } else {
+            let (attrs_reply, message_id) = self.ikev1.get_auth_attributes().await?;
+            self.last_message_id = message_id;
+            self.process_auth_attributes(attrs_reply).await
+        }
     }
 
     async fn challenge_code(&mut self, _session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>> {
@@ -495,7 +512,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             )
             .await?
             .0;
-        self.process_id_reply(id_reply).await
+        self.process_auth_attributes(id_reply).await
     }
 
     async fn create_tunnel(
