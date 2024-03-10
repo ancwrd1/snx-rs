@@ -425,9 +425,10 @@ impl IpsecTunnelConnector {
             self.ipsec_session.lifetime - MIN_ESP_LIFETIME
         };
 
-        if self
-            .last_rekey
-            .is_some_and(|last_rekey| SystemTime::now().duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
+        if platform::is_online()
+            && self
+                .last_rekey
+                .is_some_and(|last_rekey| SystemTime::now().duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
         {
             debug!("Start rekeying IPSec tunnel");
             self.do_esp_proposal().await?;
