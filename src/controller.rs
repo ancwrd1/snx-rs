@@ -144,7 +144,7 @@ impl<'a> ServiceController<'a> {
 
                 self.browser_controller.open(&mfa.prompt)?;
 
-                let result = match tokio::time::timeout(OTP_TIMEOUT, rx).await {
+                match tokio::time::timeout(OTP_TIMEOUT, rx).await {
                     Ok(Ok(otp)) => {
                         let _ = self.browser_controller.close();
                         Ok(otp)
@@ -153,8 +153,7 @@ impl<'a> ServiceController<'a> {
                         warn!("Unable to acquire OTP from the browser");
                         Err(anyhow!("Unable to acquire OTP from the browser!"))
                     }
-                };
-                result
+                }
             }
         }
     }

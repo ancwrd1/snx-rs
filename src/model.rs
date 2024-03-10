@@ -1,4 +1,5 @@
 use std::{net::Ipv4Addr, time::Duration};
+use std::sync::Arc;
 
 use chrono::{DateTime, Local};
 use isakmp::model::EspCryptMaterial;
@@ -25,8 +26,8 @@ pub struct IpsecSession {
     pub netmask: Ipv4Addr,
     pub dns: Vec<Ipv4Addr>,
     pub domains: Vec<String>,
-    pub esp_in: EspCryptMaterial,
-    pub esp_out: EspCryptMaterial,
+    pub esp_in: Arc<EspCryptMaterial>,
+    pub esp_out: Arc<EspCryptMaterial>,
 }
 
 impl Default for IpsecSession {
