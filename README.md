@@ -20,7 +20,7 @@ Based on the reverse engineered protocol from the vendor application.
 
 * **NEW**: SAML SSO authentication (only with IPSec tunnel)
 * Username/password authentication with MFA support
-* Certificate authentication via the provided client certificate (only with SSL tunnel)
+* Certificate authentication via the provided client certificate
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface and VTI device with the following features:
   * `AES-CBC-256` encryption algorithm
