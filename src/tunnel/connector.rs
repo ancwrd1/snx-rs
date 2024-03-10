@@ -8,11 +8,11 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
-use isakmp::session::IsakmpSession;
 use isakmp::{
-    ikev1::{codec::Ikev1Codec, session::Ikev1SyncedSession, Ikev1Service},
+    ikev1::{codec::Ikev1Codec, service::Ikev1Service, session::Ikev1SyncedSession},
     model::{ConfigAttributeType, EspAttributeType, Identity, PayloadType},
     payload::AttributesPayload,
+    session::IsakmpSession,
     transport::{IsakmpTransport, UdpTransport},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
