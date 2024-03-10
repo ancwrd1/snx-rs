@@ -147,7 +147,6 @@ impl TunnelConnector for CccTunnelConnector {
 pub struct IpsecTunnelConnector {
     params: Arc<TunnelParams>,
     service: Ikev1Service<UdpTransport<Ikev1Codec<Ikev1SyncedSession>>>,
-    ikev1_session: Ikev1SyncedSession,
     gateway_address: Ipv4Addr,
     last_message_id: u32,
     last_identifier: u16,
@@ -182,12 +181,11 @@ impl IpsecTunnelConnector {
 
         let ikev1_session = Ikev1SyncedSession::new(identity)?;
         let transport = UdpTransport::new(socket, Ikev1Codec::new(ikev1_session.clone()));
-        let service = Ikev1Service::new(transport, ikev1_session.0.clone())?;
+        let service = Ikev1Service::new(transport, ikev1_session)?;
 
         Ok(Self {
             params,
             service,
-            ikev1_session,
             gateway_address,
             last_message_id: 0,
             last_identifier: 0,
@@ -407,9 +405,10 @@ impl IpsecTunnelConnector {
 
         debug!("ESP lifetime: {} seconds", lifetime);
 
+        let session = self.service.session();
         self.ipsec_session.lifetime = Duration::from_secs(lifetime as u64);
-        self.ipsec_session.esp_in = self.ikev1_session.esp_in();
-        self.ipsec_session.esp_out = self.ikev1_session.esp_out();
+        self.ipsec_session.esp_in = session.esp_in();
+        self.ipsec_session.esp_out = session.esp_out();
 
         Ok(())
     }

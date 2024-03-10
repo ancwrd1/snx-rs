@@ -1448,7 +1448,7 @@ dependencies = [
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#ac11a194c4fa59e4137bdf4713fe08bc5f7b15a7"
+source = "git+https://github.com/ancwrd1/isakmp.git#a217be61bd52d18e1695bba5f6c952b44cd3d5ce"
 dependencies = [
  "anyhow",
  "async-trait",
