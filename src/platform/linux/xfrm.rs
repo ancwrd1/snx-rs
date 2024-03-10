@@ -2,7 +2,7 @@ use std::{net::Ipv4Addr, sync::Arc};
 
 use bytes::Bytes;
 use ipnet::Ipv4Net;
-use isakmp::session::EspCryptMaterial;
+use isakmp::model::EspCryptMaterial;
 use tracing::{debug, trace};
 
 use crate::{

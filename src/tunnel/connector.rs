@@ -8,14 +8,13 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
+use isakmp::session::IsakmpSession;
 use isakmp::{
-    ikev1::Ikev1,
+    ikev1::{codec::Ikev1Codec, session::Ikev1SyncedSession, Ikev1Service},
     model::{ConfigAttributeType, EspAttributeType, Identity, PayloadType},
     payload::AttributesPayload,
-    session::Ikev1Session,
     transport::{IsakmpTransport, UdpTransport},
 };
-use parking_lot::RwLock;
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
@@ -147,8 +146,8 @@ impl TunnelConnector for CccTunnelConnector {
 
 pub struct IpsecTunnelConnector {
     params: Arc<TunnelParams>,
-    ikev1: Ikev1<UdpTransport>,
-    ikev1_session: Arc<RwLock<Ikev1Session>>,
+    service: Ikev1Service<UdpTransport<Ikev1Codec<Ikev1SyncedSession>>>,
+    ikev1_session: Ikev1SyncedSession,
     gateway_address: Ipv4Addr,
     last_message_id: u32,
     last_identifier: u16,
@@ -169,7 +168,6 @@ impl IpsecTunnelConnector {
         } else {
             Identity::None
         };
-        let ikev1_session = Arc::new(RwLock::new(Ikev1Session::new(identity)?));
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         socket.connect(format!("{}:500", params.server_name)).await?;
@@ -182,13 +180,13 @@ impl IpsecTunnelConnector {
         let prober = NattProber::new(gateway_address);
         prober.probe().await?;
 
-        let transport = UdpTransport::new(socket, ikev1_session.clone());
-
-        let ikev1 = Ikev1::new(transport, ikev1_session.clone())?;
+        let ikev1_session = Ikev1SyncedSession::new(identity)?;
+        let transport = UdpTransport::new(socket, Ikev1Codec::new(ikev1_session.clone()));
+        let service = Ikev1Service::new(transport, ikev1_session.0.clone())?;
 
         Ok(Self {
             params,
-            ikev1,
+            service,
             ikev1_session,
             gateway_address,
             last_message_id: 0,
@@ -292,7 +290,7 @@ impl IpsecTunnelConnector {
     }
 
     async fn do_session_exchange(&mut self) -> anyhow::Result<Arc<CccSession>> {
-        let om_reply = self.ikev1.send_om_request().await?;
+        let om_reply = self.service.send_om_request().await?;
 
         self.ccc_session = self
             .get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
@@ -347,7 +345,7 @@ impl IpsecTunnelConnector {
         match status {
             Some(1) => {
                 debug!("IPSec authentication succeeded");
-                self.ikev1
+                self.service
                     .send_ack_response(id_reply.identifier, self.last_message_id)
                     .await?;
 
@@ -392,7 +390,7 @@ impl IpsecTunnelConnector {
 
     async fn do_esp_proposal(&mut self) -> anyhow::Result<()> {
         let attributes = self
-            .ikev1
+            .service
             .do_esp_proposal(self.ipsec_session.address, self.params.esp_lifetime)
             .await?;
 
@@ -410,14 +408,14 @@ impl IpsecTunnelConnector {
         debug!("ESP lifetime: {} seconds", lifetime);
 
         self.ipsec_session.lifetime = Duration::from_secs(lifetime as u64);
-        self.ipsec_session.esp_in = self.ikev1_session.read().esp_in.clone();
-        self.ipsec_session.esp_out = self.ikev1_session.read().esp_out.clone();
+        self.ipsec_session.esp_in = self.ikev1_session.esp_in();
+        self.ipsec_session.esp_out = self.ikev1_session.esp_out();
 
         Ok(())
     }
 
     async fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
-        if let Some(msg) = self.ikev1.transport_mut().parse_data(&data[4..])? {
+        if let Some(msg) = self.service.transport_mut().parse_data(&data[4..])? {
             let payload_types = msg.payloads.iter().map(|p| p.as_payload_type()).collect::<Vec<_>>();
             debug!(
                 "Received unsolicited ISAKMP message, exchange type: {:?}, message id: {:04x}, payloads: {:?}",
@@ -464,7 +462,7 @@ impl IpsecTunnelConnector {
     }
 
     async fn delete_sa(&mut self) -> anyhow::Result<()> {
-        self.ikev1.delete_sa().await
+        self.service.delete_sa().await
     }
 }
 
@@ -472,8 +470,8 @@ impl IpsecTunnelConnector {
 impl TunnelConnector for IpsecTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>> {
         let my_address = platform::get_default_ip().await?.parse::<Ipv4Addr>()?;
-        self.ikev1.do_sa_proposal(self.params.ike_lifetime).await?;
-        self.ikev1.do_key_exchange(my_address, self.gateway_address).await?;
+        self.service.do_sa_proposal(self.params.ike_lifetime).await?;
+        self.service.do_key_exchange(my_address, self.gateway_address).await?;
 
         let realm = format!(
             "(\n\
@@ -487,14 +485,14 @@ impl TunnelConnector for IpsecTunnelConnector {
             self.params.login_type
         );
 
-        self.ikev1
+        self.service
             .do_identity_protection(Bytes::copy_from_slice(realm.as_bytes()))
             .await?;
 
         if self.params.client_cert.is_some() {
             self.do_session_exchange().await
         } else {
-            let (attrs_reply, message_id) = self.ikev1.get_auth_attributes().await?;
+            let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
             self.last_message_id = message_id;
             self.process_auth_attributes(attrs_reply).await
         }
@@ -502,7 +500,7 @@ impl TunnelConnector for IpsecTunnelConnector {
 
     async fn challenge_code(&mut self, _session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>> {
         let id_reply = self
-            .ikev1
+            .service
             .send_auth_attribute(
                 self.last_identifier,
                 self.last_message_id,

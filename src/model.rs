@@ -1,7 +1,7 @@
 use std::{net::Ipv4Addr, time::Duration};
 
 use chrono::{DateTime, Local};
-use isakmp::session::EspCryptMaterial;
+use isakmp::model::EspCryptMaterial;
 use serde::{Deserialize, Serialize};
 
 use crate::model::params::TunnelParams;
