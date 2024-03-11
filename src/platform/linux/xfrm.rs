@@ -1,16 +1,11 @@
 use std::{net::Ipv4Addr, sync::Arc};
 
-use bytes::Bytes;
 use ipnet::Ipv4Net;
-use isakmp::model::EspCryptMaterial;
+use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial};
 use tracing::{debug, trace};
 
 use crate::{
-    model::{
-        params::TunnelParams,
-        proto::{AuthenticationAlgorithm, EncryptionAlgorithm},
-        IpsecSession,
-    },
+    model::{params::TunnelParams, IpsecSession},
     platform::{self, IpsecConfigurator},
     util,
 };
@@ -83,20 +78,26 @@ struct XfrmState {
     dst: Ipv4Addr,
     src_port: u16,
     dst_port: u16,
-    spi: u32,
-    auth_alg: AuthenticationAlgorithm,
-    auth_key: Bytes,
-    enc_alg: EncryptionAlgorithm,
-    enc_key: Bytes,
+    params: EspCryptMaterial,
 }
 
 impl XfrmState {
-    async fn add(&self) -> anyhow::Result<()> {
-        let authkey = format!("0x{}", hex::encode(&self.auth_key));
-        let enckey = format!("0x{}", hex::encode(&self.enc_key));
-        let trunc_len = self.auth_alg.trunc_length().to_string();
+    fn auth_alg_as_xfrm_name(alg: EspAuthAlgorithm) -> &'static str {
+        match alg {
+            EspAuthAlgorithm::HmacSha96 => "hmac(sha1)",
+            EspAuthAlgorithm::HmacSha160 => "hmac(sha1)",
+            EspAuthAlgorithm::HmacSha256 => "hmac(sha256)",
+            EspAuthAlgorithm::HmacSha256v2 => "hmac(sha256)",
+            EspAuthAlgorithm::Other(_) => "",
+        }
+    }
 
-        let spi = format!("0x{:x}", self.spi);
+    async fn add(&self) -> anyhow::Result<()> {
+        let authkey = format!("0x{}", hex::encode(&self.params.sk_a));
+        let enckey = format!("0x{}", hex::encode(&self.params.sk_e));
+        let trunc_len = (self.params.auth_algorithm.hash_len() * 8).to_string();
+
+        let spi = format!("0x{:x}", self.params.spi);
         let src = self.src.to_string();
         let dst = self.dst.to_string();
 
@@ -117,11 +118,11 @@ impl XfrmState {
             "flag",
             "af-unspec",
             "auth-trunc",
-            self.auth_alg.as_xfrm_name(),
+            Self::auth_alg_as_xfrm_name(self.params.auth_algorithm),
             &authkey,
             &trunc_len,
             "enc",
-            self.enc_alg.as_xfrm_name(),
+            "cbc(aes)",
             &enckey,
             "encap",
             "espinudp",
@@ -137,7 +138,7 @@ impl XfrmState {
     async fn delete(&self) -> anyhow::Result<()> {
         let src = self.src.to_string();
         let dst = self.dst.to_string();
-        let spi = format!("0x{:x}", self.spi);
+        let spi = format!("0x{:x}", self.params.spi);
 
         iproute2(&[
             "xfrm", "state", "del", "src", &src, "dst", &dst, "proto", "esp", "spi", &spi,
@@ -295,11 +296,7 @@ impl XfrmConfigurator {
             dst,
             src_port: self.src_port,
             dst_port: 4500,
-            spi: params.spi,
-            auth_alg: AuthenticationAlgorithm::HmacSha256,
-            auth_key: params.sk_a.clone(),
-            enc_alg: EncryptionAlgorithm::Aes256Cbc,
-            enc_key: params.sk_e.clone(),
+            params: params.clone(),
         };
         match command {
             CommandType::Add => state.add().await?,
