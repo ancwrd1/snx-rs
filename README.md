@@ -22,7 +22,8 @@ Based on the reverse engineered protocol from the vendor application.
 * Username/password authentication with MFA support
 * Certificate authentication via the provided client certificate
 * SSL tunnel via Linux TUN device
-* IPSec tunnel via Linux native kernel XFRM interface and VTI device
+* IPSec tunnel via Linux native kernel XFRM interface and VTI device.
+  Supported hash and encryption algorithms: SHA1, SHA256, AES-CBC. Unsupported algorithms: MD5, 3DES.
 * Store password in the keychain using libsecret
 * Tray icon and menu support (optional via 'tray-icon' feature flag)
 * Embedded webview for SAML login via webkit2gtk (optional via 'webkit2gtk' feature flag)
