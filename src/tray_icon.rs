@@ -1,27 +1,67 @@
 #![cfg(feature = "tray-icon")]
 
-use std::{sync::mpsc, time::Duration};
+use std::{io::Cursor, sync::mpsc, time::Duration};
 
 use anyhow::anyhow;
 use directories_next::ProjectDirs;
-use ksni::{menu::StandardItem, MenuItem, Tray, TrayService};
+use ksni::{menu::StandardItem, Icon, MenuItem, Tray, TrayService};
+use once_cell::sync::Lazy;
 
-use crate::browser::BrowserController;
-use crate::platform::SingleInstance;
 use crate::{
+    browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
     model::ConnectionStatus,
+    platform::{self, SingleInstance, SystemColorTheme},
     prompt::SecurePrompt,
     util,
 };
 
+struct IconTheme {
+    acquiring: Vec<u8>,
+    error: Vec<u8>,
+    disconnected: Vec<u8>,
+    connected: Vec<u8>,
+}
+
+const DARK_THEME: Lazy<IconTheme> = Lazy::new(|| IconTheme {
+    acquiring: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-acquiring.png")).unwrap_or_default(),
+    error: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-error.png")).unwrap_or_default(),
+    disconnected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-disconnected.png")).unwrap_or_default(),
+    connected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-connected.png")).unwrap_or_default(),
+});
+
+const LIGHT_THEME: Lazy<IconTheme> = Lazy::new(|| IconTheme {
+    acquiring: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-acquiring.png")).unwrap_or_default(),
+    error: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-error.png")).unwrap_or_default(),
+    disconnected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-disconnected.png")).unwrap_or_default(),
+    connected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-connected.png")).unwrap_or_default(),
+});
+
 const TITLE: &str = "SNX-RS VPN client";
 const PING_DURATION: Duration = Duration::from_secs(1);
 
-const ICON_ACQUIRING: &str = "network-vpn-acquiring-symbolic";
-const ICON_DISABLED: &str = "network-vpn-disabled-symbolic";
-const ICON_DISCONNECTED: &str = "network-vpn-disconnected-symbolic";
-const ICON_CONNECTED: &str = "network-vpn-symbolic";
+fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
+    let decoder = png::Decoder::new(Cursor::new(data));
+    let mut reader = decoder.read_info()?;
+    let mut buf = vec![0; reader.output_buffer_size()];
+
+    let info = reader.next_frame(&mut buf)?;
+    let mut bytes = buf[..info.buffer_size()].to_vec();
+
+    for chunk in bytes.chunks_mut(4) {
+        let p = chunk.as_mut_ptr();
+        unsafe {
+            // big endian, rgba => argb
+            let a = *p.offset(3);
+            *p.offset(3) = *p.offset(2);
+            *p.offset(2) = *p.offset(1);
+            *p.offset(1) = *p.offset(0);
+            *p.offset(0) = a;
+        }
+    }
+
+    Ok(bytes)
+}
 
 struct MyTray {
     command_sender: mpsc::SyncSender<Option<ServiceCommand>>,
@@ -75,23 +115,34 @@ impl Tray for MyTray {
         TITLE.to_owned()
     }
 
-    fn icon_name(&self) -> String {
-        if self.connecting {
-            ICON_ACQUIRING.to_owned()
+    fn icon_pixmap(&self) -> Vec<Icon> {
+        let theme = if platform::system_color_theme().unwrap_or_default() == SystemColorTheme::Dark {
+            DARK_THEME
+        } else {
+            LIGHT_THEME
+        };
+
+        let data: &[u8] = if self.connecting {
+            &theme.acquiring
         } else {
             match self.status {
                 Ok(ref status) => {
                     if status.connected_since.is_some() {
-                        ICON_CONNECTED.to_owned()
+                        &theme.connected
                     } else {
-                        ICON_DISCONNECTED.to_owned()
+                        &theme.disconnected
                     }
                 }
-                Err(_) => ICON_DISABLED.to_owned(),
+                Err(_) => &theme.error,
             }
-        }
-    }
+        };
 
+        vec![Icon {
+            width: 256,
+            height: 256,
+            data: data.to_vec(),
+        }]
+    }
     fn menu(&self) -> Vec<MenuItem<Self>> {
         vec![
             MenuItem::Standard(StandardItem {
@@ -102,7 +153,6 @@ impl Tray for MyTray {
             MenuItem::Separator,
             MenuItem::Standard(StandardItem {
                 label: "Connect".to_string(),
-                icon_name: ICON_CONNECTED.to_owned(),
                 enabled: self
                     .status
                     .as_ref()
@@ -113,7 +163,6 @@ impl Tray for MyTray {
             }),
             MenuItem::Standard(StandardItem {
                 label: "Disconnect".to_string(),
-                icon_name: ICON_DISCONNECTED.to_owned(),
                 enabled: self
                     .status
                     .as_ref()

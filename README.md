@@ -36,7 +36,7 @@ Based on the reverse engineered protocol from the vendor application.
 * iproute2
 * DBus
 * libsecret
-* For `tray-icon` feature: Adwaita theme (icons), zenity or kdialog utility (user prompts)
+* For `tray-icon` feature: zenity or kdialog utility (user prompts)
 * For `webkit2gtk` feature: pkg-config, gtk and webkit2gtk development libraries
 
 ## Usage

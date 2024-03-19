@@ -28,7 +28,10 @@ async fn main() -> anyhow::Result<()> {
 
     if args.len() == 1 {
         #[cfg(feature = "tray-icon")]
-        return snx_rs::tray_icon::show_tray_icon(&browser_controller);
+        {
+            let _ = snx_rs::platform::init_theme_monitoring().await;
+            return snx_rs::tray_icon::show_tray_icon(&browser_controller);
+        }
 
         #[cfg(not(feature = "tray-icon"))]
         return Err(anyhow!(

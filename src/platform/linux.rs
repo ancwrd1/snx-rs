@@ -1,11 +1,16 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::{collections::HashMap, os::fd::AsRawFd, time::Duration};
+use std::{
+    collections::HashMap,
+    os::fd::AsRawFd,
+    sync::atomic::{AtomicU32, Ordering},
+    time::Duration,
+};
 
 use anyhow::anyhow;
+use futures::StreamExt;
 use nix::{
-    fcntl,
-    fcntl::{FcntlArg, OFlag},
+    fcntl::{self, FcntlArg, OFlag},
     sys::stat::Mode,
     unistd,
 };
@@ -16,12 +21,14 @@ use zbus::{dbus_proxy, zvariant, Connection};
 
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
-use crate::platform::{UdpEncap, UdpSocketExt};
+use crate::platform::{SystemColorTheme, UdpEncap, UdpSocketExt};
 
 pub mod net;
 pub mod xfrm;
 
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
+
+static COLOR_THEME: AtomicU32 = AtomicU32::new(0);
 
 #[async_trait::async_trait]
 impl UdpSocketExt for UdpSocket {
@@ -132,6 +139,18 @@ pub async fn store_password(user_name: &str, password: &str) -> anyhow::Result<(
 }
 
 #[dbus_proxy(
+    interface = "org.freedesktop.portal.Settings",
+    default_service = "org.freedesktop.portal.Desktop",
+    default_path = "/org/freedesktop/portal/desktop"
+)]
+trait DesktopSettings {
+    #[dbus_proxy(signal)]
+    fn setting_changed(&self, namespace: &str, key: &str, value: zvariant::Value<'_>) -> zbus::Result<()>;
+
+    fn read_one(&self, namespace: &str, key: &str) -> zbus::Result<zvariant::OwnedValue>;
+}
+
+#[dbus_proxy(
     interface = "org.freedesktop.Notifications",
     default_service = "org.freedesktop.Notifications",
     default_path = "/org/freedesktop/Notifications"
@@ -223,4 +242,33 @@ impl Drop for SingleInstance {
             let _ = std::fs::remove_file(&self.name);
         }
     }
+}
+
+pub fn system_color_theme() -> anyhow::Result<SystemColorTheme> {
+    COLOR_THEME.load(Ordering::SeqCst).try_into()
+}
+
+pub async fn init_theme_monitoring() -> anyhow::Result<()> {
+    let connection = Connection::session().await?;
+    let proxy = DesktopSettingsProxy::new(&connection).await?;
+    let scheme = proxy.read_one("org.freedesktop.appearance", "color-scheme").await?;
+    let scheme = u32::try_from(scheme)?;
+    COLOR_THEME.store(scheme, Ordering::SeqCst);
+
+    debug!("System color theme: {}", scheme);
+
+    tokio::spawn(async move {
+        let mut stream = proxy.receive_setting_changed().await?;
+        while let Some(signal) = stream.next().await {
+            let args = signal.args()?;
+            if args.namespace == "org.freedesktop.appearance" && args.key == "color-theme" {
+                let scheme = u32::try_from(args.value)?;
+                debug!("New system color theme: {}", scheme);
+                COLOR_THEME.store(scheme, Ordering::SeqCst);
+            }
+        }
+        Ok::<_, anyhow::Error>(())
+    });
+
+    Ok(())
 }

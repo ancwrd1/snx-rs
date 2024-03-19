@@ -8,18 +8,39 @@ use tokio::net::UdpSocket;
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
 pub use platform_impl::{
-    acquire_password,
+    acquire_password, init_theme_monitoring,
     net::{
         add_default_route, add_dns_servers, add_dns_suffixes, add_route, add_routes, get_default_ip, is_online,
         poll_online, start_network_state_monitoring,
     },
-    new_tun_config, send_notification, store_password, IpsecImpl, SingleInstance,
+    new_tun_config, send_notification, store_password, system_color_theme, IpsecImpl, SingleInstance,
 };
 
 use crate::model::{params::TunnelParams, IpsecSession};
 
 #[cfg(target_os = "linux")]
 mod linux;
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SystemColorTheme {
+    #[default]
+    NoPreference,
+    Light,
+    Dark,
+}
+
+impl TryFrom<u32> for SystemColorTheme {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(SystemColorTheme::NoPreference),
+            1 => Ok(SystemColorTheme::Dark),
+            2 => Ok(SystemColorTheme::Light),
+            _ => Err(anyhow!("Unknown color-scheme value")),
+        }
+    }
+}
 
 #[async_trait::async_trait]
 pub trait IpsecConfigurator {

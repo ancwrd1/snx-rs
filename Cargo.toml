@@ -18,7 +18,7 @@ panic = "abort"
 
 [features]
 default = []
-tray-icon = ["dep:ksni", "dep:which"]
+tray-icon = ["dep:ksni", "dep:which", "dep:png"]
 webkit2gtk = ["dep:webkit2gtk", "dep:gtk"]
 
 [dependencies]
@@ -65,3 +65,4 @@ secret-service = {  version = "3", features = ["rt-tokio-crypto-rust"] }
 nix = { version = "0.28", features = ["fs", "user"] }
 webkit2gtk = { version = "2", optional = true, features = ["v2_6", "v2_16", "v2_30"] }
 gtk = { version = "0.18", optional = true }
+png = { version = "0.17", optional = true }
