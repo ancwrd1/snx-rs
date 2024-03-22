@@ -48,17 +48,7 @@ fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     let info = reader.next_frame(&mut buf)?;
     let mut bytes = buf[..info.buffer_size()].to_vec();
 
-    for chunk in bytes.chunks_mut(4) {
-        let p = chunk.as_mut_ptr();
-        unsafe {
-            // big endian, rgba => argb
-            let a = *p.offset(3);
-            *p.offset(3) = *p.offset(2);
-            *p.offset(2) = *p.offset(1);
-            *p.offset(1) = *p.offset(0);
-            *p.offset(0) = a;
-        }
-    }
+    bytes.chunks_mut(4).for_each(|c| c.rotate_right(1));
 
     Ok(bytes)
 }
