@@ -1,7 +1,10 @@
-use std::time::Duration;
 use std::{
     net::{IpAddr, ToSocketAddrs},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -26,6 +29,7 @@ pub(crate) struct IpsecTunnel {
     configurator: Box<dyn IpsecConfigurator + Send + Sync>,
     keepalive_runner: KeepaliveRunner,
     natt_socket: Arc<UdpSocket>,
+    ready: Arc<AtomicBool>,
 }
 
 impl IpsecTunnel {
@@ -54,7 +58,8 @@ impl IpsecTunnel {
             ipv4address, client_settings.gw_internal_ip
         );
 
-        let keepalive_runner = KeepaliveRunner::new(ipsec_session.address, ipv4address);
+        let ready = Arc::new(AtomicBool::new(false));
+        let keepalive_runner = KeepaliveRunner::new(ipsec_session.address, ipv4address, ready.clone());
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
@@ -70,11 +75,13 @@ impl IpsecTunnel {
         .await?;
 
         configurator.configure().await?;
+        ready.store(true, Ordering::SeqCst);
 
         Ok(Self {
             configurator: Box::new(configurator),
             keepalive_runner,
             natt_socket: Arc::new(natt_socket),
+            ready,
         })
     }
 }
@@ -112,7 +119,9 @@ impl CheckpointTunnel for IpsecTunnel {
                             "Rekey command received, new lifetime: {}, configuring xfrm",
                             session.lifetime.as_secs()
                         );
+                        self.ready.store(false, Ordering::SeqCst);
                         let _ = self.configurator.re_key(&session).await;
+                        self.ready.store(true, Ordering::SeqCst);
                     }
                 }
             }

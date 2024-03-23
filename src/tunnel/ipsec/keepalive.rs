@@ -1,5 +1,9 @@
 use std::{
     net::Ipv4Addr,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -38,11 +42,12 @@ fn make_keepalive_packet() -> [u8; 84] {
 pub struct KeepaliveRunner {
     src: Ipv4Addr,
     dst: Ipv4Addr,
+    ready: Arc<AtomicBool>,
 }
 
 impl KeepaliveRunner {
-    pub fn new(src: Ipv4Addr, dst: Ipv4Addr) -> Self {
-        Self { src, dst }
+    pub fn new(src: Ipv4Addr, dst: Ipv4Addr, ready: Arc<AtomicBool>) -> Self {
+        Self { src, dst, ready }
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
@@ -58,7 +63,7 @@ impl KeepaliveRunner {
         let mut num_failures = 0;
 
         loop {
-            if platform::is_online() {
+            if platform::is_online() && self.ready.load(Ordering::SeqCst) {
                 trace!("Sending keepalive to {}", self.dst);
 
                 let data = make_keepalive_packet();
