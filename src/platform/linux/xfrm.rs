@@ -250,11 +250,11 @@ impl XfrmConfigurator {
         })
     }
 
-    fn xfrm_name(&self) -> &str {
+    fn xfrm_name(&self) -> String {
         self.tunnel_params
             .if_name
-            .as_deref()
-            .unwrap_or(TunnelParams::DEFAULT_IF_NAME)
+            .clone()
+            .unwrap_or_else(|| format!("{}-{:x}", TunnelParams::DEFAULT_IPSEC_IF_NAME, self.if_id & 0xffffff))
     }
 
     fn new_xfrm_device(&self) -> XfrmDevice {
@@ -341,9 +341,10 @@ impl XfrmConfigurator {
     }
 
     async fn setup_routing(&self) -> anyhow::Result<()> {
+        let dev_name = self.xfrm_name();
         if !self.tunnel_params.no_routing {
             if self.tunnel_params.default_route {
-                let _ = platform::add_default_route(self.xfrm_name(), self.ipsec_session.address).await;
+                let _ = platform::add_default_route(&dev_name, self.ipsec_session.address).await;
             } else {
                 let subnets = self
                     .subnets
@@ -353,7 +354,7 @@ impl XfrmConfigurator {
                     .cloned()
                     .collect::<Vec<_>>();
 
-                let _ = platform::add_routes(&subnets, self.xfrm_name(), self.ipsec_session.address).await;
+                let _ = platform::add_routes(&subnets, &dev_name, self.ipsec_session.address).await;
             }
         }
 
@@ -361,7 +362,7 @@ impl XfrmConfigurator {
         let dst = self.dest_ip.to_string();
 
         // set up routing correctly so that keepalive packets are not wrapped into ESP
-        iproute2(&["route", "add", "table", &port, &dst, "dev", self.xfrm_name()]).await?;
+        iproute2(&["route", "add", "table", &port, &dst, "dev", &dev_name]).await?;
 
         iproute2(&[
             "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
@@ -372,6 +373,8 @@ impl XfrmConfigurator {
     }
 
     async fn setup_dns(&self) -> anyhow::Result<()> {
+        let dev_name = self.xfrm_name();
+
         if !self.tunnel_params.no_dns {
             debug!("Adding acquired DNS suffixes: {:?}", self.ipsec_session.domains);
             debug!("Adding provided DNS suffixes: {:?}", self.tunnel_params.search_domains);
@@ -388,10 +391,10 @@ impl XfrmConfigurator {
                         .iter()
                         .any(|d| d.to_lowercase() == s.to_lowercase())
                 });
-            let _ = platform::add_dns_suffixes(suffixes, self.xfrm_name()).await;
+            let _ = platform::add_dns_suffixes(suffixes, &dev_name).await;
 
             let servers = self.ipsec_session.dns.iter().map(|server| server.to_string());
-            let _ = platform::add_dns_servers(servers, self.xfrm_name()).await;
+            let _ = platform::add_dns_servers(servers, &dev_name).await;
         }
         Ok(())
     }
