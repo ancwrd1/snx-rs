@@ -1,8 +1,8 @@
 use anyhow::anyhow;
 use tracing::level_filters::LevelFilter;
 
-use snx_rs::browser::BrowserController;
 use snx_rs::{
+    browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
     prompt::SecurePrompt,
 };
@@ -27,13 +27,6 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     if args.len() == 1 {
-        #[cfg(feature = "tray-icon")]
-        {
-            let _ = snx_rs::platform::init_theme_monitoring().await;
-            return snx_rs::tray_icon::show_tray_icon(&browser_controller);
-        }
-
-        #[cfg(not(feature = "tray-icon"))]
         return Err(anyhow!(
             "usage: {} {{status|connect|disconnect|reconnect|info}}",
             args[0]

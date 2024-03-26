@@ -1,13 +1,13 @@
 pub mod browser;
 pub mod ccc;
 pub mod controller;
+#[cfg(feature = "gui")]
+pub mod gui;
 pub mod model;
 pub mod platform;
 pub mod prompt;
 pub mod server;
 pub mod server_info;
 pub mod sexpr2;
-#[cfg(feature = "tray-icon")]
-pub mod tray_icon;
 pub mod tunnel;
 pub mod util;

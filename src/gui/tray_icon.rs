@@ -1,57 +1,24 @@
-#![cfg(feature = "tray-icon")]
-
-use std::{io::Cursor, sync::mpsc, time::Duration};
+use std::{
+    sync::{mpsc, Arc},
+    time::Duration,
+};
 
 use anyhow::anyhow;
-use directories_next::ProjectDirs;
+use gtk::{glib, glib::ControlFlow};
 use ksni::{menu::StandardItem, Icon, MenuItem, Tray, TrayService};
-use once_cell::sync::Lazy;
 
 use crate::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
-    model::ConnectionStatus,
-    platform::{self, SingleInstance, SystemColorTheme},
+    gui::assets,
+    model::{params::TunnelParams, ConnectionStatus},
+    platform::{self, SingleInstance},
     prompt::SecurePrompt,
     util,
 };
 
-struct IconTheme {
-    acquiring: Vec<u8>,
-    error: Vec<u8>,
-    disconnected: Vec<u8>,
-    connected: Vec<u8>,
-}
-
-const DARK_THEME: Lazy<IconTheme> = Lazy::new(|| IconTheme {
-    acquiring: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-acquiring.png")).unwrap_or_default(),
-    error: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-error.png")).unwrap_or_default(),
-    disconnected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-disconnected.png")).unwrap_or_default(),
-    connected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-connected.png")).unwrap_or_default(),
-});
-
-const LIGHT_THEME: Lazy<IconTheme> = Lazy::new(|| IconTheme {
-    acquiring: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-acquiring.png")).unwrap_or_default(),
-    error: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-error.png")).unwrap_or_default(),
-    disconnected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-disconnected.png")).unwrap_or_default(),
-    connected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-connected.png")).unwrap_or_default(),
-});
-
 const TITLE: &str = "SNX-RS VPN client";
 const PING_DURATION: Duration = Duration::from_secs(1);
-
-fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
-    let decoder = png::Decoder::new(Cursor::new(data));
-    let mut reader = decoder.read_info()?;
-    let mut buf = vec![0; reader.output_buffer_size()];
-
-    let info = reader.next_frame(&mut buf)?;
-    let mut bytes = buf[..info.buffer_size()].to_vec();
-
-    bytes.chunks_mut(4).for_each(|c| c.rotate_right(1));
-
-    Ok(bytes)
-}
 
 struct MyTray {
     command_sender: mpsc::SyncSender<Option<ServiceCommand>>,
@@ -70,6 +37,10 @@ impl MyTray {
 
     fn quit(&mut self) {
         let _ = self.command_sender.send(None);
+        glib::idle_add(|| {
+            gtk::main_quit();
+            ControlFlow::Break
+        });
     }
 
     fn status_label(&self) -> String {
@@ -93,9 +64,10 @@ impl MyTray {
         }
     }
     fn edit_config(&mut self) {
-        if let Ok(dir) = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!")) {
-            let config_file = dir.config_dir().join("snx-rs.conf");
-            let _ = opener::open(config_file);
+        if let Ok(config_file) = TunnelParams::default_config_path() {
+            let mut params = TunnelParams::load(config_file).unwrap_or_default();
+            let _ = params.decode_password();
+            super::settings::start_settings_dialog(Arc::new(params));
         }
     }
 }
@@ -106,11 +78,7 @@ impl Tray for MyTray {
     }
 
     fn icon_pixmap(&self) -> Vec<Icon> {
-        let theme = if platform::system_color_theme().unwrap_or_default() == SystemColorTheme::Dark {
-            DARK_THEME
-        } else {
-            LIGHT_THEME
-        };
+        let theme = assets::current_icon_theme();
 
         let data: &[u8] = if self.connecting {
             &theme.acquiring
@@ -200,9 +168,16 @@ pub fn show_tray_icon(browser_controller: &BrowserController) -> anyhow::Result<
 
     let mut prev_command = ServiceCommand::Info;
     let mut prev_status = String::new();
+    let mut prev_theme = None;
 
     while let Ok(Some(command)) = rx.recv() {
-        if let Ok(mut controller) = ServiceController::new(SecurePrompt::gui(), &browser_controller) {
+        let theme = platform::system_color_theme().ok();
+        if theme != prev_theme {
+            prev_theme = theme;
+            handle.update(|_| {});
+        }
+
+        if let Ok(mut controller) = ServiceController::new(SecurePrompt::gui(), browser_controller) {
             if command == ServiceCommand::Connect {
                 handle.update(|tray: &mut MyTray| tray.connecting = true);
             }

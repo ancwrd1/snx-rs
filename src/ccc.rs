@@ -18,6 +18,7 @@ use crate::{
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct CccHttpClient {
     params: Arc<TunnelParams>,
@@ -146,7 +147,7 @@ impl CccHttpClient {
     async fn send_raw_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
         let expr = SExpression::from(CccClientRequest { data: request });
 
-        let mut builder = reqwest::Client::builder();
+        let mut builder = reqwest::Client::builder().connect_timeout(CONNECT_TIMEOUT);
 
         if let Some(ref ca_cert) = self.params.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;

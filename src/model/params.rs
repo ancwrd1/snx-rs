@@ -1,12 +1,15 @@
-use std::time::Duration;
+use std::io::Cursor;
+use std::io::Write;
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 
 use anyhow::anyhow;
 use base64::Engine;
 use clap::Parser;
+use directories_next::ProjectDirs;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use tracing::{metadata::LevelFilter, warn};
@@ -170,6 +173,13 @@ impl TunnelType {
     pub fn as_client_type(&self) -> &'static str {
         "SYMBIAN"
     }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            TunnelType::Ssl => "ssl",
+            TunnelType::Ipsec => "ipsec",
+        }
+    }
 }
 
 impl FromStr for TunnelType {
@@ -308,6 +318,64 @@ impl TunnelParams {
         Ok(params)
     }
 
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
+        let mut buf = Cursor::new(Vec::new());
+        writeln!(buf, "server-name={}", self.server_name)?;
+        writeln!(buf, "user-name={}", self.user_name)?;
+        writeln!(
+            buf,
+            "password={}",
+            base64::engine::general_purpose::STANDARD.encode(&self.password)
+        )?;
+        writeln!(buf, "search-domains={}", self.search_domains.join(","))?;
+        writeln!(buf, "ignore-search-domains={}", self.ignore_search_domains.join(","))?;
+        writeln!(buf, "default-route={}", self.default_route)?;
+        writeln!(buf, "no-routing={}", self.no_routing)?;
+        writeln!(
+            buf,
+            "add-routes={}",
+            self.add_routes
+                .iter()
+                .map(|r| r.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )?;
+        writeln!(
+            buf,
+            "ignore-routes={}",
+            self.ignore_routes
+                .iter()
+                .map(|r| r.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )?;
+        writeln!(buf, "no-dns={}", self.no_dns)?;
+        writeln!(buf, "no-cert-check={}", self.no_cert_check)?;
+        writeln!(buf, "ignore-server-cert={}", self.ignore_server_cert)?;
+        writeln!(buf, "tunnel-type={}", self.tunnel_type.as_str())?;
+        if let Some(ref ca_cert) = self.ca_cert {
+            writeln!(buf, "ca-cert={}", ca_cert.display())?;
+        }
+        writeln!(buf, "login-type={}", self.login_type)?;
+        if let Some(ref client_cert) = self.client_cert {
+            writeln!(buf, "client-cert={}", client_cert.display())?;
+        }
+        if let Some(ref cert_password) = self.cert_password {
+            writeln!(buf, "cert-password={}", cert_password)?;
+        }
+        if let Some(ref if_name) = self.if_name {
+            writeln!(buf, "if-name={}", if_name)?;
+        }
+        writeln!(buf, "no-keychain={}", self.no_keychain)?;
+        writeln!(buf, "server-prompt={}", self.server_prompt)?;
+        writeln!(buf, "esp-lifetime={}", self.esp_lifetime.as_secs())?;
+        writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
+
+        std::fs::write(path, buf.into_inner())?;
+
+        Ok(())
+    }
+
     pub fn merge(&mut self, other: CmdlineParams) {
         if let Some(server_name) = other.server_name {
             self.server_name = server_name;
@@ -408,5 +476,10 @@ impl TunnelParams {
                 .into_owned();
         }
         Ok(())
+    }
+
+    pub fn default_config_path() -> anyhow::Result<PathBuf> {
+        let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
+        Ok(dir.config_dir().join("snx-rs.conf"))
     }
 }
