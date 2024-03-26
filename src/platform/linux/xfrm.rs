@@ -2,6 +2,7 @@ use std::{net::Ipv4Addr, sync::Arc};
 
 use ipnet::Ipv4Net;
 use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial};
+use rand::random;
 use tracing::{debug, trace};
 
 use crate::{
@@ -14,31 +15,25 @@ async fn iproute2(args: &[&str]) -> anyhow::Result<String> {
     util::run_command("ip", args).await
 }
 
-struct VtiDevice {
+struct XfrmDevice {
     name: String,
-    key: u32,
+    if_id: u32,
     address: Ipv4Addr,
     prefix: u8,
-    local: Ipv4Addr,
-    remote: Ipv4Addr,
 }
 
-impl VtiDevice {
+impl XfrmDevice {
     async fn add(&self) -> anyhow::Result<()> {
         let _ = self.delete().await;
 
         iproute2(&[
-            "tunnel",
+            "link",
             "add",
             &self.name,
-            "mode",
-            "vti",
-            "key",
-            &self.key.to_string(),
-            "local",
-            &self.local.to_string(),
-            "remote",
-            &self.remote.to_string(),
+            "type",
+            "xfrm",
+            "if_id",
+            &self.if_id.to_string(),
         ])
         .await?;
 
@@ -78,6 +73,7 @@ struct XfrmState {
     dst: Ipv4Addr,
     src_port: u16,
     dst_port: u16,
+    if_id: u32,
     params: EspCryptMaterial,
 }
 
@@ -124,6 +120,8 @@ impl XfrmState {
             "enc",
             "cbc(aes)",
             &enckey,
+            "if_id",
+            &self.if_id.to_string(),
             "encap",
             "espinudp",
             &self.src_port.to_string(),
@@ -153,8 +151,7 @@ struct XfrmPolicy {
     dir: PolicyDir,
     src: Ipv4Addr,
     dst: Ipv4Addr,
-    mark: u32,
-    index: u32,
+    if_id: u32,
 }
 
 impl XfrmPolicy {
@@ -174,10 +171,8 @@ impl XfrmPolicy {
             "esp",
             "mode",
             "tunnel",
-            "mark",
-            &self.mark.to_string(),
-            "index",
-            &self.index.to_string(),
+            "if_id",
+            &self.if_id.to_string(),
         ])
         .await?;
 
@@ -191,10 +186,12 @@ impl XfrmPolicy {
             "del",
             "dir",
             self.dir.as_str(),
-            "index",
-            &self.index.to_string(),
-            "mark",
-            &self.mark.to_string(),
+            "if_id",
+            &self.if_id.to_string(),
+            "src",
+            "0.0.0.0/0",
+            "dst",
+            "0.0.0.0/0",
         ])
         .await?;
 
@@ -216,12 +213,6 @@ enum PolicyDir {
 }
 
 impl PolicyDir {
-    fn as_u32(&self) -> u32 {
-        match self {
-            PolicyDir::In => 0,
-            PolicyDir::Out => 1,
-        }
-    }
     fn as_str(&self) -> &'static str {
         match self {
             PolicyDir::In => "in",
@@ -234,7 +225,7 @@ pub struct XfrmConfigurator {
     tunnel_params: Arc<TunnelParams>,
     ipsec_session: IpsecSession,
     source_ip: Ipv4Addr,
-    key: u32,
+    if_id: u32,
     src_port: u16,
     dest_ip: Ipv4Addr,
     subnets: Vec<Ipv4Net>,
@@ -244,7 +235,6 @@ impl XfrmConfigurator {
     pub async fn new(
         tunnel_params: Arc<TunnelParams>,
         ipsec_session: IpsecSession,
-        xfrm_key: u32,
         src_port: u16,
         dest_ip: Ipv4Addr,
         subnets: Vec<Ipv4Net>,
@@ -254,27 +244,25 @@ impl XfrmConfigurator {
             ipsec_session,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip,
-            key: xfrm_key,
+            if_id: random(),
             src_port,
             subnets,
         })
     }
 
-    fn vti_name(&self) -> &str {
+    fn xfrm_name(&self) -> &str {
         self.tunnel_params
             .if_name
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_IF_NAME)
     }
 
-    fn new_vti_device(&self) -> VtiDevice {
-        VtiDevice {
-            name: self.vti_name().to_owned(),
-            key: self.key,
+    fn new_vti_device(&self) -> XfrmDevice {
+        XfrmDevice {
+            name: self.xfrm_name().to_owned(),
+            if_id: self.if_id,
             address: self.ipsec_session.address,
             prefix: ipnet::ipv4_mask_to_prefix(self.ipsec_session.netmask).unwrap_or_default(),
-            local: self.source_ip,
-            remote: self.dest_ip,
         }
     }
 
@@ -296,6 +284,7 @@ impl XfrmConfigurator {
             dst,
             src_port: self.src_port,
             dst_port: 4500,
+            if_id: self.if_id,
             params: params.clone(),
         };
         match command {
@@ -317,9 +306,7 @@ impl XfrmConfigurator {
             dir,
             src,
             dst,
-            mark: self.key,
-            // Weird undocumented Linux xfrm stuff: the lowest byte of the index must be equal to direction (0 = in, 1 = out)
-            index: (self.key << 8) | dir.as_u32(),
+            if_id: self.if_id,
         };
         match command {
             CommandType::Add => policy.add().await?,
@@ -356,7 +343,7 @@ impl XfrmConfigurator {
     async fn setup_routing(&self) -> anyhow::Result<()> {
         if !self.tunnel_params.no_routing {
             if self.tunnel_params.default_route {
-                let _ = platform::add_default_route(self.vti_name(), self.ipsec_session.address).await;
+                let _ = platform::add_default_route(self.xfrm_name(), self.ipsec_session.address).await;
             } else {
                 let subnets = self
                     .subnets
@@ -366,7 +353,7 @@ impl XfrmConfigurator {
                     .cloned()
                     .collect::<Vec<_>>();
 
-                let _ = platform::add_routes(&subnets, self.vti_name(), self.ipsec_session.address).await;
+                let _ = platform::add_routes(&subnets, self.xfrm_name(), self.ipsec_session.address).await;
             }
         }
 
@@ -374,7 +361,7 @@ impl XfrmConfigurator {
         let dst = self.dest_ip.to_string();
 
         // set up routing correctly so that keepalive packets are not wrapped into ESP
-        iproute2(&["route", "add", "table", &port, &dst, "dev", self.vti_name()]).await?;
+        iproute2(&["route", "add", "table", &port, &dst, "dev", self.xfrm_name()]).await?;
 
         iproute2(&[
             "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
@@ -401,10 +388,10 @@ impl XfrmConfigurator {
                         .iter()
                         .any(|d| d.to_lowercase() == s.to_lowercase())
                 });
-            let _ = platform::add_dns_suffixes(suffixes, self.vti_name()).await;
+            let _ = platform::add_dns_suffixes(suffixes, self.xfrm_name()).await;
 
             let servers = self.ipsec_session.dns.iter().map(|server| server.to_string());
-            let _ = platform::add_dns_servers(servers, self.vti_name()).await;
+            let _ = platform::add_dns_servers(servers, self.xfrm_name()).await;
         }
         Ok(())
     }

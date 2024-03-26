@@ -52,12 +52,11 @@ pub trait IpsecConfigurator {
 pub async fn new_ipsec_configurator(
     tunnel_params: Arc<TunnelParams>,
     ipsec_session: IpsecSession,
-    xfrm_key: u32,
     src_port: u16,
     dest_ip: Ipv4Addr,
     subnets: Vec<Ipv4Net>,
 ) -> anyhow::Result<impl IpsecConfigurator> {
-    IpsecImpl::new(tunnel_params, ipsec_session, xfrm_key, src_port, dest_ip, subnets).await
+    IpsecImpl::new(tunnel_params, ipsec_session, src_port, dest_ip, subnets).await
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]

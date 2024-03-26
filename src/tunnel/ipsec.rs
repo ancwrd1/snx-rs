@@ -67,7 +67,6 @@ impl IpsecTunnel {
         let mut configurator = platform::new_ipsec_configurator(
             params,
             ipsec_session.clone(),
-            unsafe { libc::getpid() } as u32,
             natt_socket.local_addr()?.port(),
             ipv4address,
             util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect(),
