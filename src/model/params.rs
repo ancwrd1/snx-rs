@@ -135,7 +135,7 @@ pub struct CmdlineParams {
     #[clap(long = "cert-password", short = 'x', help = "Password for PKCS#12 keychain")]
     pub cert_password: Option<String>,
 
-    #[clap(long = "if-name", short = 'f', help = "Interface name for tun or vti device")]
+    #[clap(long = "if-name", short = 'f', help = "Interface name for tun or xfrm device")]
     pub if_name: Option<String>,
 
     #[clap(

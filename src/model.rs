@@ -1,5 +1,5 @@
-use std::{net::Ipv4Addr, time::Duration};
 use std::sync::Arc;
+use std::{net::Ipv4Addr, time::Duration};
 
 use chrono::{DateTime, Local};
 use isakmp::model::EspCryptMaterial;

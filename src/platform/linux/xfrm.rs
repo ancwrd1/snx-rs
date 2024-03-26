@@ -257,7 +257,7 @@ impl XfrmConfigurator {
             .unwrap_or(TunnelParams::DEFAULT_IF_NAME)
     }
 
-    fn new_vti_device(&self) -> XfrmDevice {
+    fn new_xfrm_device(&self) -> XfrmDevice {
         XfrmDevice {
             name: self.xfrm_name().to_owned(),
             if_id: self.if_id,
@@ -266,8 +266,8 @@ impl XfrmConfigurator {
         }
     }
 
-    async fn setup_vti(&self) -> anyhow::Result<()> {
-        let device = self.new_vti_device();
+    async fn setup_xfrm_link(&self) -> anyhow::Result<()> {
+        let device = self.new_xfrm_device();
 
         device.add().await
     }
@@ -316,7 +316,7 @@ impl XfrmConfigurator {
         Ok(())
     }
 
-    async fn setup_xfrm(&self) -> anyhow::Result<()> {
+    async fn setup_xfrm_state_and_policies(&self) -> anyhow::Result<()> {
         self.configure_xfrm_state(
             CommandType::Add,
             self.source_ip,
@@ -405,8 +405,8 @@ impl IpsecConfigurator for XfrmConfigurator {
         debug!("Target IP: {}", self.dest_ip);
 
         self.cleanup().await;
-        self.setup_vti().await?;
-        self.setup_xfrm().await?;
+        self.setup_xfrm_link().await?;
+        self.setup_xfrm_state_and_policies().await?;
         self.setup_routing().await?;
         self.setup_dns().await?;
 
@@ -484,7 +484,7 @@ impl IpsecConfigurator for XfrmConfigurator {
             .configure_xfrm_policy(CommandType::Delete, PolicyDir::In, self.dest_ip, self.source_ip)
             .await;
 
-        let device = self.new_vti_device();
+        let device = self.new_xfrm_device();
 
         let _ = device.delete().await;
 
