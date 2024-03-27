@@ -119,7 +119,7 @@ impl CheckpointTunnel for IpsecTunnel {
                             session.lifetime.as_secs()
                         );
                         self.ready.store(false, Ordering::SeqCst);
-                        let _ = self.configurator.re_key(&session).await;
+                        let _ = self.configurator.rekey(&session).await;
                         self.ready.store(true, Ordering::SeqCst);
                     }
                 }

@@ -45,7 +45,7 @@ impl TryFrom<u32> for SystemColorTheme {
 #[async_trait::async_trait]
 pub trait IpsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
-    async fn re_key(&mut self, session: &IpsecSession) -> anyhow::Result<()>;
+    async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
 }
 

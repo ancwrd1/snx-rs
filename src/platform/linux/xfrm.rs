@@ -15,21 +15,20 @@ async fn iproute2(args: &[&str]) -> anyhow::Result<String> {
     util::run_command("ip", args).await
 }
 
-struct XfrmDevice {
-    name: String,
+struct XfrmLink<'a> {
+    name: &'a str,
     if_id: u32,
-    address: Ipv4Addr,
-    prefix: u8,
+    address: Ipv4Net,
 }
 
-impl XfrmDevice {
+impl<'a> XfrmLink<'a> {
     async fn add(&self) -> anyhow::Result<()> {
         let _ = self.delete().await;
 
         iproute2(&[
             "link",
             "add",
-            &self.name,
+            self.name,
             "type",
             "xfrm",
             "if_id",
@@ -37,49 +36,42 @@ impl XfrmDevice {
         ])
         .await?;
 
-        let _ = util::run_command("nmcli", ["device", "set", &self.name, "managed", "no"]).await;
+        let _ = util::run_command("nmcli", ["device", "set", self.name, "managed", "no"]).await;
 
-        let opt = format!("net.ipv4.conf.{}.disable_policy=1", &self.name);
+        let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
 
-        let opt = format!("net.ipv4.conf.{}.rp_filter=0", &self.name);
+        let opt = format!("net.ipv4.conf.{}.rp_filter=0", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
 
-        let opt = format!("net.ipv4.conf.{}.forwarding=1", &self.name);
+        let opt = format!("net.ipv4.conf.{}.forwarding=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
 
-        iproute2(&["link", "set", &self.name, "up"]).await?;
+        iproute2(&["link", "set", self.name, "up"]).await?;
 
-        iproute2(&[
-            "addr",
-            "add",
-            &format!("{}/{}", self.address, self.prefix),
-            "dev",
-            &self.name,
-        ])
-        .await?;
+        iproute2(&["addr", "add", &self.address.to_string(), "dev", self.name]).await?;
 
         Ok(())
     }
 
     async fn delete(&self) -> anyhow::Result<()> {
-        iproute2(&["link", "del", "name", &self.name]).await?;
+        iproute2(&["link", "del", "name", self.name]).await?;
         Ok(())
     }
 }
 
-struct XfrmState {
+struct XfrmState<'a> {
     src: Ipv4Addr,
     dst: Ipv4Addr,
     src_port: u16,
     dst_port: u16,
     if_id: u32,
-    params: EspCryptMaterial,
+    params: &'a EspCryptMaterial,
 }
 
-impl XfrmState {
-    fn auth_alg_as_xfrm_name(alg: EspAuthAlgorithm) -> &'static str {
-        match alg {
+impl<'a> XfrmState<'a> {
+    fn auth_alg_as_xfrm_name(&self) -> &'static str {
+        match self.params.auth_algorithm {
             EspAuthAlgorithm::HmacSha96 => "hmac(sha1)",
             EspAuthAlgorithm::HmacSha160 => "hmac(sha1)",
             EspAuthAlgorithm::HmacSha256 => "hmac(sha256)",
@@ -114,7 +106,7 @@ impl XfrmState {
             "flag",
             "af-unspec",
             "auth-trunc",
-            Self::auth_alg_as_xfrm_name(self.params.auth_algorithm),
+            self.auth_alg_as_xfrm_name(),
             &authkey,
             &trunc_len,
             "enc",
@@ -222,6 +214,7 @@ impl PolicyDir {
 }
 
 pub struct XfrmConfigurator {
+    name: String,
     tunnel_params: Arc<TunnelParams>,
     ipsec_session: IpsecSession,
     source_ip: Ipv4Addr,
@@ -239,37 +232,36 @@ impl XfrmConfigurator {
         dest_ip: Ipv4Addr,
         subnets: Vec<Ipv4Net>,
     ) -> anyhow::Result<Self> {
+        let if_id = random();
+
+        let name = tunnel_params
+            .if_name
+            .clone()
+            .unwrap_or_else(|| TunnelParams::DEFAULT_IPSEC_IF_NAME.to_owned());
+
         Ok(Self {
+            name,
             tunnel_params,
             ipsec_session,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip,
-            if_id: random(),
+            if_id,
             src_port,
             subnets,
         })
     }
 
-    fn xfrm_name(&self) -> String {
-        self.tunnel_params
-            .if_name
-            .clone()
-            .unwrap_or_else(|| format!("{}-{:x}", TunnelParams::DEFAULT_IPSEC_IF_NAME, self.if_id & 0xffffff))
-    }
-
-    fn new_xfrm_device(&self) -> XfrmDevice {
-        XfrmDevice {
-            name: self.xfrm_name().to_owned(),
+    fn new_xfrm_link(&self) -> XfrmLink {
+        XfrmLink {
+            name: &self.name,
             if_id: self.if_id,
-            address: self.ipsec_session.address,
-            prefix: ipnet::ipv4_mask_to_prefix(self.ipsec_session.netmask).unwrap_or_default(),
+            address: Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask)
+                .unwrap_or_else(|_| Ipv4Net::from(self.ipsec_session.address)),
         }
     }
 
     async fn setup_xfrm_link(&self) -> anyhow::Result<()> {
-        let device = self.new_xfrm_device();
-
-        device.add().await
+        self.new_xfrm_link().add().await
     }
 
     async fn configure_xfrm_state(
@@ -285,7 +277,7 @@ impl XfrmConfigurator {
             src_port: self.src_port,
             dst_port: 4500,
             if_id: self.if_id,
-            params: params.clone(),
+            params,
         };
         match command {
             CommandType::Add => state.add().await?,
@@ -341,10 +333,9 @@ impl XfrmConfigurator {
     }
 
     async fn setup_routing(&self) -> anyhow::Result<()> {
-        let dev_name = self.xfrm_name();
         if !self.tunnel_params.no_routing {
             if self.tunnel_params.default_route {
-                let _ = platform::add_default_route(&dev_name, self.ipsec_session.address).await;
+                let _ = platform::add_default_route(&self.name, self.ipsec_session.address).await;
             } else {
                 let subnets = self
                     .subnets
@@ -354,7 +345,7 @@ impl XfrmConfigurator {
                     .cloned()
                     .collect::<Vec<_>>();
 
-                let _ = platform::add_routes(&subnets, &dev_name, self.ipsec_session.address).await;
+                let _ = platform::add_routes(&subnets, &self.name, self.ipsec_session.address).await;
             }
         }
 
@@ -362,7 +353,7 @@ impl XfrmConfigurator {
         let dst = self.dest_ip.to_string();
 
         // set up routing correctly so that keepalive packets are not wrapped into ESP
-        iproute2(&["route", "add", "table", &port, &dst, "dev", &dev_name]).await?;
+        iproute2(&["route", "add", "table", &port, &dst, "dev", &self.name]).await?;
 
         iproute2(&[
             "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
@@ -373,8 +364,6 @@ impl XfrmConfigurator {
     }
 
     async fn setup_dns(&self) -> anyhow::Result<()> {
-        let dev_name = self.xfrm_name();
-
         if !self.tunnel_params.no_dns {
             debug!("Adding acquired DNS suffixes: {:?}", self.ipsec_session.domains);
             debug!("Adding provided DNS suffixes: {:?}", self.tunnel_params.search_domains);
@@ -391,10 +380,10 @@ impl XfrmConfigurator {
                         .iter()
                         .any(|d| d.to_lowercase() == s.to_lowercase())
                 });
-            let _ = platform::add_dns_suffixes(suffixes, &dev_name).await;
+            let _ = platform::add_dns_suffixes(suffixes, &self.name).await;
 
             let servers = self.ipsec_session.dns.iter().map(|server| server.to_string());
-            let _ = platform::add_dns_servers(servers, &dev_name).await;
+            let _ = platform::add_dns_servers(servers, &self.name).await;
         }
         Ok(())
     }
@@ -416,9 +405,9 @@ impl IpsecConfigurator for XfrmConfigurator {
         Ok(())
     }
 
-    async fn re_key(&mut self, session: &IpsecSession) -> anyhow::Result<()> {
+    async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()> {
         trace!(
-            "Re-keying XFRM state with new session: IN: {:?}, OUT: {:?}",
+            "Rekeying XFRM state with new session: IN: {:?}, OUT: {:?}",
             session.esp_in,
             session.esp_out
         );
@@ -487,9 +476,7 @@ impl IpsecConfigurator for XfrmConfigurator {
             .configure_xfrm_policy(CommandType::Delete, PolicyDir::In, self.dest_ip, self.source_ip)
             .await;
 
-        let device = self.new_xfrm_device();
-
-        let _ = device.delete().await;
+        let _ = self.new_xfrm_link().delete().await;
 
         let dst = self.dest_ip.to_string();
         let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
