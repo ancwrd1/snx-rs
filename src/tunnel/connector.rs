@@ -320,7 +320,7 @@ impl IpsecTunnelConnector {
             .get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
             .map(|v| String::from_utf8_lossy(&v).into_owned())
             .unwrap_or_default()
-            .split(',')
+            .split(|c| c == ',' || c == ';')
             .map(ToOwned::to_owned)
             .collect();
 
