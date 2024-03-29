@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use gtk::{
     glib,
     prelude::{BoxExt, DialogExt, EntryExt, GtkWindowExt, WidgetExt},
-    Align, DialogFlags, Orientation, ResponseType,
+    Align, Orientation, ResponseType, WindowPosition,
 };
 use webkit2gtk::glib::ControlFlow;
 
@@ -19,15 +19,16 @@ impl SecurePrompt for GtkPrompt {
         let prompt = prompt.to_owned();
 
         glib::idle_add(move || {
-            let dialog = gtk::Dialog::with_buttons(
-                Some("Challenge code"),
-                None::<&gtk::Window>,
-                DialogFlags::MODAL,
-                &[("OK", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
-            );
+            let dialog = gtk::Dialog::builder().title("Challenge code").modal(true).build();
 
+            let ok = gtk::Button::builder().label("OK").can_default(true).build();
+            let cancel = gtk::Button::builder().label("Cancel").build();
+            dialog.add_action_widget(&ok, ResponseType::Ok);
+            dialog.add_action_widget(&cancel, ResponseType::Cancel);
+            dialog.set_default(Some(&ok));
             dialog.set_default_width(300);
             dialog.set_default_height(120);
+            dialog.set_position(WindowPosition::CenterAlways);
 
             let content = dialog.content_area();
             let inner = gtk::Box::builder().orientation(Orientation::Vertical).margin(6).build();
@@ -39,7 +40,7 @@ impl SecurePrompt for GtkPrompt {
                 6,
             );
 
-            let entry = gtk::Entry::builder().visibility(false).build();
+            let entry = gtk::Entry::builder().visibility(false).activates_default(true).build();
             inner.pack_start(&entry, false, true, 6);
 
             content.pack_start(&inner, false, true, 6);

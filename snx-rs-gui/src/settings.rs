@@ -4,13 +4,15 @@ use anyhow::anyhow;
 use gtk::{
     glib::{self, clone},
     prelude::*,
-    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType,
+    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, WindowPosition,
 };
 use ipnet::Ipv4Net;
 use tracing::warn;
 
-use snxcore::model::params::{TunnelParams, TunnelType};
-use snxcore::server_info;
+use snxcore::{
+    model::params::{TunnelParams, TunnelType},
+    server_info,
+};
 
 struct SettingsDialog {
     params: Arc<TunnelParams>,
@@ -101,8 +103,7 @@ impl SettingsDialog {
 
         dialog.set_default_width(650);
         dialog.set_default_height(350);
-
-        dialog.set_icon_name(Some("network-vpn"));
+        dialog.set_position(WindowPosition::CenterAlways);
 
         let server_name = gtk::Entry::builder().text(&params.server_name).hexpand(true).build();
         let update = gtk::Button::builder().label("Fetch info").halign(Align::End).build();
