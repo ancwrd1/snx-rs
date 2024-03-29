@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
@@ -57,11 +58,9 @@ where
     B: BrowserController + Send + Sync,
     P: SecurePrompt + Send + Sync,
 {
-    pub fn new(prompt: P, browser_controller: B) -> anyhow::Result<Self> {
-        let config_file = TunnelParams::default_config_path()?;
-
-        if !config_file.exists() {
-            return Err(anyhow!("No config file: {}", config_file.display()));
+    pub fn new<C: AsRef<Path>>(prompt: P, browser_controller: B, config_file: C) -> anyhow::Result<Self> {
+        if !config_file.as_ref().exists() {
+            return Err(anyhow!("No config file: {}", config_file.as_ref().display()));
         }
         let mut params = TunnelParams::load(config_file)?;
 

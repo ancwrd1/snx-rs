@@ -61,11 +61,7 @@ fn open_browser(url: String) -> anyhow::Result<()> {
         let data_manager = WebsiteDataManager::default();
         data_manager.set_persistent_credential_storage_enabled(true);
 
-        let dir = TunnelParams::default_config_path()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .to_owned();
+        let dir = TunnelParams::default_config_path().parent().unwrap().to_owned();
 
         let _ = std::fs::create_dir_all(&dir);
         let cookies_file = dir.join("cookies.db");

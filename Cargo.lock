@@ -2605,6 +2605,7 @@ version = "1.1.0"
 dependencies = [
  "anyhow",
  "async-channel",
+ "clap 4.5.4",
  "gtk",
  "ipnet",
  "ksni",
@@ -2662,6 +2663,7 @@ name = "snxctl"
 version = "1.1.0"
 dependencies = [
  "anyhow",
+ "clap 4.5.4",
  "opener",
  "snxcore",
  "tokio",

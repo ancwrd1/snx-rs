@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::{
     sync::{mpsc, Arc},
     time::Duration,
@@ -10,10 +11,11 @@ use ksni::{menu::StandardItem, Icon, MenuItem, Tray, TrayService};
 use snxcore::{
     controller::{ServiceCommand, ServiceController},
     model::{params::TunnelParams, ConnectionStatus},
-    platform::{self, SingleInstance},
+    platform,
     prompt::SecurePrompt,
 };
 
+use crate::params::CmdlineParams;
 use crate::{prompt, webkit};
 
 const TITLE: &str = "SNX-RS VPN client";
@@ -23,6 +25,7 @@ struct MyTray {
     command_sender: mpsc::SyncSender<Option<ServiceCommand>>,
     status: anyhow::Result<ConnectionStatus>,
     connecting: bool,
+    config_file: PathBuf,
 }
 
 impl MyTray {
@@ -63,11 +66,9 @@ impl MyTray {
         }
     }
     fn edit_config(&mut self) {
-        if let Ok(config_file) = TunnelParams::default_config_path() {
-            let mut params = TunnelParams::load(config_file).unwrap_or_default();
-            let _ = params.decode_password();
-            super::settings::start_settings_dialog(Arc::new(params));
-        }
+        let mut params = TunnelParams::load(&self.config_file).unwrap_or_default();
+        let _ = params.decode_password();
+        super::settings::start_settings_dialog(Arc::new(params));
     }
 }
 
@@ -144,17 +145,13 @@ impl Tray for MyTray {
     }
 }
 
-pub fn show_tray_icon() -> anyhow::Result<()> {
-    let instance = SingleInstance::new("/tmp/snx-rs-gui.s")?;
-    if !instance.is_single() {
-        return Ok(());
-    }
-
+pub fn show_tray_icon(params: CmdlineParams) -> anyhow::Result<()> {
     let (tx, rx) = mpsc::sync_channel(1);
     let service = TrayService::new(MyTray {
         command_sender: tx.clone(),
         status: Err(anyhow!("No service connection")),
         connecting: false,
+        config_file: params.config_file().clone(),
     });
     let handle = service.handle();
     service.spawn();
@@ -176,7 +173,9 @@ pub fn show_tray_icon() -> anyhow::Result<()> {
             handle.update(|_| {});
         }
 
-        if let Ok(mut controller) = ServiceController::new(crate::prompt::GtkPrompt, webkit::WebkitBrowser) {
+        if let Ok(mut controller) =
+            ServiceController::new(prompt::GtkPrompt, webkit::WebkitBrowser, params.config_file())
+        {
             if command == ServiceCommand::Connect {
                 handle.update(|tray: &mut MyTray| tray.connecting = true);
             }

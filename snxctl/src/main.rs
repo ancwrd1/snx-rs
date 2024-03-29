@@ -1,6 +1,9 @@
-use anyhow::anyhow;
+use std::path::PathBuf;
+
+use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
+use snxcore::model::params::TunnelParams;
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
@@ -17,11 +20,56 @@ impl BrowserController for SystemBrowser {
     fn close(&self) {}
 }
 
+#[derive(Parser)]
+#[clap(about = "VPN client for Checkpoint security gateway", name = "snxctl")]
+pub struct CmdlineParams {
+    #[clap(
+        long = "config-file",
+        short = 'c',
+        global = true,
+        help = "Configuration file to use [default: $HOME/.config/snx-rs/snx-rs.conf]"
+    )]
+    config_file: Option<PathBuf>,
+    #[clap(subcommand)]
+    command: SnxCommand,
+}
+
+#[derive(Parser)]
+enum SnxCommand {
+    #[clap(name = "connect", about = "Connect a tunnel")]
+    Connect,
+    #[clap(name = "disconnect", about = "Disconnect a tunnel")]
+    Disconnect,
+    #[clap(name = "reconnect", about = "Reconnect a tunnel")]
+    Reconnect,
+    #[clap(name = "status", about = "Show connection status")]
+    Status,
+    #[clap(name = "info", about = "Show server information")]
+    Info,
+}
+
+impl From<SnxCommand> for ServiceCommand {
+    fn from(value: SnxCommand) -> Self {
+        match value {
+            SnxCommand::Connect => ServiceCommand::Connect,
+            SnxCommand::Disconnect => ServiceCommand::Disconnect,
+            SnxCommand::Reconnect => ServiceCommand::Reconnect,
+            SnxCommand::Status => ServiceCommand::Status,
+            SnxCommand::Info => ServiceCommand::Info,
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let args = std::env::args().collect::<Vec<_>>();
+    let params = CmdlineParams::parse();
 
-    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser)?;
+    let config_file = params
+        .config_file
+        .clone()
+        .unwrap_or_else(|| TunnelParams::default_config_path());
+
+    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser, config_file)?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(
@@ -34,18 +82,7 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    if args.len() == 1 {
-        return Err(anyhow!(
-            "usage: {} {{status|connect|disconnect|reconnect|info}}",
-            args[0]
-        ));
-    }
-
-    let command: ServiceCommand = args
-        .get(1)
-        .map(|v| v.as_str())
-        .ok_or_else(|| anyhow!("No command"))?
-        .parse()?;
+    let command = params.command.into();
 
     match service_controller.command(command).await {
         Ok(status) if command != ServiceCommand::Info => {

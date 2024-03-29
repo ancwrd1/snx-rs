@@ -93,6 +93,7 @@ pub struct TunnelParams {
     pub server_prompt: bool,
     pub esp_lifetime: Duration,
     pub ike_lifetime: Duration,
+    pub config_file: PathBuf,
 }
 
 impl Default for TunnelParams {
@@ -121,6 +122,7 @@ impl Default for TunnelParams {
             server_prompt: true,
             esp_lifetime: DEFAULT_ESP_LIFETIME,
             ike_lifetime: DEFAULT_IKE_LIFETIME,
+            config_file: Self::default_config_path(),
         }
     }
 }
@@ -132,7 +134,7 @@ impl TunnelParams {
 
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut params = Self::default();
-        let data = std::fs::read_to_string(path)?;
+        let data = std::fs::read_to_string(&path)?;
         for line in data.lines() {
             if !line.trim().starts_with('#') {
                 let parts = line
@@ -189,10 +191,11 @@ impl TunnelParams {
                 }
             }
         }
+        params.config_file = path.as_ref().to_owned();
         Ok(params)
     }
 
-    pub fn save<P: AsRef<Path>>(&self, path: P) -> anyhow::Result<()> {
+    pub fn save(&self) -> anyhow::Result<()> {
         let mut buf = Cursor::new(Vec::new());
         writeln!(buf, "server-name={}", self.server_name)?;
         writeln!(buf, "user-name={}", self.user_name)?;
@@ -245,7 +248,7 @@ impl TunnelParams {
         writeln!(buf, "esp-lifetime={}", self.esp_lifetime.as_secs())?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
 
-        std::fs::write(path, buf.into_inner())?;
+        std::fs::write(&self.config_file, buf.into_inner())?;
 
         Ok(())
     }
@@ -258,8 +261,8 @@ impl TunnelParams {
         Ok(())
     }
 
-    pub fn default_config_path() -> anyhow::Result<PathBuf> {
-        let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
-        Ok(dir.config_dir().join("snx-rs.conf"))
+    pub fn default_config_path() -> PathBuf {
+        let dir = ProjectDirs::from("", "", "snx-rs").expect("No home directory!");
+        dir.config_dir().join("snx-rs.conf")
     }
 }

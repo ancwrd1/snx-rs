@@ -244,11 +244,12 @@ impl SettingsDialog {
                             .map(|factor| factor.factor_type.clone())
                             .collect::<Vec<_>>();
                         unsafe { auth_type.set_data(&option.id, factors); }
-                        auth_type.insert(i as _, Some(&option.id), &option.display_name.0);
+                        auth_type.append(Some(&option.id), &option.display_name.0);
                         if params2.login_type == option.id {
                             auth_type.set_active(Some(i as _));
                         }
                     }
+                    auth_type.set_sensitive(true);
                 }
                 dialog.set_sensitive(true);
             }
@@ -387,7 +388,7 @@ impl SettingsDialog {
         params.ike_lifetime = Duration::from_secs(self.widgets.ike_lifetime.text().parse()?);
         params.esp_lifetime = Duration::from_secs(self.widgets.esp_lifetime.text().parse()?);
 
-        params.save(TunnelParams::default_config_path()?)?;
+        params.save()?;
 
         Ok(())
     }
