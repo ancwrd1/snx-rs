@@ -2,8 +2,8 @@ use std::io;
 
 use once_cell::sync::Lazy;
 
-use crate::platform;
-use crate::platform::SystemColorTheme;
+use snxcore::platform;
+use snxcore::platform::SystemColorTheme;
 
 fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     let decoder = png::Decoder::new(io::Cursor::new(data));

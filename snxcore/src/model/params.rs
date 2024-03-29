@@ -1,6 +1,5 @@
-use std::io::Cursor;
-use std::io::Write;
 use std::{
+    io::{Cursor, Write},
     path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
@@ -8,11 +7,10 @@ use std::{
 
 use anyhow::anyhow;
 use base64::Engine;
-use clap::Parser;
 use directories_next::ProjectDirs;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
-use tracing::{metadata::LevelFilter, warn};
+use tracing::warn;
 
 const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
@@ -36,130 +34,6 @@ impl FromStr for OperationMode {
             _ => Err(anyhow!("Invalid operation mode!")),
         }
     }
-}
-
-#[derive(Parser)]
-#[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs")]
-pub struct CmdlineParams {
-    #[clap(long = "server-name", short = 's', help = "Server name")]
-    pub server_name: Option<String>,
-
-    #[clap(
-        long = "mode",
-        short = 'm',
-        default_value = "standalone",
-        help = "Operation mode, one of: standalone, command, info"
-    )]
-    pub mode: OperationMode,
-
-    #[clap(long = "user-name", short = 'u', help = "User name")]
-    pub user_name: Option<String>,
-
-    #[clap(long = "password", short = 'p', help = "Password in base64-encoded form")]
-    pub password: Option<String>,
-
-    #[clap(long = "config-file", short = 'c', help = "Read parameters from config file")]
-    pub config_file: Option<PathBuf>,
-
-    #[clap(
-        long = "log-level",
-        short = 'l',
-        help = "Enable logging to stdout, one of: off, info, warn, error, debug, trace"
-    )]
-    pub log_level: Option<LevelFilter>,
-
-    #[clap(long = "search-domains", short = 'd', help = "Additional search domains")]
-    pub search_domains: Vec<String>,
-
-    #[clap(
-        long = "ignore-search-domains",
-        short = 'i',
-        help = "Ignore specified search domains from the acquired list"
-    )]
-    pub ignore_search_domains: Vec<String>,
-
-    #[clap(
-        long = "default-route",
-        short = 't',
-        help = "Set the default route through the tunnel"
-    )]
-    pub default_route: Option<bool>,
-
-    #[clap(long = "no-routing", short = 'n', help = "Ignore all routes from the acquired list")]
-    pub no_routing: Option<bool>,
-
-    #[clap(long = "add-routes", short = 'a', help = "Additional routes through the tunnel")]
-    pub add_routes: Vec<Ipv4Net>,
-
-    #[clap(
-        long = "ignore-routes",
-        short = 'I',
-        help = "Ignore specified routes from the acquired list"
-    )]
-    pub ignore_routes: Vec<Ipv4Net>,
-
-    #[clap(long = "no-dns", short = 'N', help = "Do not change DNS resolver configuration")]
-    pub no_dns: Option<bool>,
-
-    #[clap(
-        long = "no-cert-check",
-        short = 'H',
-        help = "Do not validate server common name in the certificate"
-    )]
-    pub no_cert_check: Option<bool>,
-
-    #[clap(
-        long = "ignore-server-cert",
-        short = 'X',
-        help = "Disable all certificate validations (NOT SECURE!)"
-    )]
-    pub ignore_server_cert: Option<bool>,
-
-    #[clap(long = "tunnel-type", short = 'e', help = "Tunnel type, one of: ssl, ipsec")]
-    pub tunnel_type: Option<TunnelType>,
-
-    #[clap(long = "ca-cert", short = 'k', help = "Custom CA cert file in PEM or DER format")]
-    pub ca_cert: Option<PathBuf>,
-
-    #[clap(
-        long = "login-type",
-        short = 'o',
-        help = "Login type, obtained from running the 'snx-rs -m info -s address', login_options_list::id field"
-    )]
-    pub login_type: Option<String>,
-
-    #[clap(
-        long = "client-cert",
-        short = 'y',
-        help = "Use client authentication via the provided certificate chain. It must be either PKCS#12 or unencrypted PKCS#8 PEM file"
-    )]
-    pub client_cert: Option<PathBuf>,
-
-    #[clap(long = "cert-password", short = 'x', help = "Password for PKCS#12 keychain")]
-    pub cert_password: Option<String>,
-
-    #[clap(long = "if-name", short = 'f', help = "Interface name for tun or xfrm device")]
-    pub if_name: Option<String>,
-
-    #[clap(
-        long = "no-keychain",
-        short = 'K',
-        help = "Do not use OS keychain to store or retrieve user password"
-    )]
-    pub no_keychain: Option<bool>,
-
-    #[clap(
-        long = "server-prompt",
-        short = 'P',
-        help = "Ask server for authentication data prompt values"
-    )]
-    pub server_prompt: Option<bool>,
-
-    #[clap(long = "esp-lifetime", short = 'E', help = "IPSec ESP lifetime in seconds")]
-    pub esp_lifetime: Option<u64>,
-
-    #[clap(long = "ike-lifetime", short = 'L', help = "IPSec IKE lifetime in seconds")]
-    pub ike_lifetime: Option<u64>,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -374,100 +248,6 @@ impl TunnelParams {
         std::fs::write(path, buf.into_inner())?;
 
         Ok(())
-    }
-
-    pub fn merge(&mut self, other: CmdlineParams) {
-        if let Some(server_name) = other.server_name {
-            self.server_name = server_name;
-        }
-
-        if let Some(user_name) = other.user_name {
-            self.user_name = user_name;
-        }
-
-        if let Some(password) = other.password {
-            self.password = password;
-        }
-
-        if let Some(log_level) = other.log_level {
-            self.log_level = log_level.to_string();
-        }
-
-        if !other.search_domains.is_empty() {
-            self.search_domains = other.search_domains;
-        }
-
-        if !other.ignore_search_domains.is_empty() {
-            self.ignore_search_domains = other.ignore_search_domains;
-        }
-
-        if let Some(default_route) = other.default_route {
-            self.default_route = default_route;
-        }
-
-        if let Some(no_routing) = other.no_routing {
-            self.no_routing = no_routing;
-        }
-
-        if let Some(no_dns) = other.no_dns {
-            self.no_dns = no_dns;
-        }
-
-        if !other.add_routes.is_empty() {
-            self.add_routes = other.add_routes;
-        }
-
-        if !other.ignore_routes.is_empty() {
-            self.ignore_routes = other.ignore_routes;
-        }
-
-        if let Some(tunnel_type) = other.tunnel_type {
-            self.tunnel_type = tunnel_type;
-        }
-
-        if let Some(ca_cert) = other.ca_cert {
-            self.ca_cert = Some(ca_cert);
-        }
-
-        if let Some(no_cert_check) = other.no_cert_check {
-            self.no_cert_check = no_cert_check;
-        }
-
-        if let Some(ignore_server_cert) = other.ignore_server_cert {
-            self.ignore_server_cert = ignore_server_cert;
-        }
-
-        if let Some(login_type) = other.login_type {
-            self.login_type = login_type;
-        }
-
-        if let Some(client_cert) = other.client_cert {
-            self.client_cert = Some(client_cert);
-        }
-
-        if let Some(cert_password) = other.cert_password {
-            self.cert_password = Some(cert_password);
-        }
-
-        if let Some(if_name) = other.if_name {
-            self.if_name = Some(if_name);
-        }
-
-        if let Some(no_keychain) = other.no_keychain {
-            self.no_keychain = no_keychain;
-        }
-
-        if let Some(server_prompt) = other.server_prompt {
-            self.server_prompt = server_prompt;
-        }
-
-        if let Some(esp_lifetime) = other.esp_lifetime {
-            self.esp_lifetime = Duration::from_secs(esp_lifetime);
-        }
-
-        if let Some(ike_lifetime) = other.ike_lifetime {
-            self.ike_lifetime = Duration::from_secs(ike_lifetime);
-        }
     }
 
     pub fn decode_password(&mut self) -> anyhow::Result<()> {

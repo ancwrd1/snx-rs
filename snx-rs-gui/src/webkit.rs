@@ -8,9 +8,21 @@ use webkit2gtk::{
     WebViewExt, WebViewExtManual, WebsiteDataManager, WebsiteDataManagerExt,
 };
 
-use crate::{model::params::TunnelParams, util};
+use snxcore::{browser::BrowserController, model::params::TunnelParams};
 
-pub fn close_browser() {
+pub struct WebkitBrowser;
+
+impl BrowserController for WebkitBrowser {
+    fn open(&self, url: &str) -> anyhow::Result<()> {
+        open_browser(url.to_owned())
+    }
+
+    fn close(&self) {
+        close_browser()
+    }
+}
+
+fn close_browser() {
     thread::spawn(|| {
         glib::idle_add(|| {
             for win in Window::list_toplevels() {
@@ -24,7 +36,7 @@ pub fn close_browser() {
 }
 
 fn notify_listener() {
-    let _ = util::block_on(async {
+    let _ = snxcore::util::block_on(async {
         let mut socket = tokio::time::timeout(Duration::from_secs(1), TcpStream::connect("127.0.0.1:7779")).await??;
 
         socket
@@ -37,7 +49,7 @@ fn notify_listener() {
     });
 }
 
-pub fn open_browser(url: String) -> anyhow::Result<()> {
+fn open_browser(url: String) -> anyhow::Result<()> {
     glib::idle_add(move || {
         let window = ApplicationWindow::builder()
             .title("Identity Provider Authentication")

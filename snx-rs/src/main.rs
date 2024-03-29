@@ -9,17 +9,23 @@ use tokio::{
 };
 use tracing::{debug, metadata::LevelFilter, warn};
 
-use snx_rs::{
+use snxcore::prompt::TtyPrompt;
+use snxcore::{
+    browser::run_otp_listener,
     ccc::CccHttpClient,
     model::{
-        params::{CmdlineParams, OperationMode, TunnelParams},
+        params::{OperationMode, TunnelParams},
         MfaType, SessionState,
     },
     platform,
-    prompt::{run_otp_listener, SecurePrompt, OTP_TIMEOUT},
+    prompt::{SecurePrompt, OTP_TIMEOUT},
     server::CommandServer,
     server_info, tunnel,
 };
+
+use crate::cmdline::CmdlineParams;
+
+mod cmdline;
 
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
@@ -66,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
     } else {
         TunnelParams::default()
     };
-    params.merge(cmdline_params);
+    cmdline_params.merge_into_tunnel_params(&mut params);
 
     params.decode_password()?;
 
@@ -96,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
                 match challenge.mfa_type {
                     MfaType::UserInput => {
                         let prompt = mfa_prompts.pop_front().unwrap_or_else(|| challenge.prompt.clone());
-                        match SecurePrompt::tty().get_secure_input(&prompt) {
+                        match TtyPrompt.get_secure_input(&prompt) {
                             Ok(input) => {
                                 session = connector.challenge_code(session, &input).await?;
                             }
@@ -147,7 +153,7 @@ async fn main() -> anyhow::Result<()> {
             if let Err(e) = platform::start_network_state_monitoring().await {
                 warn!("Unable to start network monitoring: {}", e);
             }
-            let server = CommandServer::new(snx_rs::server::LISTEN_PORT);
+            let server = CommandServer::new(snxcore::server::LISTEN_PORT);
 
             await_termination(server.run()).await
         }
@@ -157,7 +163,7 @@ async fn main() -> anyhow::Result<()> {
             }
             let client = CccHttpClient::new(Arc::new(params), None);
             let info = client.get_server_info().await?;
-            snx_rs::util::print_login_options(&info);
+            snxcore::util::print_login_options(&info);
 
             Ok(())
         }

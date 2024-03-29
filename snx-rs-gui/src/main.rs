@@ -4,16 +4,21 @@ use gtk::{
 };
 use tracing::level_filters::LevelFilter;
 
-use snx_rs::{browser::BrowserController, controller::ServiceController, prompt::SecurePrompt};
+use snxcore::controller::ServiceController;
+
+pub mod assets;
+pub mod prompt;
+pub mod settings;
+pub mod tray_icon;
+pub mod webkit;
 
 fn main() -> anyhow::Result<()> {
-    let _ = snx_rs::util::block_on(snx_rs::platform::init_theme_monitoring());
+    let _ = snxcore::util::block_on(snxcore::platform::init_theme_monitoring());
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
     app.connect_activate(move |_| {
-        let browser_controller = BrowserController::webkit();
-        let service_controller = ServiceController::new(SecurePrompt::tty(), &browser_controller).unwrap();
+        let service_controller = ServiceController::new(prompt::GtkPrompt, webkit::WebkitBrowser).unwrap();
 
         let subscriber = tracing_subscriber::fmt()
             .with_max_level(
@@ -27,7 +32,7 @@ fn main() -> anyhow::Result<()> {
         tracing::subscriber::set_global_default(subscriber).unwrap();
 
         std::thread::spawn(move || {
-            let _ = snx_rs::gui::tray_icon::show_tray_icon(&browser_controller);
+            let _ = tray_icon::show_tray_icon();
         });
 
         gtk::main();

@@ -1,19 +1,27 @@
 use anyhow::anyhow;
 use tracing::level_filters::LevelFilter;
 
-use snx_rs::{
+use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
-    prompt::SecurePrompt,
+    prompt::TtyPrompt,
 };
+
+struct SystemBrowser;
+
+impl BrowserController for SystemBrowser {
+    fn open(&self, url: &str) -> anyhow::Result<()> {
+        Ok(opener::open(url)?)
+    }
+
+    fn close(&self) {}
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
 
-    let browser_controller = BrowserController::system();
-
-    let mut service_controller = ServiceController::new(SecurePrompt::tty(), &browser_controller)?;
+    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser)?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(

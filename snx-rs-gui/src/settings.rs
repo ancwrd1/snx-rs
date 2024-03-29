@@ -9,10 +9,8 @@ use gtk::{
 use ipnet::Ipv4Net;
 use tracing::warn;
 
-use crate::{
-    model::params::{TunnelParams, TunnelType},
-    server_info,
-};
+use snxcore::model::params::{TunnelParams, TunnelType};
+use snxcore::server_info;
 
 struct SettingsDialog {
     params: Arc<TunnelParams>,

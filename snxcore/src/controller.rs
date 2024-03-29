@@ -5,13 +5,14 @@ use tokio::sync::oneshot;
 use tracing::warn;
 
 use crate::{
+    browser::run_otp_listener,
     browser::BrowserController,
     ccc::CccHttpClient,
     model::{
         params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest, TunnelServiceResponse,
     },
     platform::{self, UdpSocketExt},
-    prompt::{run_otp_listener, SecurePrompt, OTP_TIMEOUT},
+    prompt::{SecurePrompt, OTP_TIMEOUT},
     server_info,
 };
 
@@ -42,17 +43,21 @@ impl FromStr for ServiceCommand {
     }
 }
 
-pub struct ServiceController<'a> {
+pub struct ServiceController<B, P> {
     pub params: TunnelParams,
-    prompt: SecurePrompt,
+    prompt: P,
     mfa_prompts: Option<VecDeque<String>>,
     password: String,
     first_password: bool,
-    browser_controller: &'a BrowserController,
+    browser_controller: B,
 }
 
-impl<'a> ServiceController<'a> {
-    pub fn new(prompt: SecurePrompt, browser_controller: &'a BrowserController) -> anyhow::Result<Self> {
+impl<B, P> ServiceController<B, P>
+where
+    B: BrowserController + Send + Sync,
+    P: SecurePrompt + Send + Sync,
+{
+    pub fn new(prompt: P, browser_controller: B) -> anyhow::Result<Self> {
         let config_file = TunnelParams::default_config_path()?;
 
         if !config_file.exists() {

@@ -1,8 +1,6 @@
 pub mod browser;
 pub mod ccc;
 pub mod controller;
-#[cfg(feature = "gui")]
-pub mod gui;
 pub mod model;
 pub mod platform;
 pub mod prompt;

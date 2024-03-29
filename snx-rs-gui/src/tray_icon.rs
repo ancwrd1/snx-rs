@@ -7,15 +7,14 @@ use anyhow::anyhow;
 use gtk::{glib, glib::ControlFlow};
 use ksni::{menu::StandardItem, Icon, MenuItem, Tray, TrayService};
 
-use crate::{
-    browser::BrowserController,
+use snxcore::{
     controller::{ServiceCommand, ServiceController},
-    gui::assets,
     model::{params::TunnelParams, ConnectionStatus},
     platform::{self, SingleInstance},
     prompt::SecurePrompt,
-    util,
 };
+
+use crate::{prompt, webkit};
 
 const TITLE: &str = "SNX-RS VPN client";
 const PING_DURATION: Duration = Duration::from_secs(1);
@@ -78,7 +77,7 @@ impl Tray for MyTray {
     }
 
     fn icon_pixmap(&self) -> Vec<Icon> {
-        let theme = assets::current_icon_theme();
+        let theme = crate::assets::current_icon_theme();
 
         let data: &[u8] = if self.connecting {
             &theme.acquiring
@@ -145,8 +144,8 @@ impl Tray for MyTray {
     }
 }
 
-pub fn show_tray_icon(browser_controller: &BrowserController) -> anyhow::Result<()> {
-    let instance = SingleInstance::new("/tmp/snxctl.s")?;
+pub fn show_tray_icon() -> anyhow::Result<()> {
+    let instance = SingleInstance::new("/tmp/snx-rs-gui.s")?;
     if !instance.is_single() {
         return Ok(());
     }
@@ -177,12 +176,13 @@ pub fn show_tray_icon(browser_controller: &BrowserController) -> anyhow::Result<
             handle.update(|_| {});
         }
 
-        if let Ok(mut controller) = ServiceController::new(SecurePrompt::gui(), browser_controller) {
+        if let Ok(mut controller) = ServiceController::new(crate::prompt::GtkPrompt, webkit::WebkitBrowser) {
             if command == ServiceCommand::Connect {
                 handle.update(|tray: &mut MyTray| tray.connecting = true);
             }
 
-            let result = std::thread::scope(|s| s.spawn(|| util::block_on(controller.command(command))).join());
+            let result =
+                std::thread::scope(|s| s.spawn(|| snxcore::util::block_on(controller.command(command))).join());
             let status = match result {
                 Ok(result) => result,
                 Err(_) => Err(anyhow!("Internal error")),
@@ -192,7 +192,7 @@ pub fn show_tray_icon(browser_controller: &BrowserController) -> anyhow::Result<
 
             match status {
                 Err(ref e) if command == ServiceCommand::Connect => {
-                    let _ = SecurePrompt::gui().show_notification("Connection failed", &e.to_string());
+                    let _ = prompt::GtkPrompt.show_notification("Connection failed", &e.to_string());
                 }
                 _ => {}
             }
