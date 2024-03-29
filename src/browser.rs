@@ -1,63 +1,44 @@
-use std::sync::mpsc;
-use std::thread::JoinHandle;
-
-enum BrowserCommand {
-    Open(String),
-    Exit,
+#[derive(Debug, Clone, Copy)]
+enum BrowserType {
+    System,
+    Webkit,
 }
 
 pub struct BrowserController {
-    sender: mpsc::Sender<BrowserCommand>,
-    handle: Option<JoinHandle<()>>,
+    browser_type: BrowserType,
 }
 
 impl BrowserController {
-    fn open_browser(url: String) {
-        #[cfg(feature = "gui")]
-        let _ = crate::gui::webkit::open_browser(url);
-
-        #[cfg(not(feature = "gui"))]
-        let _ = opener::open_browser(url);
+    pub fn system() -> Self {
+        Self {
+            browser_type: BrowserType::System,
+        }
     }
 
-    fn close_browser() {
-        #[cfg(feature = "gui")]
-        crate::gui::webkit::close_browser()
-    }
-
-    fn run(receiver: mpsc::Receiver<BrowserCommand>) {
-        while let Ok(command) = receiver.recv() {
-            match command {
-                BrowserCommand::Open(url) => Self::open_browser(url),
-                BrowserCommand::Exit => break,
-            }
+    pub fn webkit() -> Self {
+        Self {
+            browser_type: BrowserType::Webkit,
         }
     }
 
     pub fn open<S: AsRef<str>>(&self, url: S) -> anyhow::Result<()> {
-        Ok(self.sender.send(BrowserCommand::Open(url.as_ref().to_owned()))?)
+        match self.browser_type {
+            BrowserType::System => Ok(opener::open_browser(url.as_ref())?),
+            #[cfg(feature = "gui")]
+            BrowserType::Webkit => crate::gui::webkit::open_browser(url.as_ref().to_owned()),
+            #[cfg(not(feature = "gui"))]
+            BrowserType::Webkit => Err(anyhow!("Webkit feature is not compiled in")),
+        }
     }
 
     pub fn close(&self) -> anyhow::Result<()> {
-        Self::close_browser();
-        Ok(())
-    }
-}
-
-impl Default for BrowserController {
-    fn default() -> Self {
-        let (tx, rx) = mpsc::channel();
-        let handle = std::thread::spawn(move || Self::run(rx));
-        Self {
-            sender: tx,
-            handle: Some(handle),
+        match self.browser_type {
+            BrowserType::System => {}
+            #[cfg(feature = "gui")]
+            BrowserType::Webkit => crate::gui::webkit::close_browser(),
+            #[cfg(not(feature = "gui"))]
+            BrowserType::Webkit => {}
         }
-    }
-}
-
-impl Drop for BrowserController {
-    fn drop(&mut self) {
-        let _ = self.sender.send(BrowserCommand::Exit);
-        let _ = self.handle.take().map(|h| h.join());
+        Ok(())
     }
 }

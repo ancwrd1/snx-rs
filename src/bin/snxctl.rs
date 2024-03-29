@@ -11,7 +11,7 @@ use snx_rs::{
 async fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
 
-    let browser_controller = BrowserController::default();
+    let browser_controller = BrowserController::system();
 
     let mut service_controller = ServiceController::new(SecurePrompt::tty(), &browser_controller)?;
 
@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
         .parse()?;
 
     match service_controller.command(command).await {
-        Ok(status) => {
+        Ok(status) if command != ServiceCommand::Info => {
             if let Some(since) = status.connected_since {
                 println!(
                     "{} since: {}",
@@ -56,6 +56,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         Err(e) => println!("Error: {}", e),
+        _ => {}
     }
 
     Ok(())

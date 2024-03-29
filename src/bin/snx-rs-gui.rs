@@ -12,7 +12,7 @@ fn main() -> anyhow::Result<()> {
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
     app.connect_activate(move |_| {
-        let browser_controller = BrowserController::default();
+        let browser_controller = BrowserController::webkit();
         let service_controller = ServiceController::new(SecurePrompt::tty(), &browser_controller).unwrap();
 
         let subscriber = tracing_subscriber::fmt()
