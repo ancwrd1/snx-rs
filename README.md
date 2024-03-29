@@ -9,7 +9,7 @@ Based on the reverse engineered protocol from the vendor application.
 * IPSec support (faster tunnel)
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
-* Optional integration with Gnome Keyring or KDE KWallet via libsecret (only when using snxctl in command mode)
+* Optional integration with Gnome Keyring or KDE KWallet via libsecret
 
 ## Implemented features
 
@@ -84,7 +84,7 @@ Configuration file may contain all options which are accepted via the command li
   If the `password` option is provided (base64-encoded) it will be used for the first MFA challenge.
 * For SAML SSO authentication the `user-name` and `password` options should NOT be specified.
 
- ## Additional usage notes
+## Additional usage notes
 
 * If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console.
   In command mode the browser will be opened automatically.
