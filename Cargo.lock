@@ -491,9 +491,9 @@ checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "chrono"
-version = "0.4.35"
+version = "0.4.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eaf5903dcbc0a39312feb77df2ff4c76387d591b9fc7b04a238dcf8bb62639a"
+checksum = "8a0d04d43504c61aa6c7531f1871dd0d418d91130162063b789da00fd7057a5e"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -1322,15 +1322,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "home"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3d1354bf6b7235cb4a0576c2619fd4ed18183f689b12b006a0ee7329eeff9a5"
-dependencies = [
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "http"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1656,9 +1647,9 @@ checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
 
 [[package]]
 name = "memchr"
-version = "2.7.1"
+version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
+checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 
 [[package]]
 name = "memoffset"
@@ -1918,9 +1909,9 @@ checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.101"
+version = "0.9.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dda2b0f344e78efc2facf7d195d098df0dd72151b26ab98da807afc26c198dff"
+checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
 dependencies = [
  "cc",
  "libc",
@@ -2595,7 +2586,41 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "snx-rs"
-version = "1.0.2"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "clap 4.5.4",
+ "futures",
+ "ipnet",
+ "libc",
+ "snxcore",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "snx-rs-gui"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "async-channel",
+ "clap 4.5.4",
+ "gtk",
+ "ipnet",
+ "ksni",
+ "once_cell",
+ "png",
+ "snxcore",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "webkit2gtk",
+]
+
+[[package]]
+name = "snxcore"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -2604,26 +2629,21 @@ dependencies = [
  "byteorder",
  "bytes",
  "chrono",
- "clap 4.5.4",
  "directories-next",
  "enum-as-inner",
  "futures",
- "gtk",
  "hex",
  "ipnet",
  "isakmp",
- "ksni",
  "libc",
  "nix 0.28.0",
  "num-traits",
  "once_cell",
- "opener",
  "parking_lot",
  "parse_int",
  "passterm",
  "pest",
  "pest_derive",
- "png",
  "rand",
  "regex",
  "reqwest",
@@ -2634,11 +2654,21 @@ dependencies = [
  "tokio-native-tls",
  "tokio-util",
  "tracing",
- "tracing-subscriber",
  "tun",
- "webkit2gtk",
- "which",
  "zbus",
+]
+
+[[package]]
+name = "snxctl"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "clap 4.5.4",
+ "opener",
+ "snxcore",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2847,9 +2877,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.36.0"
+version = "1.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
+checksum = "1adbebffeca75fcfd058afa480fb6c0b81e165a0323f9c9d39c9697e37c46787"
 dependencies = [
  "backtrace",
  "bytes",
@@ -3293,18 +3323,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "which"
-version = "6.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8211e4f58a2b2805adfbefbc07bab82958fc91e3836339b1ab7ae32465dce0d7"
-dependencies = [
- "either",
- "home",
- "rustix 0.38.32",
- "winsafe",
-]
-
-[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3504,12 +3522,6 @@ dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
 ]
-
-[[package]]
-name = "winsafe"
-version = "0.0.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d135d17ab770252ad95e9a872d365cf3090e3be864a34ab46f48555993efc904"
 
 [[package]]
 name = "wintun"

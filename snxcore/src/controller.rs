@@ -1,18 +1,19 @@
+use std::path::Path;
 use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
-use directories_next::ProjectDirs;
 use tokio::sync::oneshot;
 use tracing::warn;
 
 use crate::{
+    browser::run_otp_listener,
     browser::BrowserController,
     ccc::CccHttpClient,
     model::{
         params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest, TunnelServiceResponse,
     },
     platform::{self, UdpSocketExt},
-    prompt::{run_otp_listener, SecurePrompt, OTP_TIMEOUT},
+    prompt::{SecurePrompt, OTP_TIMEOUT},
     server_info,
 };
 
@@ -43,21 +44,23 @@ impl FromStr for ServiceCommand {
     }
 }
 
-pub struct ServiceController<'a> {
+pub struct ServiceController<B, P> {
     pub params: TunnelParams,
-    prompt: SecurePrompt,
+    prompt: P,
     mfa_prompts: Option<VecDeque<String>>,
     password: String,
-    browser_controller: &'a BrowserController,
+    first_password: bool,
+    browser_controller: B,
 }
 
-impl<'a> ServiceController<'a> {
-    pub fn new(prompt: SecurePrompt, browser_controller: &'a BrowserController) -> anyhow::Result<Self> {
-        let dir = ProjectDirs::from("", "", "snx-rs").ok_or(anyhow!("No project directory!"))?;
-        let config_file = dir.config_dir().join("snx-rs.conf");
-
-        if !config_file.exists() {
-            return Err(anyhow!("No config file: {}", config_file.display()));
+impl<B, P> ServiceController<B, P>
+where
+    B: BrowserController + Send + Sync,
+    P: SecurePrompt + Send + Sync,
+{
+    pub fn new<C: AsRef<Path>>(prompt: P, browser_controller: B, config_file: C) -> anyhow::Result<Self> {
+        if !config_file.as_ref().exists() {
+            return Err(anyhow!("No config file: {}", config_file.as_ref().display()));
         }
         let mut params = TunnelParams::load(config_file)?;
 
@@ -68,6 +71,7 @@ impl<'a> ServiceController<'a> {
             prompt,
             mfa_prompts: None,
             password: String::new(),
+            first_password: true,
             browser_controller,
         })
     }
@@ -127,16 +131,22 @@ impl<'a> ServiceController<'a> {
     async fn get_mfa_input(&mut self, mfa: &MfaChallenge) -> anyhow::Result<String> {
         match mfa.mfa_type {
             MfaType::UserInput => {
-                let prompt = self
-                    .mfa_prompts
-                    .as_mut()
-                    .and_then(|p| p.pop_front())
-                    .unwrap_or_else(|| mfa.prompt.clone());
-                let input = self.prompt.get_secure_input(&prompt)?;
-                if self.password.is_empty() {
-                    self.password = input.clone();
+                if !self.password.is_empty() && self.first_password {
+                    self.first_password = false;
+                    Ok(self.password.clone())
+                } else {
+                    let prompt = self
+                        .mfa_prompts
+                        .as_mut()
+                        .and_then(|p| p.pop_front())
+                        .unwrap_or_else(|| mfa.prompt.clone());
+                    let input = self.prompt.get_secure_input(&prompt)?;
+                    if self.first_password {
+                        self.first_password = false;
+                        self.password = input.clone();
+                    }
+                    Ok(input)
                 }
-                Ok(input)
             }
             MfaType::SamlSso => {
                 let (tx, rx) = oneshot::channel();

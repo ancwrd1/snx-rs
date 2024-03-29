@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=SNX-RS VPN client
+GenericName=Checkpoint VPN client
+Comment=Checkpoint VPN client
+Categories=Network;VPN;
+Exec=/opt/snx-rs/snx-rs-gui
+Icon=network-vpn
+Keywords=network;vpn;
+TryExec=/opt/snx-rs/snx-rs-gui
+Type=Application
