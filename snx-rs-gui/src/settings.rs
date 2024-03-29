@@ -528,7 +528,7 @@ impl SettingsDialog {
         no_cert_name_check.pack_start(&self.widgets.no_cert_name_check, false, true, 0);
         misc_box.pack_start(&no_cert_name_check, false, true, 6);
 
-        let no_cert_check = self.form_box("Disable all certificate checks (DANGEROUS)");
+        let no_cert_check = self.form_box("Disable all certificate checks (INSECURE!)");
         no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
         misc_box.pack_start(&no_cert_check, false, true, 6);
 
