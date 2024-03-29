@@ -65,7 +65,7 @@ impl MyTray {
             }
         }
     }
-    fn edit_config(&mut self) {
+    fn settings(&mut self) {
         let mut params = TunnelParams::load(&self.config_file).unwrap_or_default();
         let _ = params.decode_password();
         super::settings::start_settings_dialog(Arc::new(params));
@@ -129,9 +129,8 @@ impl Tray for MyTray {
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
-                label: "Edit configuration".to_string(),
-                icon_name: "edit-text".to_owned(),
-                activate: Box::new(|this: &mut Self| this.edit_config()),
+                label: "Settings...".to_string(),
+                activate: Box::new(|this: &mut Self| this.settings()),
                 ..Default::default()
             }),
             MenuItem::Separator,

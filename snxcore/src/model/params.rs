@@ -38,9 +38,9 @@ impl FromStr for OperationMode {
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TunnelType {
-    Ssl,
     #[default]
     Ipsec,
+    Ssl,
 }
 
 impl TunnelType {
@@ -50,8 +50,8 @@ impl TunnelType {
 
     pub fn as_str(&self) -> &'static str {
         match self {
-            TunnelType::Ssl => "ssl",
             TunnelType::Ipsec => "ipsec",
+            TunnelType::Ssl => "ssl",
         }
     }
 }
@@ -61,8 +61,8 @@ impl FromStr for TunnelType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "ssl" => Ok(TunnelType::Ssl),
             "ipsec" => Ok(TunnelType::Ipsec),
+            "ssl" => Ok(TunnelType::Ssl),
             _ => Err(anyhow!("Invalid tunnel type!")),
         }
     }
@@ -112,7 +112,7 @@ impl Default for TunnelParams {
             no_dns: false,
             no_cert_check: false,
             ignore_server_cert: false,
-            tunnel_type: TunnelType::Ssl,
+            tunnel_type: Default::default(),
             ca_cert: None,
             login_type: String::new(),
             client_cert: None,

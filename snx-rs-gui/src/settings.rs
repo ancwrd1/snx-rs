@@ -14,6 +14,14 @@ use snxcore::{
     server_info,
 };
 
+const CSS_ERROR: &str = r#"label {
+    padding: 6px;
+    border: 1px solid #f44336;
+    color: #ffffff;
+    background-color: #a02a2a;
+}
+"#;
+
 struct SettingsDialog {
     params: Arc<TunnelParams>,
     dialog: gtk::Dialog,
@@ -22,7 +30,7 @@ struct SettingsDialog {
 
 struct MyWidgets {
     server_name: gtk::Entry,
-    update: gtk::Button,
+    fetch_info: gtk::Button,
     auth_type: gtk::ComboBoxText,
     tunnel_type: gtk::ComboBoxText,
     user_name: gtk::Entry,
@@ -43,6 +51,7 @@ struct MyWidgets {
     ca_cert: gtk::Entry,
     ike_lifetime: gtk::Entry,
     esp_lifetime: gtk::Entry,
+    error: gtk::Label,
 }
 
 impl MyWidgets {
@@ -106,7 +115,7 @@ impl SettingsDialog {
         dialog.set_position(WindowPosition::CenterAlways);
 
         let server_name = gtk::Entry::builder().text(&params.server_name).hexpand(true).build();
-        let update = gtk::Button::builder().label("Fetch info").halign(Align::End).build();
+        let fetch_info = gtk::Button::builder().label("Fetch info").halign(Align::End).build();
         let auth_type = gtk::ComboBoxText::builder().build();
         let tunnel_type = gtk::ComboBoxText::builder().build();
         let user_name = gtk::Entry::builder().text(&params.user_name).build();
@@ -184,8 +193,14 @@ impl SettingsDialog {
             .text(params.esp_lifetime.as_secs().to_string())
             .build();
 
+        let provider = gtk::CssProvider::new();
+        provider.load_from_data(CSS_ERROR.as_bytes()).unwrap();
+
+        let error = gtk::Label::new(None);
+        error.style_context().add_provider(&provider, 100);
+
         auth_type.connect_active_notify(
-            clone!(@weak auth_type, @weak user_name, @weak password => move |widget| {
+            clone!(@weak auth_type, @weak user_name, @weak password, @weak tunnel_type => move |widget| {
                 if let Some(id) = widget.active_id() {
                     let factors = unsafe { auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
                     if let Some(factors) = factors {
@@ -193,6 +208,12 @@ impl SettingsDialog {
                         let is_cert = factors.iter().any(|f| f == "certificate");
                         user_name.set_sensitive(!is_saml && !is_cert);
                         password.set_sensitive(!is_saml && !is_cert);
+                        if is_saml {
+                            tunnel_type.set_active(Some(0));
+                            tunnel_type.set_sensitive(false);
+                        } else {
+                            tunnel_type.set_sensitive(true);
+                        }
                     }
                 }
             }),
@@ -201,7 +222,7 @@ impl SettingsDialog {
         let (sender, receiver) = async_channel::bounded(1);
         let params2 = params.clone();
 
-        update.connect_clicked(clone!(@weak dialog,
+        fetch_info.connect_clicked(clone!(@weak dialog,
                                         @weak auth_type,
                                         @weak server_name,
                                         @weak no_cert_name_check,
@@ -222,8 +243,7 @@ impl SettingsDialog {
                     let response = rt
                         .spawn(async move { server_info::get(&params).await })
                         .await
-                        .ok()
-                        .and_then(|v| v.ok());
+                        .unwrap();
                     let _ = sender.send(response).await;
                     Ok::<_, anyhow::Error>(())
                 }));
@@ -234,33 +254,41 @@ impl SettingsDialog {
 
         let params2 = params.clone();
 
-        glib::spawn_future_local(clone!(@weak dialog, @weak auth_type => async move {
+        glib::spawn_future_local(clone!(@weak dialog, @weak auth_type, @weak error => async move {
             while let Ok(result) = receiver.recv().await {
                 auth_type.remove_all();
-                if let Some(server_info) = result {
-                    for (i, (_, option)) in server_info.login_options_data.login_options_list.into_iter().enumerate() {
-                        let factors = option
-                            .factors
-                            .values()
-                            .map(|factor| factor.factor_type.clone())
-                            .collect::<Vec<_>>();
-                        unsafe { auth_type.set_data(&option.id, factors); }
-                        auth_type.append(Some(&option.id), &option.display_name.0);
-                        if params2.login_type == option.id {
-                            auth_type.set_active(Some(i as _));
+                match result {
+                    Ok(server_info) => {
+                        error.set_label("");
+                        error.set_visible(false);
+                        for (i, (_, option)) in server_info.login_options_data.login_options_list.into_iter().enumerate() {
+                            let factors = option
+                                .factors
+                                .values()
+                                .map(|factor| factor.factor_type.clone())
+                                .collect::<Vec<_>>();
+                            unsafe { auth_type.set_data(&option.id, factors); }
+                            auth_type.append(Some(&option.id), &option.display_name.0);
+                            if params2.login_type == option.id {
+                                auth_type.set_active(Some(i as _));
+                            }
                         }
+                        auth_type.set_sensitive(true);
                     }
-                    auth_type.set_sensitive(true);
+                    Err(e) => {
+                        error.set_label(&e.to_string());
+                        error.set_visible(true);
+                    }
                 }
                 dialog.set_sensitive(true);
             }
         }));
 
-        dialog.connect_show(clone!(@weak update => move |_| update.emit_clicked()));
+        dialog.connect_show(clone!(@weak fetch_info => move |_| fetch_info.emit_clicked()));
 
         let widgets = Rc::new(MyWidgets {
             server_name,
-            update,
+            fetch_info,
             auth_type,
             tunnel_type,
             user_name,
@@ -281,6 +309,7 @@ impl SettingsDialog {
             ca_cert,
             ike_lifetime,
             esp_lifetime,
+            error,
         });
 
         let widgets2 = widgets.clone();
@@ -322,8 +351,8 @@ impl SettingsDialog {
         params.server_name = self.widgets.server_name.text().into();
         params.login_type = self.widgets.auth_type.active_id().unwrap_or_default().into();
         params.tunnel_type = match self.widgets.tunnel_type.active().unwrap_or_default() {
-            0 => TunnelType::Ssl,
-            _ => TunnelType::Ipsec,
+            0 => TunnelType::Ipsec,
+            _ => TunnelType::Ssl,
         };
         params.user_name = self.widgets.user_name.text().into();
         params.password = self.widgets.password.text().into();
@@ -394,17 +423,6 @@ impl SettingsDialog {
         Ok(())
     }
 
-    fn create_layout(&self) {
-        let content_area = self.dialog.content_area();
-        let notebook = gtk::Notebook::new();
-        content_area.pack_start(&notebook, true, true, 6);
-
-        notebook.append_page(&self.general_tab(), Some(&gtk::Label::new(Some("General"))));
-        notebook.append_page(&self.advanced_tab(), Some(&gtk::Label::new(Some("Advanced"))));
-
-        notebook.show_all();
-    }
-
     fn form_box(&self, label: &str) -> gtk::Box {
         let form = gtk::Box::builder()
             .orientation(Orientation::Horizontal)
@@ -427,7 +445,7 @@ impl SettingsDialog {
             .homogeneous(false)
             .build();
         entry_box.pack_start(&self.widgets.server_name, false, true, 0);
-        entry_box.pack_start(&self.widgets.update, false, false, 0);
+        entry_box.pack_start(&self.widgets.fetch_info, false, false, 0);
 
         let server_box = self.form_box("Checkpoint VPN server");
         server_box.pack_start(&entry_box, false, true, 0);
@@ -442,14 +460,14 @@ impl SettingsDialog {
 
     fn tunnel_box(&self) -> gtk::Box {
         let tunnel_box = self.form_box("Tunnel type");
-        self.widgets.tunnel_type.insert_text(0, "SSL");
-        self.widgets.tunnel_type.insert_text(1, "IPSec");
+        self.widgets.tunnel_type.insert_text(0, "IPSec");
+        self.widgets.tunnel_type.insert_text(1, "SSL");
         self.widgets
             .tunnel_type
             .set_active(if self.params.tunnel_type == TunnelType::Ipsec {
-                Some(1)
-            } else {
                 Some(0)
+            } else {
+                Some(1)
             });
         tunnel_box.pack_start(&self.widgets.tunnel_type, false, true, 0);
         tunnel_box
@@ -595,6 +613,18 @@ impl SettingsDialog {
         let scrolled_win = gtk::ScrolledWindow::builder().build();
         scrolled_win.add(&viewport);
         scrolled_win
+    }
+
+    fn create_layout(&self) {
+        let content_area = self.dialog.content_area();
+        let notebook = gtk::Notebook::new();
+        content_area.pack_start(&notebook, true, true, 6);
+        content_area.pack_end(&self.widgets.error, true, true, 6);
+
+        notebook.append_page(&self.general_tab(), Some(&gtk::Label::new(Some("General"))));
+        notebook.append_page(&self.advanced_tab(), Some(&gtk::Label::new(Some("Advanced"))));
+
+        notebook.show_all();
     }
 }
 
