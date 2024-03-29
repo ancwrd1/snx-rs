@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
 
     let params = params::CmdlineParams::parse();
 
-    let _ = snxcore::util::block_on(snxcore::platform::init_theme_monitoring());
+    let _ = snxcore::platform::init_theme_monitoring();
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
