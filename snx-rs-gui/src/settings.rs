@@ -51,6 +51,7 @@ struct MyWidgets {
     ca_cert: gtk::Entry,
     ike_lifetime: gtk::Entry,
     esp_lifetime: gtk::Entry,
+    ike_port: gtk::Entry,
     error: gtk::Label,
 }
 
@@ -82,6 +83,7 @@ impl MyWidgets {
 
         self.ike_lifetime.text().parse::<u32>()?;
         self.esp_lifetime.text().parse::<u32>()?;
+        self.ike_port.text().parse::<u16>()?;
 
         let add_routes = self.add_routes.text();
         if !add_routes.is_empty() {
@@ -192,6 +194,7 @@ impl SettingsDialog {
         let esp_lifetime = gtk::Entry::builder()
             .text(params.esp_lifetime.as_secs().to_string())
             .build();
+        let ike_port = gtk::Entry::builder().text(params.ike_port.to_string()).build();
 
         let provider = gtk::CssProvider::new();
         provider.load_from_data(CSS_ERROR.as_bytes()).unwrap();
@@ -309,6 +312,7 @@ impl SettingsDialog {
             ca_cert,
             ike_lifetime,
             esp_lifetime,
+            ike_port,
             error,
         });
 
@@ -417,6 +421,7 @@ impl SettingsDialog {
         };
         params.ike_lifetime = Duration::from_secs(self.widgets.ike_lifetime.text().parse()?);
         params.esp_lifetime = Duration::from_secs(self.widgets.esp_lifetime.text().parse()?);
+        params.ike_port = self.widgets.ike_port.text().parse()?;
 
         params.save()?;
 
@@ -551,6 +556,10 @@ impl SettingsDialog {
         let esp_lifetime = self.form_box("ESP lifetime, seconds");
         esp_lifetime.pack_start(&self.widgets.esp_lifetime, false, true, 0);
         misc_box.pack_start(&esp_lifetime, false, true, 6);
+
+        let ike_port = self.form_box("IKE port");
+        ike_port.pack_start(&self.widgets.ike_port, false, true, 0);
+        misc_box.pack_start(&ike_port, false, true, 6);
 
         misc_box
     }

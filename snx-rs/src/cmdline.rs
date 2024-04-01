@@ -128,6 +128,9 @@ pub struct CmdlineParams {
 
     #[clap(long = "ike-lifetime", short = 'L', help = "IPSec IKE lifetime in seconds")]
     pub ike_lifetime: Option<u64>,
+
+    #[clap(long = "ike-port", short = 'R', help = "IPSec IKE communication port [default: 500]")]
+    pub ike_port: Option<u16>,
 }
 
 impl CmdlineParams {
@@ -222,6 +225,10 @@ impl CmdlineParams {
 
         if let Some(ike_lifetime) = self.ike_lifetime {
             other.ike_lifetime = Duration::from_secs(ike_lifetime);
+        }
+
+        if let Some(ike_port) = self.ike_port {
+            other.ike_port = ike_port;
         }
     }
 }

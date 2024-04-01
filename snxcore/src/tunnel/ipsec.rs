@@ -42,7 +42,7 @@ impl IpsecTunnel {
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
 
-        let gateway_address = format!("{}:4500", params.server_name)
+        let gateway_address = format!("{}:{}", params.server_name, params.ike_port)
             .to_socket_addrs()?
             .next()
             .ok_or_else(|| anyhow!("No gateway address!"))?

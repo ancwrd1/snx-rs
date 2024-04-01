@@ -14,6 +14,7 @@ use tracing::warn;
 
 const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
+const DEFAULT_IKE_PORT: u16 = 500;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum OperationMode {
@@ -93,6 +94,7 @@ pub struct TunnelParams {
     pub server_prompt: bool,
     pub esp_lifetime: Duration,
     pub ike_lifetime: Duration,
+    pub ike_port: u16,
     pub config_file: PathBuf,
 }
 
@@ -122,6 +124,7 @@ impl Default for TunnelParams {
             server_prompt: true,
             esp_lifetime: DEFAULT_ESP_LIFETIME,
             ike_lifetime: DEFAULT_IKE_LIFETIME,
+            ike_port: DEFAULT_IKE_PORT,
             config_file: Self::default_config_path(),
         }
     }
@@ -184,6 +187,7 @@ impl TunnelParams {
                                 .map(Duration::from_secs)
                                 .unwrap_or(DEFAULT_IKE_LIFETIME)
                         }
+                        "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -247,6 +251,7 @@ impl TunnelParams {
         writeln!(buf, "server-prompt={}", self.server_prompt)?;
         writeln!(buf, "esp-lifetime={}", self.esp_lifetime.as_secs())?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
+        writeln!(buf, "ike-port={}", self.ike_port)?;
 
         std::fs::write(&self.config_file, buf.into_inner())?;
 
