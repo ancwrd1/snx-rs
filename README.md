@@ -38,6 +38,8 @@ Run the `snx-rs-gui` application which will display a tray icon with a menu
 
 ## Command line usage
 
+Check the [Configuration options](https://github.com/ancwrd1/snx-rs/blob/main/options.md) section for a list of all available options.
+
 Before the client can establish a connection it must know the login (authentication) method to use
  (`--login-type` or `-o` option). In order to find the supported login types run it with "-m info" parameter:
 
