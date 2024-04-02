@@ -15,12 +15,12 @@ pub mod tray_icon;
 pub mod webkit;
 
 fn main() -> anyhow::Result<()> {
+    let params = params::CmdlineParams::parse();
+
     let instance = SingleInstance::new("/tmp/snx-rs-gui.s")?;
     if !instance.is_single() {
         return Ok(());
     }
-
-    let params = params::CmdlineParams::parse();
 
     let _ = snxcore::platform::init_theme_monitoring();
 
