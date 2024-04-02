@@ -25,7 +25,6 @@ Based on the reverse engineered protocol from the vendor application.
 ## System requirements
 
 * Recent Linux distribution with kernel version 4.19 or higher
-* NetworkManager
 * systemd-resolved configured as a global DNS resolver
 * iproute2
 * DBus
@@ -64,10 +63,6 @@ Available login types:
 
 There are two ways to use the application:
 
-* Standalone service mode, selected by `-m standalone` parameter. This is the default mode. 
-  Run `snx-rs --help` to get a help with all command line parameters.
-  In this mode the application takes connection parameters either from the command line or from the specified configuration file.
-  Recommended for headless usage.
 * Command mode, selected by `-m command` parameter. In this mode the application runs as a service without
   establishing a connection and awaits for the commands from the external client. Use `snxctl` utility
   to send commands to the service. Recommended for desktop usage. The following commands are accepted:
@@ -77,14 +72,10 @@ There are two ways to use the application:
   - `status` - show connection status
   - `info` - dump server information in JSON format
   - run without parameters: print usage help or show tray icon
-
-Configuration file may contain all options which are accepted via the command line, without the leading double dashes.
-
-## Authentication types
-
-* For authentications which require additional password or challenge codes the `user-name` option must be provided in the configuration. 
-  If the `password` option is provided (base64-encoded) it will be used for the first MFA challenge.
-* For SAML SSO authentication the `user-name` and `password` options should NOT be specified.
+* Standalone service mode, selected by `-m standalone` parameter. This is the default mode if no parameters are specified.
+  Run `snx-rs --help` to get a help with all command line parameters.
+  In this mode the application takes connection parameters either from the command line or from the specified configuration file.
+  Recommended for headless usage.
 
 ## Additional usage notes
 
