@@ -145,6 +145,7 @@ impl CmdlineParams {
 
         if let Some(password) = self.password {
             other.password = password;
+            let _ = other.decode_password();
         }
 
         if let Some(log_level) = self.log_level {

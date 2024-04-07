@@ -196,6 +196,8 @@ impl TunnelParams {
             }
         }
         params.config_file = path.as_ref().to_owned();
+        params.decode_password()?;
+
         Ok(params)
     }
 

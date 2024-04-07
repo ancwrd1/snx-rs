@@ -1,20 +1,21 @@
+use std::sync::Arc;
 use std::{thread, time::Duration};
 
 use gtk::{glib, prelude::*, ApplicationWindow, Window, WindowPosition, WindowType};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use tracing::debug;
 use webkit2gtk::{
-    CookieManagerExt, CookiePersistentStorage, SettingsExt, URIRequestExt, UserContentManager, WebContext, WebView,
-    WebViewExt, WebViewExtManual, WebsiteDataManager, WebsiteDataManagerExt,
+    CookieManagerExt, CookiePersistentStorage, SettingsExt, TLSErrorsPolicy, URIRequestExt, UserContentManager,
+    WebContext, WebView, WebViewExt, WebViewExtManual, WebsiteDataManager, WebsiteDataManagerExt,
 };
 
 use snxcore::{browser::BrowserController, model::params::TunnelParams};
 
-pub struct WebkitBrowser;
+pub struct WebkitBrowser(pub Arc<TunnelParams>);
 
 impl BrowserController for WebkitBrowser {
     fn open(&self, url: &str) -> anyhow::Result<()> {
-        open_browser(url.to_owned())
+        open_browser(url.to_owned(), self.0.clone())
     }
 
     fn close(&self) {
@@ -49,7 +50,7 @@ fn notify_listener() {
     });
 }
 
-fn open_browser(url: String) -> anyhow::Result<()> {
+fn open_browser(url: String, params: Arc<TunnelParams>) -> anyhow::Result<()> {
     glib::idle_add(move || {
         let window = ApplicationWindow::builder()
             .title("Identity Provider Authentication")
@@ -60,6 +61,11 @@ fn open_browser(url: String) -> anyhow::Result<()> {
 
         let data_manager = WebsiteDataManager::default();
         data_manager.set_persistent_credential_storage_enabled(true);
+        data_manager.set_tls_errors_policy(if params.ignore_server_cert {
+            TLSErrorsPolicy::Ignore
+        } else {
+            TLSErrorsPolicy::Fail
+        });
 
         let dir = TunnelParams::default_config_path().parent().unwrap().to_owned();
 

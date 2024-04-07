@@ -1,12 +1,12 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
-use snxcore::model::params::TunnelParams;
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
+    model::params::TunnelParams,
     prompt::TtyPrompt,
 };
 
@@ -69,7 +69,9 @@ async fn main() -> anyhow::Result<()> {
         .clone()
         .unwrap_or_else(|| TunnelParams::default_config_path());
 
-    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser, config_file)?;
+    let tunnel_params = Arc::new(TunnelParams::load(config_file)?);
+
+    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser, tunnel_params)?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(

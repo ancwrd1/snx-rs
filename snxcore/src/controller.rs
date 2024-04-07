@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
@@ -6,8 +5,7 @@ use tokio::sync::oneshot;
 use tracing::warn;
 
 use crate::{
-    browser::run_otp_listener,
-    browser::BrowserController,
+    browser::{run_otp_listener, BrowserController},
     ccc::CccHttpClient,
     model::{
         params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest, TunnelServiceResponse,
@@ -45,7 +43,7 @@ impl FromStr for ServiceCommand {
 }
 
 pub struct ServiceController<B, P> {
-    pub params: TunnelParams,
+    pub params: Arc<TunnelParams>,
     prompt: P,
     mfa_prompts: Option<VecDeque<String>>,
     password: String,
@@ -58,14 +56,7 @@ where
     B: BrowserController + Send + Sync,
     P: SecurePrompt + Send + Sync,
 {
-    pub fn new<C: AsRef<Path>>(prompt: P, browser_controller: B, config_file: C) -> anyhow::Result<Self> {
-        if !config_file.as_ref().exists() {
-            return Err(anyhow!("No config file: {}", config_file.as_ref().display()));
-        }
-        let mut params = TunnelParams::load(config_file)?;
-
-        params.decode_password()?;
-
+    pub fn new(prompt: P, browser_controller: B, params: Arc<TunnelParams>) -> anyhow::Result<Self> {
         Ok(Self {
             params,
             prompt,
@@ -186,7 +177,7 @@ where
         }
 
         let response = self
-            .send_receive(TunnelServiceRequest::Connect(self.params.clone()), CONNECT_TIMEOUT)
+            .send_receive(TunnelServiceRequest::Connect((*self.params).clone()), CONNECT_TIMEOUT)
             .await;
         match response {
             Ok(TunnelServiceResponse::Ok) => self.do_status().await,
@@ -199,7 +190,7 @@ where
     async fn do_challenge_code(&mut self, code: String) -> anyhow::Result<ConnectionStatus> {
         let response = self
             .send_receive(
-                TunnelServiceRequest::ChallengeCode(code, self.params.clone()),
+                TunnelServiceRequest::ChallengeCode(code, (*self.params).clone()),
                 CONNECT_TIMEOUT,
             )
             .await;
@@ -242,7 +233,7 @@ where
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
-        let client = CccHttpClient::new(Arc::new(self.params.clone()), None);
+        let client = CccHttpClient::new(self.params.clone(), None);
         let info = client.get_server_info().await?;
 
         crate::util::print_login_options(&info);

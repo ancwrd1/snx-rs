@@ -13,7 +13,7 @@ publish.workspace = true
 [dependencies]
 snxcore = { path = "../snxcore" }
 ksni = "0.2"
-webkit2gtk = { version = "2", features = ["v2_30"] }
+webkit2gtk = { version = "2", features = ["v2_32"] }
 gtk = "0.18"
 png = "0.17"
 async-channel = "2"

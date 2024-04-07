@@ -9,7 +9,6 @@ use tokio::{
 };
 use tracing::{debug, metadata::LevelFilter, warn};
 
-use snxcore::prompt::TtyPrompt;
 use snxcore::{
     browser::run_otp_listener,
     ccc::CccHttpClient,
@@ -18,7 +17,7 @@ use snxcore::{
         MfaType, SessionState,
     },
     platform,
-    prompt::{SecurePrompt, OTP_TIMEOUT},
+    prompt::{SecurePrompt, TtyPrompt, OTP_TIMEOUT},
     server::CommandServer,
     server_info, tunnel,
 };
@@ -73,8 +72,6 @@ async fn main() -> anyhow::Result<()> {
         TunnelParams::default()
     };
     cmdline_params.merge_into_tunnel_params(&mut params);
-
-    params.decode_password()?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(params.log_level.parse::<LevelFilter>().unwrap_or(LevelFilter::OFF))

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use clap::Parser;
 use gtk::{
     prelude::{ApplicationExt, ApplicationExtManual},
@@ -5,7 +7,7 @@ use gtk::{
 };
 use tracing::level_filters::LevelFilter;
 
-use snxcore::{controller::ServiceController, platform::SingleInstance};
+use snxcore::{controller::ServiceController, model::params::TunnelParams, platform::SingleInstance};
 
 pub mod assets;
 pub mod params;
@@ -17,6 +19,8 @@ pub mod webkit;
 fn main() -> anyhow::Result<()> {
     let params = params::CmdlineParams::parse();
 
+    let tunnel_params = Arc::new(TunnelParams::load(&params.config_file())?);
+
     let instance = SingleInstance::new("/tmp/snx-rs-gui.s")?;
     if !instance.is_single() {
         return Ok(());
@@ -27,8 +31,12 @@ fn main() -> anyhow::Result<()> {
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
     app.connect_activate(move |_| {
-        let service_controller =
-            ServiceController::new(prompt::GtkPrompt, webkit::WebkitBrowser, params.config_file()).unwrap();
+        let service_controller = ServiceController::new(
+            prompt::GtkPrompt,
+            webkit::WebkitBrowser(tunnel_params.clone()),
+            tunnel_params.clone(),
+        )
+        .unwrap();
 
         let subscriber = tracing_subscriber::fmt()
             .with_max_level(

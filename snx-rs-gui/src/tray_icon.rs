@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::{
+    path::PathBuf,
     sync::{mpsc, Arc},
     time::Duration,
 };
@@ -66,8 +66,7 @@ impl MyTray {
         }
     }
     fn settings(&mut self) {
-        let mut params = TunnelParams::load(&self.config_file).unwrap_or_default();
-        let _ = params.decode_password();
+        let params = TunnelParams::load(&self.config_file).unwrap_or_default();
         super::settings::start_settings_dialog(Arc::new(params));
     }
 }
@@ -172,9 +171,13 @@ pub fn show_tray_icon(params: CmdlineParams) -> anyhow::Result<()> {
             handle.update(|_| {});
         }
 
-        if let Ok(mut controller) =
-            ServiceController::new(prompt::GtkPrompt, webkit::WebkitBrowser, params.config_file())
-        {
+        let tunnel_params = Arc::new(TunnelParams::load(params.config_file())?);
+
+        if let Ok(mut controller) = ServiceController::new(
+            prompt::GtkPrompt,
+            webkit::WebkitBrowser(tunnel_params.clone()),
+            tunnel_params,
+        ) {
             if command == ServiceCommand::Connect {
                 handle.update(|tray: &mut MyTray| tray.connecting = true);
             }
