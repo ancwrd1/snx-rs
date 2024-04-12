@@ -1,13 +1,20 @@
 use std::sync::Arc;
+use std::time::Duration;
 
+use ::tray_icon::menu::MenuEvent;
 use clap::Parser;
 use gtk::{
+    glib::{self, ControlFlow},
     prelude::{ApplicationExt, ApplicationExtManual},
     Application,
 };
 use tracing::level_filters::LevelFilter;
 
-use snxcore::{controller::ServiceController, model::params::TunnelParams, platform::SingleInstance};
+use snxcore::{
+    controller::{ServiceCommand, ServiceController},
+    model::params::TunnelParams,
+    platform::SingleInstance,
+};
 
 pub mod assets;
 pub mod params;
@@ -15,6 +22,8 @@ pub mod prompt;
 pub mod settings;
 pub mod tray_icon;
 pub mod webkit;
+
+const PING_DURATION: Duration = Duration::from_secs(1);
 
 fn main() -> anyhow::Result<()> {
     let params = params::CmdlineParams::parse();
@@ -51,9 +60,41 @@ fn main() -> anyhow::Result<()> {
 
         let params = params.clone();
 
-        std::thread::spawn(move || {
-            let _ = tray_icon::show_tray_icon(params);
+        let mut my_tray = tray_icon::create_tray_icon(params.clone()).unwrap();
+        let sender = my_tray.sender();
+
+        let tx_copy = sender.clone();
+        std::thread::spawn(move || loop {
+            let _ = tx_copy.send_blocking(Some(ServiceCommand::Status));
+            std::thread::sleep(PING_DURATION);
         });
+
+        std::thread::spawn(move || {
+            while let Ok(v) = MenuEvent::receiver().recv() {
+                match v.id.0.as_str() {
+                    "connect" => {
+                        let _ = sender.send_blocking(Some(ServiceCommand::Connect));
+                    }
+                    "disconnect" => {
+                        let _ = sender.send_blocking(Some(ServiceCommand::Disconnect));
+                    }
+                    "settings" => {
+                        let params = TunnelParams::load(params.config_file()).unwrap_or_default();
+                        settings::start_settings_dialog(Arc::new(params));
+                    }
+                    "exit" => {
+                        let _ = sender.send_blocking(None);
+                        glib::idle_add(|| {
+                            gtk::main_quit();
+                            ControlFlow::Break
+                        });
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        glib::spawn_future_local(async move { my_tray.run().await });
 
         gtk::main();
     });

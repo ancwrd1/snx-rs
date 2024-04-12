@@ -1,48 +1,36 @@
-use std::{
-    path::PathBuf,
-    sync::{mpsc, Arc},
-    time::Duration,
-};
+use std::{path::PathBuf, sync::Arc};
 
 use anyhow::anyhow;
-use gtk::{glib, glib::ControlFlow};
-use ksni::{menu::StandardItem, Icon, MenuItem, Tray, TrayService};
+use async_channel::{Receiver, Sender};
+use tray_icon::{
+    menu::{ContextMenu, Menu, MenuItem, PredefinedMenuItem},
+    Icon, TrayIcon, TrayIconBuilder,
+};
 
 use snxcore::{
-    controller::{ServiceCommand, ServiceController},
+    controller::ServiceCommand,
+    controller::ServiceController,
     model::{params::TunnelParams, ConnectionStatus},
     platform,
     prompt::SecurePrompt,
 };
 
-use crate::params::CmdlineParams;
-use crate::{prompt, webkit};
+use crate::{assets, params::CmdlineParams, prompt, webkit};
 
 const TITLE: &str = "SNX-RS VPN client";
-const PING_DURATION: Duration = Duration::from_secs(1);
 
-struct MyTray {
-    command_sender: mpsc::SyncSender<Option<ServiceCommand>>,
+pub struct MyTray {
+    command_sender: Sender<Option<ServiceCommand>>,
+    command_receiver: Option<Receiver<Option<ServiceCommand>>>,
     status: anyhow::Result<ConnectionStatus>,
     connecting: bool,
     config_file: PathBuf,
+    tray_icon: TrayIcon,
 }
 
 impl MyTray {
-    fn connect(&mut self) {
-        let _ = self.command_sender.send(Some(ServiceCommand::Connect));
-    }
-
-    fn disconnect(&mut self) {
-        let _ = self.command_sender.send(Some(ServiceCommand::Disconnect));
-    }
-
-    fn quit(&mut self) {
-        let _ = self.command_sender.send(None);
-        glib::idle_add(|| {
-            gtk::main_quit();
-            ControlFlow::Break
-        });
+    pub fn sender(&self) -> Sender<Option<ServiceCommand>> {
+        self.command_sender.clone()
     }
 
     fn status_label(&self) -> String {
@@ -65,149 +53,146 @@ impl MyTray {
             }
         }
     }
-    fn settings(&mut self) {
+    pub fn settings(&mut self) {
         let params = TunnelParams::load(&self.config_file).unwrap_or_default();
         super::settings::start_settings_dialog(Arc::new(params));
     }
-}
 
-impl Tray for MyTray {
-    fn title(&self) -> String {
-        TITLE.to_owned()
+    fn menu(&self) -> anyhow::Result<Box<dyn ContextMenu>> {
+        let menu = Menu::new();
+        menu.append(&MenuItem::new(self.status_label(), false, None))?;
+        menu.append(&PredefinedMenuItem::separator())?;
+        menu.append(&MenuItem::with_id(
+            "connect",
+            "Connect",
+            self.status
+                .as_ref()
+                .is_ok_and(|status| status.connected_since.is_none() && status.mfa.is_none())
+                && !self.connecting,
+            None,
+        ))?;
+        menu.append(&MenuItem::with_id(
+            "disconnect",
+            "Disconnect",
+            self.status
+                .as_ref()
+                .is_ok_and(|status| status.connected_since.is_some()),
+            None,
+        ))?;
+
+        menu.append(&MenuItem::with_id("settings", "Settings...", true, None))?;
+        menu.append(&MenuItem::with_id("exit", "Exit", true, None))?;
+
+        Ok(Box::new(menu))
     }
 
-    fn icon_pixmap(&self) -> Vec<Icon> {
-        let theme = crate::assets::current_icon_theme();
+    fn icon(&self) -> anyhow::Result<Icon> {
+        let theme = assets::current_icon_theme();
 
-        let data: &[u8] = if self.connecting {
-            &theme.acquiring
+        let data = if self.connecting {
+            theme.acquiring.clone()
         } else {
             match self.status {
                 Ok(ref status) => {
                     if status.connected_since.is_some() {
-                        &theme.connected
+                        theme.connected.clone()
                     } else {
-                        &theme.disconnected
+                        theme.disconnected.clone()
                     }
                 }
-                Err(_) => &theme.error,
+                Err(_) => theme.error.clone(),
             }
         };
 
-        vec![Icon {
-            width: 256,
-            height: 256,
-            data: data.to_vec(),
-        }]
+        Ok(Icon::from_rgba(data, 256, 256)?)
     }
-    fn menu(&self) -> Vec<MenuItem<Self>> {
-        vec![
-            MenuItem::Standard(StandardItem {
-                label: self.status_label(),
-                enabled: false,
-                ..Default::default()
-            }),
-            MenuItem::Separator,
-            MenuItem::Standard(StandardItem {
-                label: "Connect".to_string(),
-                enabled: self
-                    .status
-                    .as_ref()
-                    .is_ok_and(|status| status.connected_since.is_none() && status.mfa.is_none())
-                    && !self.connecting,
-                activate: Box::new(|this: &mut Self| this.connect()),
-                ..Default::default()
-            }),
-            MenuItem::Standard(StandardItem {
-                label: "Disconnect".to_string(),
-                enabled: self
-                    .status
-                    .as_ref()
-                    .is_ok_and(|status| status.connected_since.is_some()),
-                activate: Box::new(|this: &mut Self| this.disconnect()),
-                ..Default::default()
-            }),
-            MenuItem::Standard(StandardItem {
-                label: "Settings...".to_string(),
-                activate: Box::new(|this: &mut Self| this.settings()),
-                ..Default::default()
-            }),
-            MenuItem::Separator,
-            MenuItem::Standard(StandardItem {
-                label: "Exit".to_string(),
-                icon_name: "application-exit".to_owned(),
-                activate: Box::new(|this: &mut Self| this.quit()),
-                ..Default::default()
-            }),
-        ]
+
+    fn update(&self) -> anyhow::Result<()> {
+        self.tray_icon.set_icon(Some(self.icon()?))?;
+        self.tray_icon.set_menu(Some(self.menu()?));
+        Ok(())
+    }
+
+    pub async fn run(&mut self) -> anyhow::Result<()> {
+        let mut prev_command = ServiceCommand::Info;
+        let mut prev_status = String::new();
+        let mut prev_theme = None;
+
+        let rx = self.command_receiver.take().unwrap();
+
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+
+        while let Ok(Some(command)) = rx.recv().await {
+            let theme = platform::system_color_theme().ok();
+            if theme != prev_theme {
+                prev_theme = theme;
+                self.update()?;
+            }
+
+            let tunnel_params = Arc::new(TunnelParams::load(&self.config_file)?);
+
+            if let Ok(mut controller) = ServiceController::new(
+                prompt::GtkPrompt,
+                webkit::WebkitBrowser(tunnel_params.clone()),
+                tunnel_params,
+            ) {
+                if command == ServiceCommand::Connect {
+                    self.connecting = true;
+                    self.update()?;
+                }
+
+                let result = rt.spawn(async move { controller.command(command).await }).await;
+
+                let status = match result {
+                    Ok(result) => result,
+                    Err(_) => Err(anyhow!("Internal error")),
+                };
+
+                let status_str = format!("{:?}", status);
+
+                match status {
+                    Err(ref e) if command == ServiceCommand::Connect => {
+                        let _ = prompt::GtkPrompt.show_notification("Connection failed", &e.to_string());
+                    }
+                    _ => {}
+                }
+
+                if command != prev_command || status_str != prev_status {
+                    self.connecting = false;
+                    self.status = status;
+                    self.update()?;
+                }
+                prev_command = command;
+                prev_status = status_str;
+            }
+        }
+
+        Ok(())
     }
 }
 
-pub fn show_tray_icon(params: CmdlineParams) -> anyhow::Result<()> {
-    let (tx, rx) = mpsc::sync_channel(1);
-    let service = TrayService::new(MyTray {
-        command_sender: tx.clone(),
+pub fn create_tray_icon(params: CmdlineParams) -> anyhow::Result<MyTray> {
+    let (tx, rx) = async_channel::bounded(256);
+
+    let tray_icon = TrayIconBuilder::new()
+        .with_tooltip(TITLE)
+        .with_title(TITLE)
+        .with_menu_on_left_click(true)
+        .build()?;
+
+    let my_tray = MyTray {
+        command_sender: tx,
+        command_receiver: Some(rx),
         status: Err(anyhow!("No service connection")),
         connecting: false,
         config_file: params.config_file().clone(),
-    });
-    let handle = service.handle();
-    service.spawn();
+        tray_icon,
+    };
 
-    let tx_copy = tx.clone();
-    std::thread::spawn(move || loop {
-        let _ = tx_copy.send(Some(ServiceCommand::Status));
-        std::thread::sleep(PING_DURATION);
-    });
+    my_tray.update()?;
 
-    let mut prev_command = ServiceCommand::Info;
-    let mut prev_status = String::new();
-    let mut prev_theme = None;
-
-    while let Ok(Some(command)) = rx.recv() {
-        let theme = platform::system_color_theme().ok();
-        if theme != prev_theme {
-            prev_theme = theme;
-            handle.update(|_| {});
-        }
-
-        let tunnel_params = Arc::new(TunnelParams::load(params.config_file())?);
-
-        if let Ok(mut controller) = ServiceController::new(
-            prompt::GtkPrompt,
-            webkit::WebkitBrowser(tunnel_params.clone()),
-            tunnel_params,
-        ) {
-            if command == ServiceCommand::Connect {
-                handle.update(|tray: &mut MyTray| tray.connecting = true);
-            }
-
-            let result =
-                std::thread::scope(|s| s.spawn(|| snxcore::util::block_on(controller.command(command))).join());
-            let status = match result {
-                Ok(result) => result,
-                Err(_) => Err(anyhow!("Internal error")),
-            };
-
-            let status_str = format!("{:?}", status);
-
-            match status {
-                Err(ref e) if command == ServiceCommand::Connect => {
-                    let _ = prompt::GtkPrompt.show_notification("Connection failed", &e.to_string());
-                }
-                _ => {}
-            }
-
-            if command != prev_command || status_str != prev_status {
-                handle.update(|tray: &mut MyTray| {
-                    tray.connecting = false;
-                    tray.status = status;
-                });
-            }
-            prev_command = command;
-            prev_status = status_str;
-        }
-    }
-
-    Ok(())
+    Ok(my_tray)
 }
