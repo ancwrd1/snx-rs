@@ -12,7 +12,7 @@ publish.workspace = true
 
 [dependencies]
 snxcore = { path = "../snxcore" }
-tray-icon = "0.13"
+tray-icon = { version = "0.13", default-features = false }
 webkit2gtk = { version = "2", features = ["v2_32"] }
 gtk = "0.18"
 png = "0.17"
