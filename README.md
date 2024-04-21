@@ -33,7 +33,8 @@ Based on the reverse engineered protocol from the vendor application.
 
 ## GUI usage
 
-Run the `snx-rs-gui` application which will display a tray icon with a menu
+* Run the main application in command mode: `sudo snx-rs -m command` or install it as a systemd service
+* Run the `snx-rs-gui` application which will display a tray icon with a menu
 
 ## Command line usage
 
