@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use futures::StreamExt;
 use ipnet::Ipv4Net;
 use tracing::debug;
-use zbus::{dbus_proxy, Connection};
+use zbus::Connection;
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
@@ -44,13 +44,13 @@ impl NetworkManagerState {
     }
 }
 
-#[dbus_proxy(
+#[zbus::proxy(
     interface = "org.freedesktop.NetworkManager",
     default_service = "org.freedesktop.NetworkManager",
     default_path = "/org/freedesktop/NetworkManager"
 )]
 pub trait NetworkManager {
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn state(&self) -> zbus::Result<u32>;
 }
 

@@ -19,7 +19,7 @@ use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
 use tokio::runtime::Runtime;
 use tracing::debug;
-use zbus::{dbus_proxy, zvariant, Connection};
+use zbus::{zvariant, Connection};
 
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
@@ -140,19 +140,19 @@ pub async fn store_password(user_name: &str, password: &str) -> anyhow::Result<(
     Ok(())
 }
 
-#[dbus_proxy(
+#[zbus::proxy(
     interface = "org.freedesktop.portal.Settings",
     default_service = "org.freedesktop.portal.Desktop",
     default_path = "/org/freedesktop/portal/desktop"
 )]
 trait DesktopSettings {
-    #[dbus_proxy(signal)]
+    #[zbus(signal)]
     fn setting_changed(&self, namespace: &str, key: &str, value: zvariant::Value<'_>) -> zbus::Result<()>;
 
     fn read_one(&self, namespace: &str, key: &str) -> zbus::Result<zvariant::OwnedValue>;
 }
 
-#[dbus_proxy(
+#[zbus::proxy(
     interface = "org.freedesktop.Notifications",
     default_service = "org.freedesktop.Notifications",
     default_path = "/org/freedesktop/Notifications"
