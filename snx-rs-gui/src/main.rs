@@ -24,7 +24,7 @@ const PING_DURATION: Duration = Duration::from_secs(1);
 fn main() -> anyhow::Result<()> {
     let params = params::CmdlineParams::parse();
 
-    let tunnel_params = Arc::new(TunnelParams::load(&params.config_file())?);
+    let tunnel_params = Arc::new(TunnelParams::load(params.config_file())?);
 
     let instance = SingleInstance::new("/tmp/snx-rs-gui.s")?;
     if !instance.is_single() {

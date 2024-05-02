@@ -9,10 +9,9 @@ use crate::{
         params::{TunnelParams, TunnelType},
         *,
     },
-    tunnel::connector::{CccTunnelConnector, IpsecTunnelConnector},
+    tunnel::{ipsec::connector::IpsecTunnelConnector, ssl::connector::CccTunnelConnector},
 };
 
-mod connector;
 mod ipsec;
 mod ssl;
 

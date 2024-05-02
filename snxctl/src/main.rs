@@ -67,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
     let config_file = params
         .config_file
         .clone()
-        .unwrap_or_else(|| TunnelParams::default_config_path());
+        .unwrap_or_else(TunnelParams::default_config_path);
 
     let tunnel_params = Arc::new(TunnelParams::load(config_file)?);
 

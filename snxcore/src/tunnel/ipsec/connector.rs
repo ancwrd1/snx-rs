@@ -19,130 +19,15 @@ use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
 use crate::{
-    ccc::CccHttpClient,
-    model::{params::TunnelParams, proto::AuthResponse, CccSession, IpsecSession, MfaChallenge, MfaType, SessionState},
+    model::{params::TunnelParams, CccSession, IpsecSession, MfaChallenge, MfaType, SessionState},
     platform,
     sexpr2::SExpression,
     tunnel::{
-        ipsec::natt::NattProber, ipsec::IpsecTunnel, ssl::SslTunnel, CheckpointTunnel, TunnelCommand, TunnelConnector,
-        TunnelEvent,
+        ipsec::natt::NattProber, ipsec::IpsecTunnel, CheckpointTunnel, TunnelCommand, TunnelConnector, TunnelEvent,
     },
 };
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
-
-pub struct CccTunnelConnector {
-    params: Arc<TunnelParams>,
-    command_sender: Option<Sender<TunnelCommand>>,
-}
-
-impl CccTunnelConnector {
-    pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
-        Ok(Self {
-            params,
-            command_sender: None,
-        })
-    }
-
-    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<Arc<CccSession>> {
-        let session_id = data.session_id.unwrap_or_default();
-
-        match data.authn_status.as_str() {
-            "continue" => {
-                return Ok(Arc::new(CccSession {
-                    session_id,
-                    state: SessionState::PendingChallenge(MfaChallenge {
-                        mfa_type: MfaType::UserInput,
-                        prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
-                    }),
-                    ipsec_session: None,
-                }))
-            }
-            "done" => {}
-            other => {
-                warn!("Authn status: {}", other);
-                return Err(anyhow!("Authentication failed!"));
-            }
-        }
-
-        let active_key = match (data.is_authenticated, data.active_key) {
-            (Some(true), Some(ref key)) => key.clone(),
-            _ => {
-                let msg = match (data.error_message, data.error_id, data.error_code) {
-                    (Some(message), Some(id), Some(code)) => format!("[{} {}] {}", code, id.0, message.0),
-                    _ => "Authentication failed!".to_owned(),
-                };
-                warn!("{}", msg);
-                return Err(anyhow!(msg));
-            }
-        };
-
-        debug!("Authentication OK, session id: {session_id}");
-
-        let session = Arc::new(CccSession {
-            session_id,
-            state: SessionState::Authenticated(active_key.0),
-            ipsec_session: None,
-        });
-        Ok(session)
-    }
-}
-
-#[async_trait]
-impl TunnelConnector for CccTunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>> {
-        debug!("Authenticating to endpoint: {}", self.params.server_name);
-        let client = CccHttpClient::new(self.params.clone(), None);
-
-        let data = client.authenticate().await?;
-
-        self.process_auth_response(data).await
-    }
-
-    async fn challenge_code(&mut self, session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>> {
-        debug!(
-            "Authenticating with challenge code to endpoint: {}",
-            self.params.server_name
-        );
-        let client = CccHttpClient::new(self.params.clone(), Some(session));
-
-        let data = client.challenge_code(user_input).await?;
-
-        self.process_auth_response(data).await
-    }
-
-    async fn create_tunnel(
-        &mut self,
-        session: Arc<CccSession>,
-        command_sender: Sender<TunnelCommand>,
-    ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
-        self.command_sender = Some(command_sender);
-        Ok(Box::new(SslTunnel::create(self.params.clone(), session).await?))
-    }
-
-    async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
-        if let Some(sender) = self.command_sender.take() {
-            let _ = sender.send(TunnelCommand::Terminate).await;
-        }
-        Ok(())
-    }
-
-    async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()> {
-        match event {
-            TunnelEvent::Connected => {
-                debug!("Tunnel connected");
-            }
-            TunnelEvent::Disconnected => {
-                debug!("Tunnel disconnected");
-            }
-            TunnelEvent::RekeyCheck => {}
-            TunnelEvent::RemoteControlData(_) => {
-                warn!("Tunnel data received: shouldn't happen for SSL tunnel!");
-            }
-        }
-        Ok(())
-    }
-}
 
 pub struct IpsecTunnelConnector {
     params: Arc<TunnelParams>,

@@ -147,7 +147,7 @@ where
 
                 match tokio::time::timeout(OTP_TIMEOUT, rx).await {
                     Ok(Ok(otp)) => {
-                        let _ = self.browser_controller.close();
+                        self.browser_controller.close();
                         Ok(otp)
                     }
                     _ => {

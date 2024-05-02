@@ -19,6 +19,6 @@ impl CmdlineParams {
     pub fn config_file(&self) -> PathBuf {
         self.config_file
             .clone()
-            .unwrap_or_else(|| TunnelParams::default_config_path())
+            .unwrap_or_else(TunnelParams::default_config_path)
     }
 }

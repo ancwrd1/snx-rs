@@ -25,6 +25,7 @@ use crate::{
 };
 
 pub mod codec;
+pub mod connector;
 pub mod device;
 pub mod keepalive;
 
