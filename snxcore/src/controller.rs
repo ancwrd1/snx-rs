@@ -134,7 +134,7 @@ where
                     let input = self.prompt.get_secure_input(&prompt)?;
                     if self.first_password {
                         self.first_password = false;
-                        self.password = input.clone();
+                        self.password.clone_from(&input);
                     }
                     Ok(input)
                 }

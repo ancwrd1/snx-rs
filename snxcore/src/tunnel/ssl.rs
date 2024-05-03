@@ -144,7 +144,7 @@ impl SslTunnel {
             SslPacketType::Control(expr) => {
                 trace!("Hello reply: {:?}", expr);
                 let result: HelloReply = expr.try_into()?;
-                self.ip_address = result.data.office_mode.ipaddr.clone();
+                self.ip_address.clone_from(&result.data.office_mode.ipaddr);
                 self.auth_timeout = Duration::from_secs(result.data.timeouts.authentication) - REAUTH_LEEWAY;
                 self.keepalive = Duration::from_secs(result.data.timeouts.keepalive);
                 result
