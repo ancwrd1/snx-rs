@@ -72,7 +72,7 @@ There are two ways to use the application:
   - `reconnect` - drop a connection and then connect again
   - `status` - show connection status
   - `info` - dump server information in JSON format
-  - run without parameters: print usage help or show tray icon
+  - Run it with `--help` option to get usage help
 * Standalone service mode, selected by `-m standalone` parameter. This is the default mode if no parameters are specified.
   Run `snx-rs --help` to get a help with all command line parameters.
   In this mode the application takes connection parameters either from the command line or from the specified configuration file.
