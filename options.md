@@ -5,6 +5,9 @@ The following configuration options are available:
 * `server-name=<ip_or_address>` - VPN server to connect to, this is a required parameter
 * `user-name=<username>` - user name to authenticate, not used for SAML or certificate authentication
 * `password=<pass>` - optional password in base64 encoding
+* `cert-type=<cert_type>` - enable certificate-based authentication using given type: pkcs8, pkcs11, pkcs12, none
+* `cert-path=<cert_path>` - path to PEM file for PKCS8, path to PFX file for PKCS12, path to driver file for PKCS11
+* `cert-password=<cert_password>` - password for PKCS12 or pin for PKCS11
 * `search-domains=<search_domains>` - additional search domains for DNS resolver, comma-separated
 * `ignore-search-domains=<ignored_domains>` - acquired search domains to ignore
 * `default-route=true|false` - set default route through the VPN tunnel, default is false

@@ -46,7 +46,7 @@ struct MyWidgets {
     no_keychain: gtk::CheckButton,
     no_cert_name_check: gtk::CheckButton,
     no_cert_check: gtk::CheckButton,
-    client_cert: gtk::Entry,
+    cert_path: gtk::Entry,
     cert_password: gtk::Entry,
     ca_cert: gtk::Entry,
     ike_lifetime: gtk::Entry,
@@ -69,10 +69,10 @@ impl MyWidgets {
             return Err(anyhow!("No user name specified"));
         }
 
-        let client_cert = self.client_cert.text();
+        let cert_path = self.cert_path.text();
 
-        if !client_cert.is_empty() && !Path::new(&client_cert).exists() {
-            return Err(anyhow!("Client certificate does not exist: {}", client_cert));
+        if !cert_path.is_empty() && !Path::new(&cert_path).exists() {
+            return Err(anyhow!("Client certificate does not exist: {}", cert_path));
         }
 
         let ca_cert = self.ca_cert.text();
@@ -166,10 +166,10 @@ impl SettingsDialog {
         let no_keychain = gtk::CheckButton::builder().active(params.no_keychain).build();
         let no_cert_name_check = gtk::CheckButton::builder().active(params.no_cert_check).build();
         let no_cert_check = gtk::CheckButton::builder().active(params.ignore_server_cert).build();
-        let client_cert = gtk::Entry::builder()
+        let cert_path = gtk::Entry::builder()
             .text(
                 params
-                    .client_cert
+                    .cert_path
                     .as_deref()
                     .map(|p| format!("{}", p.display()))
                     .unwrap_or_default(),
@@ -307,7 +307,7 @@ impl SettingsDialog {
             no_keychain,
             no_cert_name_check,
             no_cert_check,
-            client_cert,
+            cert_path: cert_path,
             cert_password,
             ca_cert,
             ike_lifetime,
@@ -395,8 +395,8 @@ impl SettingsDialog {
         params.no_keychain = self.widgets.no_keychain.is_active();
         params.no_cert_check = self.widgets.no_cert_name_check.is_active();
         params.ignore_server_cert = self.widgets.no_cert_check.is_active();
-        params.client_cert = {
-            let text = self.widgets.client_cert.text();
+        params.cert_path = {
+            let text = self.widgets.cert_path.text();
             if text.is_empty() {
                 None
             } else {
@@ -537,11 +537,11 @@ impl SettingsDialog {
         no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
         misc_box.pack_start(&no_cert_check, false, true, 6);
 
-        let client_cert = self.form_box("Client certificate path (.pem or .pfx)");
-        client_cert.pack_start(&self.widgets.client_cert, false, true, 0);
-        misc_box.pack_start(&client_cert, false, true, 6);
+        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx, .so)");
+        cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
+        misc_box.pack_start(&cert_path, false, true, 6);
 
-        let cert_password = self.form_box("Password for PFX file");
+        let cert_password = self.form_box("PFX password or PKCS11 pin");
         cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
         misc_box.pack_start(&cert_password, false, true, 6);
 

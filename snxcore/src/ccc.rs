@@ -39,7 +39,7 @@ impl CccHttpClient {
     }
 
     fn new_auth_request(&self) -> CccClientRequestData {
-        let (request_type, username, password) = if self.params.client_cert.is_none() {
+        let (request_type, username, password) = if self.params.cert_path.is_none() {
             (
                 "UserPass",
                 Some(self.params.user_name.as_str().into()),
@@ -164,7 +164,7 @@ impl CccHttpClient {
             builder = builder.danger_accept_invalid_certs(true);
         }
 
-        let path = if let Some(ref client_cert) = self.params.client_cert {
+        let path = if let Some(ref client_cert) = self.params.cert_path {
             let data = std::fs::read(client_cert)?;
             let identity =
                 match Identity::from_pkcs12_der(&data, self.params.cert_password.as_deref().unwrap_or_default()) {

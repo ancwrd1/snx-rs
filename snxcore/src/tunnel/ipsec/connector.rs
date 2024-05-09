@@ -18,6 +18,7 @@ use isakmp::{
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
+use crate::model::params::CertType;
 use crate::{
     model::{params::TunnelParams, CccSession, IpsecSession, MfaChallenge, MfaType, SessionState},
     platform,
@@ -44,13 +45,27 @@ pub struct IpsecTunnelConnector {
 
 impl IpsecTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
-        let identity = if let Some(ref cert) = params.client_cert {
-            Identity::Certificate {
-                path: cert.clone(),
-                password: params.cert_password.clone(),
-            }
-        } else {
-            Identity::None
+        let identity = match params.cert_type {
+            CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
+                (Some(path), Some(password)) => Identity::Pkcs12 {
+                    path: path.clone(),
+                    password: password.clone(),
+                },
+                _ => return Err(anyhow!("No PKCS12 path and password provided!")),
+            },
+            CertType::Pkcs8 => match params.cert_path {
+                Some(ref path) => Identity::Pkcs8 { path: path.clone() },
+                None => return Err(anyhow!("No PKCS8 PEM path provided!")),
+            },
+            CertType::Pkcs11 => match (&params.cert_path, &params.cert_password) {
+                (Some(path), Some(password)) => Identity::Pkcs11 {
+                    driver_path: path.clone(),
+                    pin: password.clone(),
+                },
+                _ => return Err(anyhow!("No PKCS11 driver path and pin provided!")),
+            },
+
+            _ => Identity::None,
         };
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
@@ -375,7 +390,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             .do_identity_protection(Bytes::copy_from_slice(realm.as_bytes()))
             .await?;
 
-        if self.params.client_cert.is_some() {
+        if self.params.cert_path.is_some() {
             self.do_session_exchange().await
         } else {
             let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
