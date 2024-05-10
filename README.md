@@ -89,7 +89,7 @@ There are 4 parameters which control certificate-based authentication:
 * `cert-path` - path to PFX, PEM or the custom PKCS11 driver file, depending on the selected cert type. The default
  PKCS11 driver is `opensc-pkcs11.so` which requires opensc package to be installed.
 * `cert-password` - password for PKCS12 or pin for PKCS11. Must be provided for those types.
-* `cert-id` - optional hexadecimal ID of the certificate for PKCS11 type. Could be in the form of 'xx:xx' or 'xxxx'.
+* `cert-id` - optional hexadecimal ID of the certificate for PKCS11 type. Could be in the form of 'xx:xx:xx' or 'xxxxxx'.
 
 ## Additional usage notes
 
