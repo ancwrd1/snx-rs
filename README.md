@@ -9,28 +9,27 @@ Based on the reverse engineered protocol from the vendor application.
 * IPSec support (faster tunnel)
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
-* Optional integration with Gnome Keyring or KDE KWallet via libsecret
+* Optional integration with Gnome Keyring or KDE KWallet
 
 ## Implemented features
 
 * SAML SSO authentication (only with IPSec tunnel)
-* GTK frontend with tray icon and webkit webview for SAML authentication
 * Username/password authentication with MFA support
 * Certificate authentication via the provided client certificate (PFX, PEM or HW token)
+* GTK frontend with tray icon and webkit webview for SAML authentication
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface
   Supported hash and encryption algorithms: SHA1, SHA256, AES-CBC. Unsupported algorithms: MD5, 3DES.
-* Store password in the keychain using libsecret
+* Store password in the keychain using Secret Service API
 * HW token authentication support via PKCS11 (only with IPSec tunnel)
 
 ## System requirements
 
 * Recent Linux distribution with kernel version 4.19 or higher
-* systemd-resolved configured as a global DNS resolver
-* iproute2
-* DBus
-* libsecret
-* gtk 3 and webkit2gtk for the GUI frontend
+* systemd-resolved [configured](https://wiki.archlinux.org/title/Systemd-resolved) as a global DNS resolver
+* iproute2 (this is the `ip` utility which should be standard for all distros)
+* D-Bus
+* webkit2gtk for the GUI frontend
 
 ## GUI usage
 
@@ -101,11 +100,11 @@ There are 4 parameters which control certificate-based authentication:
 
 ## Building from sources
 
-Recent Rust compiler (https://rustup.rs) is required. Run `cargo build --release` to build the release version.
+Recent [Rust compiler](https://rustup.rs) is required. Run `cargo build --release` to build the release version.
 
 ## Credits
 
-Special thanks to [cpyvpn](https://gitlab.com/cpvpn/cpyvpn) project for inspiration around SAML and IKEv1 authentication
+Special thanks to [cpyvpn](https://gitlab.com/cpvpn/cpyvpn) project for inspiration around SAML and IKEv1 exchange
 
 ## License
 
