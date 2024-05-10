@@ -79,6 +79,28 @@ pub enum CertType {
     Pkcs11,
 }
 
+impl CertType {
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::None => 0,
+            Self::Pkcs12 => 1,
+            Self::Pkcs8 => 2,
+            Self::Pkcs11 => 3,
+        }
+    }
+}
+
+impl From<u32> for CertType {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Pkcs12,
+            2 => Self::Pkcs8,
+            3 => Self::Pkcs11,
+            _ => Self::None,
+        }
+    }
+}
+
 impl fmt::Display for CertType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
