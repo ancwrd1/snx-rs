@@ -12,7 +12,11 @@ use reqwest::{Certificate, Identity};
 use tracing::{trace, warn};
 
 use crate::{
-    model::{params::TunnelParams, proto::*, CccSession},
+    model::{
+        params::{CertType, TunnelParams},
+        proto::*,
+        CccSession,
+    },
     sexpr2::SExpression,
 };
 
@@ -39,7 +43,7 @@ impl CccHttpClient {
     }
 
     fn new_auth_request(&self) -> CccClientRequestData {
-        let (request_type, username, password) = if self.params.cert_path.is_none() {
+        let (request_type, username, password) = if self.params.cert_type == CertType::None {
             (
                 "UserPass",
                 Some(self.params.user_name.as_str().into()),
@@ -166,21 +170,20 @@ impl CccHttpClient {
 
         let path = if let Some(ref client_cert) = self.params.cert_path {
             let data = std::fs::read(client_cert)?;
-            let identity =
-                match Identity::from_pkcs12_der(&data, self.params.cert_password.as_deref().unwrap_or_default()) {
-                    Ok(identity) => identity,
-                    Err(_) => match Identity::from_pkcs8_pem(&data, &data) {
-                        Ok(identity) => identity,
-                        Err(_) => {
-                            return Err(anyhow!(
-                                "Unable to load certificate identity from {}",
-                                client_cert.display()
-                            ));
-                        }
-                    },
-                };
-            builder = builder.identity(identity);
-            "/clients/cert/"
+            let identity = match self.params.cert_type {
+                CertType::Pkcs8 => Some(Identity::from_pkcs8_pem(&data, &data)?),
+                CertType::Pkcs12 => Some(Identity::from_pkcs12_der(
+                    &data,
+                    self.params.cert_password.as_deref().unwrap_or_default(),
+                )?),
+                _ => None,
+            };
+            if let Some(identity) = identity {
+                builder = builder.identity(identity);
+                "/clients/cert/"
+            } else {
+                "/clients/"
+            }
         } else {
             "/clients/"
         };

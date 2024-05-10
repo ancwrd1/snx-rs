@@ -307,7 +307,7 @@ impl SettingsDialog {
             no_keychain,
             no_cert_name_check,
             no_cert_check,
-            cert_path: cert_path,
+            cert_path,
             cert_password,
             ca_cert,
             ike_lifetime,

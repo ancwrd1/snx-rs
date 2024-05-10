@@ -18,9 +18,11 @@ use isakmp::{
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
-use crate::model::params::CertType;
 use crate::{
-    model::{params::TunnelParams, CccSession, IpsecSession, MfaChallenge, MfaType, SessionState},
+    model::{
+        params::{CertType, TunnelParams},
+        CccSession, IpsecSession, MfaChallenge, MfaType, SessionState,
+    },
     platform,
     sexpr2::SExpression,
     tunnel::{
@@ -57,16 +59,16 @@ impl IpsecTunnelConnector {
                 Some(ref path) => Identity::Pkcs8 { path: path.clone() },
                 None => return Err(anyhow!("No PKCS8 PEM path provided!")),
             },
-            CertType::Pkcs11 => match (&params.cert_path, &params.cert_password) {
-                (Some(path), Some(password)) => Identity::Pkcs11 {
-                    driver_path: path.clone(),
-                    pin: password.clone(),
+            CertType::Pkcs11 => match params.cert_password {
+                Some(ref pin) => Identity::Pkcs11 {
+                    driver_path: params.cert_path.clone().unwrap_or_else(|| "opensc-pkcs11.so".into()),
+                    pin: pin.clone(),
                     key_id: params
                         .cert_id
                         .as_ref()
                         .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
                 },
-                _ => return Err(anyhow!("No PKCS11 driver path and pin provided!")),
+                None => return Err(anyhow!("No PKCS11 pin provided!")),
             },
 
             _ => Identity::None,
