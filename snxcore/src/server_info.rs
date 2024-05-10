@@ -40,9 +40,12 @@ pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<S
     login_factors
         .into_iter()
         .filter_map(|factor| match &factor.1.custom_display_labels {
-            LoginDisplayLabelSelect::LoginDisplayLabel(label) => Some(label.password.clone()),
-            LoginDisplayLabelSelect::Empty(_) => None,
+            LoginDisplayLabelSelect::LoginDisplayLabel(label) if factor.1.factor_type != "certificate" => {
+                Some(label.password.clone())
+            }
+            _ => None,
         })
         .for_each(|prompt| mfa_prompts.push_back(format!("{}: ", prompt.0.clone())));
+
     Ok(mfa_prompts)
 }
