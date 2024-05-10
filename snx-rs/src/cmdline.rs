@@ -117,6 +117,9 @@ pub struct CmdlineParams {
     )]
     pub cert_password: Option<String>,
 
+    #[clap(long = "cert-id", short = 'w', help = "Certificate ID in hexadecimal form")]
+    pub cert_id: Option<String>,
+
     #[clap(long = "if-name", short = 'f', help = "Interface name for tun or xfrm device")]
     pub if_name: Option<String>,
 
@@ -221,6 +224,10 @@ impl CmdlineParams {
 
         if let Some(cert_password) = self.cert_password {
             other.cert_password = Some(cert_password);
+        }
+
+        if let Some(cert_id) = self.cert_id {
+            other.cert_id = Some(cert_id);
         }
 
         if let Some(if_name) = self.if_name {

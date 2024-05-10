@@ -61,6 +61,10 @@ impl IpsecTunnelConnector {
                 (Some(path), Some(password)) => Identity::Pkcs11 {
                     driver_path: path.clone(),
                     pin: password.clone(),
+                    key_id: params
+                        .cert_id
+                        .as_ref()
+                        .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
                 },
                 _ => return Err(anyhow!("No PKCS11 driver path and pin provided!")),
             },

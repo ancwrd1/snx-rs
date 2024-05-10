@@ -126,6 +126,7 @@ pub struct TunnelParams {
     pub cert_type: CertType,
     pub cert_path: Option<PathBuf>,
     pub cert_password: Option<String>,
+    pub cert_id: Option<String>,
     pub if_name: Option<String>,
     pub no_keychain: bool,
     pub server_prompt: bool,
@@ -157,6 +158,7 @@ impl Default for TunnelParams {
             cert_type: CertType::None,
             cert_path: None,
             cert_password: None,
+            cert_id: None,
             if_name: None,
             no_keychain: false,
             server_prompt: true,
@@ -209,6 +211,7 @@ impl TunnelParams {
                         "cert-type" => params.cert_type = v.parse().unwrap_or_default(),
                         "cert-path" => params.cert_path = Some(v.into()),
                         "cert-password" => params.cert_password = Some(v),
+                        "cert-id" => params.cert_id = Some(v),
                         "if-name" => params.if_name = Some(v),
                         "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
                         "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
@@ -285,6 +288,9 @@ impl TunnelParams {
         }
         if let Some(ref cert_password) = self.cert_password {
             writeln!(buf, "cert-password={}", cert_password)?;
+        }
+        if let Some(ref cert_id) = self.cert_id {
+            writeln!(buf, "cert-id={}", cert_id)?;
         }
         if let Some(ref if_name) = self.if_name {
             writeln!(buf, "if-name={}", if_name)?;
