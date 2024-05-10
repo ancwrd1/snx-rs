@@ -8,6 +8,7 @@ The following configuration options are available:
 * `cert-type=<cert_type>` - enable certificate-based authentication using given type: pkcs8, pkcs11, pkcs12, none
 * `cert-path=<cert_path>` - path to PEM file for PKCS8, path to PFX file for PKCS12, path to driver file for PKCS11
 * `cert-password=<cert_password>` - password for PKCS12 or pin for PKCS11
+* `cert-id=<cert_id>` - hexadecimal ID of PKCS11 certificate, bytes could be optionally separated with colon
 * `search-domains=<search_domains>` - additional search domains for DNS resolver, comma-separated
 * `ignore-search-domains=<ignored_domains>` - acquired search domains to ignore
 * `default-route=true|false` - set default route through the VPN tunnel, default is false
