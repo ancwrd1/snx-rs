@@ -49,6 +49,7 @@ struct MyWidgets {
     cert_type: gtk::ComboBoxText,
     cert_path: gtk::Entry,
     cert_password: gtk::Entry,
+    cert_id: gtk::Entry,
     ca_cert: gtk::Entry,
     ike_lifetime: gtk::Entry,
     esp_lifetime: gtk::Entry,
@@ -74,6 +75,11 @@ impl MyWidgets {
 
         if !cert_path.is_empty() && !Path::new(&cert_path).exists() {
             return Err(anyhow!("File does not exist: {}", cert_path));
+        }
+
+        let cert_id = self.cert_id.text().replace(':', "");
+        if !cert_id.is_empty() && hex::decode(&cert_id).is_err() {
+            return Err(anyhow!("Certificate ID not in hex format: {}", cert_id));
         }
 
         let ca_cert = self.ca_cert.text();
@@ -180,6 +186,9 @@ impl SettingsDialog {
         let cert_password = gtk::Entry::builder()
             .text(params.cert_password.as_deref().unwrap_or_default())
             .visibility(false)
+            .build();
+        let cert_id = gtk::Entry::builder()
+            .text(params.cert_id.as_deref().unwrap_or_default())
             .build();
         let ca_cert = gtk::Entry::builder()
             .text(
@@ -312,6 +321,7 @@ impl SettingsDialog {
             cert_type,
             cert_path,
             cert_password,
+            cert_id,
             ca_cert,
             ike_lifetime,
             esp_lifetime,
@@ -409,6 +419,14 @@ impl SettingsDialog {
         };
         params.cert_password = {
             let text = self.widgets.cert_password.text();
+            if text.is_empty() {
+                None
+            } else {
+                Some(text.into())
+            }
+        };
+        params.cert_id = {
+            let text = self.widgets.cert_id.text();
             if text.is_empty() {
                 None
             } else {
@@ -562,6 +580,10 @@ impl SettingsDialog {
         let cert_password = self.form_box("PFX password or PKCS11 pin");
         cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
         misc_box.pack_start(&cert_password, false, true, 6);
+
+        let cert_id = self.form_box("Hex ID of PKCS11 certificate");
+        cert_id.pack_start(&self.widgets.cert_id, false, true, 0);
+        misc_box.pack_start(&cert_id, false, true, 6);
 
         let ca_cert = self.form_box("CA root certificate path (.pem or .der)");
         ca_cert.pack_start(&self.widgets.ca_cert, false, true, 0);
