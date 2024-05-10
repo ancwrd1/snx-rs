@@ -46,8 +46,10 @@ struct MyWidgets {
     no_keychain: gtk::CheckButton,
     no_cert_name_check: gtk::CheckButton,
     no_cert_check: gtk::CheckButton,
-    client_cert: gtk::Entry,
+    cert_type: gtk::ComboBoxText,
+    cert_path: gtk::Entry,
     cert_password: gtk::Entry,
+    cert_id: gtk::Entry,
     ca_cert: gtk::Entry,
     ike_lifetime: gtk::Entry,
     esp_lifetime: gtk::Entry,
@@ -69,10 +71,15 @@ impl MyWidgets {
             return Err(anyhow!("No user name specified"));
         }
 
-        let client_cert = self.client_cert.text();
+        let cert_path = self.cert_path.text();
 
-        if !client_cert.is_empty() && !Path::new(&client_cert).exists() {
-            return Err(anyhow!("Client certificate does not exist: {}", client_cert));
+        if !cert_path.is_empty() && !Path::new(&cert_path).exists() {
+            return Err(anyhow!("File does not exist: {}", cert_path));
+        }
+
+        let cert_id = self.cert_id.text().replace(':', "");
+        if !cert_id.is_empty() && hex::decode(&cert_id).is_err() {
+            return Err(anyhow!("Certificate ID not in hex format: {}", cert_id));
         }
 
         let ca_cert = self.ca_cert.text();
@@ -166,10 +173,11 @@ impl SettingsDialog {
         let no_keychain = gtk::CheckButton::builder().active(params.no_keychain).build();
         let no_cert_name_check = gtk::CheckButton::builder().active(params.no_cert_check).build();
         let no_cert_check = gtk::CheckButton::builder().active(params.ignore_server_cert).build();
-        let client_cert = gtk::Entry::builder()
+        let cert_type = gtk::ComboBoxText::builder().build();
+        let cert_path = gtk::Entry::builder()
             .text(
                 params
-                    .client_cert
+                    .cert_path
                     .as_deref()
                     .map(|p| format!("{}", p.display()))
                     .unwrap_or_default(),
@@ -178,6 +186,9 @@ impl SettingsDialog {
         let cert_password = gtk::Entry::builder()
             .text(params.cert_password.as_deref().unwrap_or_default())
             .visibility(false)
+            .build();
+        let cert_id = gtk::Entry::builder()
+            .text(params.cert_id.as_deref().unwrap_or_default())
             .build();
         let ca_cert = gtk::Entry::builder()
             .text(
@@ -307,8 +318,10 @@ impl SettingsDialog {
             no_keychain,
             no_cert_name_check,
             no_cert_check,
-            client_cert,
+            cert_type,
+            cert_path,
             cert_password,
+            cert_id,
             ca_cert,
             ike_lifetime,
             esp_lifetime,
@@ -395,8 +408,9 @@ impl SettingsDialog {
         params.no_keychain = self.widgets.no_keychain.is_active();
         params.no_cert_check = self.widgets.no_cert_name_check.is_active();
         params.ignore_server_cert = self.widgets.no_cert_check.is_active();
-        params.client_cert = {
-            let text = self.widgets.client_cert.text();
+        params.cert_type = self.widgets.cert_type.active().unwrap_or_default().into();
+        params.cert_path = {
+            let text = self.widgets.cert_path.text();
             if text.is_empty() {
                 None
             } else {
@@ -405,6 +419,14 @@ impl SettingsDialog {
         };
         params.cert_password = {
             let text = self.widgets.cert_password.text();
+            if text.is_empty() {
+                None
+            } else {
+                Some(text.into())
+            }
+        };
+        params.cert_id = {
+            let text = self.widgets.cert_id.text();
             if text.is_empty() {
                 None
             } else {
@@ -478,6 +500,17 @@ impl SettingsDialog {
         tunnel_box
     }
 
+    fn cert_type_box(&self) -> gtk::Box {
+        let cert_type_box = self.form_box("Certificate auth type");
+        self.widgets.cert_type.insert_text(0, "None");
+        self.widgets.cert_type.insert_text(1, "PFX file");
+        self.widgets.cert_type.insert_text(2, "PEM file");
+        self.widgets.cert_type.insert_text(3, "HW token");
+        self.widgets.cert_type.set_active(Some(self.params.cert_type.as_u32()));
+        cert_type_box.pack_start(&self.widgets.cert_type, false, true, 0);
+        cert_type_box
+    }
+
     fn user_box(&self) -> gtk::Box {
         let user_box = self.form_box("User name");
         user_box.pack_start(&self.widgets.user_name, false, true, 0);
@@ -537,13 +570,20 @@ impl SettingsDialog {
         no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
         misc_box.pack_start(&no_cert_check, false, true, 6);
 
-        let client_cert = self.form_box("Client certificate path (.pem or .pfx)");
-        client_cert.pack_start(&self.widgets.client_cert, false, true, 0);
-        misc_box.pack_start(&client_cert, false, true, 6);
+        let cert_type_box = self.cert_type_box();
+        misc_box.pack_start(&cert_type_box, false, true, 6);
 
-        let cert_password = self.form_box("Password for PFX file");
+        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx, .so)");
+        cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
+        misc_box.pack_start(&cert_path, false, true, 6);
+
+        let cert_password = self.form_box("PFX password or PKCS11 pin");
         cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
         misc_box.pack_start(&cert_password, false, true, 6);
+
+        let cert_id = self.form_box("Hex ID of PKCS11 certificate");
+        cert_id.pack_start(&self.widgets.cert_id, false, true, 0);
+        misc_box.pack_start(&cert_id, false, true, 6);
 
         let ca_cert = self.form_box("CA root certificate path (.pem or .der)");
         ca_cert.pack_start(&self.widgets.ca_cert, false, true, 0);

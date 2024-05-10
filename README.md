@@ -13,14 +13,15 @@ Based on the reverse engineered protocol from the vendor application.
 
 ## Implemented features
 
-* **NEW**: SAML SSO authentication (only with IPSec tunnel)
-* **NEW**: GTK frontend with tray icon and webkit webview for SAML authentication
+* SAML SSO authentication (only with IPSec tunnel)
+* GTK frontend with tray icon and webkit webview for SAML authentication
 * Username/password authentication with MFA support
-* Certificate authentication via the provided client certificate
+* Certificate authentication via the provided client certificate (PFX, PEM or HW token)
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface
   Supported hash and encryption algorithms: SHA1, SHA256, AES-CBC. Unsupported algorithms: MD5, 3DES.
 * Store password in the keychain using libsecret
+* HW token authentication support via PKCS11 (only with IPSec tunnel)
 
 ## System requirements
 
@@ -29,7 +30,7 @@ Based on the reverse engineered protocol from the vendor application.
 * iproute2
 * DBus
 * libsecret
-* gtk 3 and webkit2gtk for the GUI frontend 
+* gtk 3 and webkit2gtk for the GUI frontend
 
 ## GUI usage
 
@@ -77,6 +78,18 @@ There are two ways to use the application:
   Run `snx-rs --help` to get a help with all command line parameters.
   In this mode the application takes connection parameters either from the command line or from the specified configuration file.
   Recommended for headless usage.
+
+## Certificate authentication
+
+There are 4 parameters which control certificate-based authentication:
+
+* `cert-type` - one of "none", "pkcs12", "pkcs8", "pkcs11". Choose "pkcs12" to read certificate from external PFX
+ file. Choose "pkcs8" to read certficate from external PEM file (containing both private key and x509 cert).
+ Choose "pkcs11" to use hardware token via PKCS11 driver.
+* `cert-path` - path to PFX, PEM or the custom PKCS11 driver file, depending on the selected cert type. The default
+ PKCS11 driver is `opensc-pkcs11.so` which requires opensc package to be installed.
+* `cert-password` - password for PKCS12 or pin for PKCS11. Must be provided for those types.
+* `cert-id` - optional hexadecimal ID of the certificate for PKCS11 type. Could be in the form of 'xx:xx:xx' or 'xxxxxx'.
 
 ## Additional usage notes
 

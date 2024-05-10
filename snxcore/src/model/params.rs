@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     io::{Cursor, Write},
     path::{Path, PathBuf},
     str::FromStr,
@@ -69,6 +70,63 @@ impl FromStr for TunnelType {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum CertType {
+    #[default]
+    None,
+    Pkcs12,
+    Pkcs8,
+    Pkcs11,
+}
+
+impl CertType {
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::None => 0,
+            Self::Pkcs12 => 1,
+            Self::Pkcs8 => 2,
+            Self::Pkcs11 => 3,
+        }
+    }
+}
+
+impl From<u32> for CertType {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Pkcs12,
+            2 => Self::Pkcs8,
+            3 => Self::Pkcs11,
+            _ => Self::None,
+        }
+    }
+}
+
+impl fmt::Display for CertType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::None => "none",
+            Self::Pkcs12 => "pkcs12",
+            Self::Pkcs8 => "pkcs8",
+            Self::Pkcs11 => "pkcs11",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+impl FromStr for CertType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "none" => Ok(CertType::None),
+            "pkcs12" => Ok(CertType::Pkcs12),
+            "pkcs8" => Ok(CertType::Pkcs8),
+            "pkcs11" => Ok(CertType::Pkcs11),
+            _ => Err(anyhow!("Invalid cert type!")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelParams {
     pub server_name: String,
@@ -87,8 +145,10 @@ pub struct TunnelParams {
     pub tunnel_type: TunnelType,
     pub ca_cert: Option<PathBuf>,
     pub login_type: String,
-    pub client_cert: Option<PathBuf>,
+    pub cert_type: CertType,
+    pub cert_path: Option<PathBuf>,
     pub cert_password: Option<String>,
+    pub cert_id: Option<String>,
     pub if_name: Option<String>,
     pub no_keychain: bool,
     pub server_prompt: bool,
@@ -117,8 +177,10 @@ impl Default for TunnelParams {
             tunnel_type: Default::default(),
             ca_cert: None,
             login_type: String::new(),
-            client_cert: None,
+            cert_type: CertType::None,
+            cert_path: None,
             cert_password: None,
+            cert_id: None,
             if_name: None,
             no_keychain: false,
             server_prompt: true,
@@ -168,8 +230,10 @@ impl TunnelParams {
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                         "ca-cert" => params.ca_cert = Some(v.into()),
                         "login-type" => params.login_type = v,
-                        "client-cert" => params.client_cert = Some(v.into()),
+                        "cert-type" => params.cert_type = v.parse().unwrap_or_default(),
+                        "cert-path" => params.cert_path = Some(v.into()),
                         "cert-password" => params.cert_password = Some(v),
+                        "cert-id" => params.cert_id = Some(v),
                         "if-name" => params.if_name = Some(v),
                         "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
                         "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
@@ -240,11 +304,15 @@ impl TunnelParams {
             writeln!(buf, "ca-cert={}", ca_cert.display())?;
         }
         writeln!(buf, "login-type={}", self.login_type)?;
-        if let Some(ref client_cert) = self.client_cert {
-            writeln!(buf, "client-cert={}", client_cert.display())?;
+        writeln!(buf, "cert-type={}", self.cert_type)?;
+        if let Some(ref cert_path) = self.cert_path {
+            writeln!(buf, "cert-path={}", cert_path.display())?;
         }
         if let Some(ref cert_password) = self.cert_password {
             writeln!(buf, "cert-password={}", cert_password)?;
+        }
+        if let Some(ref cert_id) = self.cert_id {
+            writeln!(buf, "cert-id={}", cert_id)?;
         }
         if let Some(ref if_name) = self.if_name {
             writeln!(buf, "if-name={}", if_name)?;

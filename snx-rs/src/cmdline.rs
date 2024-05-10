@@ -4,7 +4,7 @@ use clap::Parser;
 use ipnet::Ipv4Net;
 use tracing::log::LevelFilter;
 
-use snxcore::model::params::{OperationMode, TunnelParams, TunnelType};
+use snxcore::model::params::{CertType, OperationMode, TunnelParams, TunnelType};
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs")]
@@ -97,14 +97,28 @@ pub struct CmdlineParams {
     pub login_type: Option<String>,
 
     #[clap(
-        long = "client-cert",
+        long = "cert-type",
         short = 'y',
-        help = "Use client authentication via the provided certificate chain. It must be either PKCS#12 or unencrypted PKCS#8 PEM file"
+        help = "Enable certificate authentication via the provided method, one of: pkcs8, pkcs11, pkcs12, none"
     )]
-    pub client_cert: Option<PathBuf>,
+    pub cert_type: Option<CertType>,
 
-    #[clap(long = "cert-password", short = 'x', help = "Password for PKCS#12 keychain")]
+    #[clap(
+        long = "cert-path",
+        short = 'z',
+        help = "Path to PEM file for PKCS8, path to PFX file for PKCS12, path to driver file for PKCS11 token"
+    )]
+    pub cert_path: Option<PathBuf>,
+
+    #[clap(
+        long = "cert-password",
+        short = 'x',
+        help = "Password for PKCS12 file or PIN for PKCS11 token"
+    )]
     pub cert_password: Option<String>,
+
+    #[clap(long = "cert-id", short = 'w', help = "Certificate ID in hexadecimal form")]
+    pub cert_id: Option<String>,
 
     #[clap(long = "if-name", short = 'f', help = "Interface name for tun or xfrm device")]
     pub if_name: Option<String>,
@@ -200,12 +214,20 @@ impl CmdlineParams {
             other.login_type = login_type;
         }
 
-        if let Some(client_cert) = self.client_cert {
-            other.client_cert = Some(client_cert);
+        if let Some(cert_type) = self.cert_type {
+            other.cert_type = cert_type;
+        }
+
+        if let Some(cert_path) = self.cert_path {
+            other.cert_path = Some(cert_path);
         }
 
         if let Some(cert_password) = self.cert_password {
             other.cert_password = Some(cert_password);
+        }
+
+        if let Some(cert_id) = self.cert_id {
+            other.cert_id = Some(cert_id);
         }
 
         if let Some(if_name) = self.if_name {
