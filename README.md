@@ -10,18 +10,18 @@ Based on the reverse engineered protocol from the vendor application.
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
 * Optional integration with Gnome Keyring or KDE KWallet
+* Customizable routing and DNS settings
 
 ## Implemented features
 
 * SAML SSO authentication (only with IPSec tunnel)
 * Username/password authentication with MFA support
 * Certificate authentication via the provided client certificate (PFX, PEM or HW token)
+* HW token support via PKCS11 (only with IPSec tunnel)
 * GTK frontend with tray icon and webkit webview for SAML authentication
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface
-  Supported hash and encryption algorithms: SHA1, SHA256, AES-CBC. Unsupported algorithms: MD5, 3DES.
 * Store password in the keychain using Secret Service API
-* HW token authentication support via PKCS11 (only with IPSec tunnel)
 
 ## System requirements
 
