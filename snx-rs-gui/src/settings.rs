@@ -546,6 +546,44 @@ impl SettingsDialog {
         dns_box
     }
 
+    fn certs_box(&self) -> gtk::Box {
+        let certs_box = gtk::Box::builder()
+            .orientation(Orientation::Vertical)
+            .margin(6)
+            .margin_start(16)
+            .margin_end(16)
+            .build();
+
+        let cert_type_box = self.cert_type_box();
+        certs_box.pack_start(&cert_type_box, false, true, 6);
+
+        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx, .so)");
+        cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
+        certs_box.pack_start(&cert_path, false, true, 6);
+
+        let cert_password = self.form_box("PFX password or PKCS11 pin");
+        cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
+        certs_box.pack_start(&cert_password, false, true, 6);
+
+        let cert_id = self.form_box("Hex ID of PKCS11 certificate");
+        cert_id.pack_start(&self.widgets.cert_id, false, true, 0);
+        certs_box.pack_start(&cert_id, false, true, 6);
+
+        let ca_cert = self.form_box("Server CA root certificate path (PEM/DER)");
+        ca_cert.pack_start(&self.widgets.ca_cert, false, true, 0);
+        certs_box.pack_start(&ca_cert, false, true, 6);
+
+        let no_cert_name_check = self.form_box("Disable server hostname check");
+        no_cert_name_check.pack_start(&self.widgets.no_cert_name_check, false, true, 0);
+        certs_box.pack_start(&no_cert_name_check, false, true, 6);
+
+        let no_cert_check = self.form_box("Disable all certificate checks (INSECURE!)");
+        no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
+        certs_box.pack_start(&no_cert_check, false, true, 6);
+
+        certs_box
+    }
+
     fn misc_box(&self) -> gtk::Box {
         let misc_box = gtk::Box::builder()
             .orientation(Orientation::Vertical)
@@ -561,33 +599,6 @@ impl SettingsDialog {
         let no_keychain = self.form_box("Do not store passwords in the keychain");
         no_keychain.pack_start(&self.widgets.no_keychain, false, true, 0);
         misc_box.pack_start(&no_keychain, false, true, 6);
-
-        let no_cert_name_check = self.form_box("Do not check certificate CN");
-        no_cert_name_check.pack_start(&self.widgets.no_cert_name_check, false, true, 0);
-        misc_box.pack_start(&no_cert_name_check, false, true, 6);
-
-        let no_cert_check = self.form_box("Disable all certificate checks (INSECURE!)");
-        no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
-        misc_box.pack_start(&no_cert_check, false, true, 6);
-
-        let cert_type_box = self.cert_type_box();
-        misc_box.pack_start(&cert_type_box, false, true, 6);
-
-        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx, .so)");
-        cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
-        misc_box.pack_start(&cert_path, false, true, 6);
-
-        let cert_password = self.form_box("PFX password or PKCS11 pin");
-        cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
-        misc_box.pack_start(&cert_password, false, true, 6);
-
-        let cert_id = self.form_box("Hex ID of PKCS11 certificate");
-        cert_id.pack_start(&self.widgets.cert_id, false, true, 0);
-        misc_box.pack_start(&cert_id, false, true, 6);
-
-        let ca_cert = self.form_box("CA root certificate path (.pem or .der)");
-        ca_cert.pack_start(&self.widgets.ca_cert, false, true, 0);
-        misc_box.pack_start(&ca_cert, false, true, 6);
 
         let ike_lifetime = self.form_box("IKE lifetime, seconds");
         ike_lifetime.pack_start(&self.widgets.ike_lifetime, false, true, 0);
@@ -651,6 +662,10 @@ impl SettingsDialog {
         let routing = gtk::Expander::new(Some("Routing"));
         routing.add(&self.routing_box());
         inner.pack_start(&routing, false, true, 6);
+
+        let certs = gtk::Expander::new(Some("Certificates"));
+        certs.add(&self.certs_box());
+        inner.pack_start(&certs, false, true, 6);
 
         let misc = gtk::Expander::new(Some("Misc settings"));
         misc.add(&self.misc_box());
