@@ -283,3 +283,7 @@ pub fn init_theme_monitoring() -> anyhow::Result<()> {
         Ok(())
     })
 }
+
+pub async fn unmanage_device(device_name: &str) {
+    let _ = crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await;
+}

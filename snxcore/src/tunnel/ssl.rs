@@ -188,7 +188,7 @@ impl CheckpointTunnel for SslTunnel {
 
         let dev_name = tun.name().to_owned();
 
-        let _ = crate::util::run_command("nmcli", ["device", "set", &dev_name, "managed", "no"]).await;
+        crate::platform::unmanage_device(&dev_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 

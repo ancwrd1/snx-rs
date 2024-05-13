@@ -36,7 +36,7 @@ impl<'a> XfrmLink<'a> {
         ])
         .await?;
 
-        let _ = util::run_command("nmcli", ["device", "set", self.name, "managed", "no"]).await;
+        platform::unmanage_device(&self.name).await;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
