@@ -333,20 +333,22 @@ impl XfrmConfigurator {
     }
 
     async fn setup_routing(&self) -> anyhow::Result<()> {
+        let mut subnets = self.tunnel_params.add_routes.clone();
+
+        debug!("Ignoring acquired routes to {}", self.dest_ip);
+
         if !self.tunnel_params.no_routing {
             if self.tunnel_params.default_route {
                 let _ = platform::add_default_route(&self.name, self.ipsec_session.address).await;
             } else {
-                let subnets = self
-                    .subnets
-                    .iter()
-                    .chain(&self.tunnel_params.add_routes)
-                    .filter(|s| !s.contains(&self.dest_ip))
-                    .cloned()
-                    .collect::<Vec<_>>();
-
-                let _ = platform::add_routes(&subnets, &self.name, self.ipsec_session.address).await;
+                subnets.extend(&self.subnets);
             }
+        }
+
+        subnets.retain(|s| !s.contains(&self.dest_ip));
+
+        if !subnets.is_empty() {
+            let _ = platform::add_routes(&subnets, &self.name, self.ipsec_session.address).await;
         }
 
         let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
