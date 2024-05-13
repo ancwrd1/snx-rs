@@ -477,6 +477,6 @@ pub enum LoginDisplayLabelSelect {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginDisplayLabel {
     pub header: QuotedString,
-    pub username: QuotedString,
-    pub password: QuotedString,
+    pub username: Option<QuotedString>,
+    pub password: Option<QuotedString>,
 }
