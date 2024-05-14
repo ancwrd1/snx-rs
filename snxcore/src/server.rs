@@ -7,7 +7,7 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
-        params::TunnelParams, CccSession, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse,
+        params::TunnelParams, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession,
     },
     tunnel::{self, TunnelConnector, TunnelEvent},
 };
@@ -19,7 +19,7 @@ const MAX_PACKET_SIZE: usize = 1_000_000;
 pub struct CommandServer {
     port: u16,
     connection_status: ConnectionStatus,
-    session: Option<Arc<CccSession>>,
+    session: Option<Arc<VpnSession>>,
     connector: Option<Box<dyn TunnelConnector + Send>>,
 }
 
@@ -133,7 +133,7 @@ impl CommandServer {
 
     async fn connect_for_session(
         &mut self,
-        session: Arc<CccSession>,
+        session: Arc<VpnSession>,
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
         let connector = if let Some(ref mut connector) = self.connector {

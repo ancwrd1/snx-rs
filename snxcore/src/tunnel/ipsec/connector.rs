@@ -21,13 +21,11 @@ use tracing::{debug, trace, warn};
 use crate::{
     model::{
         params::{CertType, TunnelParams},
-        CccSession, IpsecSession, MfaChallenge, MfaType, SessionState,
+        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
     platform,
     sexpr2::SExpression,
-    tunnel::{
-        ipsec::natt::NattProber, ipsec::IpsecTunnel, CheckpointTunnel, TunnelCommand, TunnelConnector, TunnelEvent,
-    },
+    tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
 };
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
@@ -150,7 +148,7 @@ impl IpsecTunnelConnector {
             .find_map(|a| if a.attribute_type == attr { a.as_short() } else { None })
     }
 
-    async fn do_challenge_attr(&mut self, attr: Bytes) -> anyhow::Result<Arc<CccSession>> {
+    async fn do_challenge_attr(&mut self, attr: Bytes) -> anyhow::Result<Arc<VpnSession>> {
         let parts = attr
             .split(|c| *c == b'\0')
             .map(|p| String::from_utf8_lossy(p).into_owned())
@@ -185,8 +183,8 @@ impl IpsecTunnelConnector {
 
         debug!("Challenge prompt: {}", prompt);
 
-        Ok(Arc::new(CccSession {
-            session_id: self.ccc_session.clone(),
+        Ok(Arc::new(VpnSession {
+            ccc_session_id: self.ccc_session.clone(),
             ipsec_session: None,
             state: SessionState::PendingChallenge(MfaChallenge {
                 mfa_type: MfaType::from_id(&id),
@@ -195,7 +193,7 @@ impl IpsecTunnelConnector {
         }))
     }
 
-    async fn do_session_exchange(&mut self) -> anyhow::Result<Arc<CccSession>> {
+    async fn do_session_exchange(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         let om_reply = self.service.send_om_request().await?;
 
         self.ccc_session = self
@@ -236,8 +234,8 @@ impl IpsecTunnelConnector {
 
         self.last_rekey = Some(SystemTime::now());
 
-        let session = Arc::new(CccSession {
-            session_id: self.ccc_session.clone(),
+        let session = Arc::new(VpnSession {
+            ccc_session_id: self.ccc_session.clone(),
             ipsec_session: Some(self.ipsec_session.clone()),
             state: SessionState::Authenticated(String::new()),
         });
@@ -245,7 +243,7 @@ impl IpsecTunnelConnector {
         Ok(session)
     }
 
-    async fn process_auth_attributes(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<CccSession>> {
+    async fn process_auth_attributes(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<VpnSession>> {
         self.last_identifier = id_reply.identifier;
         let status = self.get_short_attribute(&id_reply, ConfigAttributeType::Status);
         match status {
@@ -274,12 +272,12 @@ impl IpsecTunnelConnector {
                         }
                         self.last_challenge_type = ConfigAttributeType::UserName;
                         let user_name = self.params.user_name.clone();
-                        self.challenge_code(Arc::new(CccSession::empty()), &user_name).await
+                        self.challenge_code(Arc::new(VpnSession::empty()), &user_name).await
                     }
                     ConfigAttributeType::UserPassword if !self.params.password.is_empty() => {
                         self.last_challenge_type = ConfigAttributeType::UserPassword;
                         let user_password = self.params.password.clone();
-                        self.challenge_code(Arc::new(CccSession::empty()), &user_password).await
+                        self.challenge_code(Arc::new(VpnSession::empty()), &user_password).await
                     }
                     other => {
                         if let Some(attr) = self.get_long_attribute(&id_reply, ConfigAttributeType::Challenge) {
@@ -375,7 +373,7 @@ impl IpsecTunnelConnector {
 
 #[async_trait]
 impl TunnelConnector for IpsecTunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>> {
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         let my_address = platform::get_default_ip().await?.parse::<Ipv4Addr>()?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
@@ -405,7 +403,7 @@ impl TunnelConnector for IpsecTunnelConnector {
         }
     }
 
-    async fn challenge_code(&mut self, _session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>> {
+    async fn challenge_code(&mut self, _session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
         let id_reply = self
             .service
             .send_auth_attribute(
@@ -422,9 +420,9 @@ impl TunnelConnector for IpsecTunnelConnector {
 
     async fn create_tunnel(
         &mut self,
-        session: Arc<CccSession>,
+        session: Arc<VpnSession>,
         command_sender: Sender<TunnelCommand>,
-    ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
+    ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
         Ok(Box::new(IpsecTunnel::create(self.params.clone(), session).await?))
     }

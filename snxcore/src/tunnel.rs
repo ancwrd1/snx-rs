@@ -30,7 +30,7 @@ pub enum TunnelEvent {
 }
 
 #[async_trait]
-pub trait CheckpointTunnel {
+pub trait VpnTunnel {
     async fn run(
         mut self: Box<Self>,
         command_receiver: mpsc::Receiver<TunnelCommand>,
@@ -40,13 +40,13 @@ pub trait CheckpointTunnel {
 
 #[async_trait]
 pub trait TunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>>;
-    async fn challenge_code(&mut self, session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>>;
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>>;
+    async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>>;
     async fn create_tunnel(
         &mut self,
-        session: Arc<CccSession>,
+        session: Arc<VpnSession>,
         command_sender: mpsc::Sender<TunnelCommand>,
-    ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>>;
+    ) -> anyhow::Result<Box<dyn VpnTunnel + Send>>;
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()>;
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }

@@ -7,8 +7,8 @@ use tracing::{debug, warn};
 
 use crate::{
     ccc::CccHttpClient,
-    model::{params::TunnelParams, proto::AuthResponse, CccSession, MfaChallenge, MfaType, SessionState},
-    tunnel::{ssl::SslTunnel, CheckpointTunnel, TunnelCommand, TunnelConnector, TunnelEvent},
+    model::{params::TunnelParams, proto::AuthResponse, MfaChallenge, MfaType, SessionState, VpnSession},
+    tunnel::{ssl::SslTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
 };
 
 pub struct CccTunnelConnector {
@@ -24,13 +24,13 @@ impl CccTunnelConnector {
         })
     }
 
-    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<Arc<CccSession>> {
+    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<Arc<VpnSession>> {
         let session_id = data.session_id.unwrap_or_default();
 
         match data.authn_status.as_str() {
             "continue" => {
-                return Ok(Arc::new(CccSession {
-                    session_id,
+                return Ok(Arc::new(VpnSession {
+                    ccc_session_id: session_id,
                     state: SessionState::PendingChallenge(MfaChallenge {
                         mfa_type: MfaType::UserInput,
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
@@ -59,8 +59,8 @@ impl CccTunnelConnector {
 
         debug!("Authentication OK, session id: {session_id}");
 
-        let session = Arc::new(CccSession {
-            session_id,
+        let session = Arc::new(VpnSession {
+            ccc_session_id: session_id,
             state: SessionState::Authenticated(active_key.0),
             ipsec_session: None,
         });
@@ -70,7 +70,7 @@ impl CccTunnelConnector {
 
 #[async_trait]
 impl TunnelConnector for CccTunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<CccSession>> {
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         debug!("Authenticating to endpoint: {}", self.params.server_name);
         let client = CccHttpClient::new(self.params.clone(), None);
 
@@ -79,7 +79,7 @@ impl TunnelConnector for CccTunnelConnector {
         self.process_auth_response(data).await
     }
 
-    async fn challenge_code(&mut self, session: Arc<CccSession>, user_input: &str) -> anyhow::Result<Arc<CccSession>> {
+    async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
         debug!(
             "Authenticating with challenge code to endpoint: {}",
             self.params.server_name
@@ -93,9 +93,9 @@ impl TunnelConnector for CccTunnelConnector {
 
     async fn create_tunnel(
         &mut self,
-        session: Arc<CccSession>,
+        session: Arc<VpnSession>,
         command_sender: Sender<TunnelCommand>,
-    ) -> anyhow::Result<Box<dyn CheckpointTunnel + Send>> {
+    ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
         Ok(Box::new(SslTunnel::create(self.params.clone(), session).await?))
     }

@@ -45,16 +45,16 @@ impl Default for IpsecSession {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CccSession {
-    pub session_id: String,
+pub struct VpnSession {
+    pub ccc_session_id: String,
     pub ipsec_session: Option<IpsecSession>,
     pub state: SessionState,
 }
 
-impl CccSession {
+impl VpnSession {
     pub fn empty() -> Self {
         Self {
-            session_id: String::new(),
+            ccc_session_id: String::new(),
             ipsec_session: None,
             state: Default::default(),
         }

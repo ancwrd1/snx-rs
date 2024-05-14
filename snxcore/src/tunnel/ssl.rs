@@ -21,7 +21,7 @@ use codec::{SslPacketCodec, SslPacketType};
 use crate::{
     model::{params::TunnelParams, proto::*, *},
     sexpr2::SExpression,
-    tunnel::{ssl::keepalive::KeepaliveRunner, CheckpointTunnel, TunnelCommand, TunnelEvent},
+    tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
 };
 
 pub mod codec;
@@ -64,7 +64,7 @@ where
 
 pub(crate) struct SslTunnel {
     params: Arc<TunnelParams>,
-    session: Arc<CccSession>,
+    session: Arc<VpnSession>,
     auth_timeout: Duration,
     keepalive: Duration,
     ip_address: String,
@@ -74,7 +74,7 @@ pub(crate) struct SslTunnel {
 }
 
 impl SslTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<Self> {
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
 
         let mut builder = TlsConnector::builder();
@@ -166,13 +166,13 @@ impl SslTunnel {
 }
 
 #[async_trait::async_trait]
-impl CheckpointTunnel for SslTunnel {
+impl VpnTunnel for SslTunnel {
     async fn run(
         mut self: Box<Self>,
         mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
-        debug!("Running SSL tunnel for session {}", self.session.session_id);
+        debug!("Running SSL tunnel for session {}", self.session.ccc_session_id);
 
         let reply = self.client_hello().await?;
         trace!("Hello reply: {:?}", reply);

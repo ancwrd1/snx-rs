@@ -13,11 +13,11 @@ use tracing::debug;
 
 use crate::{
     ccc::CccHttpClient,
-    model::{params::TunnelParams, CccSession},
+    model::{params::TunnelParams, VpnSession},
     platform::{self, IpsecConfigurator, UdpEncap, UdpSocketExt},
     tunnel::{
         ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener},
-        CheckpointTunnel, TunnelCommand, TunnelEvent,
+        TunnelCommand, TunnelEvent, VpnTunnel,
     },
     util,
 };
@@ -34,7 +34,7 @@ pub(crate) struct IpsecTunnel {
 }
 
 impl IpsecTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<CccSession>) -> anyhow::Result<Self> {
+    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let ipsec_session = session
             .ipsec_session
             .as_ref()
@@ -87,7 +87,7 @@ impl IpsecTunnel {
 }
 
 #[async_trait::async_trait]
-impl CheckpointTunnel for IpsecTunnel {
+impl VpnTunnel for IpsecTunnel {
     async fn run(
         mut self: Box<Self>,
         mut command_receiver: mpsc::Receiver<TunnelCommand>,

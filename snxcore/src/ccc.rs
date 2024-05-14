@@ -15,7 +15,7 @@ use crate::{
     model::{
         params::{CertType, TunnelParams},
         proto::*,
-        CccSession,
+        VpnSession,
     },
     sexpr2::SExpression,
 };
@@ -26,16 +26,16 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct CccHttpClient {
     params: Arc<TunnelParams>,
-    session: Option<Arc<CccSession>>,
+    session: Option<Arc<VpnSession>>,
 }
 
 impl CccHttpClient {
-    pub fn new(params: Arc<TunnelParams>, session: Option<Arc<CccSession>>) -> Self {
+    pub fn new(params: Arc<TunnelParams>, session: Option<Arc<VpnSession>>) -> Self {
         Self { params, session }
     }
 
     fn session_id(&self) -> Option<String> {
-        self.session.as_ref().map(|s| s.session_id.clone())
+        self.session.as_ref().map(|s| s.ccc_session_id.clone())
     }
 
     fn new_request_id(&self) -> u32 {
