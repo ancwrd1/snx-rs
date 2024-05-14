@@ -24,7 +24,7 @@ use crate::{
         IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
     platform,
-    sexpr2::SExpression,
+    sexpr::SExpression,
     tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
 };
 

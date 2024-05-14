@@ -6,7 +6,7 @@ use crate::{
         params::TunnelParams,
         proto::{LoginDisplayLabelSelect, ServerInfoResponse},
     },
-    sexpr2::SExpression,
+    sexpr::SExpression,
 };
 
 pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {

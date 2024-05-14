@@ -20,7 +20,7 @@ use codec::{SslPacketCodec, SslPacketType};
 
 use crate::{
     model::{params::TunnelParams, proto::*, *},
-    sexpr2::SExpression,
+    sexpr::SExpression,
     tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
 };
 

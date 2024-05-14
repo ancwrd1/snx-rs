@@ -10,7 +10,7 @@ use serde_json::Value;
 type RulePairs<'a> = Pairs<'a, Rule>;
 
 #[derive(Parser)]
-#[grammar = "sexpr2.pest"]
+#[grammar = "sexpr.pest"]
 struct SExpressionParser;
 
 #[derive(Debug, Clone, PartialEq, enum_as_inner::EnumAsInner)]

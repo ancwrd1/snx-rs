@@ -17,7 +17,7 @@ use crate::{
         proto::*,
         VpnSession,
     },
-    sexpr2::SExpression,
+    sexpr::SExpression,
 };
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);

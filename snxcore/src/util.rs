@@ -5,7 +5,7 @@ use ipnet::{Ipv4Net, Ipv4Subnets};
 use tokio::process::Command;
 use tracing::trace;
 
-use crate::{model::proto::NetworkRange, sexpr2::SExpression};
+use crate::{model::proto::NetworkRange, sexpr::SExpression};
 
 // reverse engineered from vendor snx utility
 const XOR_TABLE: &[u8] = b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";

@@ -9,7 +9,7 @@ use crate::{
     model::proto::{
         ClientHello, ClientHelloData, DisconnectRequest, DisconnectRequestData, KeepaliveRequest, KeepaliveRequestData,
     },
-    sexpr2::SExpression,
+    sexpr::SExpression,
 };
 
 pub enum SslPacketType {

@@ -6,6 +6,6 @@ pub mod platform;
 pub mod prompt;
 pub mod server;
 pub mod server_info;
-pub mod sexpr2;
+pub mod sexpr;
 pub mod tunnel;
 pub mod util;
