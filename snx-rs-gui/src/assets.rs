@@ -2,7 +2,7 @@ use std::io;
 
 use once_cell::sync::Lazy;
 
-use snxcore::platform;
+use crate::theme::system_color_theme;
 
 fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     let decoder = png::Decoder::new(io::Cursor::new(data));
@@ -42,7 +42,7 @@ static LIGHT_THEME_ARGB: Lazy<IconTheme> = Lazy::new(|| IconTheme {
 });
 
 pub fn current_icon_theme() -> &'static IconTheme {
-    if platform::system_color_theme().unwrap_or_default().is_dark() {
+    if system_color_theme().unwrap_or_default().is_dark() {
         &DARK_THEME_ARGB
     } else {
         &LIGHT_THEME_ARGB

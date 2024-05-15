@@ -1,36 +1,25 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::{
-    collections::HashMap,
-    os::fd::AsRawFd,
-    sync::atomic::{AtomicU32, Ordering},
-    time::Duration,
-};
+use std::{collections::HashMap, os::fd::AsRawFd, time::Duration};
 
 use anyhow::anyhow;
-use futures::StreamExt;
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
     sys::stat::Mode,
     unistd,
 };
-use once_cell::sync::Lazy;
 use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
-use tokio::runtime::Runtime;
 use tracing::debug;
-use zbus::{zvariant, Connection};
 
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
-use crate::platform::{SystemColorTheme, UdpEncap, UdpSocketExt};
+use crate::platform::{UdpEncap, UdpSocketExt};
 
 pub mod net;
 pub mod xfrm;
 
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
-
-static COLOR_THEME: AtomicU32 = AtomicU32::new(0);
 
 #[async_trait::async_trait]
 impl UdpSocketExt for UdpSocket {
@@ -140,55 +129,6 @@ pub async fn store_password(user_name: &str, password: &str) -> anyhow::Result<(
     Ok(())
 }
 
-#[zbus::proxy(
-    interface = "org.freedesktop.portal.Settings",
-    default_service = "org.freedesktop.portal.Desktop",
-    default_path = "/org/freedesktop/portal/desktop"
-)]
-trait DesktopSettings {
-    #[zbus(signal)]
-    fn setting_changed(&self, namespace: &str, key: &str, value: zvariant::Value<'_>) -> zbus::Result<()>;
-
-    fn read_one(&self, namespace: &str, key: &str) -> zbus::Result<zvariant::OwnedValue>;
-}
-
-#[zbus::proxy(
-    interface = "org.freedesktop.Notifications",
-    default_service = "org.freedesktop.Notifications",
-    default_path = "/org/freedesktop/Notifications"
-)]
-pub trait Notifications {
-    fn notify(
-        &self,
-        app_name: &str,
-        replaces_id: u32,
-        app_icon: &str,
-        summary: &str,
-        body: &str,
-        actions: &[&str],
-        hints: HashMap<String, zvariant::OwnedValue>,
-        expire_timeout: i32,
-    ) -> zbus::Result<u32>;
-}
-
-pub async fn send_notification(summary: &str, message: &str) -> anyhow::Result<()> {
-    let connection = Connection::session().await?;
-    let proxy = NotificationsProxy::new(&connection).await?;
-    proxy
-        .notify(
-            "SNX-RS VPN client",
-            0,
-            "emblem-error",
-            summary,
-            message,
-            &[],
-            HashMap::default(),
-            10000,
-        )
-        .await?;
-    Ok(())
-}
-
 pub struct SingleInstance {
     name: String,
     handle: Option<nix::libc::c_int>,
@@ -244,44 +184,6 @@ impl Drop for SingleInstance {
             let _ = std::fs::remove_file(&self.name);
         }
     }
-}
-
-pub fn system_color_theme() -> anyhow::Result<SystemColorTheme> {
-    COLOR_THEME.load(Ordering::SeqCst).try_into()
-}
-
-pub fn init_theme_monitoring() -> anyhow::Result<()> {
-    static RT: Lazy<Runtime> = Lazy::new(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-    });
-
-    RT.block_on(async {
-        let connection = Connection::session().await?;
-        let proxy = DesktopSettingsProxy::new(&connection).await?;
-        let scheme = proxy.read_one("org.freedesktop.appearance", "color-scheme").await?;
-        let scheme = u32::try_from(scheme)?;
-        COLOR_THEME.store(scheme, Ordering::SeqCst);
-
-        debug!("System color scheme: {}", scheme);
-
-        tokio::spawn(async move {
-            let mut stream = proxy.receive_setting_changed().await?;
-            while let Some(signal) = stream.next().await {
-                let args = signal.args()?;
-                if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
-                    let scheme = u32::try_from(args.value)?;
-                    debug!("New system color scheme: {}", scheme);
-                    COLOR_THEME.store(scheme, Ordering::SeqCst);
-                }
-            }
-            Ok::<_, anyhow::Error>(())
-        });
-
-        Ok(())
-    })
 }
 
 pub async fn unmanage_device(device_name: &str) {

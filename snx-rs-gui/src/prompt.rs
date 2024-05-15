@@ -8,7 +8,9 @@ use gtk::{
 };
 use webkit2gtk::glib::ControlFlow;
 
-use snxcore::{platform, prompt::SecurePrompt};
+use snxcore::prompt::SecurePrompt;
+
+use crate::dbus::send_notification;
 
 pub struct GtkPrompt;
 
@@ -64,7 +66,7 @@ impl SecurePrompt for GtkPrompt {
 
     fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
         std::thread::scope(|s| {
-            s.spawn(|| snxcore::util::block_on(platform::send_notification(summary, message)))
+            s.spawn(|| snxcore::util::block_on(send_notification(summary, message)))
                 .join()
                 .unwrap()
         })

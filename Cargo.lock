@@ -1854,9 +1854,9 @@ dependencies = [
 
 [[package]]
 name = "muda"
-version = "0.13.2"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6fde56ead0971b4caae4aa0f19502e49d1fac2af9d0c60068e2d235e26ce709"
+checksum = "80540ed8e87ad7c2a4890cde4ba1232d8d775394853f02e84ed18603a94a0a00"
 dependencies = [
  "cocoa",
  "crossbeam-channel",
@@ -2818,6 +2818,7 @@ dependencies = [
  "anyhow",
  "async-channel",
  "clap",
+ "futures",
  "gtk",
  "hex",
  "ipnet",
@@ -2829,6 +2830,7 @@ dependencies = [
  "tracing-subscriber",
  "tray-icon",
  "webkit2gtk",
+ "zbus 4.2.1",
 ]
 
 [[package]]

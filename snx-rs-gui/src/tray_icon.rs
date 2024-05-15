@@ -11,10 +11,10 @@ use snxcore::{
     controller::ServiceCommand,
     controller::ServiceController,
     model::{params::TunnelParams, ConnectionStatus},
-    platform,
     prompt::SecurePrompt,
 };
 
+use crate::theme::system_color_theme;
 use crate::{assets, params::CmdlineParams, prompt, webkit};
 
 const TITLE: &str = "SNX-RS VPN client";
@@ -126,7 +126,7 @@ impl MyTray {
             .unwrap();
 
         while let Ok(Some(command)) = rx.recv().await {
-            let theme = platform::system_color_theme().ok();
+            let theme = system_color_theme().ok();
             if theme != prev_theme {
                 prev_theme = theme;
                 self.update()?;

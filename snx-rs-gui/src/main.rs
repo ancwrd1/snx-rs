@@ -12,10 +12,14 @@ use tracing::level_filters::LevelFilter;
 
 use snxcore::{controller::ServiceCommand, model::params::TunnelParams, platform::SingleInstance};
 
+use crate::theme::init_theme_monitoring;
+
 pub mod assets;
+mod dbus;
 pub mod params;
 pub mod prompt;
 pub mod settings;
+mod theme;
 pub mod tray_icon;
 pub mod webkit;
 
@@ -42,7 +46,7 @@ fn main() -> anyhow::Result<()> {
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-    let _ = snxcore::platform::init_theme_monitoring();
+    let _ = init_theme_monitoring();
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 

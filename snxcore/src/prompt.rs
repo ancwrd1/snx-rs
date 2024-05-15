@@ -24,10 +24,7 @@ impl SecurePrompt for TtyPrompt {
     }
 
     fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
-        std::thread::scope(|s| {
-            s.spawn(|| crate::util::block_on(crate::platform::send_notification(summary, message)))
-                .join()
-                .unwrap()
-        })
+        println!("{}: {}", summary, message);
+        Ok(())
     }
 }

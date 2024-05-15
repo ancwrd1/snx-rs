@@ -25,3 +25,5 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 ipnet = {  version = "2", features = ["serde"] }
 clap = { version = "4", features = ["derive"] }
 hex = "0.4"
+zbus = { version = "4.2", default-features = false, features = ["tokio"] }
+futures = "0.3"
