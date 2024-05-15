@@ -71,7 +71,7 @@ There are two ways to use the application:
   - `disconnect` - disconnect a tunnel
   - `reconnect` - drop a connection and then connect again
   - `status` - show connection status
-  - `info` - dump server information in JSON format
+  - `info` - show server authentication methods and supported tunnel types
   - Run it with `--help` option to get usage help
 * Standalone service mode, selected by `-m standalone` parameter. This is the default mode if no parameters are specified.
   Run `snx-rs --help` to get a help with all command line parameters.
