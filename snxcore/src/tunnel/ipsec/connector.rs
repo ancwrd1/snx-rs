@@ -394,7 +394,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             .do_identity_protection(Bytes::copy_from_slice(realm.as_bytes()))
             .await?;
 
-        if self.params.cert_path.is_some() {
+        if self.params.cert_type != CertType::None {
             self.do_session_exchange().await
         } else {
             let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
