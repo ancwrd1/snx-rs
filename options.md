@@ -3,6 +3,7 @@
 The following configuration options are available:
 
 * `server-name=<ip_or_address>` - VPN server to connect to, this is a required parameter
+* `login-type=vpn_xxx` - authentication method, acquired from the server, this is a required parameter
 * `user-name=<username>` - user name to authenticate, not used for SAML or certificate authentication
 * `password=<pass>` - optional password in base64 encoding
 * `cert-type=<cert_type>` - enable certificate-based authentication using given type: pkcs8, pkcs11, pkcs12, none
@@ -19,9 +20,8 @@ The following configuration options are available:
 * `no-cert-check=true|false` - do not check server certificate common name, default is false
 * `ignore-server-cert=true|false` - disable all certificate checks, default is false
 * `tunnel-type=ipsec|ssl` - tunnel type, default is ipsec
-* `login-type=vpn_xxx` - authentication method, acquired from the server, this is a required parameter
 * `no-keychain=true|false` - do not store password in the OS keychain, default is false
 * `server-prompt=true|false` - retrieve MFA prompts from the server, default is false
 * `esp-lifetime=3600` - ESP SA lifetime in seconds, default is 3600
-* `ike-lifetime=28800` - IKE SA lifetime in seconds, default is 28800
-* `ike-port=500` - IKE communication port, either 500 or 4500
+* `ike-lifetime=28800` - IKE SA lifetime in seconds, default is 28800. Set to higher value to extend IPSec session duration
+* `ike-port=500` - IKE communication port, either 500 or 4500, default is 500
