@@ -1,12 +1,13 @@
 # Open source Linux client for Checkpoint VPN tunnels
 
-This project contains a Rust source code of the unofficial Linux client for Checkpoint VPN.
-Based on the reverse engineered protocol from the vendor application.
+This project contains a source code of the unofficial Linux client for Checkpoint VPN written in Rust language.
+Based on the reverse-engineered protocol from the vendor application.
 
 ## Advantages over the official snx client for Linux:
 
 * Open source
 * IPSec support (faster tunnel)
+* More authentication methods
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
 * Better integration with NetworkManager and systemd-resolved
 * Optional integration with Gnome Keyring or KDE KWallet
