@@ -1,7 +1,5 @@
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
-use ::tray_icon::menu::MenuEvent;
 use clap::Parser;
 use gtk::{
     glib::{self, ControlFlow},
@@ -9,19 +7,20 @@ use gtk::{
     Application,
 };
 use tracing::level_filters::LevelFilter;
+use tray_icon::menu::MenuEvent;
 
 use snxcore::{controller::ServiceCommand, model::params::TunnelParams, platform::SingleInstance};
 
 use crate::theme::init_theme_monitoring;
 
-pub mod assets;
+mod assets;
 mod dbus;
-pub mod params;
-pub mod prompt;
-pub mod settings;
+mod params;
+mod prompt;
+mod settings;
 mod theme;
-pub mod tray_icon;
-pub mod webkit;
+mod tray;
+mod webkit;
 
 const PING_DURATION: Duration = Duration::from_secs(1);
 
@@ -53,7 +52,7 @@ fn main() -> anyhow::Result<()> {
     app.connect_activate(move |_| {
         let params = params.clone();
 
-        let mut my_tray = tray_icon::create_tray_icon(params.clone()).unwrap();
+        let mut my_tray = tray::AppTray::new(params.clone()).unwrap();
         let sender = my_tray.sender();
 
         let tx_copy = sender.clone();

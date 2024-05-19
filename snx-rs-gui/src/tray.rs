@@ -8,18 +8,16 @@ use tray_icon::{
 };
 
 use snxcore::{
-    controller::ServiceCommand,
-    controller::ServiceController,
+    controller::{ServiceCommand, ServiceController},
     model::{params::TunnelParams, ConnectionStatus},
     prompt::SecurePrompt,
 };
 
-use crate::theme::system_color_theme;
-use crate::{assets, params::CmdlineParams, prompt, webkit};
+use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme, webkit};
 
 const TITLE: &str = "SNX-RS VPN client";
 
-pub struct MyTray {
+pub struct AppTray {
     command_sender: Sender<Option<ServiceCommand>>,
     command_receiver: Option<Receiver<Option<ServiceCommand>>>,
     status: anyhow::Result<ConnectionStatus>,
@@ -28,7 +26,30 @@ pub struct MyTray {
     tray_icon: TrayIcon,
 }
 
-impl MyTray {
+impl AppTray {
+    pub fn new(params: CmdlineParams) -> anyhow::Result<Self> {
+        let (tx, rx) = async_channel::bounded(256);
+
+        let tray_icon = TrayIconBuilder::new()
+            .with_tooltip(TITLE)
+            .with_title(TITLE)
+            .with_menu_on_left_click(true)
+            .build()?;
+
+        let app_tray = AppTray {
+            command_sender: tx,
+            command_receiver: Some(rx),
+            status: Err(anyhow!("No service connection")),
+            connecting: false,
+            config_file: params.config_file().clone(),
+            tray_icon,
+        };
+
+        app_tray.update()?;
+
+        Ok(app_tray)
+    }
+
     pub fn sender(&self) -> Sender<Option<ServiceCommand>> {
         self.command_sender.clone()
     }
@@ -52,10 +73,6 @@ impl MyTray {
                 Err(ref e) => e.to_string(),
             }
         }
-    }
-    pub fn settings(&mut self) {
-        let params = TunnelParams::load(&self.config_file).unwrap_or_default();
-        super::settings::start_settings_dialog(Arc::new(params));
     }
 
     fn menu(&self) -> anyhow::Result<Box<dyn ContextMenu>> {
@@ -172,27 +189,4 @@ impl MyTray {
 
         Ok(())
     }
-}
-
-pub fn create_tray_icon(params: CmdlineParams) -> anyhow::Result<MyTray> {
-    let (tx, rx) = async_channel::bounded(256);
-
-    let tray_icon = TrayIconBuilder::new()
-        .with_tooltip(TITLE)
-        .with_title(TITLE)
-        .with_menu_on_left_click(true)
-        .build()?;
-
-    let my_tray = MyTray {
-        command_sender: tx,
-        command_receiver: Some(rx),
-        status: Err(anyhow!("No service connection")),
-        connecting: false,
-        config_file: params.config_file().clone(),
-        tray_icon,
-    };
-
-    my_tray.update()?;
-
-    Ok(my_tray)
 }
