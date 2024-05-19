@@ -36,7 +36,7 @@ impl<'a> XfrmLink<'a> {
         ])
         .await?;
 
-        platform::unmanage_device(&self.name).await;
+        platform::unmanage_device(self.name).await;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;

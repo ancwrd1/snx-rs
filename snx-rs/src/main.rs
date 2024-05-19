@@ -80,89 +80,99 @@ async fn main() -> anyhow::Result<()> {
 
     debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
-    let (command_sender, command_receiver) = mpsc::channel(16);
-
     match mode {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
-
-            if params.server_name.is_empty() || params.login_type.is_empty() {
-                return Err(anyhow!("Missing required parameters: server name and/or login type"));
-            }
-
-            let mut mfa_prompts = server_info::get_mfa_prompts(&params).await.unwrap_or_default();
-
-            let mut connector = tunnel::new_tunnel_connector(Arc::new(params)).await?;
-            let mut session = connector.authenticate().await?;
-
-            while let SessionState::PendingChallenge(challenge) = session.state.clone() {
-                match challenge.mfa_type {
-                    MfaType::UserInput => {
-                        let prompt = mfa_prompts.pop_front().unwrap_or_else(|| challenge.prompt.clone());
-                        match TtyPrompt.get_secure_input(&prompt) {
-                            Ok(input) => {
-                                session = connector.challenge_code(session, &input).await?;
-                            }
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    }
-                    MfaType::SamlSso => {
-                        println!("For SAML authentication please open the following URL in your browser:");
-                        println!("{}", challenge.prompt);
-                        let (tx, rx) = oneshot::channel();
-                        tokio::spawn(run_otp_listener(tx));
-                        let otp = tokio::time::timeout(OTP_TIMEOUT, rx).await??;
-                        session = connector.challenge_code(session, &otp).await?;
-                    }
-                }
-            }
-
-            let tunnel = connector.create_tunnel(session, command_sender).await?;
-
-            if let Err(e) = platform::start_network_state_monitoring().await {
-                warn!("Unable to start network monitoring: {}", e);
-            }
-
-            let (event_sender, event_receiver) = mpsc::channel(16);
-            let tunnel_fut = await_termination(tunnel.run(command_receiver, event_sender));
-
-            pin_mut!(tunnel_fut);
-            pin_mut!(event_receiver);
-
-            loop {
-                tokio::select! {
-                    event = event_receiver.recv() => {
-                        if let Some(event) = event {
-                            let _ = connector.handle_tunnel_event(event).await;
-                        }
-                    }
-                    result = &mut tunnel_fut => {
-                        break result;
-                    }
-                }
-            }
+            main_standalone(params).await
         }
         OperationMode::Command => {
             debug!("Running in command mode");
-
-            if let Err(e) = platform::start_network_state_monitoring().await {
-                warn!("Unable to start network monitoring: {}", e);
-            }
-            let server = CommandServer::new(snxcore::server::LISTEN_PORT);
-
-            await_termination(server.run()).await
+            main_command().await
         }
-        OperationMode::Info => {
-            if params.server_name.is_empty() {
-                return Err(anyhow!("Missing required parameters: server name!"));
-            }
-            let client = CccHttpClient::new(Arc::new(params), None);
-            let info = client.get_server_info().await?;
-            snxcore::util::print_login_options(&info);
+        OperationMode::Info => main_info(params).await,
+    }
+}
 
-            Ok(())
+async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
+    if params.server_name.is_empty() {
+        return Err(anyhow!("Missing required parameters: server name!"));
+    }
+    let client = CccHttpClient::new(Arc::new(params), None);
+    let info = client.get_server_info().await?;
+    snxcore::util::print_login_options(&info);
+
+    Ok(())
+}
+
+async fn main_command() -> anyhow::Result<()> {
+    if let Err(e) = platform::start_network_state_monitoring().await {
+        warn!("Unable to start network monitoring: {}", e);
+    }
+    let server = CommandServer::new(snxcore::server::LISTEN_PORT);
+
+    await_termination(server.run()).await
+}
+
+async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
+    // TODO: reuse code from CommandServer and ServiceController
+
+    let (command_sender, command_receiver) = mpsc::channel(16);
+
+    if params.server_name.is_empty() || params.login_type.is_empty() {
+        return Err(anyhow!("Missing required parameters: server name and/or login type"));
+    }
+
+    let mut mfa_prompts = server_info::get_mfa_prompts(&params).await.unwrap_or_default();
+
+    let mut connector = tunnel::new_tunnel_connector(Arc::new(params)).await?;
+    let mut session = connector.authenticate().await?;
+
+    while let SessionState::PendingChallenge(challenge) = session.state.clone() {
+        match challenge.mfa_type {
+            MfaType::UserInput => {
+                let prompt = mfa_prompts.pop_front().unwrap_or_else(|| challenge.prompt.clone());
+                match TtyPrompt.get_secure_input(&prompt) {
+                    Ok(input) => {
+                        session = connector.challenge_code(session, &input).await?;
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
+            MfaType::SamlSso => {
+                println!("For SAML authentication please open the following URL in your browser:");
+                println!("{}", challenge.prompt);
+                let (tx, rx) = oneshot::channel();
+                tokio::spawn(run_otp_listener(tx));
+                let otp = tokio::time::timeout(OTP_TIMEOUT, rx).await??;
+                session = connector.challenge_code(session, &otp).await?;
+            }
+        }
+    }
+
+    let tunnel = connector.create_tunnel(session, command_sender).await?;
+
+    if let Err(e) = platform::start_network_state_monitoring().await {
+        warn!("Unable to start network monitoring: {}", e);
+    }
+
+    let (event_sender, event_receiver) = mpsc::channel(16);
+    let tunnel_fut = await_termination(tunnel.run(command_receiver, event_sender));
+
+    pin_mut!(tunnel_fut);
+    pin_mut!(event_receiver);
+
+    loop {
+        tokio::select! {
+            event = event_receiver.recv() => {
+                if let Some(event) = event {
+                    let _ = connector.handle_tunnel_event(event).await;
+                }
+            }
+            result = &mut tunnel_fut => {
+                break result;
+            }
         }
     }
 }
