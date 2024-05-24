@@ -42,6 +42,6 @@ parking_lot = "0.12"
 byteorder = "1"
 regex = "1"
 once_cell = "1"
-nix = { version = "0.28", features = ["fs", "user"] }
+nix = { version = "0.29", features = ["fs", "user"] }
 zbus = { version = "4.2", default-features = false, features = ["tokio"] }
 secret-service = {  version = "3", features = ["rt-tokio-crypto-rust"] }

@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::Duration};
 
 use clap::Parser;
 use ipnet::Ipv4Net;
-use tracing::log::LevelFilter;
+use tracing::level_filters::LevelFilter;
 
 use snxcore::model::params::{CertType, OperationMode, TunnelParams, TunnelType};
 
