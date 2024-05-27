@@ -47,6 +47,7 @@ Before the client can establish a connection it must know the login (authenticat
  `snx-rs -m info -s remote.acme.com` 
 
  This command will dump the supported login types. Use the `vpn_XXX` identifier as the login type.
+ If a certificate error is returned back try adding `-X true` command line parameter to ignore certificate errors.
 
  Example output (may differ for your server):
 
