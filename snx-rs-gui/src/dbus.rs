@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::collections::HashMap;
 
 use zbus::{zvariant, Connection};
@@ -19,7 +21,6 @@ trait DesktopSettings {
     default_service = "org.freedesktop.Notifications",
     default_path = "/org/freedesktop/Notifications"
 )]
-#[allow(clippy::too_many_arguments)]
 pub trait Notifications {
     fn notify(
         &self,

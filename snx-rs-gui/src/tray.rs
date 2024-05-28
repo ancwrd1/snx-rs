@@ -149,7 +149,7 @@ impl AppTray {
                 self.update()?;
             }
 
-            let tunnel_params = Arc::new(TunnelParams::load(&self.config_file)?);
+            let tunnel_params = Arc::new(TunnelParams::load(&self.config_file).unwrap_or_default());
 
             if let Ok(mut controller) = ServiceController::new(
                 prompt::GtkPrompt,

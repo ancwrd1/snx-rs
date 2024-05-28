@@ -69,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
         .clone()
         .unwrap_or_else(TunnelParams::default_config_path);
 
-    let tunnel_params = Arc::new(TunnelParams::load(config_file)?);
+    let tunnel_params = Arc::new(TunnelParams::load(config_file).unwrap_or_default());
 
     let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser, tunnel_params)?;
 
