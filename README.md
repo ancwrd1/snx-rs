@@ -34,6 +34,7 @@ Based on the reverse-engineered protocol from the vendor application.
 
 ## GUI usage
 
+* For Gnome environment: install the [Appindicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension
 * Run the main application in command mode: `sudo snx-rs -m command` or install it as a systemd service
 * Run the `snx-rs-gui` application which will display a tray icon with a menu
 
