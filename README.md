@@ -30,7 +30,7 @@ Based on the reverse-engineered protocol from the vendor application.
 * systemd-resolved [configured](https://wiki.archlinux.org/title/Systemd-resolved) as a global DNS resolver
 * iproute2 (this is the `ip` utility which should be standard for all distros)
 * D-Bus
-* webkit2gtk for the GUI frontend
+* GTK3, webkit2gtk and libappindicator3 for the GUI frontend
 
 ## GUI usage
 
