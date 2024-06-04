@@ -171,9 +171,7 @@ impl IpsecTunnelConnector {
             .get("msg_obj:arguments:0:val")
             .ok_or_else(|| anyhow!("Invalid challenge reply!"))?;
 
-        let id = inner
-            .get_value::<String>("msg_obj:id")
-            .ok_or_else(|| anyhow!("No challenge id!"))?;
+        let id = inner.get_value::<String>("msg_obj:id").unwrap_or_else(|| String::new());
 
         debug!("Challenge ID: {}", id);
 
