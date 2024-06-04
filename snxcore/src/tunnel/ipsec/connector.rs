@@ -161,7 +161,7 @@ impl IpsecTunnelConnector {
 
         let state = msg_obj
             .get_value::<String>("msg_obj:authentication_state")
-            .ok_or_else(|| anyhow!("No state"))?;
+            .unwrap_or_else(|| "challenge".to_owned());
 
         if state != "challenge" && state != "new_factor" && state != "failed_attempt" {
             return Err(anyhow!("Not a challenge state!"));
@@ -274,7 +274,10 @@ impl IpsecTunnelConnector {
                         let user_name = self.params.user_name.clone();
                         self.challenge_code(Arc::new(VpnSession::empty()), &user_name).await
                     }
-                    ConfigAttributeType::UserPassword if !self.params.password.is_empty() => {
+                    ConfigAttributeType::UserPassword
+                        if !self.params.password.is_empty()
+                            && self.last_challenge_type != ConfigAttributeType::UserPassword =>
+                    {
                         self.last_challenge_type = ConfigAttributeType::UserPassword;
                         let user_password = self.params.password.clone();
                         self.challenge_code(Arc::new(VpnSession::empty()), &user_password).await
