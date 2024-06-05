@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::{collections::HashMap, os::fd::AsRawFd, time::Duration};
+use std::{collections::HashMap, fs, os::fd::AsRawFd, time::Duration};
 
 use anyhow::anyhow;
 use nix::{
@@ -11,6 +11,7 @@ use nix::{
 use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
 use tracing::debug;
+use uuid::Uuid;
 
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
@@ -188,4 +189,9 @@ impl Drop for SingleInstance {
 
 pub async fn unmanage_device(device_name: &str) {
     let _ = crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await;
+}
+
+pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
+    let data = fs::read_to_string("/etc/machine-id")?;
+    Ok(Uuid::try_parse(data.trim())?)
 }

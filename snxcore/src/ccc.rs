@@ -10,6 +10,7 @@ use std::{
 use anyhow::anyhow;
 use reqwest::{Certificate, Identity};
 use tracing::{trace, warn};
+use uuid::Uuid;
 
 use crate::{
     model::{
@@ -17,6 +18,7 @@ use crate::{
         proto::*,
         VpnSession,
     },
+    platform,
     sexpr::SExpression,
 };
 
@@ -52,6 +54,8 @@ impl CccHttpClient {
         } else {
             ("CertAuth", None, None)
         };
+        let machine_uuid = platform::get_machine_uuid().unwrap_or_else(|_| Uuid::new_v4());
+
         CccClientRequestData {
             header: RequestHeader {
                 id: self.new_request_id(),
@@ -66,6 +70,7 @@ impl CccHttpClient {
                 client_logging_data: Some(ClientLoggingData {
                     // Checkpoint gateway checks this and if it's missing or not "Android" the IPSec traffic is blocked
                     os_name: Some("Android".into()),
+                    device_id: Some(Uuid::new_v5(&Uuid::NAMESPACE_OID, machine_uuid.as_bytes()).to_string()),
                     ..Default::default()
                 }),
                 selected_login_option: Some(self.params.login_type.clone()),
