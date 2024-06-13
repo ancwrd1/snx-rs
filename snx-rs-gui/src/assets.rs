@@ -16,6 +16,7 @@ fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
 }
 
 pub struct IconTheme {
+    #[allow(unused)]
     pub vpn: Vec<u8>,
     pub acquiring: Vec<u8>,
     pub error: Vec<u8>,
