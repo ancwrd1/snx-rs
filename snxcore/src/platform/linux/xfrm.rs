@@ -1,7 +1,7 @@
 use std::{net::Ipv4Addr, sync::Arc};
 
 use ipnet::Ipv4Net;
-use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial};
+use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
 use rand::random;
 use tracing::{debug, trace};
 
@@ -79,6 +79,13 @@ impl<'a> XfrmState<'a> {
             EspAuthAlgorithm::Other(_) => "",
         }
     }
+    fn enc_alg_as_xfrm_name(&self) -> &'static str {
+        match self.params.transform_id {
+            TransformId::EspAesCbc => "cbc(aes)",
+            TransformId::Esp3Des => "cbc(des3_ede)",
+            _ => "",
+        }
+    }
 
     async fn add(&self) -> anyhow::Result<()> {
         let authkey = format!("0x{}", hex::encode(&self.params.sk_a));
@@ -110,7 +117,7 @@ impl<'a> XfrmState<'a> {
             &authkey,
             &trunc_len,
             "enc",
-            "cbc(aes)",
+            self.enc_alg_as_xfrm_name(),
             &enckey,
             "if_id",
             &self.if_id.to_string(),
