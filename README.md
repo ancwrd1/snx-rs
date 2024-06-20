@@ -26,7 +26,7 @@ Based on the reverse-engineered protocol from the vendor application.
 
 ## System requirements
 
-* Recent Linux distribution with kernel version 4.19 or higher. Please note that IPv6 support must not be disabled.
+* Recent Linux distribution with kernel version 4.19 or higher. For IPSec tunnel the IPv6 protocol must be enabled in the kernel.
 * systemd-resolved [configured](https://wiki.archlinux.org/title/Systemd-resolved) as a global DNS resolver
 * iproute2 (this is the `ip` utility which should be standard for all distros)
 * D-Bus
