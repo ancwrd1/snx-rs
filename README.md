@@ -104,6 +104,7 @@ There are 4 parameters which control certificate-based authentication:
 ## Building from sources
 
 Recent [Rust compiler](https://rustup.rs) is required. Run `cargo build --release` to build the release version.
+If the GUI frontend is not needed build it as `cargo build --release --workspace --exclude snx-rs-gui`.
 
 ## Credits
 
