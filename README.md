@@ -93,6 +93,14 @@ There are four parameters that control certificate-based authentication:
 * If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
 * If the password is not provided in the configuration file, the first entered MFA challenge code will be stored in the OS keychain unless the `no-keychain` parameter is specified. Keychain integration is provided only in command mode.
 
+## Troubleshooting common problems
+
+| Error | Solution |
+| ----- | -------- |
+| `Error: deadline has elapsed` | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command) |
+| `Error: Unknown device type` | Check if the IPv6 protocol is enabled in the Linux kernel |
+| `Error: [0020] The user is not defined properly` | Application failed to negotiate IPSec encryption parameters. Usually it means that Checkpoint server is misconfigured with the obsolete insecure ciphers. **Don't connect to it** |
+
 ## Contributing
 
 Pull requests, bug reports, and suggestions are welcome. This is a hobby project I maintain in my free time. Adding a missing feature can be considered on a case-by-case basis but will require some testing efforts from the requester.
