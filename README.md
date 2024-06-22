@@ -101,6 +101,7 @@ There are four parameters that control certificate-based authentication:
 | `Unknown device type` | Check if the IPv6 protocol is enabled in the Linux kernel. |
 | `[0020] The user is not defined properly` | Application failed to negotiate IPSec encryption parameters. Usually it means that Checkpoint server is misconfigured with the obsolete insecure ciphers. **Do not connect to it.** |
 | `error sending request for url (https://IP_OR_HOSTNAME/clients/)` + SSL-related stack trace | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks. Use `no-cert-check` to only disable hostname validation. |
+| How do I logout from SAML SSO? | Delete the `~/.config/snx-rs/cookies.db` file |
 
 ## Contributing
 
