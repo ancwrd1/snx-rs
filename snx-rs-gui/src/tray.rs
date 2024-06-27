@@ -98,6 +98,7 @@ impl AppTray {
         ))?;
 
         menu.append(&MenuItem::with_id("settings", "Settings...", true, None))?;
+        menu.append(&MenuItem::with_id("about", "About...", true, None))?;
         menu.append(&MenuItem::with_id("exit", "Exit", true, None))?;
 
         Ok(Box::new(menu))

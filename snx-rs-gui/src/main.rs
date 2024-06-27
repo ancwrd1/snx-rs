@@ -3,8 +3,8 @@ use std::{sync::Arc, time::Duration};
 use clap::Parser;
 use gtk::{
     glib::{self, ControlFlow},
-    prelude::{ApplicationExt, ApplicationExtManual},
-    Application,
+    prelude::{ApplicationExt, ApplicationExtManual, DialogExt},
+    Application, License,
 };
 use tracing::level_filters::LevelFilter;
 use tray_icon::menu::MenuEvent;
@@ -78,6 +78,23 @@ fn main() -> anyhow::Result<()> {
                         let _ = sender.send_blocking(None);
                         glib::idle_add(|| {
                             gtk::main_quit();
+                            ControlFlow::Break
+                        });
+                    }
+                    "about" => {
+                        glib::idle_add(|| {
+                            let dialog = gtk::AboutDialog::builder()
+                                .version(env!("CARGO_PKG_VERSION"))
+                                .logo_icon_name("network-vpn")
+                                .website("https://github.com/ancwrd1/snx-rs")
+                                .authors(["Dmitry Pankratov"])
+                                .license_type(License::Agpl30)
+                                .program_name("SNX-RS VPN Client for Linux")
+                                .title("SNX-RS VPN Client for Linux")
+                                .build();
+
+                            dialog.run();
+
                             ControlFlow::Break
                         });
                     }
