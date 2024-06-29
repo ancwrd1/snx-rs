@@ -47,7 +47,7 @@ pub enum TunnelType {
 
 impl TunnelType {
     pub fn as_client_type(&self) -> &'static str {
-        "SYMBIAN"
+        "TRAC"
     }
 
     pub fn as_str(&self) -> &'static str {

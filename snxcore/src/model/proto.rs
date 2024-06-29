@@ -228,7 +228,7 @@ pub struct ClientLoggingData {
     pub device_type: Option<String>,
     pub hardware_model: Option<String>,
     pub machine_name: Option<String>,
-    pub device_id: Option<String>,
+    pub device_id: Option<QuotedString>,
     pub mac_address: Option<String>,
     pub physical_ip: Option<Ipv4Addr>,
     pub is_compliant: Option<String>,

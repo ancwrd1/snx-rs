@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use tokio::process::Command;
 use tracing::trace;
+use uuid::Uuid;
 
 use crate::{model::proto::NetworkRange, sexpr::SExpression};
 
@@ -108,6 +109,14 @@ pub fn print_login_options(server_info: &SExpression) {
             i += 1;
         }
     }
+}
+
+pub fn get_device_id() -> String {
+    let machine_uuid = crate::platform::get_machine_uuid().unwrap_or_else(|_| Uuid::new_v4());
+    Uuid::new_v5(&Uuid::NAMESPACE_OID, machine_uuid.as_bytes())
+        .braced()
+        .encode_upper(&mut Uuid::encode_buffer())
+        .to_owned()
 }
 
 #[cfg(test)]

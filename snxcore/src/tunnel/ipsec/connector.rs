@@ -4,6 +4,15 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+use crate::{
+    model::{
+        params::{CertType, TunnelParams},
+        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
+    },
+    platform,
+    sexpr::SExpression,
+    tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
+};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
@@ -17,16 +26,6 @@ use isakmp::{
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
-
-use crate::{
-    model::{
-        params::{CertType, TunnelParams},
-        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
-    },
-    platform,
-    sexpr::SExpression,
-    tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
-};
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
 
@@ -382,14 +381,19 @@ impl TunnelConnector for IpsecTunnelConnector {
         let realm = format!(
             "(\n\
                :clientType (TRAC)\n\
-               :clientOS (Windows_7)\n\
                :oldSessionId ()\n\
                :protocolVersion (100)\n\
-               :client_mode (SYMBIAN)\n\
+               :client_mode (secure_connect)\n\
                :selected_realm_id ({})\n\
-             )\n",
-            self.params.login_type
+               :client_logging_data (\n\
+                  :os_name (Windows)\n\
+                  :device_id (\"{}\")\n\
+               ))\n",
+            self.params.login_type,
+            crate::util::get_device_id(),
         );
+
+        trace!("Authentication blob: {}", realm);
 
         self.service
             .do_identity_protection(Bytes::copy_from_slice(realm.as_bytes()))
