@@ -480,3 +480,16 @@ pub struct LoginDisplayLabel {
     pub username: Option<QuotedString>,
     pub password: Option<QuotedString>,
 }
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AuthenticationRealm {
+    #[serde(rename = "clientType")]
+    pub client_type: String,
+    #[serde(rename = "oldSessionId")]
+    pub old_session_id: String,
+    #[serde(rename = "protocolVersion")]
+    pub protocol_version: u32,
+    pub client_mode: String,
+    pub selected_realm_id: String,
+    pub client_logging_data: Option<ClientLoggingData>,
+}

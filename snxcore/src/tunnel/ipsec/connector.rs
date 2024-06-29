@@ -7,6 +7,7 @@ use std::{
 use crate::{
     model::{
         params::{CertType, TunnelParams},
+        proto::{AuthenticationRealm, ClientLoggingData},
         IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
     platform,
@@ -378,25 +379,25 @@ impl TunnelConnector for IpsecTunnelConnector {
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
 
-        let realm = format!(
-            "(\n\
-               :clientType (TRAC)\n\
-               :oldSessionId ()\n\
-               :protocolVersion (100)\n\
-               :client_mode (secure_connect)\n\
-               :selected_realm_id ({})\n\
-               :client_logging_data (\n\
-                  :os_name (Windows)\n\
-                  :device_id (\"{}\")\n\
-               ))\n",
-            self.params.login_type,
-            crate::util::get_device_id(),
-        );
+        let realm = AuthenticationRealm {
+            client_type: "TRAC".to_owned(),
+            old_session_id: String::new(),
+            protocol_version: 100,
+            client_mode: "secure_connect".to_owned(),
+            selected_realm_id: self.params.login_type.clone(),
+            client_logging_data: Some(ClientLoggingData {
+                os_name: Some("Windows".into()),
+                device_id: Some(crate::util::get_device_id().into()),
+                ..Default::default()
+            }),
+        };
 
-        trace!("Authentication blob: {}", realm);
+        let realm_expr = SExpression::from(&realm);
+
+        trace!("Authentication blob: {}", realm_expr);
 
         self.service
-            .do_identity_protection(Bytes::copy_from_slice(realm.as_bytes()))
+            .do_identity_protection(Bytes::copy_from_slice(realm_expr.to_string().as_bytes()))
             .await?;
 
         if self.params.cert_type != CertType::None {
