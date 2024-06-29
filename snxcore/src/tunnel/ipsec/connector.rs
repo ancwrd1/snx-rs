@@ -386,8 +386,16 @@ impl TunnelConnector for IpsecTunnelConnector {
             client_mode: self.params.tunnel_type.as_client_mode().to_owned(),
             selected_realm_id: self.params.login_type.clone(),
             client_logging_data: Some(ClientLoggingData {
+                client_name: Some("Check Point Mobile".into()),
+                client_ver: Some("E87.20".to_owned()),
+                client_build_number: Some("986104605".to_owned()),
                 os_name: Some("Windows".into()),
+                os_version: Some("11".to_owned()),
+                device_type: Some("PC".to_owned()),
+                machine_name: Some("PC".to_owned()),
                 device_id: Some(crate::util::get_device_id().into()),
+                mac_address: Some(vec!["14:53:FB:2E:60:20".to_owned()].into()),
+                physical_ip: Some(Ipv4Addr::new(0, 0, 0, 0)),
                 ..Default::default()
             }),
         };

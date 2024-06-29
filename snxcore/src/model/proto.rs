@@ -220,7 +220,7 @@ pub struct MultiChallengeRequest {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientLoggingData {
-    pub client_name: Option<String>,
+    pub client_name: Option<QuotedString>,
     pub client_ver: Option<String>,
     pub client_build_number: Option<String>,
     pub os_name: Option<QuotedString>,
@@ -229,7 +229,7 @@ pub struct ClientLoggingData {
     pub hardware_model: Option<String>,
     pub machine_name: Option<String>,
     pub device_id: Option<QuotedString>,
-    pub mac_address: Option<String>,
+    pub mac_address: Option<QuotedStringList>,
     pub physical_ip: Option<Ipv4Addr>,
     pub is_compliant: Option<String>,
 }
