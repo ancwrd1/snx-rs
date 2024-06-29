@@ -395,7 +395,7 @@ impl TunnelConnector for IpsecTunnelConnector {
                 machine_name: Some("PC".to_owned()),
                 device_id: Some(crate::util::get_device_id().into()),
                 mac_address: Some(vec!["14:53:FB:2E:60:20".to_owned()].into()),
-                physical_ip: Some(Ipv4Addr::new(0, 0, 0, 0)),
+                physical_ip: Some(my_address),
                 ..Default::default()
             }),
         };
