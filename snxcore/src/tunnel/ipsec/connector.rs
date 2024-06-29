@@ -380,10 +380,10 @@ impl TunnelConnector for IpsecTunnelConnector {
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
 
         let realm = AuthenticationRealm {
-            client_type: "TRAC".to_owned(),
+            client_type: self.params.tunnel_type.as_client_type().to_owned(),
             old_session_id: String::new(),
             protocol_version: 100,
-            client_mode: "secure_connect".to_owned(),
+            client_mode: self.params.tunnel_type.as_client_mode().to_owned(),
             selected_realm_id: self.params.login_type.clone(),
             client_logging_data: Some(ClientLoggingData {
                 os_name: Some("Windows".into()),
