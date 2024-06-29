@@ -380,7 +380,7 @@ pub struct DisconnectRequest {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DisconnectRequestData {
     pub code: String,
-    pub message: Option<String>,
+    pub message: Option<QuotedString>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

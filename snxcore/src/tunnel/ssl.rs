@@ -143,11 +143,14 @@ impl SslTunnel {
         let reply = match reply {
             SslPacketType::Control(expr) => {
                 trace!("Hello reply: {:?}", expr);
-                let result: HelloReply = expr.try_into()?;
-                self.ip_address.clone_from(&result.data.office_mode.ipaddr);
-                self.auth_timeout = Duration::from_secs(result.data.timeouts.authentication) - REAUTH_LEEWAY;
-                self.keepalive = Duration::from_secs(result.data.timeouts.keepalive);
-                result
+                if matches!(&expr, SExpression::Object(Some(name), _) if name == "disconnect") {
+                    return Err(anyhow!("Tunnel disconnected, last message: {}", expr));
+                }
+                let hello_reply = expr.try_into::<HelloReply>()?;
+                self.ip_address.clone_from(&hello_reply.data.office_mode.ipaddr);
+                self.auth_timeout = Duration::from_secs(hello_reply.data.timeouts.authentication) - REAUTH_LEEWAY;
+                self.keepalive = Duration::from_secs(hello_reply.data.timeouts.keepalive);
+                hello_reply
             }
             _ => return Err(anyhow!("Unexpected reply")),
         };
