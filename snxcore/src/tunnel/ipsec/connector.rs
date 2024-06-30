@@ -10,7 +10,7 @@ use crate::{
         proto::{AuthenticationRealm, ClientLoggingData},
         IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
-    platform,
+    platform, server_info,
     sexpr::SExpression,
     tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
 };
@@ -375,6 +375,21 @@ impl IpsecTunnelConnector {
 #[async_trait]
 impl TunnelConnector for IpsecTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+        let server_info = server_info::get(&self.params).await?;
+
+        let secondary_realm_hash =
+            server_info
+                .login_options_data
+                .login_options_list
+                .into_iter()
+                .find_map(|login_option| {
+                    if login_option.1.id == self.params.login_type {
+                        Some(login_option.1.secondary_realm_hash)
+                    } else {
+                        None
+                    }
+                });
+
         let my_address = platform::get_default_ip().await?.parse::<Ipv4Addr>()?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
@@ -385,6 +400,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             protocol_version: 100,
             client_mode: self.params.tunnel_type.as_client_mode().to_owned(),
             selected_realm_id: self.params.login_type.clone(),
+            secondary_realm_hash,
             client_logging_data: Some(ClientLoggingData {
                 client_name: Some("Check Point Mobile".into()),
                 client_ver: Some("E87.20".to_owned()),

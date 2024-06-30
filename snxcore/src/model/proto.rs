@@ -491,5 +491,6 @@ pub struct AuthenticationRealm {
     pub protocol_version: u32,
     pub client_mode: String,
     pub selected_realm_id: String,
+    pub secondary_realm_hash: Option<String>,
     pub client_logging_data: Option<ClientLoggingData>,
 }
