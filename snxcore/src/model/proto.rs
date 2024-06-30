@@ -223,7 +223,7 @@ pub struct ClientLoggingData {
     pub client_name: Option<QuotedString>,
     pub client_ver: Option<String>,
     pub client_build_number: Option<String>,
-    pub os_name: Option<QuotedString>,
+    pub os_name: Option<String>,
     pub os_version: Option<String>,
     pub device_type: Option<String>,
     pub hardware_model: Option<String>,
