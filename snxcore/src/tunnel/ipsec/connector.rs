@@ -387,16 +387,8 @@ impl TunnelConnector for IpsecTunnelConnector {
             selected_realm_id: self.params.login_type.clone(),
             secondary_realm_hash: None,
             client_logging_data: Some(ClientLoggingData {
-                client_name: Some(String::new().into()),
-                client_ver: Some(String::new()),
-                client_build_number: Some(String::new()),
                 os_name: Some("Windows".to_owned()),
-                os_version: Some(String::new()),
-                device_type: Some(String::new()),
-                machine_name: Some(String::new()),
                 device_id: Some(crate::util::get_device_id().into()),
-                mac_address: None,
-                physical_ip: Some(my_address),
                 ..Default::default()
             }),
         };
