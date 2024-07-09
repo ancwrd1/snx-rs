@@ -113,7 +113,7 @@ The recommended way to build it is via distrobox, which is available for all dis
 
 * Provision distrobox container: `distrobox create --image ubuntu:22.04 --name snx-ubuntu`
 * Enter the container: `distrobox enter snx-ubuntu`
-* Install the required dependencies: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev` (or similar packages for non-Debian distros)
+* Install the required dependencies: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev`
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`.
