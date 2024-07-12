@@ -144,31 +144,27 @@ impl SingleInstance {
             name.as_ref(),
             OFlag::O_RDWR | OFlag::O_CREAT,
             Mode::from_bits_truncate(0o600),
-        );
-        match fd {
-            Err(e) => Err(anyhow!("OS error {}", e)),
-            Ok(fd) => {
-                let fl = nix::libc::flock {
-                    l_type: nix::libc::F_WRLCK as _,
-                    l_whence: nix::libc::SEEK_SET as _,
-                    l_start: 0,
-                    l_len: 0,
-                    l_pid: 0,
-                };
+        )?;
 
-                match fcntl::fcntl(fd, FcntlArg::F_SETLK(&fl)) {
-                    Ok(_) => Ok(SingleInstance {
-                        name: name.as_ref().to_owned(),
-                        handle: Some(fd),
-                    }),
-                    Err(_) => {
-                        let _ = unistd::close(fd);
-                        Ok(SingleInstance {
-                            name: name.as_ref().to_owned(),
-                            handle: None,
-                        })
-                    }
-                }
+        let fl = nix::libc::flock {
+            l_type: nix::libc::F_WRLCK as _,
+            l_whence: nix::libc::SEEK_SET as _,
+            l_start: 0,
+            l_len: 0,
+            l_pid: 0,
+        };
+
+        match fcntl::fcntl(fd, FcntlArg::F_SETLK(&fl)) {
+            Ok(_) => Ok(SingleInstance {
+                name: name.as_ref().to_owned(),
+                handle: Some(fd),
+            }),
+            Err(_) => {
+                let _ = unistd::close(fd);
+                Ok(SingleInstance {
+                    name: name.as_ref().to_owned(),
+                    handle: None,
+                })
             }
         }
     }
