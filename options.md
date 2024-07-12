@@ -25,3 +25,4 @@
 | `esp-lifetime=3600` | ESP SA lifetime in seconds, default is 3600 |
 | `ike-lifetime=28800` | IKE SA lifetime in seconds, default is 28800. Set to higher value to extend IPSec session duration |
 | `ike-port=500` | IKE communication port, either 500 or 4500, default is 500 |
+| `log-level=<log_level>` | Logging level: error, warn, debug, info, trace. Default is info. Note: trace-level log includes request and response dumps with sensitive information |
