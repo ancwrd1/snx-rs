@@ -34,6 +34,7 @@ pub async fn run_otp_listener(sender: oneshot::Sender<String>) -> anyhow::Result
     if let Some(captures) = OTP_RE.captures(&data) {
         if let Some(otp) = captures.name("otp") {
             let _ = sender.send(otp.as_str().to_owned());
+            return Ok(());
         }
     }
     Err(anyhow!("No OTP acquired!"))
