@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use clap::Parser;
 use gtk::{
     glib::{self, ControlFlow},
-    prelude::{ApplicationExt, ApplicationExtManual, DialogExt},
+    prelude::{ApplicationExt, ApplicationExtManual, DialogExt, GtkWindowExt},
     Application, License,
 };
 use tracing::level_filters::LevelFilter;
@@ -94,6 +94,7 @@ fn main() -> anyhow::Result<()> {
                                 .build();
 
                             dialog.run();
+                            dialog.close();
 
                             ControlFlow::Break
                         });
