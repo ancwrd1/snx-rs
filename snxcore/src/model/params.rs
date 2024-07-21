@@ -327,6 +327,9 @@ impl TunnelParams {
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
         writeln!(buf, "ike-port={}", self.ike_port)?;
 
+        PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
+            let _ = std::fs::create_dir_all(dir);
+        });
         std::fs::write(&self.config_file, buf.into_inner())?;
 
         Ok(())
