@@ -20,6 +20,7 @@ use codec::{SslPacketCodec, SslPacketType};
 
 use crate::{
     model::{params::TunnelParams, proto::*, *},
+    platform,
     sexpr::SExpression,
     tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
 };
@@ -260,6 +261,8 @@ impl VpnTunnel for SslTunnel {
         };
 
         let _ = event_sender.send(TunnelEvent::Disconnected).await;
+
+        platform::delete_device(&dev_name).await;
 
         result
     }

@@ -187,6 +187,10 @@ pub async fn unmanage_device(device_name: &str) {
     let _ = crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await;
 }
 
+pub async fn delete_device(device_name: &str) {
+    let _ = crate::util::run_command("ip", ["link", "del", "name", device_name]).await;
+}
+
 pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
     let data = fs::read_to_string("/etc/machine-id")?;
     Ok(Uuid::try_parse(data.trim())?)
