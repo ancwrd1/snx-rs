@@ -401,13 +401,9 @@ impl TunnelConnector for IpsecTunnelConnector {
             .do_identity_protection(Bytes::copy_from_slice(realm_expr.to_string().as_bytes()))
             .await?;
 
-        if self.params.cert_type != CertType::None {
-            self.do_session_exchange().await
-        } else {
-            let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
-            self.last_message_id = message_id;
-            self.process_auth_attributes(attrs_reply).await
-        }
+        let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
+        self.last_message_id = message_id;
+        self.process_auth_attributes(attrs_reply).await
     }
 
     async fn challenge_code(&mut self, _session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
