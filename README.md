@@ -35,6 +35,20 @@ Unfortunately, my employer uses the popular-but-not-so-Linux-friendly Checkpoint
 * D-Bus
 * GTK3, webkit2gtk, and libappindicator3 for the GUI frontend
 
+## Differences between SSL and IPSec tunnels
+
+IPSec is recommended for all connections because of the performance and feature set. However, in certain situaions, 
+it might not work (for example because of corporate firewall policies). In this case SSL tunnel type can be used
+which is a subject for some limitations.
+
+|  | SSL | IPSec |
+| ----- | ----- | ----- |
+| Technology | User-space TCP-encapsulated tunnel via TUN device. Slow: up to 2MB/s. | Kernel-space UDP-encapsulated tunnel via native OS support. Speed is closer to raw bandwidth, limited by VPN server capability. |
+| Network access | Works via TCP port 443 | Works via UDP ports 4500 and 500 |
+| Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul> | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul>|
+
+
+
 ## GUI Usage
 
 * For GNOME environment: install the [Appindicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension
