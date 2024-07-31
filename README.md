@@ -39,7 +39,7 @@ Unfortunately, my employer uses the popular-but-not-so-Linux-friendly Checkpoint
 
 IPSec is recommended for all connections because of the performance and feature set. However, in certain situations, 
 it might not work (for example because of corporate firewall policies). In this case SSL tunnel type can be used
-which is a subject for some limitations.
+which is a subject to some limitations.
 
 |  | SSL | IPSec |
 | ----- | ----- | ----- |
