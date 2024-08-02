@@ -208,13 +208,8 @@ impl VpnTunnel for SslTunnel {
                         debug!("Control packet received");
                         match expr {
                             SExpression::Object(Some(name), _) if name == "keepalive" => {
-                                let _ = keepalive_counter.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |v| {
-                                    if v > 0 {
-                                        Some(v - 1)
-                                    } else {
-                                        None
-                                    }
-                                });
+                                let _ = keepalive_counter
+                                    .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |v| (v > 0).then_some(v - 1));
                             }
                             _ => {}
                         }
