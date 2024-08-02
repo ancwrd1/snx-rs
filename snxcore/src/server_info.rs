@@ -25,9 +25,11 @@ pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<S
     }
     let server_info = get(params).await?;
     let login_type = &params.login_type;
-    let login_factors = server_info
+    let options_list = server_info
         .login_options_data
-        .login_options_list
+        .map(|d| d.login_options_list)
+        .unwrap_or_default();
+    let login_factors = options_list
         .into_iter()
         .find_map(|login_option| {
             if login_option.1.id == *login_type {

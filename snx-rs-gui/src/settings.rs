@@ -10,7 +10,10 @@ use ipnet::Ipv4Net;
 use tracing::warn;
 
 use snxcore::{
-    model::params::{TunnelParams, TunnelType},
+    model::{
+        params::{TunnelParams, TunnelType},
+        proto::LoginOption,
+    },
     server_info,
 };
 
@@ -275,7 +278,14 @@ impl SettingsDialog {
                     Ok(server_info) => {
                         error.set_label("");
                         error.set_visible(false);
-                        for (i, (_, option)) in server_info.login_options_data.login_options_list.into_iter().enumerate() {
+                        let mut options_list = server_info
+                            .login_options_data
+                            .map(|d| d.login_options_list)
+                            .unwrap_or_default();
+                        if options_list.is_empty() {
+                            options_list.insert(String::new(), LoginOption::unspecified());
+                        }
+                        for (i, (_, option)) in options_list.into_iter().enumerate() {
                             let factors = option
                                 .factors
                                 .values()

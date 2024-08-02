@@ -395,13 +395,12 @@ pub struct ServerInfoResponse {
     pub protocol_version: ProtocolVersion,
     pub upgrade_configuration: UpgradeConfiguration,
     pub connectivity_info: ConnectivityInfo,
-    pub login_options_data: LoginOptionsData,
+    pub login_options_data: Option<LoginOptionsData>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProtocolVersion {
     pub protocol_version: u32,
-    pub features: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -439,6 +438,18 @@ pub struct LoginOption {
     pub display_name: QuotedString,
     pub show_realm: u32,
     pub factors: BTreeMap<String, LoginFactor>,
+}
+
+impl LoginOption {
+    pub fn unspecified() -> Self {
+        Self {
+            id: "vpn_Username_Password".to_string(),
+            secondary_realm_hash: String::new(),
+            display_name: "Username and password".into(),
+            show_realm: 0,
+            factors: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
