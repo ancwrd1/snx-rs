@@ -395,7 +395,6 @@ pub struct ServerInfoResponse {
     pub protocol_version: ProtocolVersion,
     pub upgrade_configuration: UpgradeConfiguration,
     pub connectivity_info: ConnectivityInfo,
-    pub end_point_security: EndPointSecurity,
     pub login_options_data: LoginOptionsData,
 }
 
@@ -425,23 +424,6 @@ pub struct ConnectivityInfo {
     pub connect_with_certificate_url: QuotedString,
     pub cookie_name: String,
     pub internal_ca_fingerprint: BTreeMap<String, String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EndPointSecurity {
-    pub ics: IcsInfo,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct IcsInfo {
-    pub run_ics: bool,
-    pub ics_base_url: QuotedString,
-    pub ics_version: u32,
-    pub ics_upgrade_url: QuotedString,
-    pub ics_images_url: QuotedString,
-    pub ics_images_ver: u32,
-    pub ics_cab_url: QuotedString,
-    pub ics_cab_version: QuotedString,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
