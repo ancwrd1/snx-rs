@@ -154,7 +154,7 @@ impl CccHttpClient {
 
         let mut builder = reqwest::Client::builder().connect_timeout(CONNECT_TIMEOUT);
 
-        if let Some(ref ca_cert) = self.params.ca_cert {
+        for ca_cert in &self.params.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;
             let cert = Certificate::from_pem(&data).or_else(|_| Certificate::from_der(&data))?;
             builder = builder.add_root_certificate(cert);

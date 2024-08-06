@@ -398,7 +398,11 @@ impl TunnelConnector for IpsecTunnelConnector {
         trace!("Authentication blob: {}", realm_expr);
 
         self.service
-            .do_identity_protection(Bytes::copy_from_slice(realm_expr.to_string().as_bytes()))
+            .do_identity_protection(
+                Bytes::copy_from_slice(realm_expr.to_string().as_bytes()),
+                self.params.ipsec_cert_check,
+                &self.params.ca_cert,
+            )
             .await?;
 
         let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;

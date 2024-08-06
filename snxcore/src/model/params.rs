@@ -146,8 +146,9 @@ pub struct TunnelParams {
     pub no_dns: bool,
     pub no_cert_check: bool,
     pub ignore_server_cert: bool,
+    pub ipsec_cert_check: bool,
     pub tunnel_type: TunnelType,
-    pub ca_cert: Option<PathBuf>,
+    pub ca_cert: Vec<PathBuf>,
     pub login_type: String,
     pub cert_type: CertType,
     pub cert_path: Option<PathBuf>,
@@ -178,8 +179,9 @@ impl Default for TunnelParams {
             no_dns: false,
             no_cert_check: false,
             ignore_server_cert: false,
-            tunnel_type: Default::default(),
-            ca_cert: None,
+            ipsec_cert_check: false,
+            tunnel_type: TunnelType::default(),
+            ca_cert: Vec::new(),
             login_type: String::new(),
             cert_type: CertType::None,
             cert_path: None,
@@ -230,9 +232,10 @@ impl TunnelParams {
                         }
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                         "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
+                        "ipsec-cert-check" => params.ipsec_cert_check = v.parse().unwrap_or_default(),
                         "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
                         "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
-                        "ca-cert" => params.ca_cert = Some(v.into()),
+                        "ca-cert" => params.ca_cert = v.split(',').map(|s| s.trim().into()).collect(),
                         "login-type" => params.login_type = v,
                         "cert-type" => params.cert_type = v.parse().unwrap_or_default(),
                         "cert-path" => params.cert_path = Some(v.into()),
@@ -303,10 +306,17 @@ impl TunnelParams {
         writeln!(buf, "no-dns={}", self.no_dns)?;
         writeln!(buf, "no-cert-check={}", self.no_cert_check)?;
         writeln!(buf, "ignore-server-cert={}", self.ignore_server_cert)?;
+        writeln!(buf, "ipsec-cert-check={}", self.ipsec_cert_check)?;
         writeln!(buf, "tunnel-type={}", self.tunnel_type.as_str())?;
-        if let Some(ref ca_cert) = self.ca_cert {
-            writeln!(buf, "ca-cert={}", ca_cert.display())?;
-        }
+        writeln!(
+            buf,
+            "ca-cert={}",
+            self.ca_cert
+                .iter()
+                .map(|r| format!("{}", r.display()))
+                .collect::<Vec<_>>()
+                .join(",")
+        )?;
         writeln!(buf, "login-type={}", self.login_type)?;
         writeln!(buf, "cert-type={}", self.cert_type)?;
         if let Some(ref cert_path) = self.cert_path {

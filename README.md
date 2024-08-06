@@ -41,11 +41,11 @@ IPSec is recommended for all connections because of the performance and feature 
 it might not work (for example because of corporate firewall policies). In this case SSL tunnel type can be used
 which is a subject to some limitations.
 
-|  | SSL | IPSec |
-| ----- | ----- | ----- |
-| Technology | User-space TCP-encapsulated tunnel via TUN device. Slow: up to 2MB/s. | Kernel-space UDP-encapsulated tunnel via native OS support. Speed is closer to raw bandwidth, limited by VPN server capability. |
-| Network access | Works via TCP port 443 | Works via UDP ports 4500 and 500 |
-| Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul> | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul>|
+|                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
+|--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Technology                     | User-space TCP-encapsulated tunnel via TUN device. Slow: up to 2MB/s. | Kernel-space UDP-encapsulated tunnel via native OS support. Speed is closer to raw bandwidth, limited by VPN server capability.                                                        |
+| Network access                 | Works via TCP port 443                                                | Works via UDP ports 4500 and 500                                                                                                                                                       |
+| Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul>   | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul> |
 
 
 
@@ -93,9 +93,20 @@ There are two ways to use the application:
   - Run it with the `--help` option to get usage help.
 * **Standalone Service Mode**: Selected by the `-m standalone` parameter. This is the default mode if no parameters are specified. Run `snx-rs --help` to get help with all command line parameters. In this mode, the application takes connection parameters either from the command line or from the specified configuration file. This mode is recommended for headless usage.
 
+## Certificate validation
+
+The following parameters control certificate validation during TLS and IKE exchanges:
+
+* `ca-cert`: Comma-separated list of paths to PEM or DER files which contain custom CA root certificates 
+* `no-cert-check`: true|false. Disable server hostname check for TLS connection. Insecure and not recommended. Default is false.
+* `ignore-server-cert`: true|false. Disable all TLS certificate checks. Insecure and not recommended. Default is false.
+* `ipsec-cert-check`: true|false. Enable additional certificate checks for IKE exchange. Requires custom CA root certificate to be specified. Standard system-wide CA roots are not used. Default is false (certificates are not checked).
+
+Please note that enabling any of the insecure options may compromise the channel security. 
+
 ## Certificate Authentication
 
-There are four parameters that control certificate-based authentication:
+The following parameters control certificate-based authentication:
 
 * `cert-type`: One of "none", "pkcs12", "pkcs8", or "pkcs11". Choose "pkcs12" to read the certificate from an external PFX file. Choose "pkcs8" to read the certificate from an external PEM file (containing both private key and x509 cert). Choose "pkcs11" to use a hardware token via a PKCS11 driver.
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed.
@@ -109,13 +120,13 @@ There are four parameters that control certificate-based authentication:
 
 ## Troubleshooting common problems
 
-| Error | Solution |
-| ----- | -------- |
-| `deadline has elapsed` | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command). |
-| `Unknown device type` | Check if the IPv6 protocol is enabled in the Linux kernel. |
-| `[0020] The user is not defined properly` | Application failed to negotiate IPSec encryption parameters. Usually it means that Checkpoint server is misconfigured with the obsolete insecure ciphers. **Do not connect to it.** |
+| Error                                                                                       | Solution                                                                                                                                                                                 |
+|---------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `deadline has elapsed`                                                                      | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                       |
+| `Unknown device type`                                                                       | Check if the IPv6 protocol is enabled in the Linux kernel.                                                                                                                               |
+| `[0020] The user is not defined properly`                                                   | Application failed to negotiate IPSec encryption parameters. Usually it means that Checkpoint server is misconfigured with the obsolete insecure ciphers. **Do not connect to it.**      |
 | `error sending request for url (https://IP_OR_HOSTNAME/clients/)` + SSL-related stack trace | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks. Use `no-cert-check` to only disable hostname validation. |
-| How do I logout from SAML SSO? | Delete the `~/.config/snx-rs/cookies.db` file |
+| How do I logout from SAML SSO?                                                              | Delete the `~/.config/snx-rs/cookies.db` file                                                                                                                                            |
 
 ## Contributing
 

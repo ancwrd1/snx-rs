@@ -80,7 +80,7 @@ impl SslTunnel {
 
         let mut builder = TlsConnector::builder();
 
-        if let Some(ref ca_cert) = params.ca_cert {
+        for ca_cert in &params.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;
             let cert = Certificate::from_pem(&data).or_else(|_| Certificate::from_der(&data))?;
             builder.add_root_certificate(cert);

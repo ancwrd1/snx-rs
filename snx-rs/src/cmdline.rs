@@ -83,11 +83,18 @@ pub struct CmdlineParams {
     )]
     pub ignore_server_cert: Option<bool>,
 
+    #[clap(
+        long = "ipsec-cert-check",
+        short = 'S',
+        help = "Validate IPSec certificates acquired during IKE identity protection phase"
+    )]
+    pub ipsec_cert_check: Option<bool>,
+
     #[clap(long = "tunnel-type", short = 'e', help = "Tunnel type, one of: ssl, ipsec")]
     pub tunnel_type: Option<TunnelType>,
 
-    #[clap(long = "ca-cert", short = 'k', help = "Custom CA cert file in PEM or DER format")]
-    pub ca_cert: Option<PathBuf>,
+    #[clap(long = "ca-cert", short = 'k', help = "Custom CA certificates in PEM or DER format")]
+    pub ca_cert: Vec<PathBuf>,
 
     #[clap(
         long = "login-type",
@@ -198,8 +205,8 @@ impl CmdlineParams {
             other.tunnel_type = tunnel_type;
         }
 
-        if let Some(ca_cert) = self.ca_cert {
-            other.ca_cert = Some(ca_cert);
+        if !self.ca_cert.is_empty() {
+            other.ca_cert = self.ca_cert;
         }
 
         if let Some(no_cert_check) = self.no_cert_check {
@@ -208,6 +215,10 @@ impl CmdlineParams {
 
         if let Some(ignore_server_cert) = self.ignore_server_cert {
             other.ignore_server_cert = ignore_server_cert;
+        }
+
+        if let Some(ipsec_cert_check) = self.ipsec_cert_check {
+            other.ipsec_cert_check = ipsec_cert_check;
         }
 
         if let Some(login_type) = self.login_type {
