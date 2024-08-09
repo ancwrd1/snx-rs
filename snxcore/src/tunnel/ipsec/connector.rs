@@ -399,6 +399,7 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         self.service
             .do_identity_protection(
+                self.gateway_address,
                 Bytes::copy_from_slice(realm_expr.to_string().as_bytes()),
                 self.params.ipsec_cert_check,
                 &self.params.ca_cert,
