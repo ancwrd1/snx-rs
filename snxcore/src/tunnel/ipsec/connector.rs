@@ -19,7 +19,7 @@ use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use isakmp::{
-    ikev1::{codec::Ikev1Codec, service::Ikev1Service, session::Ikev1SyncedSession},
+    ikev1::{codec::Ikev1Codec, service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, PayloadType},
     payload::AttributesPayload,
     session::IsakmpSession,
@@ -32,7 +32,7 @@ const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
 
 pub struct IpsecTunnelConnector {
     params: Arc<TunnelParams>,
-    service: Ikev1Service<UdpTransport<Ikev1Codec<Ikev1SyncedSession>>>,
+    service: Ikev1Service<UdpTransport<Ikev1Codec<Ikev1Session>>>,
     gateway_address: Ipv4Addr,
     last_message_id: u32,
     last_identifier: u16,
@@ -85,7 +85,7 @@ impl IpsecTunnelConnector {
         let prober = NattProber::new(gateway_address);
         prober.probe().await?;
 
-        let ikev1_session = Ikev1SyncedSession::new(identity)?;
+        let ikev1_session = Ikev1Session::new(identity)?;
         let transport = UdpTransport::new(socket, Ikev1Codec::new(ikev1_session.clone()));
         let service = Ikev1Service::new(transport, ikev1_session)?;
 
