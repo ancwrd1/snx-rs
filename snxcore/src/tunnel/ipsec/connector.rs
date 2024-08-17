@@ -20,10 +20,11 @@ use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use isakmp::{
     ikev1::{codec::Ikev1Codec, service::Ikev1Service, session::Ikev1Session},
+    message::IsakmpMessageCodec,
     model::{ConfigAttributeType, EspAttributeType, Identity, PayloadType},
     payload::AttributesPayload,
     session::IsakmpSession,
-    transport::{IsakmpTransport, UdpTransport},
+    transport::UdpTransport,
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
@@ -321,7 +322,9 @@ impl IpsecTunnelConnector {
     }
 
     async fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
-        if let Some(msg) = self.service.transport_mut().parse_data(&data[4..])? {
+        let mut codec = Ikev1Codec::new(self.service.session());
+
+        if let Some(msg) = codec.decode(&data)? {
             let payload_types = msg.payloads.iter().map(|p| p.as_payload_type()).collect::<Vec<_>>();
             debug!(
                 "Received unsolicited ISAKMP message, exchange type: {:?}, message id: {:04x}, payloads: {:?}",
