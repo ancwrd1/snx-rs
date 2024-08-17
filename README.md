@@ -29,6 +29,10 @@ So that and also the fact that I like programming and Rust in particular.
 * IPSec tunnel via Linux native kernel XFRM interface
 * Store passwords in the keychain using Secret Service API
 
+## Limitations
+
+* Certificate enrollment and renewal is not supported
+
 ## System Requirements
 
 * A recent Linux distribution with kernel version 4.19 or higher. For the IPSec tunnel, the IPv6 protocol must be enabled in the kernel.
