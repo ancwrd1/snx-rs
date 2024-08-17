@@ -40,12 +40,12 @@ So that and also the fact that I like programming and Rust in particular.
 ## Differences between SSL and IPSec tunnels
 
 IPSec is recommended for all connections because of the performance and feature set. However, in certain situations,
-it might not work (for example because of corporate firewall policies). In this case SSL tunnel type can be used
+it might not work (for example because of the corporate firewall policies). In this case the SSL tunnel can be used
 which is a subject to some limitations.
 
 |                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
 |--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Technology                     | User-space TCP-encapsulated tunnel via TUN device. Slow: up to 2MB/s. | Kernel-space UDP-encapsulated tunnel via native OS support. Speed is closer to raw bandwidth, limited by VPN server capability.                                                        |
+| Technology                     | User-space TCP-encapsulated tunnel via TUN device. Slow: up to 2MB/s. | Kernel-space UDP-encapsulated tunnel via native OS support. Speed is closer to raw bandwidth, limited by VPN server capacity.                                                          |
 | Ports                          | TCP port 443                                                          | UDP ports 4500 and 500                                                                                                                                                                 |
 | Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul>   | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul> |
 
@@ -122,13 +122,13 @@ The following parameters control certificate-based authentication:
 
 ## Troubleshooting common problems
 
-| Error                                                                                       | Solution                                                                                                                                                                                 |
-|---------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `deadline has elapsed`                                                                      | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                       |
-| `Unknown device type`                                                                       | Check if the IPv6 protocol is enabled in the Linux kernel.                                                                                                                               |
-| `[0020] The user is not defined properly`                                                   | Application failed to negotiate IPSec encryption parameters. Usually it means that Check Point server is misconfigured with the obsolete insecure ciphers.                                |
-| `error sending request for url (https://IP_OR_HOSTNAME/clients/)` + SSL-related stack trace | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks. Use `no-cert-check` to only disable hostname validation. |
-| How do I logout from SAML SSO?                                                              | Delete the `~/.config/snx-rs/cookies.db` file                                                                                                                                            |
+| Error                                                             | Solution                                                                                                                                                                                 |
+|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `deadline has elapsed`                                            | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                       |
+| `Unknown device type`                                             | Check if the IPv6 protocol is enabled in the Linux kernel.                                                                                                                               |
+| `[0020] The user is not defined properly`                         | Application failed to negotiate IPSec encryption parameters. Usually it means that Check Point server is misconfigured with the obsolete insecure ciphers.                               |
+| `error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks. Use `no-cert-check` to only disable hostname validation. |
+| How do I logout from SAML SSO?                                    | Delete the `~/.config/snx-rs/cookies.db` file                                                                                                                                            |
 
 ## Contributing
 
