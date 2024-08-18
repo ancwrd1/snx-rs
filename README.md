@@ -34,7 +34,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * iproute2 (the `ip` command)
 * D-Bus
 * GTK3 and libappindicator3 for the GUI frontend
-* webkit2gtk for the optional WebKit webview  
+* webkit2gtk for the optional WebKit webview
 
 ## Differences between SSL and IPSec tunnels
 
@@ -135,7 +135,7 @@ Pull requests, bug reports, and suggestions are welcome. This is a hobby project
 ## Building from Sources
 
 By default, the WebKit integration is not enabled and the system browser will be used for SAML authentication.
-It is controlled by the feature flag `webkit2gtk` which can be enabled with `--features=webgit2gtk` cargo parameter.
+It is controlled by the feature flag `webkit2gtk` which can be enabled with `--features=webkit2gtk` cargo parameter.
 
 The easiest way to build the project is using the distrobox:
 
