@@ -245,7 +245,7 @@ impl VpnTunnel for SslTunnel {
                         _ => {}
                     }
                 }
-                _ = &mut ka_run => {
+                () = &mut ka_run => {
                     warn!("Keepalive failed, exiting");
                     break Err(anyhow!("Keepalive failed"));
                 }

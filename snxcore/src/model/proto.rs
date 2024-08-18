@@ -447,7 +447,7 @@ impl LoginOption {
             secondary_realm_hash: String::new(),
             display_name: "Username and password".into(),
             show_realm: 0,
-            factors: Default::default(),
+            factors: BTreeMap::default(),
         }
     }
 }

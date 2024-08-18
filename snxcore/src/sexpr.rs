@@ -89,8 +89,8 @@ impl SExpression {
     fn encode_with_level(&self, level: u32) -> Option<String> {
         match self {
             SExpression::Null => None,
-            SExpression::Value(value) => Some(format!("({})", value)),
-            SExpression::QuotedValue(value) => Some(format!("(\"{}\")", value)),
+            SExpression::Value(value) => Some(format!("({value})")),
+            SExpression::QuotedValue(value) => Some(format!("(\"{value}\")")),
             SExpression::Object(name, object) => Some(self.encode_object(level, name.as_deref(), object)),
             SExpression::Array(items) => Some(self.encode_array(level, items)),
         }
@@ -123,14 +123,14 @@ impl SExpression {
             .collect::<Vec<_>>()
             .join("\n");
 
-        format!("(\n{})", formatted_items)
+        format!("(\n{formatted_items})")
     }
 
     pub fn to_json(&self) -> Value {
         match self {
             Self::Null => Value::Null,
             Self::Value(v) => to_json_value(v),
-            Self::QuotedValue(v) => Value::String(format!("\"{}\"", v)),
+            Self::QuotedValue(v) => Value::String(format!("\"{v}\"")),
             Self::Object(name, fields) => to_json_object(name.as_deref(), fields),
             SExpression::Array(elements) => Value::Array(elements.iter().map(|v| v.to_json()).collect()),
         }
@@ -296,8 +296,8 @@ mod tests {
         let data = std::fs::read_to_string("tests/client_hello.txt").unwrap();
         let expr = data.parse::<SExpression>().unwrap();
 
-        println!("{:#?}", expr);
-        println!("{}", expr);
+        println!("{expr:#?}");
+        println!("{expr}");
     }
 
     #[test]
@@ -305,8 +305,8 @@ mod tests {
         let data = std::fs::read_to_string("tests/hello_reply.txt").unwrap();
         let expr = data.parse::<SExpression>().unwrap();
 
-        println!("{:#?}", expr);
-        println!("{}", expr);
+        println!("{expr:#?}");
+        println!("{expr}");
 
         assert_eq!(
             expr.get("hello_reply:range:0:from"),
@@ -330,7 +330,7 @@ mod tests {
         );
 
         let json = expr.to_json();
-        println!("{:#?}", json);
+        println!("{json:#?}");
 
         let from_json = SExpression::from_json(json);
         assert_eq!(from_json, expr);
@@ -340,24 +340,24 @@ mod tests {
     fn test_parse_client_request() {
         let data = std::fs::read_to_string("tests/client_request.txt").unwrap();
         let expr = data.parse::<SExpression>().unwrap();
-        println!("{:#?}", expr);
-        println!("{}", expr);
+        println!("{expr:#?}");
+        println!("{expr}");
     }
 
     #[test]
     fn test_parse_server_response() {
         let data = std::fs::read_to_string("tests/server_response.txt").unwrap();
         let expr = data.parse::<SExpression>().unwrap();
-        println!("{:#?}", expr);
-        println!("{}", expr);
+        println!("{expr:#?}");
+        println!("{expr}");
     }
 
     #[test]
     fn test_parse_array() {
         let data = "(Response :data (: (hello) : (world)))";
         let expr = data.parse::<SExpression>().unwrap();
-        println!("{:#?}", expr);
-        println!("{}", expr);
+        println!("{expr:#?}");
+        println!("{expr}");
     }
 
     #[test]
@@ -368,7 +368,7 @@ mod tests {
         }
         let data = Data { key: None };
         let expr = SExpression::from(&data);
-        println!("{:?}", expr);
-        println!("{}", expr);
+        println!("{expr:#?}");
+        println!("{expr}");
     }
 }

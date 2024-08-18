@@ -45,22 +45,19 @@ impl IpsecTunnel {
 
         let gateway_address = format!("{}:{}", params.server_name, params.ike_port)
             .to_socket_addrs()?
-            .next()
-            .ok_or_else(|| anyhow!("No gateway address!"))?
-            .ip();
-
-        let ipv4address = match gateway_address {
-            IpAddr::V4(v4) => v4,
-            _ => client_settings.gw_internal_ip,
-        };
+            .find_map(|addr| match addr.ip() {
+                IpAddr::V4(v4) => Some(v4),
+                IpAddr::V6(_) => None,
+            })
+            .ok_or_else(|| anyhow!("No gateway address!"))?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",
-            ipv4address, client_settings.gw_internal_ip
+            gateway_address, client_settings.gw_internal_ip
         );
 
         let ready = Arc::new(AtomicBool::new(false));
-        let keepalive_runner = KeepaliveRunner::new(ipsec_session.address, ipv4address, ready.clone());
+        let keepalive_runner = KeepaliveRunner::new(ipsec_session.address, gateway_address, ready.clone());
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
@@ -69,10 +66,9 @@ impl IpsecTunnel {
             params,
             ipsec_session.clone(),
             natt_socket.local_addr()?.port(),
-            ipv4address,
+            gateway_address,
             util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect(),
-        )
-        .await?;
+        )?;
 
         configurator.configure().await?;
         ready.store(true, Ordering::SeqCst);
@@ -127,7 +123,7 @@ impl VpnTunnel for IpsecTunnel {
             }
         };
         let result = tokio::select! {
-            _ = fut => {
+            () = fut => {
                 debug!("Terminating IPSec tunnel due to stop command");
                 Ok(())
             }

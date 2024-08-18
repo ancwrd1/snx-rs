@@ -94,7 +94,7 @@ impl CommandServer {
             TunnelServiceRequest::Connect(params) => {
                 trace!("Handling connect command");
                 match self.connect(Arc::new(params), event_sender).await {
-                    Ok(_) => TunnelServiceResponse::Ok,
+                    Ok(()) => TunnelServiceResponse::Ok,
                     Err(e) => {
                         self.reset();
                         TunnelServiceResponse::Error(e.to_string())
@@ -105,7 +105,7 @@ impl CommandServer {
                 debug!("Handling disconnect command");
 
                 match self.disconnect().await {
-                    Ok(_) => TunnelServiceResponse::Ok,
+                    Ok(()) => TunnelServiceResponse::Ok,
                     Err(e) => TunnelServiceResponse::Error(e.to_string()),
                 }
             }
@@ -116,7 +116,7 @@ impl CommandServer {
             TunnelServiceRequest::ChallengeCode(code, _) => {
                 debug!("Handling challenge code command");
                 match self.challenge_code(&code, event_sender).await {
-                    Ok(_) => TunnelServiceResponse::Ok,
+                    Ok(()) => TunnelServiceResponse::Ok,
                     Err(e) => {
                         warn!("{}", e);
                         self.reset();
@@ -136,9 +136,7 @@ impl CommandServer {
         session: Arc<VpnSession>,
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
-        let connector = if let Some(ref mut connector) = self.connector {
-            connector
-        } else {
+        let Some(ref mut connector) = self.connector else {
             return Err(anyhow!("No tunnel connector!"));
         };
 
@@ -169,15 +167,15 @@ impl CommandServer {
         params: Arc<TunnelParams>,
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
-        if !self.is_connected() {
+        if self.is_connected() {
+            Err(anyhow!("Tunnel is already connected!"))
+        } else {
             self.reset();
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
             let session = connector.authenticate().await?;
             self.connector = Some(connector);
             self.connect_for_session(session, event_sender).await
-        } else {
-            Err(anyhow!("Tunnel is already connected!"))
         }
     }
 

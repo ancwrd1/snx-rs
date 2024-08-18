@@ -72,10 +72,8 @@ struct XfrmState<'a> {
 impl<'a> XfrmState<'a> {
     fn auth_alg_as_xfrm_name(&self) -> &'static str {
         match self.params.auth_algorithm {
-            EspAuthAlgorithm::HmacSha96 => "hmac(sha1)",
-            EspAuthAlgorithm::HmacSha160 => "hmac(sha1)",
-            EspAuthAlgorithm::HmacSha256 => "hmac(sha256)",
-            EspAuthAlgorithm::HmacSha256v2 => "hmac(sha256)",
+            EspAuthAlgorithm::HmacSha96 | EspAuthAlgorithm::HmacSha160 => "hmac(sha1)",
+            EspAuthAlgorithm::HmacSha256 | EspAuthAlgorithm::HmacSha256v2 => "hmac(sha256)",
             EspAuthAlgorithm::Other(_) => "",
         }
     }
@@ -212,7 +210,7 @@ enum PolicyDir {
 }
 
 impl PolicyDir {
-    fn as_str(&self) -> &'static str {
+    fn as_str(self) -> &'static str {
         match self {
             PolicyDir::In => "in",
             PolicyDir::Out => "out",
@@ -232,7 +230,7 @@ pub struct XfrmConfigurator {
 }
 
 impl XfrmConfigurator {
-    pub async fn new(
+    pub fn new(
         tunnel_params: Arc<TunnelParams>,
         ipsec_session: IpsecSession,
         src_port: u16,

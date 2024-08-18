@@ -39,7 +39,7 @@ impl From<u32> for NetworkManagerState {
 }
 
 impl NetworkManagerState {
-    fn is_online(&self) -> bool {
+    fn is_online(self) -> bool {
         matches!(self, Self::ConnectedGlobal)
     }
 }
@@ -188,6 +188,6 @@ mod tests {
     #[tokio::test]
     async fn test_default_ip() {
         let ip = get_default_ip().await.unwrap();
-        println!("{}", ip);
+        println!("{ip}");
     }
 }

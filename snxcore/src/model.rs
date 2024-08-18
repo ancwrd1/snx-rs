@@ -33,13 +33,13 @@ pub struct IpsecSession {
 impl Default for IpsecSession {
     fn default() -> Self {
         Self {
-            lifetime: Default::default(),
+            lifetime: Duration::default(),
             address: Ipv4Addr::new(0, 0, 0, 0),
             netmask: Ipv4Addr::new(0, 0, 0, 0),
             dns: Vec::new(),
             domains: Vec::new(),
-            esp_in: Default::default(),
-            esp_out: Default::default(),
+            esp_in: Arc::default(),
+            esp_out: Arc::default(),
         }
     }
 }
@@ -56,7 +56,7 @@ impl VpnSession {
         Self {
             ccc_session_id: String::new(),
             ipsec_session: None,
-            state: Default::default(),
+            state: SessionState::default(),
         }
     }
 

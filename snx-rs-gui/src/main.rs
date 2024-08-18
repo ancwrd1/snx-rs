@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
     app.connect_activate(move |_| {
         let params = params.clone();
 
-        let mut my_tray = tray::AppTray::new(params.clone()).unwrap();
+        let mut my_tray = tray::AppTray::new(&params).unwrap();
         let sender = my_tray.sender();
 
         let tx_copy = sender.clone();

@@ -38,7 +38,7 @@ pub struct AppTray {
 }
 
 impl AppTray {
-    pub fn new(params: CmdlineParams) -> anyhow::Result<Self> {
+    pub fn new(params: &CmdlineParams) -> anyhow::Result<Self> {
         let (tx, rx) = async_channel::bounded(256);
 
         let tray_icon = TrayIconBuilder::new()
@@ -178,7 +178,7 @@ impl AppTray {
                     Err(_) => Err(anyhow!("Internal error")),
                 };
 
-                let status_str = format!("{:?}", status);
+                let status_str = format!("{status:?}");
 
                 match status {
                     Err(ref e) if command == ServiceCommand::Connect => {

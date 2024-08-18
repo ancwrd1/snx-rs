@@ -20,7 +20,7 @@ pub enum SystemColorTheme {
 }
 
 impl SystemColorTheme {
-    pub fn is_dark(&self) -> bool {
+    pub fn is_dark(self) -> bool {
         matches!(self, Self::NoPreference | Self::Dark)
     }
 }

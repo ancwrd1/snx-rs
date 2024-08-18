@@ -25,7 +25,7 @@ fn make_keepalive_packet() -> [u8; 84] {
     let mut data = [0u8; 84];
 
     // 0x00000011 looks like a packet type, KEEPALIVE in this case
-    data[0..4].copy_from_slice(&0x00000011u32.to_be_bytes());
+    data[0..4].copy_from_slice(&0x0000_0011u32.to_be_bytes());
 
     // 0x0001 is probably a direction: request or response. We get 0x0002 as a response back.
     data[4..6].copy_from_slice(&0x0001u16.to_be_bytes());

@@ -24,7 +24,7 @@ impl SecurePrompt for TtyPrompt {
     }
 
     fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
-        println!("{}: {}", summary, message);
+        println!("{summary}: {message}");
         Ok(())
     }
 }

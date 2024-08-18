@@ -27,14 +27,14 @@ pub trait IpsecConfigurator {
     async fn cleanup(&mut self);
 }
 
-pub async fn new_ipsec_configurator(
+pub fn new_ipsec_configurator(
     tunnel_params: Arc<TunnelParams>,
     ipsec_session: IpsecSession,
     src_port: u16,
     dest_ip: Ipv4Addr,
     subnets: Vec<Ipv4Net>,
 ) -> anyhow::Result<impl IpsecConfigurator> {
-    IpsecImpl::new(tunnel_params, ipsec_session, src_port, dest_ip, subnets).await
+    IpsecImpl::new(tunnel_params, ipsec_session, src_port, dest_ip, subnets)
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
@@ -50,7 +50,7 @@ pub trait UdpSocketExt {
 }
 
 async fn udp_send_receive(socket: &UdpSocket, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>> {
-    let mut buf = [0u8; 65536];
+    let mut buf = vec![0u8; 65536];
 
     let send_fut = socket.send(data);
     let recv_fut = tokio::time::timeout(timeout, socket.recv_from(&mut buf));

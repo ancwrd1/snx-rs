@@ -92,7 +92,7 @@ async fn main() -> anyhow::Result<()> {
                 println!("Disconnected");
             }
         }
-        Err(e) => println!("Error: {}", e),
+        Err(e) => println!("Error: {e}"),
         _ => {}
     }
 

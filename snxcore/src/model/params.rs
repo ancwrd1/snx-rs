@@ -113,7 +113,7 @@ impl fmt::Display for CertType {
             Self::Pkcs8 => "pkcs8",
             Self::Pkcs11 => "pkcs11",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -222,13 +222,13 @@ impl TunnelParams {
                         "log-level" => params.log_level = v,
                         "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                         "ignore-search-domains" => {
-                            params.ignore_search_domains = v.split(',').map(|s| s.trim().to_owned()).collect()
+                            params.ignore_search_domains = v.split(',').map(|s| s.trim().to_owned()).collect();
                         }
                         "default-route" => params.default_route = v.parse().unwrap_or_default(),
                         "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
                         "add-routes" => params.add_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect(),
                         "ignore-routes" => {
-                            params.ignore_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect()
+                            params.ignore_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect();
                         }
                         "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                         "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
@@ -245,18 +245,12 @@ impl TunnelParams {
                         "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
                         "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
                         "esp-lifetime" => {
-                            params.esp_lifetime = v
-                                .parse::<u64>()
-                                .ok()
-                                .map(Duration::from_secs)
-                                .unwrap_or(DEFAULT_ESP_LIFETIME)
+                            params.esp_lifetime =
+                                v.parse::<u64>().ok().map_or(DEFAULT_ESP_LIFETIME, Duration::from_secs);
                         }
                         "ike-lifetime" => {
-                            params.ike_lifetime = v
-                                .parse::<u64>()
-                                .ok()
-                                .map(Duration::from_secs)
-                                .unwrap_or(DEFAULT_IKE_LIFETIME)
+                            params.ike_lifetime =
+                                v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
                         }
                         "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
                         other => {
@@ -323,13 +317,13 @@ impl TunnelParams {
             writeln!(buf, "cert-path={}", cert_path.display())?;
         }
         if let Some(ref cert_password) = self.cert_password {
-            writeln!(buf, "cert-password={}", cert_password)?;
+            writeln!(buf, "cert-password={cert_password}")?;
         }
         if let Some(ref cert_id) = self.cert_id {
-            writeln!(buf, "cert-id={}", cert_id)?;
+            writeln!(buf, "cert-id={cert_id}")?;
         }
         if let Some(ref if_name) = self.if_name {
-            writeln!(buf, "if-name={}", if_name)?;
+            writeln!(buf, "if-name={if_name}")?;
         }
         writeln!(buf, "no-keychain={}", self.no_keychain)?;
         writeln!(buf, "server-prompt={}", self.server_prompt)?;

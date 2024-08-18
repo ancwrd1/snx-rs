@@ -17,13 +17,13 @@ use snxcore::{
     server_info,
 };
 
-const CSS_ERROR: &str = r#"label {
+const CSS_ERROR: &str = r"label {
     padding: 6px;
     border: 1px solid #f44336;
     color: #ffffff;
     background-color: #a02a2a;
 }
-"#;
+";
 
 struct SettingsDialog {
     params: Arc<TunnelParams>,
@@ -252,7 +252,9 @@ impl SettingsDialog {
                                         @weak server_name,
                                         @weak no_cert_name_check,
                                         @weak no_cert_check => move |_| {
-            if !server_name.text().is_empty() {
+            if server_name.text().is_empty() {
+                auth_type.set_sensitive(false);
+            } else {
                 dialog.set_sensitive(false);
                 let params = TunnelParams {
                     server_name: server_name.text().into(),
@@ -272,8 +274,6 @@ impl SettingsDialog {
                     let _ = sender.send(response).await;
                     Ok::<_, anyhow::Error>(())
                 }));
-            } else {
-                auth_type.set_sensitive(false);
             }
         }));
 

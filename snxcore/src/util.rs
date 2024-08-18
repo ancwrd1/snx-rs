@@ -42,15 +42,15 @@ pub fn snx_decrypt<D: AsRef<[u8]>>(data: D) -> anyhow::Result<Vec<u8>> {
     Ok(decoded)
 }
 
-fn process_output(output: Output) -> anyhow::Result<String> {
+fn process_output(output: &Output) -> anyhow::Result<String> {
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(anyhow!(if !stderr.is_empty() {
-            stderr
-        } else {
+        Err(anyhow!(if stderr.is_empty() {
             output.status.to_string()
+        } else {
+            stderr
         }))
     }
 }
@@ -66,7 +66,7 @@ where
     let mut command = Command::new(command.as_ref().as_os_str());
     command.envs(vec![("LANG", "C"), ("LC_ALL", "C")]).args(args);
 
-    process_output(command.output().await?)
+    process_output(&command.output().await?)
 }
 
 pub fn block_on<F, O>(f: F) -> O
@@ -90,11 +90,11 @@ pub fn print_login_options(server_info: &SExpression) {
         server_info.get("CCCserverResponse:ResponseData:connectivity_info:supported_data_tunnel_protocols")
     {
         println!("Supported tunnel protocols:");
-        items.iter().for_each(|item| {
+        for item in items {
             if let Some(v) = item.get_value::<String>("") {
                 println!("\t{v}");
             }
-        });
+        }
     }
 
     if let Some(options) = server_info.get("CCCserverResponse:ResponseData:login_options_data:login_options_list") {

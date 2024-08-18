@@ -119,7 +119,7 @@ pub async fn store_password(user_name: &str, password: &str) -> anyhow::Result<(
 
     collection
         .create_item(
-            &format!("snx-rs - {}", user_name),
+            &format!("snx-rs - {user_name}"),
             props,
             password.as_bytes(),
             true,

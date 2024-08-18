@@ -1,5 +1,4 @@
 use std::{
-    net::Ipv4Addr,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc,
@@ -24,6 +23,10 @@ static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
+fn new_request_id() -> u32 {
+    REQUEST_ID.fetch_add(1, Ordering::SeqCst)
+}
+
 pub struct CccHttpClient {
     params: Arc<TunnelParams>,
     session: Option<Arc<VpnSession>>,
@@ -36,10 +39,6 @@ impl CccHttpClient {
 
     fn session_id(&self) -> Option<String> {
         self.session.as_ref().map(|s| s.ccc_session_id.clone())
-    }
-
-    fn new_request_id(&self) -> u32 {
-        REQUEST_ID.fetch_add(1, Ordering::SeqCst)
     }
 
     fn new_auth_request(&self) -> CccClientRequestData {
@@ -55,7 +54,7 @@ impl CccHttpClient {
 
         CccClientRequestData {
             header: RequestHeader {
-                id: self.new_request_id(),
+                id: new_request_id(),
                 request_type: request_type.to_owned(),
                 session_id: self.session_id(),
                 protocol_version: None,
@@ -78,7 +77,7 @@ impl CccHttpClient {
     fn new_challenge_code_request(&self, user_input: &str) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
-                id: self.new_request_id(),
+                id: new_request_id(),
                 request_type: "MultiChallange".to_string(),
                 session_id: self.session_id(),
                 protocol_version: None,
@@ -94,7 +93,7 @@ impl CccHttpClient {
     fn new_key_management_request(&self, spi: u32) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
-                id: self.new_request_id(),
+                id: new_request_id(),
                 request_type: "KeyManagement".to_string(),
                 session_id: self.session_id(),
                 protocol_version: Some(100),
@@ -102,7 +101,7 @@ impl CccHttpClient {
             data: RequestData::KeyManagement(KeyManagementRequest {
                 spi,
                 rekey: false,
-                req_om_addr: 0x00000000,
+                req_om_addr: 0x0000_0000,
             }),
         }
     }
@@ -110,7 +109,7 @@ impl CccHttpClient {
     fn new_client_settings_request(&self) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
-                id: self.new_request_id(),
+                id: new_request_id(),
                 request_type: "ClientSettings".to_string(),
                 session_id: self.session_id(),
                 protocol_version: Some(100),
@@ -119,22 +118,10 @@ impl CccHttpClient {
         }
     }
 
-    fn new_location_awareness_request(&self, source_ip: Ipv4Addr) -> CccClientRequestData {
-        CccClientRequestData {
-            header: RequestHeader {
-                id: self.new_request_id(),
-                request_type: "LocationAwareness".to_string(),
-                session_id: None,
-                protocol_version: Some(100),
-            },
-            data: RequestData::LocationAwareness(LocationAwarenessRequest { source_ip }),
-        }
-    }
-
     fn new_client_hello_request(&self) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
-                id: self.new_request_id(),
+                id: new_request_id(),
                 request_type: "ClientHello".to_string(),
                 session_id: None,
                 protocol_version: None,
@@ -254,15 +241,6 @@ impl CccHttpClient {
         match self.send_ccc_request(req).await? {
             ResponseData::ClientSettings(data) => Ok(data),
             _ => Err(anyhow!("Invalid client settings response!")),
-        }
-    }
-
-    pub async fn get_external_ip(&self, source_ip: Ipv4Addr) -> anyhow::Result<LocationAwarenessResponse> {
-        let req = self.new_location_awareness_request(source_ip);
-
-        match self.send_ccc_request(req).await? {
-            ResponseData::LocationAwareness(data) => Ok(data),
-            _ => Err(anyhow!("Invalid location awareness response!")),
         }
     }
 

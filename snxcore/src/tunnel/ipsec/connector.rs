@@ -31,6 +31,51 @@ use tracing::{debug, trace, warn};
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
 
+fn get_challenge_attribute_type(payload: &AttributesPayload) -> ConfigAttributeType {
+    payload
+        .attributes
+        .iter()
+        .find_map(|a| {
+            let attr: ConfigAttributeType = a.attribute_type.into();
+            if attr != ConfigAttributeType::AuthType
+                && attr != ConfigAttributeType::Challenge
+                && attr != ConfigAttributeType::Status
+            {
+                Some(attr)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(ConfigAttributeType::Other(0))
+}
+
+fn get_long_attributes(payload: &AttributesPayload, attr: ConfigAttributeType) -> Vec<Bytes> {
+    let attr: u16 = attr.into();
+    payload
+        .attributes
+        .iter()
+        .filter_map(|a| {
+            if a.attribute_type == attr {
+                a.as_long().cloned()
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+fn get_long_attribute(payload: &AttributesPayload, attr: ConfigAttributeType) -> Option<Bytes> {
+    get_long_attributes(payload, attr).first().cloned()
+}
+
+fn get_short_attribute(payload: &AttributesPayload, attr: ConfigAttributeType) -> Option<u16> {
+    let attr: u16 = attr.into();
+    payload
+        .attributes
+        .iter()
+        .find_map(|a| if a.attribute_type == attr { a.as_short() } else { None })
+}
+
 pub struct IpsecTunnelConnector {
     params: Arc<TunnelParams>,
     service: Ikev1Service<UdpTransport<Ikev1Codec<Ikev1Session>>>,
@@ -70,7 +115,7 @@ impl IpsecTunnelConnector {
                 None => return Err(anyhow!("No PKCS11 pin provided!")),
             },
 
-            _ => Identity::None,
+            CertType::None => Identity::None,
         };
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
@@ -78,9 +123,8 @@ impl IpsecTunnelConnector {
             .connect(format!("{}:{}", params.server_name, params.ike_port))
             .await?;
 
-        let gateway_address = match socket.peer_addr()?.ip() {
-            IpAddr::V4(v4) => v4,
-            _ => return Err(anyhow!("No IPv4 address for {}", params.server_name)),
+        let IpAddr::V4(gateway_address) = socket.peer_addr()?.ip() else {
+            return Err(anyhow!("No IPv4 address for {}", params.server_name));
         };
 
         let prober = NattProber::new(gateway_address);
@@ -98,58 +142,13 @@ impl IpsecTunnelConnector {
             last_identifier: 0,
             last_challenge_type: ConfigAttributeType::Other(0),
             ccc_session: String::new(),
-            ipsec_session: Default::default(),
+            ipsec_session: IpsecSession::default(),
             last_rekey: None,
             command_sender: None,
         })
     }
 
-    fn get_challenge_attribute_type(&self, payload: &AttributesPayload) -> ConfigAttributeType {
-        payload
-            .attributes
-            .iter()
-            .find_map(|a| {
-                let attr: ConfigAttributeType = a.attribute_type.into();
-                if attr != ConfigAttributeType::AuthType
-                    && attr != ConfigAttributeType::Challenge
-                    && attr != ConfigAttributeType::Status
-                {
-                    Some(attr)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(ConfigAttributeType::Other(0))
-    }
-
-    fn get_long_attributes(&self, payload: &AttributesPayload, attr: ConfigAttributeType) -> Vec<Bytes> {
-        let attr: u16 = attr.into();
-        payload
-            .attributes
-            .iter()
-            .filter_map(|a| {
-                if a.attribute_type == attr {
-                    a.as_long().cloned()
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
-    fn get_long_attribute(&self, payload: &AttributesPayload, attr: ConfigAttributeType) -> Option<Bytes> {
-        self.get_long_attributes(payload, attr).first().cloned()
-    }
-
-    fn get_short_attribute(&self, payload: &AttributesPayload, attr: ConfigAttributeType) -> Option<u16> {
-        let attr: u16 = attr.into();
-        payload
-            .attributes
-            .iter()
-            .find_map(|a| if a.attribute_type == attr { a.as_short() } else { None })
-    }
-
-    async fn do_challenge_attr(&mut self, attr: Bytes) -> anyhow::Result<Arc<VpnSession>> {
+    fn do_challenge_attr(&mut self, attr: &Bytes) -> anyhow::Result<Arc<VpnSession>> {
         let parts = attr
             .split(|c| *c == b'\0')
             .map(|p| String::from_utf8_lossy(p).into_owned())
@@ -195,34 +194,29 @@ impl IpsecTunnelConnector {
     async fn do_session_exchange(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         let om_reply = self.service.send_om_request().await?;
 
-        self.ccc_session = self
-            .get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
+        self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
             .ok_or_else(|| anyhow!("No CCC session in reply!"))?;
 
-        self.ipsec_session.address = self
-            .get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
+        self.ipsec_session.address = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
             .ok_or_else(|| anyhow!("No IPv4 in reply!"))?
             .reader()
             .read_u32::<BigEndian>()?
             .into();
 
-        self.ipsec_session.netmask = self
-            .get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Netmask)
+        self.ipsec_session.netmask = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Netmask)
             .ok_or_else(|| anyhow!("No netmask in reply!"))?
             .reader()
             .read_u32::<BigEndian>()?
             .into();
 
-        self.ipsec_session.dns = self
-            .get_long_attributes(&om_reply, ConfigAttributeType::Ipv4Dns)
+        self.ipsec_session.dns = get_long_attributes(&om_reply, ConfigAttributeType::Ipv4Dns)
             .into_iter()
             .flat_map(|b| b.reader().read_u32::<BigEndian>().ok())
             .map(Into::into)
             .collect();
 
-        self.ipsec_session.domains = self
-            .get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
+        self.ipsec_session.domains = get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
             .map(|v| String::from_utf8_lossy(&v).into_owned())
             .unwrap_or_default()
             .split(|c| c == ',' || c == ';')
@@ -244,7 +238,7 @@ impl IpsecTunnelConnector {
 
     async fn process_auth_attributes(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<VpnSession>> {
         self.last_identifier = id_reply.identifier;
-        let status = self.get_short_attribute(&id_reply, ConfigAttributeType::Status);
+        let status = get_short_attribute(&id_reply, ConfigAttributeType::Status);
         match status {
             Some(1) => {
                 debug!("IPSec authentication succeeded");
@@ -259,7 +253,7 @@ impl IpsecTunnelConnector {
                 Err(anyhow!("IPSec authentication failed, status: {}", status))
             }
             None => {
-                let attr = self.get_challenge_attribute_type(&id_reply);
+                let attr = get_challenge_attribute_type(&id_reply);
                 debug!("No status in reply, requested challenge for: {:?}", attr);
                 match attr {
                     ConfigAttributeType::UserName => {
@@ -282,9 +276,9 @@ impl IpsecTunnelConnector {
                         self.challenge_code(Arc::new(VpnSession::empty()), &user_password).await
                     }
                     other => {
-                        if let Some(attr) = self.get_long_attribute(&id_reply, ConfigAttributeType::Challenge) {
+                        if let Some(attr) = get_long_attribute(&id_reply, ConfigAttributeType::Challenge) {
                             self.last_challenge_type = other;
-                            self.do_challenge_attr(attr).await
+                            self.do_challenge_attr(&attr)
                         } else {
                             Err(anyhow!("No challenge in payload!"))
                         }

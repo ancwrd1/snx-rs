@@ -55,7 +55,7 @@ impl KeepaliveRunner {
                     keepalive_counter.fetch_add(1, Ordering::SeqCst);
 
                     match tokio::time::timeout(SEND_TIMEOUT, sender.send(req.into())).await {
-                        Ok(Ok(_)) => {}
+                        Ok(Ok(())) => {}
                         _ => {
                             warn!("Cannot send keepalive packet, exiting");
                             break;
