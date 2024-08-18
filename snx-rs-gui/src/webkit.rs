@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use std::{thread, time::Duration};
+use std::{sync::Arc, thread, time::Duration};
 
 use gtk::{glib, prelude::*, ApplicationWindow, Window, WindowPosition, WindowType};
 use tokio::{io::AsyncWriteExt, net::TcpStream};

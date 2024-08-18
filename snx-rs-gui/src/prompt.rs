@@ -2,11 +2,10 @@ use std::sync::mpsc;
 
 use anyhow::anyhow;
 use gtk::{
-    glib,
+    glib::{self, ControlFlow},
     prelude::{BoxExt, DialogExt, EntryExt, GtkWindowExt, WidgetExt},
     Align, Orientation, ResponseType, WindowPosition,
 };
-use webkit2gtk::glib::ControlFlow;
 
 use snxcore::prompt::SecurePrompt;
 

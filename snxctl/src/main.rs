@@ -3,22 +3,12 @@ use std::{path::PathBuf, sync::Arc};
 use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
+use snxcore::browser::SystemBrowser;
 use snxcore::{
-    browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
     model::params::TunnelParams,
     prompt::TtyPrompt,
 };
-
-struct SystemBrowser;
-
-impl BrowserController for SystemBrowser {
-    fn open(&self, url: &str) -> anyhow::Result<()> {
-        Ok(opener::open(url)?)
-    }
-
-    fn close(&self) {}
-}
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Checkpoint security gateway", name = "snxctl")]

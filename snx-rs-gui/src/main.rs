@@ -20,6 +20,8 @@ mod prompt;
 mod settings;
 mod theme;
 mod tray;
+
+#[cfg(feature = "webkit2gtk")]
 mod webkit;
 
 const PING_DURATION: Duration = Duration::from_secs(1);

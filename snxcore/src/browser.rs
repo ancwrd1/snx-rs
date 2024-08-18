@@ -12,6 +12,16 @@ pub trait BrowserController {
     fn close(&self);
 }
 
+pub struct SystemBrowser;
+
+impl BrowserController for SystemBrowser {
+    fn open(&self, url: &str) -> anyhow::Result<()> {
+        Ok(opener::open(url)?)
+    }
+
+    fn close(&self) {}
+}
+
 pub async fn run_otp_listener(sender: oneshot::Sender<String>) -> anyhow::Result<()> {
     static OTP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"^GET /(?<otp>[0-9a-f]{60}|[0-9A-F]{60}).*"#).unwrap());
 

@@ -7,15 +7,26 @@ use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder,
 };
 
+use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme};
+
 use snxcore::{
+    browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
     model::{params::TunnelParams, ConnectionStatus},
     prompt::SecurePrompt,
 };
 
-use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme, webkit};
-
 const TITLE: &str = "SNX-RS VPN client";
+
+#[cfg(feature = "webkit2gtk")]
+fn browser(params: Arc<TunnelParams>) -> impl BrowserController {
+    crate::webkit::WebkitBrowser(params)
+}
+
+#[cfg(not(feature = "webkit2gtk"))]
+fn browser(_params: Arc<TunnelParams>) -> impl BrowserController {
+    snxcore::browser::SystemBrowser
+}
 
 pub struct AppTray {
     command_sender: Sender<Option<ServiceCommand>>,
@@ -152,11 +163,9 @@ impl AppTray {
 
             let tunnel_params = Arc::new(TunnelParams::load(&self.config_file).unwrap_or_default());
 
-            if let Ok(mut controller) = ServiceController::new(
-                prompt::GtkPrompt,
-                webkit::WebkitBrowser(tunnel_params.clone()),
-                tunnel_params,
-            ) {
+            if let Ok(mut controller) =
+                ServiceController::new(prompt::GtkPrompt, browser(tunnel_params.clone()), tunnel_params)
+            {
                 if command == ServiceCommand::Connect {
                     self.connecting = true;
                     self.update()?;

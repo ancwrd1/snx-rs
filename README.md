@@ -2,12 +2,6 @@
 
 This project contains the source code for an unofficial Linux client for Check Point VPN, written in Rust.
 
-## Why This Project
-
-Unfortunately, I am forced to use the Check Point VPN and I don't want to use Windows.
-Their existing Linux client is unmaintained, very limited in features and hard to use on the modern distros.
-So that and also the fact that I like programming and Rust in particular.
-
 ## Advantages Over the Official SNX Client for Linux
 
 * Open source
@@ -24,7 +18,7 @@ So that and also the fact that I like programming and Rust in particular.
 * Username/password authentication with MFA support
 * Certificate authentication via provided client certificate (PFX, PEM, or HW token)
 * HW token support via PKCS11 (only with IPSec tunnel)
-* GTK frontend with tray icon and WebKit webview for SAML authentication
+* GTK frontend with tray icon and optional WebKit webview for SAML authentication
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface
 * Store passwords in the keychain using Secret Service API
@@ -35,11 +29,12 @@ So that and also the fact that I like programming and Rust in particular.
 
 ## System Requirements
 
-* A recent Linux distribution with kernel version 4.19 or higher. For the IPSec tunnel, the IPv6 protocol must be enabled in the kernel.
+* A recent Linux distribution with kernel version 4.19 or higher
 * systemd-resolved [configured](https://wiki.archlinux.org/title/Systemd-resolved) as a global DNS resolver
-* iproute2 (the `ip` utility, which should be standard for all distros)
+* iproute2 (the `ip` command)
 * D-Bus
-* GTK3, webkit2gtk, and libappindicator3 for the GUI frontend
+* GTK3 and libappindicator3 for the GUI frontend
+* webkit2gtk for the optional WebKit webview  
 
 ## Differences between SSL and IPSec tunnels
 
@@ -52,7 +47,6 @@ which is a subject to some limitations.
 | Technology                     | User-space TCP-encapsulated tunnel via TUN device. Slow: up to 2MB/s. | Kernel-space UDP-encapsulated tunnel via native OS support. Speed is closer to raw bandwidth, limited by VPN server capacity.                                                          |
 | Ports                          | TCP port 443                                                          | UDP ports 4500 and 500                                                                                                                                                                 |
 | Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul>   | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul> |
-
 
 
 ## GUI Usage
@@ -126,13 +120,13 @@ The following parameters control certificate-based authentication:
 
 ## Troubleshooting common problems
 
-| Error                                                             | Solution                                                                                                                                                                                 |
+| Problem                                                           | Solution                                                                                                                                                                                 |
 |-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `deadline has elapsed`                                            | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                       |
 | `Unknown device type`                                             | Check if the IPv6 protocol is enabled in the Linux kernel.                                                                                                                               |
 | `[0020] The user is not defined properly`                         | Application failed to negotiate IPSec encryption parameters. Usually it means that Check Point server is misconfigured with the obsolete insecure ciphers.                               |
 | `error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks. Use `no-cert-check` to only disable hostname validation. |
-| How do I logout from SAML SSO?                                    | Delete the `~/.config/snx-rs/cookies.db` file                                                                                                                                            |
+| How do I logout from SAML SSO when using WebKit webview?          | Delete the `~/.config/snx-rs/cookies.db` file                                                                                                                                            |
 
 ## Contributing
 
@@ -140,11 +134,15 @@ Pull requests, bug reports, and suggestions are welcome. This is a hobby project
 
 ## Building from Sources
 
-The easiest way to build it is via distrobox, which is available for all distros.
+By default, the WebKit integration is not enabled and the system browser will be used for SAML authentication.
+It is controlled by the feature flag `webkit2gtk` which can be enabled with `--features=webgit2gtk` cargo parameter.
+
+The easiest way to build the project is using the distrobox:
 
 * Provision distrobox container: `distrobox create --image ubuntu:22.04 --name snx-ubuntu`
 * Enter the container: `distrobox enter snx-ubuntu`
-* Install the required dependencies: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev`
+* Install the required dependencies: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev`
+* For WebKit webview feature, install the webkit2gtk dependencies: `sudo apt install libsoup-3.0-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev`
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
