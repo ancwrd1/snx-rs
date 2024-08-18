@@ -493,7 +493,7 @@ impl SettingsDialog {
         entry_box.pack_start(&self.widgets.server_name, false, true, 0);
         entry_box.pack_start(&self.widgets.fetch_info, false, false, 0);
 
-        let server_box = self.form_box("Checkpoint VPN server");
+        let server_box = self.form_box("Check Point VPN server");
         server_box.pack_start(&entry_box, false, true, 0);
         server_box
     }
@@ -524,7 +524,7 @@ impl SettingsDialog {
         self.widgets.cert_type.insert_text(0, "None");
         self.widgets.cert_type.insert_text(1, "PFX file");
         self.widgets.cert_type.insert_text(2, "PEM file");
-        self.widgets.cert_type.insert_text(3, "HW token");
+        self.widgets.cert_type.insert_text(3, "Hardware token");
         self.widgets.cert_type.set_active(Some(self.params.cert_type.as_u32()));
         cert_type_box.pack_start(&self.widgets.cert_type, false, true, 0);
         cert_type_box
@@ -576,7 +576,7 @@ impl SettingsDialog {
         let cert_type_box = self.cert_type_box();
         certs_box.pack_start(&cert_type_box, false, true, 6);
 
-        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx, .so)");
+        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx/.p12, .so)");
         cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
         certs_box.pack_start(&cert_path, false, true, 6);
 
