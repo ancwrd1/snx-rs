@@ -2860,7 +2860,6 @@ dependencies = [
  "num-traits",
  "once_cell",
  "opener",
- "parking_lot",
  "parse_int",
  "passterm",
  "pest",
