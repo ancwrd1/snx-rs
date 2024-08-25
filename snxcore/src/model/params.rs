@@ -160,6 +160,7 @@ pub struct TunnelParams {
     pub esp_lifetime: Duration,
     pub ike_lifetime: Duration,
     pub ike_port: u16,
+    pub client_mode: String,
     pub config_file: PathBuf,
 }
 
@@ -193,6 +194,7 @@ impl Default for TunnelParams {
             esp_lifetime: DEFAULT_ESP_LIFETIME,
             ike_lifetime: DEFAULT_IKE_LIFETIME,
             ike_port: DEFAULT_IKE_PORT,
+            client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
             config_file: Self::default_config_path(),
         }
     }
