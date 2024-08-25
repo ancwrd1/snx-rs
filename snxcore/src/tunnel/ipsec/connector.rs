@@ -7,7 +7,7 @@ use std::{
 use crate::{
     model::{
         params::{CertType, TunnelParams},
-        proto::{AuthenticationRealm, ClientLoggingData},
+        proto::AuthenticationRealm,
         IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
     platform,
@@ -380,14 +380,10 @@ impl TunnelConnector for IpsecTunnelConnector {
             client_type: self.params.tunnel_type.as_client_type().to_owned(),
             old_session_id: String::new(),
             protocol_version: 100,
-            client_mode: self.params.tunnel_type.as_client_mode().to_owned(),
+            client_mode: self.params.client_mode.clone(),
             selected_realm_id: self.params.login_type.clone(),
             secondary_realm_hash: None,
-            client_logging_data: Some(ClientLoggingData {
-                os_name: Some("Windows".to_owned()),
-                device_id: Some(crate::util::get_device_id().into()),
-                ..Default::default()
-            }),
+            client_logging_data: None,
         };
 
         let realm_expr = SExpression::from(&realm);
