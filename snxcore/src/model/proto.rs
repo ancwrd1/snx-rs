@@ -463,7 +463,7 @@ pub struct LoginFactor {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LoginDisplayLabelSelect {
-    LoginDisplayLabel(LoginDisplayLabel),
+    LoginDisplayLabel(BTreeMap<String, QuotedString>),
     Empty(String),
 }
 

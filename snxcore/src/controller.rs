@@ -228,8 +228,12 @@ where
     }
 
     async fn fill_mfa_prompts(&mut self) {
-        self.mfa_prompts
-            .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
+        if self.params.server_prompt {
+            self.mfa_prompts
+                .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
+        } else {
+            self.mfa_prompts.replace(VecDeque::new());
+        }
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {

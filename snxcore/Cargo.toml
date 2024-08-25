@@ -46,3 +46,4 @@ zbus = { version = "4.2", default-features = false, features = ["tokio"] }
 secret-service = {  version = "4", features = ["rt-tokio-crypto-rust"] }
 uuid = { version = "1", features = ["v4", "v5"] }
 opener = { version = "0.7"}
+cached = {  version = "0.53.1",  features = ["async"] }

@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc};
+use std::{collections::VecDeque, future::Future, sync::Arc};
 
 use anyhow::anyhow;
 use clap::Parser;
@@ -122,7 +122,11 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         return Err(anyhow!("Missing required parameters: server name and/or login type"));
     }
 
-    let mut mfa_prompts = server_info::get_mfa_prompts(&params).await.unwrap_or_default();
+    let mut mfa_prompts = if params.server_prompt {
+        server_info::get_mfa_prompts(&params).await.unwrap_or_default()
+    } else {
+        VecDeque::default()
+    };
 
     let mut connector = tunnel::new_tunnel_connector(Arc::new(params)).await?;
     let mut session = connector.authenticate().await?;

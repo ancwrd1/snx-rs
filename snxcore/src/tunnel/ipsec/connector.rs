@@ -368,18 +368,11 @@ impl IpsecTunnelConnector {
         self.service.delete_sa().await
     }
 
-    async fn is_multi_factor_login_type(&self) -> anyhow::Result<bool> {
-        let info = server_info::get(&self.params).await?;
-
-        Ok(info
-            .login_options_data
-            .as_ref()
-            .and_then(|data| {
-                data.login_options_list
-                    .values()
-                    .find(|v| v.id == self.params.login_type && v.factors.len() > 1)
-            })
-            .is_some())
+    async fn is_multi_factor_cert_login_type(&self) -> anyhow::Result<bool> {
+        Ok(server_info::get_login_factors(&self.params)
+            .await?
+            .into_iter()
+            .any(|factor| factor.factor_type != "certificate"))
     }
 }
 
@@ -417,11 +410,13 @@ impl TunnelConnector for IpsecTunnelConnector {
             )
             .await?;
 
-        if self.params.cert_type == CertType::None || self.is_multi_factor_login_type().await.unwrap_or(false) {
+        if self.params.cert_type == CertType::None || self.is_multi_factor_cert_login_type().await.unwrap_or(false) {
+            debug!("Awaiting authentication factors");
             let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
             self.last_message_id = message_id;
             self.process_auth_attributes(attrs_reply).await
         } else {
+            debug!("No more authentication factors");
             self.do_session_exchange().await
         }
     }
