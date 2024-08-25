@@ -7,10 +7,10 @@ use std::{
 use crate::{
     model::{
         params::{CertType, TunnelParams},
-        proto::AuthenticationRealm,
+        proto::{AuthenticationRealm, ClientLoggingData},
         IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
-    platform,
+    platform, server_info,
     sexpr::SExpression,
     tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
 };
@@ -367,6 +367,20 @@ impl IpsecTunnelConnector {
     async fn delete_sa(&mut self) -> anyhow::Result<()> {
         self.service.delete_sa().await
     }
+
+    async fn is_multi_factor_login_type(&self) -> anyhow::Result<bool> {
+        let info = server_info::get(&self.params).await?;
+
+        Ok(info
+            .login_options_data
+            .as_ref()
+            .and_then(|data| {
+                data.login_options_list
+                    .values()
+                    .find(|v| v.id == self.params.login_type && v.factors.len() > 1)
+            })
+            .is_some())
+    }
 }
 
 #[async_trait]
@@ -383,7 +397,11 @@ impl TunnelConnector for IpsecTunnelConnector {
             client_mode: self.params.client_mode.clone(),
             selected_realm_id: self.params.login_type.clone(),
             secondary_realm_hash: None,
-            client_logging_data: None,
+            client_logging_data: Some(ClientLoggingData {
+                os_name: Some("Windows".to_owned()),
+                device_id: Some(crate::util::get_device_id().into()),
+                ..Default::default()
+            }),
         };
 
         let realm_expr = SExpression::from(&realm);
@@ -399,9 +417,13 @@ impl TunnelConnector for IpsecTunnelConnector {
             )
             .await?;
 
-        let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
-        self.last_message_id = message_id;
-        self.process_auth_attributes(attrs_reply).await
+        if self.params.cert_type == CertType::None || self.is_multi_factor_login_type().await.unwrap_or(false) {
+            let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
+            self.last_message_id = message_id;
+            self.process_auth_attributes(attrs_reply).await
+        } else {
+            self.do_session_exchange().await
+        }
     }
 
     async fn challenge_code(&mut self, _session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
