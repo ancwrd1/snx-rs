@@ -71,10 +71,6 @@ impl MyWidgets {
             return Err(anyhow!("No authentication method selected"));
         }
 
-        if self.user_name.is_sensitive() && self.user_name.text().is_empty() {
-            return Err(anyhow!("No user name specified"));
-        }
-
         let cert_path = self.cert_path.text();
 
         if !cert_path.is_empty() && !Path::new(&cert_path).exists() {
