@@ -268,7 +268,7 @@ impl IpsecTunnelConnector {
                                 ccc_session_id: self.ccc_session.clone(),
                                 ipsec_session: None,
                                 state: SessionState::PendingChallenge(MfaChallenge {
-                                    mfa_type: MfaType::PasswordInput,
+                                    mfa_type: MfaType::UserNameInput,
                                     prompt: "User name: ".to_owned(),
                                 }),
                             }))
