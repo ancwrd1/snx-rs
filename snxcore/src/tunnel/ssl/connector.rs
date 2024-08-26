@@ -32,7 +32,7 @@ impl CccTunnelConnector {
                 return Ok(Arc::new(VpnSession {
                     ccc_session_id: session_id,
                     state: SessionState::PendingChallenge(MfaChallenge {
-                        mfa_type: MfaType::UserInput,
+                        mfa_type: MfaType::PasswordInput,
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
                     }),
                     ipsec_session: None,

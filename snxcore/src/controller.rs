@@ -96,7 +96,7 @@ where
                         Ok(input) => {
                             let result = self.do_challenge_code(input.clone()).await;
                             if result.is_ok()
-                                && mfa.mfa_type == MfaType::UserInput
+                                && mfa.mfa_type == MfaType::PasswordInput
                                 && !self.password.is_empty()
                                 && !self.params.no_keychain
                             {
@@ -121,7 +121,7 @@ where
 
     async fn get_mfa_input(&mut self, mfa: &MfaChallenge) -> anyhow::Result<String> {
         match mfa.mfa_type {
-            MfaType::UserInput => {
+            MfaType::PasswordInput => {
                 if !self.password.is_empty() && self.first_password {
                     self.first_password = false;
                     Ok(self.password.clone())
@@ -155,6 +155,10 @@ where
                         Err(anyhow!("Unable to acquire OTP from the browser!"))
                     }
                 }
+            }
+            MfaType::UserNameInput => {
+                let input = self.prompt.get_plain_input(&mfa.prompt)?;
+                Ok(input)
             }
         }
     }

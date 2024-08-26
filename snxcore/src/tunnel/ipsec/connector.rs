@@ -260,12 +260,22 @@ impl IpsecTunnelConnector {
                         if self.last_challenge_type == ConfigAttributeType::UserName {
                             return Err(anyhow!("Endless loop of username challenges!"));
                         }
+
+                        self.last_challenge_type = attr;
+
                         if self.params.user_name.is_empty() {
-                            return Err(anyhow!("No user name in configuration!"));
+                            Ok(Arc::new(VpnSession {
+                                ccc_session_id: self.ccc_session.clone(),
+                                ipsec_session: None,
+                                state: SessionState::PendingChallenge(MfaChallenge {
+                                    mfa_type: MfaType::PasswordInput,
+                                    prompt: "User name: ".to_owned(),
+                                }),
+                            }))
+                        } else {
+                            let user_name = self.params.user_name.clone();
+                            self.challenge_code(Arc::new(VpnSession::empty()), &user_name).await
                         }
-                        self.last_challenge_type = ConfigAttributeType::UserName;
-                        let user_name = self.params.user_name.clone();
-                        self.challenge_code(Arc::new(VpnSession::empty()), &user_name).await
                     }
                     ConfigAttributeType::UserPassword
                         if !self.params.password.is_empty()

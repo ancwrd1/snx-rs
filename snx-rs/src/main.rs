@@ -133,7 +133,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
-            MfaType::UserInput => {
+            MfaType::PasswordInput => {
                 let prompt = mfa_prompts.pop_front().unwrap_or_else(|| challenge.prompt.clone());
                 match TtyPrompt.get_secure_input(&prompt) {
                     Ok(input) => {
@@ -151,6 +151,10 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 tokio::spawn(run_otp_listener(tx));
                 let otp = tokio::time::timeout(OTP_TIMEOUT, rx).await??;
                 session = connector.challenge_code(session, &otp).await?;
+            }
+            MfaType::UserNameInput => {
+                let input = TtyPrompt.get_plain_input(&challenge.prompt)?;
+                session = connector.challenge_code(session, &input).await?;
             }
         }
     }

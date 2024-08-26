@@ -71,8 +71,9 @@ impl VpnSession {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub enum MfaType {
     #[default]
-    UserInput,
+    PasswordInput,
     SamlSso,
+    UserNameInput,
 }
 
 impl MfaType {
@@ -80,7 +81,7 @@ impl MfaType {
         if id == "CPSC_SP_URL" {
             Self::SamlSso
         } else {
-            Self::UserInput
+            Self::PasswordInput
         }
     }
 }

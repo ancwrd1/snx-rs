@@ -13,8 +13,8 @@ use crate::dbus::send_notification;
 
 pub struct GtkPrompt;
 
-impl SecurePrompt for GtkPrompt {
-    fn get_secure_input(&self, prompt: &str) -> anyhow::Result<String> {
+impl GtkPrompt {
+    fn get_input(&self, prompt: &str, secure: bool) -> anyhow::Result<String> {
         let (tx, rx) = mpsc::channel();
 
         let prompt = prompt.to_owned();
@@ -41,7 +41,10 @@ impl SecurePrompt for GtkPrompt {
                 6,
             );
 
-            let entry = gtk::Entry::builder().visibility(false).activates_default(true).build();
+            let entry = gtk::Entry::builder()
+                .visibility(!secure)
+                .activates_default(true)
+                .build();
             inner.pack_start(&entry, false, true, 6);
 
             content.pack_start(&inner, false, true, 6);
@@ -61,6 +64,16 @@ impl SecurePrompt for GtkPrompt {
         });
 
         rx.recv()?
+    }
+}
+
+impl SecurePrompt for GtkPrompt {
+    fn get_secure_input(&self, prompt: &str) -> anyhow::Result<String> {
+        self.get_input(prompt, true)
+    }
+
+    fn get_plain_input(&self, prompt: &str) -> anyhow::Result<String> {
+        self.get_input(prompt, false)
     }
 
     fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
