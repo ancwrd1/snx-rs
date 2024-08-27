@@ -342,13 +342,30 @@ impl XfrmConfigurator {
 
         debug!("Ignoring acquired routes to {}", self.dest_ip);
 
+        let dst = self.dest_ip.to_string();
+        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
+
+        let mut default_route_set = false;
+
         if !self.tunnel_params.no_routing {
             if self.tunnel_params.default_route {
-                let _ = platform::add_default_route(&self.name, self.ipsec_session.address).await;
+                iproute2(&["route", "add", "table", &port, "default", "dev", &self.name]).await?;
+                iproute2(&["rule", "add", "not", "to", &dst, "table", &port]).await?;
+                default_route_set = true;
             } else {
                 subnets.extend(&self.subnets);
             }
         }
+
+        if !default_route_set {
+            iproute2(&["route", "add", "table", &port, &dst, "dev", &self.name]).await?;
+        }
+
+        // route keepalive packets through the tunnel
+        iproute2(&[
+            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+        ])
+        .await?;
 
         subnets.retain(|s| !s.contains(&self.dest_ip));
 
@@ -361,17 +378,6 @@ impl XfrmConfigurator {
             )
             .await;
         }
-
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
-        let dst = self.dest_ip.to_string();
-
-        // set up routing correctly so that keepalive packets are not wrapped into ESP
-        iproute2(&["route", "add", "table", &port, &dst, "dev", &self.name]).await?;
-
-        iproute2(&[
-            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-        ])
-        .await?;
 
         Ok(())
     }
@@ -498,5 +504,9 @@ impl IpsecConfigurator for XfrmConfigurator {
             "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
         ])
         .await;
+
+        if !self.tunnel_params.no_routing && self.tunnel_params.default_route {
+            let _ = iproute2(&["rule", "del", "not", "to", &dst, "table", &port]).await;
+        }
     }
 }
