@@ -132,6 +132,8 @@ The following parameters control certificate-based authentication:
 
 Pull requests, bug reports, and suggestions are welcome. This is a hobby project I maintain in my free time.
 
+Before opening a PR, make sure to reformat the sources with the `cargo fmt` command and run it through the `cargo clippy` for any warnings.
+
 ## Building from Sources
 
 By default, the WebKit integration is not enabled and the system browser will be used for SAML authentication.
