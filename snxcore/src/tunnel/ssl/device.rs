@@ -69,10 +69,8 @@ impl TunDevice {
 
         subnets.retain(|s| dest_ips.iter().all(|i| !s.contains(i)));
 
-        let ignore_routes = params.ignore_routes.clone();
-
         if !subnets.is_empty() {
-            let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr, &ignore_routes).await;
+            let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr, &params.ignore_routes).await;
         }
 
         if !params.no_dns {
