@@ -349,6 +349,7 @@ impl XfrmConfigurator {
 
         if !self.tunnel_params.no_routing {
             if self.tunnel_params.default_route {
+                debug!("Setting up default route through IPSec tunnel");
                 iproute2(&["route", "add", "table", &port, "default", "dev", &self.name]).await?;
                 iproute2(&["rule", "add", "not", "to", &dst, "table", &port]).await?;
                 default_route_set = true;
@@ -505,8 +506,6 @@ impl IpsecConfigurator for XfrmConfigurator {
         ])
         .await;
 
-        if !self.tunnel_params.no_routing && self.tunnel_params.default_route {
-            let _ = iproute2(&["rule", "del", "not", "to", &dst, "table", &port]).await;
-        }
+        let _ = iproute2(&["rule", "del", "not", "to", &dst, "table", &port]).await;
     }
 }
