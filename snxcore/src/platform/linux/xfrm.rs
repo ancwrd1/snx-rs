@@ -352,10 +352,14 @@ impl XfrmConfigurator {
 
         subnets.retain(|s| !s.contains(&self.dest_ip));
 
-        let ignore_routes = self.tunnel_params.ignore_routes.clone();
-        
         if !subnets.is_empty() {
-            let _ = platform::add_routes(&subnets, &self.name, self.ipsec_session.address, &ignore_routes).await;
+            let _ = platform::add_routes(
+                &subnets,
+                &self.name,
+                self.ipsec_session.address,
+                &self.tunnel_params.ignore_routes,
+            )
+            .await;
         }
 
         let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();

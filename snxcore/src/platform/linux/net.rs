@@ -124,7 +124,12 @@ fn subnet_overlaps(index: usize, subnet: Ipv4Net, other: &[Ipv4Net]) -> bool {
         .any(|(i, s)| i != index && (*s == subnet || s.contains(&subnet) || subnet.contains(s)))
 }
 
-pub async fn add_routes(routes: &[Ipv4Net], device: &str, ipaddr: Ipv4Addr, ignore_routes: &[Ipv4Net]) -> anyhow::Result<()> {
+pub async fn add_routes(
+    routes: &[Ipv4Net],
+    device: &str,
+    ipaddr: Ipv4Addr,
+    ignore_routes: &[Ipv4Net],
+) -> anyhow::Result<()> {
     debug!("Routes to add: {:?}", routes);
     for (_, subnet) in routes
         .iter()
@@ -132,7 +137,7 @@ pub async fn add_routes(routes: &[Ipv4Net], device: &str, ipaddr: Ipv4Addr, igno
         .filter(|(i, s)| !subnet_overlaps(*i, **s, routes))
     {
         if ignore_routes.iter().any(|ignore| ignore.contains(subnet)) {
-            debug!("Ignoring route: {:?}", subnet);
+            debug!("Ignoring route: {}", subnet);
             continue;
         }
         let _ = add_route(*subnet, device, ipaddr).await;
