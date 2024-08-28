@@ -36,12 +36,18 @@ pub struct CmdlineParams {
     )]
     pub log_level: Option<LevelFilter>,
 
-    #[clap(long = "search-domains", short = 'd', help = "Additional search domains")]
+    #[clap(
+        long = "search-domains",
+        short = 'd',
+        value_delimiter = ',',
+        help = "Additional search domains"
+    )]
     pub search_domains: Vec<String>,
 
     #[clap(
         long = "ignore-search-domains",
         short = 'i',
+        value_delimiter = ',',
         help = "Ignore specified search domains from the acquired list"
     )]
     pub ignore_search_domains: Vec<String>,
@@ -56,12 +62,18 @@ pub struct CmdlineParams {
     #[clap(long = "no-routing", short = 'n', help = "Ignore all routes from the acquired list")]
     pub no_routing: Option<bool>,
 
-    #[clap(long = "add-routes", short = 'a', help = "Additional routes through the tunnel")]
+    #[clap(
+        long = "add-routes",
+        short = 'a',
+        value_delimiter = ',',
+        help = "Additional routes through the tunnel"
+    )]
     pub add_routes: Vec<Ipv4Net>,
 
     #[clap(
         long = "ignore-routes",
         short = 'I',
+        value_delimiter = ',',
         help = "Ignore specified routes from the acquired list"
     )]
     pub ignore_routes: Vec<Ipv4Net>,
@@ -93,7 +105,12 @@ pub struct CmdlineParams {
     #[clap(long = "tunnel-type", short = 'e', help = "Tunnel type, one of: ssl, ipsec")]
     pub tunnel_type: Option<TunnelType>,
 
-    #[clap(long = "ca-cert", short = 'k', help = "Custom CA certificates in PEM or DER format")]
+    #[clap(
+        long = "ca-cert",
+        short = 'k',
+        value_delimiter = ',',
+        help = "Custom CA certificates in PEM or DER format"
+    )]
     pub ca_cert: Vec<PathBuf>,
 
     #[clap(
