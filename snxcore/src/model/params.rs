@@ -74,6 +74,15 @@ impl FromStr for TunnelType {
     }
 }
 
+impl fmt::Display for TunnelType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ssl => write!(f, "SSL"),
+            Self::Ipsec => write!(f, "IPSec"),
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum CertType {
     #[default]

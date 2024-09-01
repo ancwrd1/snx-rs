@@ -128,7 +128,8 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         VecDeque::default()
     };
 
-    let mut connector = tunnel::new_tunnel_connector(Arc::new(params)).await?;
+    let params = Arc::new(params);
+    let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
     let mut session = connector.authenticate().await?;
 
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
@@ -164,6 +165,11 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     if let Err(e) = platform::start_network_state_monitoring().await {
         warn!("Unable to start network monitoring: {}", e);
     }
+
+    println!(
+        "Connected to {} via {}, press Ctrl-C to exit.",
+        params.server_name, params.tunnel_type
+    );
 
     let (event_sender, event_receiver) = mpsc::channel(16);
     let tunnel_fut = await_termination(tunnel.run(command_receiver, event_sender));
