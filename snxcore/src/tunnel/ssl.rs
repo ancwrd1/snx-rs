@@ -235,6 +235,8 @@ impl VpnTunnel for SslTunnel {
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);
 
+        let keepalive_counter = self.keepalive_counter.clone();
+
         let result = loop {
             tokio::select! {
                 event = &mut command_fut => {
@@ -255,6 +257,7 @@ impl VpnTunnel for SslTunnel {
                         let data = item.into_bytes().to_vec();
                         trace!("{} => snx: {}", dev_name, data.len());
                         self.send(data).await?;
+                        keepalive_counter.store(0, Ordering::SeqCst);
                     } else {
                         break Err(anyhow!("Receive failed"));
                     }
