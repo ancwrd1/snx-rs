@@ -255,6 +255,22 @@ impl IpsecTunnelConnector {
             None => {
                 let attr = get_challenge_attribute_type(&id_reply);
                 debug!("No status in reply, requested challenge for: {:?}", attr);
+
+                let session = if let Some(challenge) = get_long_attribute(&id_reply, ConfigAttributeType::Challenge) {
+                    self.do_challenge_attr(&challenge)?
+                } else if attr == ConfigAttributeType::UserName {
+                    Arc::new(VpnSession {
+                        ccc_session_id: self.ccc_session.clone(),
+                        ipsec_session: None,
+                        state: SessionState::PendingChallenge(MfaChallenge {
+                            mfa_type: MfaType::UserNameInput,
+                            prompt: "User name: ".to_owned(),
+                        }),
+                    })
+                } else {
+                    return Err(anyhow!("No challenge in payload!"));
+                };
+
                 match attr {
                     ConfigAttributeType::UserName => {
                         if self.last_challenge_type == ConfigAttributeType::UserName {
@@ -264,14 +280,7 @@ impl IpsecTunnelConnector {
                         self.last_challenge_type = attr;
 
                         if self.params.user_name.is_empty() {
-                            Ok(Arc::new(VpnSession {
-                                ccc_session_id: self.ccc_session.clone(),
-                                ipsec_session: None,
-                                state: SessionState::PendingChallenge(MfaChallenge {
-                                    mfa_type: MfaType::UserNameInput,
-                                    prompt: "User name: ".to_owned(),
-                                }),
-                            }))
+                            Ok(session)
                         } else {
                             let user_name = self.params.user_name.clone();
                             self.challenge_code(Arc::new(VpnSession::empty()), &user_name).await
@@ -279,19 +288,22 @@ impl IpsecTunnelConnector {
                     }
                     ConfigAttributeType::UserPassword
                         if !self.params.password.is_empty()
-                            && self.last_challenge_type != ConfigAttributeType::UserPassword =>
+                            && self.last_challenge_type != ConfigAttributeType::UserPassword
+                            && !matches!(
+                                session.state,
+                                SessionState::PendingChallenge(MfaChallenge {
+                                    mfa_type: MfaType::SamlSso,
+                                    ..
+                                })
+                            ) =>
                     {
                         self.last_challenge_type = ConfigAttributeType::UserPassword;
                         let user_password = self.params.password.clone();
                         self.challenge_code(Arc::new(VpnSession::empty()), &user_password).await
                     }
                     other => {
-                        if let Some(attr) = get_long_attribute(&id_reply, ConfigAttributeType::Challenge) {
-                            self.last_challenge_type = other;
-                            self.do_challenge_attr(&attr)
-                        } else {
-                            Err(anyhow!("No challenge in payload!"))
-                        }
+                        self.last_challenge_type = other;
+                        Ok(session)
                     }
                 }
             }
