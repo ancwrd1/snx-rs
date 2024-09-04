@@ -123,8 +123,8 @@ impl SettingsDialog {
             &[("OK", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
         );
 
-        dialog.set_default_width(650);
-        dialog.set_default_height(350);
+        dialog.set_default_width(700);
+        dialog.set_default_height(370);
         dialog.set_position(WindowPosition::CenterAlways);
 
         let server_name = gtk::Entry::builder().text(&params.server_name).hexpand(true).build();
