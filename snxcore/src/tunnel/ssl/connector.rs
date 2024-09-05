@@ -7,7 +7,11 @@ use tracing::{debug, warn};
 
 use crate::{
     ccc::CccHttpClient,
-    model::{params::TunnelParams, proto::AuthResponse, MfaChallenge, MfaType, SessionState, VpnSession},
+    model::{
+        params::{CertType, TunnelParams},
+        proto::AuthResponse,
+        MfaChallenge, MfaType, SessionState, VpnSession,
+    },
     tunnel::{ssl::SslTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
 };
 
@@ -72,11 +76,23 @@ impl CccTunnelConnector {
 impl TunnelConnector for CccTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         debug!("Authenticating to endpoint: {}", self.params.server_name);
-        let client = CccHttpClient::new(self.params.clone(), None);
 
-        let data = client.authenticate().await?;
+        if self.params.cert_type == CertType::None && self.params.user_name.is_empty() {
+            Ok(Arc::new(VpnSession {
+                ccc_session_id: String::new(),
+                state: SessionState::PendingChallenge(MfaChallenge {
+                    mfa_type: MfaType::UserNameInput,
+                    prompt: "User name: ".to_owned(),
+                }),
+                ipsec_session: None,
+            }))
+        } else {
+            let client = CccHttpClient::new(self.params.clone(), None);
 
-        self.process_auth_response(data).await
+            let data = client.authenticate().await?;
+
+            self.process_auth_response(data).await
+        }
     }
 
     async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
@@ -84,9 +100,18 @@ impl TunnelConnector for CccTunnelConnector {
             "Authenticating with challenge code to endpoint: {}",
             self.params.server_name
         );
-        let client = CccHttpClient::new(self.params.clone(), Some(session));
 
-        let data = client.challenge_code(user_input).await?;
+        let data = if session.ccc_session_id.is_empty() {
+            let params = Arc::new(TunnelParams {
+                user_name: user_input.to_owned(),
+                ..(*self.params).clone()
+            });
+            let client = CccHttpClient::new(params, Some(session.clone()));
+            client.authenticate().await?
+        } else {
+            let client = CccHttpClient::new(self.params.clone(), Some(session.clone()));
+            client.challenge_code(user_input).await?
+        };
 
         self.process_auth_response(data).await
     }
