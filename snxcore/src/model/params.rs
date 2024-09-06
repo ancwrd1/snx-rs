@@ -169,6 +169,7 @@ pub struct TunnelParams {
     pub esp_lifetime: Duration,
     pub ike_lifetime: Duration,
     pub ike_port: u16,
+    pub ike_persist: bool,
     pub client_mode: String,
     pub config_file: PathBuf,
 }
@@ -203,6 +204,7 @@ impl Default for TunnelParams {
             esp_lifetime: DEFAULT_ESP_LIFETIME,
             ike_lifetime: DEFAULT_IKE_LIFETIME,
             ike_port: DEFAULT_IKE_PORT,
+            ike_persist: false,
             client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
             config_file: Self::default_config_path(),
         }
@@ -264,6 +266,7 @@ impl TunnelParams {
                                 v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
                         }
                         "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
+                        "ike-persist" => params.ike_persist = v.parse().unwrap_or_default(),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -341,6 +344,9 @@ impl TunnelParams {
         writeln!(buf, "esp-lifetime={}", self.esp_lifetime.as_secs())?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
         writeln!(buf, "ike-port={}", self.ike_port)?;
+        writeln!(buf, "ike-persist={}", self.ike_persist)?;
+        writeln!(buf, "log-level={}", self.log_level)?;
+        writeln!(buf, "client-mode={}", self.client_mode)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = std::fs::create_dir_all(dir);

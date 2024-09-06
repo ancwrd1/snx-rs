@@ -171,6 +171,13 @@ pub struct CmdlineParams {
     pub ike_port: Option<u16>,
 
     #[clap(
+        long = "ike-persist",
+        short = 'W',
+        help = "Store IKE session to disk and load it automatically"
+    )]
+    pub ike_persist: Option<bool>,
+
+    #[clap(
         long = "client-mode",
         short = 'C',
         help = "Custom client mode [default: secure_connect]"
@@ -287,6 +294,10 @@ impl CmdlineParams {
 
         if let Some(ike_port) = self.ike_port {
             other.ike_port = ike_port;
+        }
+
+        if let Some(ike_persist) = self.ike_persist {
+            other.ike_persist = ike_persist;
         }
 
         if let Some(client_mode) = self.client_mode {

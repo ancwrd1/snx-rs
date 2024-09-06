@@ -130,7 +130,16 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
     let params = Arc::new(params);
     let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
-    let mut session = connector.authenticate().await?;
+
+    let mut session = if params.ike_persist {
+        debug!("Attempting to load IKE session");
+        match connector.restore_session().await {
+            Ok(session) => session,
+            Err(_) => connector.authenticate().await?,
+        }
+    } else {
+        connector.authenticate().await?
+    };
 
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {

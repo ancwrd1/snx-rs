@@ -41,6 +41,7 @@ pub trait VpnTunnel {
 #[async_trait]
 pub trait TunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>>;
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>>;
     async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>>;
     async fn create_tunnel(
         &mut self,
