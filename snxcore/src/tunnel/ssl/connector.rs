@@ -95,6 +95,10 @@ impl TunnelConnector for CccTunnelConnector {
         }
     }
 
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+        Err(anyhow!("Not implemented"))
+    }
+
     async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
         debug!(
             "Authenticating with challenge code to endpoint: {}",

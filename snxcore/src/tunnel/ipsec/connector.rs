@@ -1,19 +1,3 @@
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
-
-use crate::{
-    model::{
-        params::{CertType, TunnelParams},
-        proto::{AuthenticationRealm, ClientLoggingData},
-        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
-    },
-    platform, server_info,
-    sexpr::SExpression,
-    tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
-};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
@@ -26,10 +10,29 @@ use isakmp::{
     session::IsakmpSession,
     transport::UdpTransport,
 };
+use std::path::{Path, PathBuf};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
+use crate::{
+    model::{
+        params::{CertType, TunnelParams},
+        proto::{AuthenticationRealm, ClientLoggingData},
+        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
+    },
+    platform, server_info,
+    sexpr::SExpression,
+    tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
+};
+
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
+
+const SESSIONS_PATH: &str = "/var/cache/snx-rs/sessions";
 
 fn get_challenge_attribute_type(payload: &AttributesPayload) -> ConfigAttributeType {
     payload
@@ -246,6 +249,12 @@ impl IpsecTunnelConnector {
                     .send_ack_response(id_reply.identifier, self.last_message_id)
                     .await?;
 
+                if self.params.ike_persist {
+                    if let Err(e) = self.save_ike_session() {
+                        warn!("Cannot save IKE session: {}", e);
+                    }
+                }
+
                 self.do_session_exchange().await
             }
             Some(status) => {
@@ -396,6 +405,43 @@ impl IpsecTunnelConnector {
             .into_iter()
             .any(|factor| factor.factor_type != "certificate"))
     }
+
+    fn session_file_name(&self) -> PathBuf {
+        Path::new(SESSIONS_PATH).join(&self.params.server_name)
+    }
+
+    fn save_ike_session(&self) -> anyhow::Result<()> {
+        let data = self.service.session().save()?;
+        let dir = Path::new(SESSIONS_PATH);
+
+        std::fs::create_dir_all(dir)?;
+
+        let filename = self.session_file_name();
+        std::fs::write(&filename, &data)?;
+
+        debug!("Saved IKE session to: {}", filename.display());
+
+        Ok(())
+    }
+
+    fn load_ike_session(&self) -> anyhow::Result<()> {
+        let filename = self.session_file_name();
+        let data = std::fs::read(&filename)?;
+        self.service.session().load(&data)?;
+
+        debug!("Loaded IKE session from: {}", filename.display());
+
+        Ok(())
+    }
+
+    async fn do_restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+        self.load_ike_session()?;
+        self.do_session_exchange().await
+    }
+
+    fn delete_session(&self) {
+        let _ = std::fs::remove_file(self.session_file_name());
+    }
 }
 
 #[async_trait]
@@ -434,13 +480,30 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         if self.params.cert_type == CertType::None || self.is_multi_factor_cert_login_type().await.unwrap_or(false) {
             debug!("Awaiting authentication factors");
+
             let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
+
             self.last_message_id = message_id;
+
             self.process_auth_attributes(attrs_reply).await
         } else {
             debug!("No more authentication factors");
-            self.do_session_exchange().await
+            let result = self.do_session_exchange().await?;
+
+            if self.params.ike_persist {
+                if let Err(e) = self.save_ike_session() {
+                    warn!("Cannot save IKE session: {}", e);
+                }
+            }
+
+            Ok(result)
         }
+    }
+
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+        self.do_restore_session().await.inspect_err(|_| {
+            self.delete_session();
+        })
     }
 
     async fn challenge_code(&mut self, _session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
