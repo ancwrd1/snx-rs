@@ -63,6 +63,10 @@ fn main() -> anyhow::Result<()> {
             std::thread::sleep(PING_DURATION);
         });
 
+        if tunnel_params.ike_persist {
+            let _ = sender.send_blocking(Some(ServiceCommand::Connect));
+        }
+
         std::thread::spawn(move || {
             while let Ok(v) = MenuEvent::receiver().recv() {
                 match v.id.0.as_str() {

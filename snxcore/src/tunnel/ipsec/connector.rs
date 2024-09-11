@@ -438,10 +438,6 @@ impl IpsecTunnelConnector {
         self.load_ike_session()?;
         self.do_session_exchange().await
     }
-
-    fn delete_session(&self) {
-        let _ = std::fs::remove_file(self.session_file_name());
-    }
 }
 
 #[async_trait]
@@ -500,10 +496,18 @@ impl TunnelConnector for IpsecTunnelConnector {
         }
     }
 
+    async fn delete_session(&mut self) {
+        let _ = std::fs::remove_file(self.session_file_name());
+    }
+
     async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
-        self.do_restore_session().await.inspect_err(|_| {
-            self.delete_session();
-        })
+        match self.do_restore_session().await {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                self.delete_session().await;
+                Err(e)
+            }
+        }
     }
 
     async fn challenge_code(&mut self, _session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {

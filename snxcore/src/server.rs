@@ -173,7 +173,15 @@ impl CommandServer {
             self.reset();
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
-            let session = connector.authenticate().await?;
+            let session = if params.ike_persist {
+                debug!("Attempting to load IKE session");
+                match connector.restore_session().await {
+                    Ok(session) => session,
+                    Err(_) => connector.authenticate().await?,
+                }
+            } else {
+                connector.authenticate().await?
+            };
             self.connector = Some(connector);
             self.connect_for_session(session, event_sender).await
         }
@@ -195,6 +203,7 @@ impl CommandServer {
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
         if let Some(ref mut connector) = self.connector {
+            connector.delete_session().await;
             let _ = connector.terminate_tunnel().await;
         }
         self.reset();

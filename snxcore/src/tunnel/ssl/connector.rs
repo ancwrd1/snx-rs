@@ -95,6 +95,8 @@ impl TunnelConnector for CccTunnelConnector {
         }
     }
 
+    async fn delete_session(&mut self) {}
+
     async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         Err(anyhow!("Not implemented"))
     }

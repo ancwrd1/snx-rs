@@ -58,6 +58,7 @@ struct MyWidgets {
     ike_lifetime: gtk::Entry,
     esp_lifetime: gtk::Entry,
     ike_port: gtk::Entry,
+    ike_persist: gtk::CheckButton,
     error: gtk::Label,
 }
 
@@ -213,6 +214,7 @@ impl SettingsDialog {
             .text(params.esp_lifetime.as_secs().to_string())
             .build();
         let ike_port = gtk::Entry::builder().text(params.ike_port.to_string()).build();
+        let ike_persist = gtk::CheckButton::builder().active(params.ike_persist).build();
 
         let provider = gtk::CssProvider::new();
         provider.load_from_data(CSS_ERROR.as_bytes()).unwrap();
@@ -341,6 +343,7 @@ impl SettingsDialog {
             ike_lifetime,
             esp_lifetime,
             ike_port,
+            ike_persist,
             error,
         });
 
@@ -459,6 +462,7 @@ impl SettingsDialog {
         params.ike_lifetime = Duration::from_secs(self.widgets.ike_lifetime.text().parse()?);
         params.esp_lifetime = Duration::from_secs(self.widgets.esp_lifetime.text().parse()?);
         params.ike_port = self.widgets.ike_port.text().parse()?;
+        params.ike_persist = self.widgets.ike_persist.is_active();
 
         params.save()?;
 
@@ -630,6 +634,10 @@ impl SettingsDialog {
         let ike_port = self.form_box("IKE port");
         ike_port.pack_start(&self.widgets.ike_port, false, true, 0);
         misc_box.pack_start(&ike_port, false, true, 6);
+
+        let ike_persist = self.form_box("Save IKE session and reconnect automatically");
+        ike_persist.pack_start(&self.widgets.ike_persist, false, true, 0);
+        misc_box.pack_start(&ike_persist, false, true, 6);
 
         misc_box
     }
