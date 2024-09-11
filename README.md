@@ -58,10 +58,9 @@ which is a subject to some limitations.
 ## Command Line Usage
 
 Check the [Configuration Options](https://github.com/ancwrd1/snx-rs/blob/main/options.md) section for a list of all available options. Options can be specified in the configuration file
-and the path of the file given via `-c /path/to/custom.conf` command line parameter, or they can be directly added to the
-command line of `snx-rs` executable.
+and the path of the file given via `-c /path/to/custom.conf` command line parameter.
 
-Alternatively, in standalone mode, they can be provided via the command line parameters to `snx-rs` executable.
+Alternatively, in standalone mode, they can be specified via the command line of the `snx-rs` executable.
 
 Before the client can establish a connection, it must know the login (authentication) method to use (`--login-type` or `-o` option). To find the supported login types, run it with the `-m info` parameter:
 
