@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     net::Ipv4Addr,
     sync::{atomic::AtomicBool, atomic::Ordering},
 };
@@ -117,27 +118,21 @@ pub async fn add_route(route: Ipv4Net, device: &str, _ipaddr: Ipv4Addr) -> anyho
     Ok(())
 }
 
-fn subnet_exists(index: usize, subnet: Ipv4Net, other: &[Ipv4Net]) -> bool {
-    other.iter().enumerate().any(|(i, s)| i != index && *s == subnet)
-}
-
 pub async fn add_routes(
     routes: &[Ipv4Net],
     device: &str,
     ipaddr: Ipv4Addr,
     ignore_routes: &[Ipv4Net],
 ) -> anyhow::Result<()> {
+    let routes = routes.iter().collect::<HashSet<_>>();
     debug!("Routes to add: {:?}", routes);
-    for (_, subnet) in routes
-        .iter()
-        .enumerate()
-        .filter(|(i, s)| !subnet_exists(*i, **s, routes))
-    {
-        if ignore_routes.iter().any(|ignore| ignore == subnet) {
-            debug!("Ignoring route: {}", subnet);
+
+    for route in routes {
+        if ignore_routes.iter().any(|ignore| ignore == route) {
+            debug!("Ignoring route: {}", route);
             continue;
         }
-        let _ = add_route(*subnet, device, ipaddr).await;
+        let _ = add_route(*route, device, ipaddr).await;
     }
 
     Ok(())
