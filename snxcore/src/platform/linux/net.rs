@@ -117,11 +117,8 @@ pub async fn add_route(route: Ipv4Net, device: &str, _ipaddr: Ipv4Addr) -> anyho
     Ok(())
 }
 
-fn subnet_overlaps(index: usize, subnet: Ipv4Net, other: &[Ipv4Net]) -> bool {
-    other
-        .iter()
-        .enumerate()
-        .any(|(i, s)| i != index && (*s == subnet || s.contains(&subnet) || subnet.contains(s)))
+fn subnet_exists(index: usize, subnet: Ipv4Net, other: &[Ipv4Net]) -> bool {
+    other.iter().enumerate().any(|(i, s)| i != index && *s == subnet)
 }
 
 pub async fn add_routes(
@@ -134,7 +131,7 @@ pub async fn add_routes(
     for (_, subnet) in routes
         .iter()
         .enumerate()
-        .filter(|(i, s)| !subnet_overlaps(*i, **s, routes))
+        .filter(|(i, s)| !subnet_exists(*i, **s, routes))
     {
         if ignore_routes.iter().any(|ignore| ignore.contains(subnet)) {
             debug!("Ignoring route: {}", subnet);
