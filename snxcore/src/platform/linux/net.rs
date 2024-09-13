@@ -133,7 +133,7 @@ pub async fn add_routes(
         .enumerate()
         .filter(|(i, s)| !subnet_exists(*i, **s, routes))
     {
-        if ignore_routes.iter().any(|ignore| ignore.contains(subnet)) {
+        if ignore_routes.iter().any(|ignore| ignore == subnet) {
             debug!("Ignoring route: {}", subnet);
             continue;
         }

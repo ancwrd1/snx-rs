@@ -340,8 +340,6 @@ impl XfrmConfigurator {
     async fn setup_routing(&self) -> anyhow::Result<()> {
         let mut subnets = self.tunnel_params.add_routes.clone();
 
-        debug!("Ignoring acquired routes to {}", self.dest_ip);
-
         let dst = self.dest_ip.to_string();
         let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
 

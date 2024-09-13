@@ -55,8 +55,6 @@ impl TunDevice {
             .flat_map(|s| s.into_address().ok())
             .collect::<Vec<_>>();
 
-        debug!("Ignoring acquired routes to {:?}", dest_ips);
-
         let mut subnets = params.add_routes.clone();
 
         if !params.no_routing {
