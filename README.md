@@ -22,7 +22,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface
 * Store passwords in the keychain using Secret Service API
-* Automatic IPSec tunnel reconnection without authentication (via optional paramster)
+* Automatic IPSec tunnel reconnection without authentication (via optional parameter)
 
 ## Limitations
 
