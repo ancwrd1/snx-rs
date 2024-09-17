@@ -118,6 +118,17 @@ The following parameters control certificate-based authentication:
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
 * `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of 'xx:xx:xx' or 'xxxxxx'.
 
+## Persistent IPSec session (experimental)
+
+A new `ike-persist` option will save IPSec session to disk and restore it after the service or computer restarts,
+it will then attempt to automatically reconnect the tunnel without authentication. This parameter works best in combination with the `ike-lifetime` option:
+for example, setting `ike-lifetime` to 604800 will keep the session for 7 days.
+
+Note that most IPSec servers have shorter IKE duration configured, so it may be terminated earlier.
+There is also a corresponding GUI switch under "Misc settings" category in the settings dialog.
+
+Automatic channel reconnection will happen when running in the standalone mode, when GUI application starts or when snxctl sends the "connect" command.
+
 ## Additional Usage Notes
 
 * If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
