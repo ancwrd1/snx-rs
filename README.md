@@ -43,6 +43,8 @@ IPSec is recommended for all connections because of the performance and feature 
 it might not work (for example because of the corporate firewall policies). In this case the SSL tunnel can be used
 which is a subject to some limitations.
 
+Note: IPSec requires that IPv6 module is enabled in the kernel.
+
 |                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
 |--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Implementation                 | User-space TCP-encapsulated tunnel via TUN device                     | Kernel-space UDP-encapsulated tunnel via native OS support                                                                                                                             |
