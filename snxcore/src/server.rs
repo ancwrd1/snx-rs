@@ -168,7 +168,7 @@ impl CommandServer {
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
         if self.is_connected() {
-            Err(anyhow!("Tunnel is already connected!"))
+            Ok(())
         } else {
             self.reset();
 
