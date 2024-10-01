@@ -1,5 +1,3 @@
-#![allow(clippy::too_many_arguments)]
-
 use std::{collections::HashMap, fs, os::fd::AsRawFd, time::Duration};
 
 use anyhow::anyhow;
