@@ -18,7 +18,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * Username/password authentication with MFA support
 * Certificate authentication via provided client certificate (PFX, PEM, or HW token)
 * HW token support via PKCS11 (only with IPSec tunnel)
-* GTK frontend with tray icon and optional WebKit webview for SAML authentication
+* GTK frontend with tray icon
 * SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface
 * Store passwords in the keychain using Secret Service API
@@ -35,7 +35,6 @@ This project contains the source code for an unofficial Linux client for Check P
 * iproute2 (the `ip` command)
 * D-Bus
 * GTK3 and libappindicator3 for the GUI frontend
-* webkit2gtk for the optional WebKit webview
 
 ## Differences between SSL and IPSec tunnels
 
@@ -154,15 +153,11 @@ Before opening a PR, make sure to reformat the sources with the `cargo fmt` comm
 
 ## Building from Sources
 
-By default, the WebKit integration is not enabled and the system browser will be used for SAML authentication.
-It is controlled by the feature flag `webkit2gtk` which can be enabled with `--features=webkit2gtk` cargo parameter.
-
 The easiest way to build the project is using the distrobox:
 
 * Provision distrobox container: `distrobox create --image ubuntu:22.04 --name snx-ubuntu`
 * Enter the container: `distrobox enter snx-ubuntu`
 * Install the required dependencies: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev`
-* For WebKit webview feature, install the webkit2gtk dependencies: `sudo apt install libsoup-3.0-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev`
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
@@ -174,3 +169,4 @@ Special thanks to the [cpyvpn](https://gitlab.com/cpvpn/cpyvpn) project for insp
 ## License
 
 Licensed under the [GNU Affero General Public License version 3](https://opensource.org/license/agpl-v3/).
+c

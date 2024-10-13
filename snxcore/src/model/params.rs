@@ -171,6 +171,7 @@ pub struct TunnelParams {
     pub ike_port: u16,
     pub ike_persist: bool,
     pub client_mode: String,
+    pub no_keepalive: bool,
     pub config_file: PathBuf,
 }
 
@@ -206,6 +207,7 @@ impl Default for TunnelParams {
             ike_port: DEFAULT_IKE_PORT,
             ike_persist: false,
             client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
+            no_keepalive: false,
             config_file: Self::default_config_path(),
         }
     }
@@ -267,6 +269,7 @@ impl TunnelParams {
                         }
                         "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
                         "ike-persist" => params.ike_persist = v.parse().unwrap_or_default(),
+                        "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
                         other => {
                             warn!("Ignoring unknown option: {}", other);
                         }
@@ -347,6 +350,7 @@ impl TunnelParams {
         writeln!(buf, "ike-persist={}", self.ike_persist)?;
         writeln!(buf, "log-level={}", self.log_level)?;
         writeln!(buf, "client-mode={}", self.client_mode)?;
+        writeln!(buf, "no-keepalive={}", self.no_keepalive)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = std::fs::create_dir_all(dir);

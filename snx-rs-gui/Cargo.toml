@@ -13,7 +13,6 @@ publish.workspace = true
 [dependencies]
 snxcore = { path = "../snxcore" }
 tray-icon = { version = "0.19", default-features = false }
-webkit2gtk = { version = "2", features = ["v2_32"], optional = true }
 gtk = "0.18"
 png = "0.17"
 async-channel = "2"
@@ -27,6 +26,3 @@ clap = { version = "4", features = ["derive"] }
 hex = "0.4"
 zbus = { version = "4.2", default-features = false, features = ["tokio"] }
 futures = "0.3"
-
-[features]
-webkit2gtk = ["dep:webkit2gtk"]

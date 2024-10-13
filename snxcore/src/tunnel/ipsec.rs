@@ -57,7 +57,15 @@ impl IpsecTunnel {
         );
 
         let ready = Arc::new(AtomicBool::new(false));
-        let keepalive_runner = KeepaliveRunner::new(ipsec_session.address, gateway_address, ready.clone());
+        let keepalive_runner = KeepaliveRunner::new(
+            ipsec_session.address,
+            gateway_address,
+            if params.no_keepalive {
+                Arc::new(AtomicBool::new(false))
+            } else {
+                ready.clone()
+            },
+        );
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;

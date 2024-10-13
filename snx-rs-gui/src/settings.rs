@@ -59,6 +59,7 @@ struct MyWidgets {
     esp_lifetime: gtk::Entry,
     ike_port: gtk::Entry,
     ike_persist: gtk::CheckButton,
+    no_keepalive: gtk::CheckButton,
     error: gtk::Label,
 }
 
@@ -215,6 +216,7 @@ impl SettingsDialog {
             .build();
         let ike_port = gtk::Entry::builder().text(params.ike_port.to_string()).build();
         let ike_persist = gtk::CheckButton::builder().active(params.ike_persist).build();
+        let no_keepalive = gtk::CheckButton::builder().active(params.no_keepalive).build();
 
         let provider = gtk::CssProvider::new();
         provider.load_from_data(CSS_ERROR.as_bytes()).unwrap();
@@ -344,6 +346,7 @@ impl SettingsDialog {
             esp_lifetime,
             ike_port,
             ike_persist,
+            no_keepalive,
             error,
         });
 
@@ -463,6 +466,7 @@ impl SettingsDialog {
         params.esp_lifetime = Duration::from_secs(self.widgets.esp_lifetime.text().parse()?);
         params.ike_port = self.widgets.ike_port.text().parse()?;
         params.ike_persist = self.widgets.ike_persist.is_active();
+        params.no_keepalive = self.widgets.no_keepalive.is_active();
 
         params.save()?;
 
@@ -638,6 +642,10 @@ impl SettingsDialog {
         let ike_persist = self.form_box("Save IKE session and reconnect automatically");
         ike_persist.pack_start(&self.widgets.ike_persist, false, true, 0);
         misc_box.pack_start(&ike_persist, false, true, 6);
+
+        let no_keepalive = self.form_box("Disable keepalive packets");
+        no_keepalive.pack_start(&self.widgets.no_keepalive, false, true, 0);
+        misc_box.pack_start(&no_keepalive, false, true, 6);
 
         misc_box
     }

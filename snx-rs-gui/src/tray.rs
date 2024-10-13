@@ -18,12 +18,6 @@ use snxcore::{
 
 const TITLE: &str = "SNX-RS VPN client";
 
-#[cfg(feature = "webkit2gtk")]
-fn browser(params: Arc<TunnelParams>) -> impl BrowserController {
-    crate::webkit::WebkitBrowser(params)
-}
-
-#[cfg(not(feature = "webkit2gtk"))]
 fn browser(_params: Arc<TunnelParams>) -> impl BrowserController {
     snxcore::browser::SystemBrowser
 }

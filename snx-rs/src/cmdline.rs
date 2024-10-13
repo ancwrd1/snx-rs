@@ -183,6 +183,9 @@ pub struct CmdlineParams {
         help = "Custom client mode [default: secure_connect]"
     )]
     pub client_mode: Option<String>,
+
+    #[clap(long = "no-keepalive", short = 'A', help = "Disable keepalive packets")]
+    pub no_keepalive: Option<bool>,
 }
 
 impl CmdlineParams {
@@ -302,6 +305,10 @@ impl CmdlineParams {
 
         if let Some(client_mode) = self.client_mode {
             other.client_mode = client_mode;
+        }
+
+        if let Some(no_keepalive) = self.no_keepalive {
+            other.no_keepalive = no_keepalive;
         }
     }
 }
