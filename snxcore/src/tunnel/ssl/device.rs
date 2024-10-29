@@ -1,12 +1,11 @@
 use std::net::Ipv4Addr;
 
-use tracing::debug;
-use tun::Device;
-
 use crate::{
     model::{params::TunnelParams, proto::HelloReplyData},
     platform, util,
 };
+use tracing::debug;
+use tun::AbstractDevice;
 
 pub struct TunDevice {
     inner: tun::AsyncDevice,
@@ -21,7 +20,7 @@ impl TunDevice {
         let ipaddr = reply.office_mode.ipaddr.parse::<Ipv4Addr>()?;
 
         config.address(reply.office_mode.ipaddr.as_str()).up();
-        config.name(name);
+        config.tun_name(name);
 
         if let Some(ref netmask) = reply.optional {
             config.netmask(netmask.subnet.as_str());
@@ -29,7 +28,7 @@ impl TunDevice {
 
         let dev = tun::create_as_async(&config)?;
 
-        let dev_name = dev.get_ref().name()?;
+        let dev_name = dev.tun_name()?;
 
         debug!("Created tun device: {dev_name}");
 

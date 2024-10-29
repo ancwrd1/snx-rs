@@ -67,11 +67,11 @@ impl UdpSocketExt for UdpSocket {
 }
 
 pub fn new_tun_config() -> tun::Configuration {
-    let mut config = tun::Configuration::default();
+    let config = tun::Configuration::default();
 
-    config.platform(|config| {
-        config.packet_information(true);
-    });
+    // config.platform_config(|config| {
+    //     config.packet_information(true);
+    // });
 
     config
 }

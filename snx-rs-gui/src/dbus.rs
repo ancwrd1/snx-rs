@@ -9,7 +9,7 @@ use zbus::{zvariant, Connection};
     default_service = "org.freedesktop.portal.Desktop",
     default_path = "/org/freedesktop/portal/desktop"
 )]
-trait DesktopSettings {
+pub trait DesktopSettings {
     #[zbus(signal)]
     fn setting_changed(&self, namespace: &str, key: &str, value: zvariant::Value<'_>) -> zbus::Result<()>;
 

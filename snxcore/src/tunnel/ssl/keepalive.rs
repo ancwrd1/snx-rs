@@ -1,6 +1,6 @@
 use std::{
     sync::{
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicI64, Ordering},
         Arc,
     },
     time::Duration,
@@ -15,17 +15,17 @@ use crate::{
     tunnel::ssl::PacketSender,
 };
 
-const KEEPALIVE_MAX_RETRIES: u64 = 3;
+const KEEPALIVE_MAX_RETRIES: i64 = 3;
 const SEND_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct KeepaliveRunner {
     interval: Duration,
     sender: PacketSender,
-    keepalive_counter: Arc<AtomicU64>,
+    keepalive_counter: Arc<AtomicI64>,
 }
 
 impl KeepaliveRunner {
-    pub fn new(interval: Duration, sender: PacketSender, counter: Arc<AtomicU64>) -> Self {
+    pub fn new(interval: Duration, sender: PacketSender, counter: Arc<AtomicI64>) -> Self {
         Self {
             interval,
             sender,

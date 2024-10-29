@@ -1,6 +1,6 @@
 use std::{
     sync::{
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicI64, Ordering},
         Arc,
     },
     time::Duration,
@@ -14,7 +14,6 @@ use futures::{
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
-use tun::TunPacket;
 
 use codec::{SslPacketCodec, SslPacketType};
 
@@ -73,7 +72,7 @@ pub(crate) struct SslTunnel {
     device_name: String,
     sender: PacketSender,
     receiver: Option<PacketReceiver>,
-    keepalive_counter: Arc<AtomicU64>,
+    keepalive_counter: Arc<AtomicI64>,
 }
 
 impl SslTunnel {
@@ -113,7 +112,7 @@ impl SslTunnel {
             device_name: String::new(),
             sender,
             receiver: Some(receiver),
-            keepalive_counter: Arc::new(AtomicU64::default()),
+            keepalive_counter: Arc::new(AtomicI64::default()),
         })
     }
 
@@ -225,8 +224,7 @@ impl VpnTunnel for SslTunnel {
                         }
                     }
                     SslPacketType::Data(data) => {
-                        let tun_packet = TunPacket::new(data);
-                        tun_sender.send(tun_packet).await?;
+                        tun_sender.send(data).await?;
                         keepalive_counter.store(0, Ordering::SeqCst);
                     }
                 }
@@ -261,8 +259,7 @@ impl VpnTunnel for SslTunnel {
 
                 result = tun_receiver.next() => {
                     if let Some(Ok(item)) = result {
-                        let data = item.into_bytes().to_vec();
-                        self.send(data).await?;
+                        self.send(item).await?;
                     } else {
                         break Err(anyhow!("Receive failed"));
                     }
