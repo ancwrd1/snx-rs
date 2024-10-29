@@ -59,7 +59,7 @@ impl TunDevice {
 
         if !params.no_routing {
             if params.default_route {
-                let _ = platform::add_default_route(&self.dev_name, self.ipaddr).await;
+                platform::setup_default_route(&self.dev_name, dest_ips[0]).await?;
             } else {
                 subnets.extend(util::ranges_to_subnets(&self.reply.range));
             }

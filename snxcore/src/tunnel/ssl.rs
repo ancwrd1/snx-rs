@@ -1,4 +1,5 @@
 use std::{
+    net::ToSocketAddrs,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -14,7 +15,7 @@ use futures::{
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
-use tun::TunPacket;
+use tun::{IntoAddress, TunPacket};
 
 use codec::{SslPacketCodec, SslPacketType};
 
@@ -192,7 +193,7 @@ impl VpnTunnel for SslTunnel {
 
         let dev_name = tun.name().to_owned();
 
-        crate::platform::unmanage_device(&dev_name).await;
+        platform::unmanage_device(&dev_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 
@@ -263,6 +264,14 @@ impl VpnTunnel for SslTunnel {
         };
 
         let _ = event_sender.send(TunnelEvent::Disconnected).await;
+
+        if let Some(dest_ip) = format!("{}:443", self.params.server_name)
+            .to_socket_addrs()?
+            .flat_map(|s| s.into_address().ok())
+            .next()
+        {
+            let _ = platform::remove_default_route(dest_ip).await;
+        }
 
         platform::delete_device(&dev_name).await;
 

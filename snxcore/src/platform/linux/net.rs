@@ -4,6 +4,7 @@ use std::{
     sync::{atomic::AtomicBool, atomic::Ordering},
 };
 
+use crate::model::params::TunnelParams;
 use anyhow::anyhow;
 use futures::StreamExt;
 use ipnet::Ipv4Net;
@@ -138,9 +139,23 @@ pub async fn add_routes(
     Ok(())
 }
 
-pub async fn add_default_route(device: &str, _ipaddr: Ipv4Addr) -> anyhow::Result<()> {
-    debug!("Adding default route for {}", device);
-    let _ = crate::util::run_command("ip", ["route", "add", "default", "dev", device]).await?;
+pub async fn setup_default_route(device: &str, ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+    debug!("Setting up default route through {device}");
+
+    let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
+    let dst = ipaddr.to_string();
+
+    crate::util::run_command("ip", ["route", "add", "table", &port, "default", "dev", device]).await?;
+    crate::util::run_command("ip", ["rule", "add", "not", "to", &dst, "table", &port]).await?;
+
+    Ok(())
+}
+
+pub async fn remove_default_route(ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+    let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
+    let dst = ipaddr.to_string();
+
+    crate::util::run_command("ip", ["rule", "del", "not", "to", &dst, "table", &port]).await?;
 
     Ok(())
 }
