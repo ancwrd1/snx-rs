@@ -1,5 +1,4 @@
 use std::{
-    net::{IpAddr, ToSocketAddrs},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -43,13 +42,7 @@ impl IpsecTunnel {
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
 
-        let gateway_address = format!("{}:{}", params.server_name, params.ike_port)
-            .to_socket_addrs()?
-            .find_map(|addr| match addr.ip() {
-                IpAddr::V4(v4) => Some(v4),
-                IpAddr::V6(_) => None,
-            })
-            .ok_or_else(|| anyhow!("No gateway address!"))?;
+        let gateway_address = util::resolve_ipv4_host(&format!("{}:{}", params.server_name, params.ike_port))?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",
@@ -151,7 +144,7 @@ impl VpnTunnel for IpsecTunnel {
 
 impl Drop for IpsecTunnel {
     fn drop(&mut self) {
-        debug!("Cleaning up ipsec tunnel");
+        debug!("Cleaning up IPSec tunnel");
         std::thread::scope(|s| {
             s.spawn(|| crate::util::block_on(self.configurator.cleanup()));
         });

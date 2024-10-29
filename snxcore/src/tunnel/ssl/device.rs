@@ -1,7 +1,7 @@
-use std::net::{Ipv4Addr, ToSocketAddrs};
+use std::net::Ipv4Addr;
 
 use tracing::debug;
-use tun::{Device, IntoAddress};
+use tun::Device;
 
 use crate::{
     model::{params::TunnelParams, proto::HelloReplyData},
@@ -50,22 +50,18 @@ impl TunDevice {
     }
 
     pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
-        let dest_ips = format!("{}:443", params.server_name)
-            .to_socket_addrs()?
-            .flat_map(|s| s.into_address().ok())
-            .collect::<Vec<_>>();
-
+        let dest_ip = util::resolve_ipv4_host(&format!("{}:443", params.server_name))?;
         let mut subnets = params.add_routes.clone();
 
         if !params.no_routing {
             if params.default_route {
-                platform::setup_default_route(&self.dev_name, dest_ips[0]).await?;
+                platform::setup_default_route(&self.dev_name, dest_ip).await?;
             } else {
                 subnets.extend(util::ranges_to_subnets(&self.reply.range));
             }
         }
 
-        subnets.retain(|s| dest_ips.iter().all(|i| !s.contains(i)));
+        subnets.retain(|s| !s.contains(&dest_ip));
 
         if !subnets.is_empty() {
             let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr, &params.ignore_routes).await;

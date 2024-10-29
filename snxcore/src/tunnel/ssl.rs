@@ -1,5 +1,4 @@
 use std::{
-    net::ToSocketAddrs,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -15,7 +14,7 @@ use futures::{
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
-use tun::{IntoAddress, TunPacket};
+use tun::TunPacket;
 
 use codec::{SslPacketCodec, SslPacketType};
 
@@ -24,6 +23,7 @@ use crate::{
     platform,
     sexpr::SExpression,
     tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
+    util,
 };
 
 pub mod codec;
@@ -70,6 +70,7 @@ pub(crate) struct SslTunnel {
     auth_timeout: Duration,
     keepalive: Duration,
     ip_address: String,
+    device_name: String,
     sender: PacketSender,
     receiver: Option<PacketReceiver>,
     keepalive_counter: Arc<AtomicU64>,
@@ -109,6 +110,7 @@ impl SslTunnel {
             auth_timeout: Duration::default(),
             keepalive: Duration::default(),
             ip_address: "0.0.0.0".to_string(),
+            device_name: String::new(),
             sender,
             receiver: Some(receiver),
             keepalive_counter: Arc::new(AtomicU64::default()),
@@ -168,6 +170,14 @@ impl SslTunnel {
 
         Ok(())
     }
+
+    async fn cleanup(&self) {
+        if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
+            let _ = platform::remove_default_route(dest_ip).await;
+        }
+
+        platform::delete_device(&self.device_name).await;
+    }
 }
 
 #[async_trait::async_trait]
@@ -191,15 +201,14 @@ impl VpnTunnel for SslTunnel {
         let tun = device::TunDevice::new(tun_name, &reply)?;
         tun.setup_dns_and_routing(&self.params).await?;
 
-        let dev_name = tun.name().to_owned();
+        self.device_name = tun.name().to_owned();
 
-        platform::unmanage_device(&dev_name).await;
+        platform::unmanage_device(&self.device_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 
         let mut snx_receiver = self.receiver.take().unwrap();
 
-        let dev_name2 = dev_name.clone();
         let keepalive_counter = self.keepalive_counter.clone();
 
         tokio::spawn(async move {
@@ -216,7 +225,6 @@ impl VpnTunnel for SslTunnel {
                         }
                     }
                     SslPacketType::Data(data) => {
-                        trace!("snx => {}: {}", dev_name2, data.len());
                         let tun_packet = TunPacket::new(data);
                         tun_sender.send(tun_packet).await?;
                         keepalive_counter.store(0, Ordering::SeqCst);
@@ -254,7 +262,6 @@ impl VpnTunnel for SslTunnel {
                 result = tun_receiver.next() => {
                     if let Some(Ok(item)) = result {
                         let data = item.into_bytes().to_vec();
-                        trace!("{} => snx: {}", dev_name, data.len());
                         self.send(data).await?;
                     } else {
                         break Err(anyhow!("Receive failed"));
@@ -265,16 +272,17 @@ impl VpnTunnel for SslTunnel {
 
         let _ = event_sender.send(TunnelEvent::Disconnected).await;
 
-        if let Some(dest_ip) = format!("{}:443", self.params.server_name)
-            .to_socket_addrs()?
-            .flat_map(|s| s.into_address().ok())
-            .next()
-        {
-            let _ = platform::remove_default_route(dest_ip).await;
-        }
-
-        platform::delete_device(&dev_name).await;
+        self.cleanup().await;
 
         result
+    }
+}
+
+impl Drop for SslTunnel {
+    fn drop(&mut self) {
+        debug!("Cleaning up SSL tunnel");
+        std::thread::scope(|s| {
+            s.spawn(|| util::block_on(self.cleanup()));
+        });
     }
 }

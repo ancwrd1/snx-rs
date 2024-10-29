@@ -1,4 +1,11 @@
-use std::{ffi::OsStr, fmt, future::Future, path::Path, process::Output};
+use std::{
+    ffi::OsStr,
+    fmt,
+    future::Future,
+    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
+    path::Path,
+    process::Output,
+};
 
 use anyhow::anyhow;
 use ipnet::{Ipv4Net, Ipv4Subnets};
@@ -117,6 +124,18 @@ pub fn get_device_id() -> String {
         .braced()
         .encode_upper(&mut Uuid::encode_buffer())
         .to_owned()
+}
+
+pub fn resolve_ipv4_host(server_name: &str) -> anyhow::Result<Ipv4Addr> {
+    let address = server_name
+        .to_socket_addrs()?
+        .find_map(|addr| match addr.ip() {
+            IpAddr::V4(v4) => Some(v4),
+            IpAddr::V6(_) => None,
+        })
+        .ok_or_else(|| anyhow!("Cannot resolve {}", server_name))?;
+
+    Ok(address)
 }
 
 #[cfg(test)]
