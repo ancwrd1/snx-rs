@@ -67,13 +67,7 @@ impl UdpSocketExt for UdpSocket {
 }
 
 pub fn new_tun_config() -> tun::Configuration {
-    let config = tun::Configuration::default();
-
-    // config.platform_config(|config| {
-    //     config.packet_information(true);
-    // });
-
-    config
+    tun::Configuration::default()
 }
 
 pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
