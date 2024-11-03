@@ -203,7 +203,7 @@ impl VpnTunnel for SslTunnel {
 
         self.device_name = tun.name().to_owned();
 
-        new_resolver_configurator()?.configure_device(&self.device_name).await?;
+        new_resolver_configurator()?.configure_interface(&self.device_name).await?;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 

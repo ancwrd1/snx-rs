@@ -18,7 +18,7 @@ anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio-native-tls = "0.3"
-tokio = { version = "1", features = ["rt-multi-thread", "net", "fs", "io-util", "process", "signal"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "fs", "io-util", "process", "signal", "macros"] }
 tokio-util = "0.7"
 reqwest = { version = "0.12", features = ["native-tls"] }
 futures = "0.3"
@@ -47,3 +47,7 @@ secret-service = {  version = "4", features = ["rt-tokio-crypto-rust"] }
 uuid = { version = "1", features = ["v4", "v5"] }
 opener = { version = "0.7"}
 cached = {  version = "0.54",  features = ["async"] }
+
+[dev-dependencies]
+tempfile = "3"
+

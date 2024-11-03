@@ -37,7 +37,7 @@ impl<'a> XfrmLink<'a> {
         .await?;
 
         platform::new_resolver_configurator()?
-            .configure_device(self.name)
+            .configure_interface(self.name)
             .await?;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
@@ -383,8 +383,6 @@ impl XfrmConfigurator {
 
     async fn setup_dns(&self) -> anyhow::Result<()> {
         if !self.tunnel_params.no_dns {
-            debug!("Adding acquired DNS suffixes: {:?}", self.ipsec_session.domains);
-            debug!("Adding provided DNS suffixes: {:?}", self.tunnel_params.search_domains);
             let suffixes = self
                 .ipsec_session
                 .domains
@@ -400,6 +398,8 @@ impl XfrmConfigurator {
                 .cloned()
                 .collect::<Vec<_>>();
 
+            debug!("Configuring search domains: {:?}", suffixes);
+
             let resolver = new_resolver_configurator()?;
 
             resolver.configure_dns_suffixes(&self.name, &suffixes).await?;
@@ -410,6 +410,8 @@ impl XfrmConfigurator {
                 .iter()
                 .map(|server| server.to_string())
                 .collect::<Vec<_>>();
+
+            debug!("Configuring DNS servers: {:?}", servers);
 
             resolver.configure_dns_servers(&self.name, &servers).await?;
         }
