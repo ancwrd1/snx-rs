@@ -17,6 +17,8 @@ use tracing::{debug, trace, warn};
 
 use codec::{SslPacketCodec, SslPacketType};
 
+use crate::platform::new_resolver_configurator;
+use crate::tunnel::ssl::device::TunDevice;
 use crate::{
     model::{params::TunnelParams, proto::*, *},
     platform,
@@ -24,7 +26,6 @@ use crate::{
     tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
     util,
 };
-use crate::platform::new_resolver_configurator;
 
 pub mod codec;
 pub mod connector;
@@ -70,10 +71,10 @@ pub(crate) struct SslTunnel {
     auth_timeout: Duration,
     keepalive: Duration,
     ip_address: String,
-    device_name: String,
     sender: PacketSender,
     receiver: Option<PacketReceiver>,
     keepalive_counter: Arc<AtomicI64>,
+    tun_device: Option<TunDevice>,
 }
 
 impl SslTunnel {
@@ -110,10 +111,10 @@ impl SslTunnel {
             auth_timeout: Duration::default(),
             keepalive: Duration::default(),
             ip_address: "0.0.0.0".to_string(),
-            device_name: String::new(),
             sender,
             receiver: Some(receiver),
             keepalive_counter: Arc::new(AtomicI64::default()),
+            tun_device: None,
         })
     }
 
@@ -176,7 +177,10 @@ impl SslTunnel {
             let _ = platform::remove_default_route(dest_ip).await;
         }
 
-        platform::delete_device(&self.device_name).await;
+        if let Some(ref device) = self.tun_device {
+            let _ = device.setup_dns(&self.params, true).await;
+            platform::delete_device(device.name()).await;
+        }
     }
 }
 
@@ -199,11 +203,10 @@ impl VpnTunnel for SslTunnel {
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
         let tun = device::TunDevice::new(tun_name, &reply)?;
-        tun.setup_dns_and_routing(&self.params).await?;
+        tun.setup_routing(&self.params).await?;
+        tun.setup_dns(&self.params, false).await?;
 
-        self.device_name = tun.name().to_owned();
-
-        new_resolver_configurator()?.configure_interface(&self.device_name).await?;
+        new_resolver_configurator()?.configure_interface(tun_name).await?;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 

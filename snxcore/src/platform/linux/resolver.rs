@@ -18,36 +18,40 @@ pub trait ResolverConfigurator {
         Ok(())
     }
 
-    async fn configure_dns_suffixes(&self, device: &str, suffixes: &[String]) -> anyhow::Result<()>;
+    async fn configure_dns_suffixes(&self, device: &str, suffixes: &[String], cleanup: bool) -> anyhow::Result<()>;
 
-    async fn configure_dns_servers(&self, device: &str, servers: &[String]) -> anyhow::Result<()>;
+    async fn configure_dns_servers(&self, device: &str, servers: &[String], cleanup: bool) -> anyhow::Result<()>;
 }
 
 struct SystemdResolvedConfigurator;
 
 #[async_trait]
 impl ResolverConfigurator for SystemdResolvedConfigurator {
-    async fn configure_dns_suffixes(&self, device: &str, suffixes: &[String]) -> anyhow::Result<()> {
-        let mut args = vec!["domain", device];
+    async fn configure_dns_suffixes(&self, device: &str, suffixes: &[String], cleanup: bool) -> anyhow::Result<()> {
+        if !cleanup {
+            let mut args = vec!["domain", device];
 
-        let suffixes = suffixes.iter().map(|s| s.trim()).collect::<Vec<_>>();
+            let suffixes = suffixes.iter().map(|s| s.trim()).collect::<Vec<_>>();
 
-        args.extend(suffixes);
+            args.extend(suffixes);
 
-        crate::util::run_command("resolvectl", args).await?;
-        crate::util::run_command("resolvectl", ["default-route", device, "false"]).await?;
+            crate::util::run_command("resolvectl", args).await?;
+            crate::util::run_command("resolvectl", ["default-route", device, "false"]).await?;
+        }
 
         Ok(())
     }
 
-    async fn configure_dns_servers(&self, device: &str, servers: &[String]) -> anyhow::Result<()> {
-        let mut args = vec!["dns", device];
+    async fn configure_dns_servers(&self, device: &str, servers: &[String], cleanup: bool) -> anyhow::Result<()> {
+        if !cleanup {
+            let mut args = vec!["dns", device];
 
-        let servers = servers.iter().map(|s| s.trim()).collect::<Vec<_>>();
+            let servers = servers.iter().map(|s| s.trim()).collect::<Vec<_>>();
 
-        args.extend(servers);
+            args.extend(servers);
 
-        crate::util::run_command("resolvectl", args).await?;
+            crate::util::run_command("resolvectl", args).await?;
+        }
 
         Ok(())
     }
@@ -80,22 +84,31 @@ struct ResolvConfConfigurator(PathBuf);
 
 #[async_trait]
 impl ResolverConfigurator for ResolvConfConfigurator {
-    async fn configure_dns_suffixes(&self, _device: &str, suffixes: &[String]) -> anyhow::Result<()> {
+    async fn configure_dns_suffixes(&self, _device: &str, suffixes: &[String], cleanup: bool) -> anyhow::Result<()> {
         let conf = fs::read_to_string(&self.0)?;
         let mut found = false;
         let mut lines = Vec::new();
         let suffixes = suffixes.join(" ");
 
         for line in conf.lines() {
-            if line.starts_with("search ") && !line.contains(&suffixes) {
-                lines.push(format!("{} {}", line, suffixes));
-                found = true;
+            if line.starts_with("search ") {
+                if cleanup {
+                    let trimmed = line.replace(&suffixes, "").trim().to_owned();
+                    if trimmed != "search" {
+                        lines.push(trimmed);
+                    }
+                } else if !line.contains(&suffixes) {
+                    lines.push(format!("{} {}", line, suffixes));
+                    found = true;
+                } else {
+                    lines.push(line.to_owned());
+                }
             } else {
                 lines.push(line.to_owned());
             }
         }
 
-        if !found {
+        if !found && !cleanup {
             lines.push(format!("search {}", suffixes));
         }
 
@@ -104,21 +117,27 @@ impl ResolverConfigurator for ResolvConfConfigurator {
         Ok(())
     }
 
-    async fn configure_dns_servers(&self, _device: &str, servers: &[String]) -> anyhow::Result<()> {
+    async fn configure_dns_servers(&self, _device: &str, servers: &[String], cleanup: bool) -> anyhow::Result<()> {
         let conf = fs::read_to_string(&self.0)?;
         let mut lines = Vec::new();
 
         let mut servers = servers.to_vec();
 
         for line in conf.lines() {
-            if line.starts_with("nameserver ") {
+            if cleanup {
+                if line.starts_with("nameserver ") && servers.iter().any(|s| line.contains(s)) {
+                    continue;
+                }
+            } else if line.starts_with("nameserver ") {
                 servers.retain(|s| !line.contains(s));
             }
             lines.push(line.to_owned());
         }
 
-        for server in servers {
-            lines.push(format!("nameserver {}", server));
+        if !cleanup {
+            for server in servers {
+                lines.push(format!("nameserver {}", server));
+            }
         }
 
         fs::write(&self.0, format!("{}\n", lines.join("\n")))?;
@@ -138,21 +157,40 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_resolv_conf_configurator() {
+    async fn test_resolv_conf_configurator_setup() {
         let conf = tempfile::NamedTempFile::new().unwrap().into_temp_path();
         fs::write(&conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com\n").unwrap();
 
         let cut = ResolvConfConfigurator(conf.to_owned());
 
-        cut.configure_dns_servers("", &["192.168.1.1".to_owned(), "192.168.1.2".to_owned()])
+        cut.configure_dns_servers("", &["192.168.1.1".to_owned(), "192.168.1.2".to_owned()], false)
             .await
             .unwrap();
 
-        cut.configure_dns_suffixes("", &["dom1.com".to_owned(), "dom2.net".to_owned()])
+        cut.configure_dns_suffixes("", &["dom1.com".to_owned(), "dom2.net".to_owned()], false)
             .await
             .unwrap();
 
         let new_conf = fs::read_to_string(&conf).unwrap();
         assert_eq!(new_conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com dom1.com dom2.net\nnameserver 192.168.1.1\nnameserver 192.168.1.2\n");
+    }
+
+    #[tokio::test]
+    async fn test_resolv_conf_configurator_cleanup() {
+        let conf = tempfile::NamedTempFile::new().unwrap().into_temp_path();
+        fs::write(&conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com dom1.com dom2.net\nnameserver 192.168.1.1\nnameserver 192.168.1.2\n").unwrap();
+
+        let cut = ResolvConfConfigurator(conf.to_owned());
+
+        cut.configure_dns_servers("", &["192.168.1.1".to_owned(), "192.168.1.2".to_owned()], true)
+            .await
+            .unwrap();
+
+        cut.configure_dns_suffixes("", &["dom1.com".to_owned(), "dom2.net".to_owned()], true)
+            .await
+            .unwrap();
+
+        let new_conf = fs::read_to_string(&conf).unwrap();
+        assert_eq!(new_conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com\n");
     }
 }

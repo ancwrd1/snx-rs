@@ -49,7 +49,7 @@ impl TunDevice {
         self.inner
     }
 
-    pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
+    pub async fn setup_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
         let dest_ip = util::resolve_ipv4_host(&format!("{}:443", params.server_name))?;
         let mut subnets = params.add_routes.clone();
 
@@ -67,9 +67,13 @@ impl TunDevice {
             let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr, &params.ignore_routes).await;
         }
 
-        let resolver = new_resolver_configurator()?;
+        Ok(())
+    }
 
+    pub async fn setup_dns(&self, params: &TunnelParams, cleanup: bool) -> anyhow::Result<()> {
         if !params.no_dns {
+            let resolver = new_resolver_configurator()?;
+
             if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
                 let suffixes = suffixes
                     .0
@@ -87,12 +91,14 @@ impl TunDevice {
 
                 debug!("Configuring search domains: {:?}", suffixes);
 
-                resolver.configure_dns_suffixes(&self.dev_name, &suffixes).await?;
+                resolver
+                    .configure_dns_suffixes(&self.dev_name, &suffixes, cleanup)
+                    .await?;
             }
 
             if let Some(ref servers) = self.reply.office_mode.dns_servers {
                 debug!("Configuring DNS servers: {servers:?}");
-                resolver.configure_dns_servers(&self.dev_name, servers).await?;
+                resolver.configure_dns_servers(&self.dev_name, servers, cleanup).await?;
             }
         }
 

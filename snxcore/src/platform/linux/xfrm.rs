@@ -381,7 +381,7 @@ impl XfrmConfigurator {
         Ok(())
     }
 
-    async fn setup_dns(&self) -> anyhow::Result<()> {
+    async fn setup_dns(&self, cleanup: bool) -> anyhow::Result<()> {
         if !self.tunnel_params.no_dns {
             let suffixes = self
                 .ipsec_session
@@ -402,7 +402,7 @@ impl XfrmConfigurator {
 
             let resolver = new_resolver_configurator()?;
 
-            resolver.configure_dns_suffixes(&self.name, &suffixes).await?;
+            resolver.configure_dns_suffixes(&self.name, &suffixes, cleanup).await?;
 
             let servers = self
                 .ipsec_session
@@ -413,7 +413,7 @@ impl XfrmConfigurator {
 
             debug!("Configuring DNS servers: {:?}", servers);
 
-            resolver.configure_dns_servers(&self.name, &servers).await?;
+            resolver.configure_dns_servers(&self.name, &servers, cleanup).await?;
         }
         Ok(())
     }
@@ -430,7 +430,7 @@ impl IpsecConfigurator for XfrmConfigurator {
         self.setup_xfrm_link().await?;
         self.setup_xfrm_state_and_policies().await?;
         self.setup_routing().await?;
-        self.setup_dns().await?;
+        self.setup_dns(false).await?;
 
         Ok(())
     }
@@ -505,6 +505,8 @@ impl IpsecConfigurator for XfrmConfigurator {
         let _ = self
             .configure_xfrm_policy(CommandType::Delete, PolicyDir::In, self.dest_ip, self.source_ip)
             .await;
+
+        let _ = self.setup_dns(true).await;
 
         let _ = self.new_xfrm_link().delete().await;
 
