@@ -24,6 +24,7 @@ use crate::{
     tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
     util,
 };
+use crate::platform::new_resolver_configurator;
 
 pub mod codec;
 pub mod connector;
@@ -202,7 +203,7 @@ impl VpnTunnel for SslTunnel {
 
         self.device_name = tun.name().to_owned();
 
-        platform::unmanage_device(&self.device_name).await;
+        new_resolver_configurator()?.configure_device(&self.device_name).await?;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 

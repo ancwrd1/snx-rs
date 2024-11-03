@@ -7,7 +7,7 @@ use tracing::{debug, trace};
 
 use crate::{
     model::{params::TunnelParams, IpsecSession},
-    platform::{self, IpsecConfigurator},
+    platform::{self, new_resolver_configurator, IpsecConfigurator},
     util,
 };
 
@@ -36,7 +36,9 @@ impl<'a> XfrmLink<'a> {
         ])
         .await?;
 
-        platform::unmanage_device(self.name).await;
+        platform::new_resolver_configurator()?
+            .configure_device(self.name)
+            .await?;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
@@ -387,19 +389,29 @@ impl XfrmConfigurator {
                 .ipsec_session
                 .domains
                 .iter()
-                .map(|s| s.as_str())
-                .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()))
-                .filter(|&s| {
+                .chain(&self.tunnel_params.search_domains)
+                .filter(|s| {
                     !self
                         .tunnel_params
                         .ignore_search_domains
                         .iter()
                         .any(|d| d.to_lowercase() == s.to_lowercase())
-                });
-            let _ = platform::add_dns_suffixes(suffixes, &self.name).await;
+                })
+                .cloned()
+                .collect::<Vec<_>>();
 
-            let servers = self.ipsec_session.dns.iter().map(|server| server.to_string());
-            let _ = platform::add_dns_servers(servers, &self.name).await;
+            let resolver = new_resolver_configurator()?;
+
+            resolver.configure_dns_suffixes(&self.name, &suffixes).await?;
+
+            let servers = self
+                .ipsec_session
+                .dns
+                .iter()
+                .map(|server| server.to_string())
+                .collect::<Vec<_>>();
+
+            resolver.configure_dns_servers(&self.name, &servers).await?;
         }
         Ok(())
     }

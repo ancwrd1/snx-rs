@@ -11,11 +11,13 @@ use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
 
+pub use resolver::{new_resolver_configurator, ResolverConfigurator as ResolverImpl};
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
 use crate::platform::{UdpEncap, UdpSocketExt};
 
 pub mod net;
+pub mod resolver;
 pub mod xfrm;
 
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
@@ -173,10 +175,6 @@ impl Drop for SingleInstance {
             let _ = std::fs::remove_file(&self.name);
         }
     }
-}
-
-pub async fn unmanage_device(device_name: &str) {
-    let _ = crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await;
 }
 
 pub async fn delete_device(device_name: &str) {

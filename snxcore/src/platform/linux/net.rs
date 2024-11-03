@@ -160,43 +160,6 @@ pub async fn remove_default_route(ipaddr: Ipv4Addr) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn add_dns_suffixes<I, T>(suffixes: I, device: &str) -> anyhow::Result<()>
-where
-    I: IntoIterator<Item = T>,
-    T: AsRef<str>,
-{
-    let mut args = vec!["domain", device];
-
-    let suffixes = suffixes
-        .into_iter()
-        .map(|s| s.as_ref().trim().to_owned())
-        .collect::<Vec<_>>();
-
-    args.extend(suffixes.iter().map(|s| s.as_str()));
-
-    crate::util::run_command("resolvectl", args).await?;
-
-    crate::util::run_command("resolvectl", ["default-route", device, "false"]).await?;
-
-    Ok(())
-}
-
-pub async fn add_dns_servers<I, T>(servers: I, device: &str) -> anyhow::Result<()>
-where
-    I: IntoIterator<Item = T>,
-    T: AsRef<str>,
-{
-    let mut args = vec!["dns", device];
-
-    let servers = servers.into_iter().map(|s| s.as_ref().to_owned()).collect::<Vec<_>>();
-
-    args.extend(servers.iter().map(|s| s.as_str()));
-
-    crate::util::run_command("resolvectl", args).await?;
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

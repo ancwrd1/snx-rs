@@ -2,7 +2,8 @@ use std::net::Ipv4Addr;
 
 use crate::{
     model::{params::TunnelParams, proto::HelloReplyData},
-    platform, util,
+    platform::{self, new_resolver_configurator},
+    util,
 };
 use tracing::debug;
 use tun::AbstractDevice;
@@ -66,23 +67,32 @@ impl TunDevice {
             let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr, &params.ignore_routes).await;
         }
 
+        let resolver = new_resolver_configurator()?;
+
         if !params.no_dns {
             if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-                debug!("Adding acquired DNS suffixes: {:?}", suffixes.0);
-                debug!("Adding provided DNS suffixes: {:?}", params.search_domains);
-                let suffixes = suffixes.0.iter().chain(params.search_domains.iter()).filter(|&s| {
-                    !s.is_empty()
-                        && !params
-                            .ignore_search_domains
-                            .iter()
-                            .any(|d| d.to_lowercase() == s.to_lowercase())
-                });
-                let _ = platform::add_dns_suffixes(suffixes, &self.dev_name).await;
+                let suffixes = suffixes
+                    .0
+                    .iter()
+                    .chain(params.search_domains.iter())
+                    .filter(|s| {
+                        !s.is_empty()
+                            && !params
+                                .ignore_search_domains
+                                .iter()
+                                .any(|d| d.to_lowercase() == s.to_lowercase())
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                debug!("Configuring search domains: {:?}", suffixes);
+
+                resolver.configure_dns_suffixes(&self.dev_name, &suffixes).await?;
             }
 
             if let Some(ref servers) = self.reply.office_mode.dns_servers {
-                debug!("Adding DNS servers: {servers:?}");
-                let _ = platform::add_dns_servers(servers, &self.dev_name).await;
+                debug!("Configuring DNS servers: {servers:?}");
+                resolver.configure_dns_servers(&self.dev_name, servers).await?;
             }
         }
 
