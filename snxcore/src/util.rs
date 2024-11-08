@@ -1,3 +1,6 @@
+use anyhow::anyhow;
+use ipnet::{Ipv4Net, Ipv4Subnets};
+use std::collections::HashMap;
 use std::{
     ffi::OsStr,
     fmt,
@@ -6,9 +9,6 @@ use std::{
     path::Path,
     process::Output,
 };
-
-use anyhow::anyhow;
-use ipnet::{Ipv4Net, Ipv4Subnets};
 use tokio::process::Command;
 use tracing::trace;
 use uuid::Uuid;
@@ -138,6 +138,25 @@ pub fn resolve_ipv4_host(server_name: &str) -> anyhow::Result<Ipv4Addr> {
     Ok(address)
 }
 
+pub fn parse_config<S: AsRef<str>>(config: S) -> anyhow::Result<HashMap<String, String>> {
+    let mut result = HashMap::new();
+
+    for line in config.as_ref().lines() {
+        let (line, _) = line.split_once('#').unwrap_or((line, ""));
+
+        let parts = line
+            .split_once('=')
+            .map(|(k, v)| (k.trim(), v.trim_matches(|c: char| c == '"' || c.is_whitespace())))
+            .and_then(|(k, v)| if v.is_empty() { None } else { Some((k, v)) });
+
+        if let Some((k, v)) = parts {
+            result.insert(k.to_owned(), v.to_owned());
+        };
+    }
+
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -150,5 +169,18 @@ mod tests {
 
         let decoded = snx_decrypt(secret.as_bytes()).unwrap();
         assert_eq!(decoded, b"testuser");
+    }
+
+    #[test]
+    fn test_parse_config() {
+        let config = "# comment 1\nfoo = bar #comment 2\nbaz # = bar\nnoparam\npar1 = val1";
+        let parsed = parse_config(config).unwrap();
+        assert_eq!(
+            parsed,
+            HashMap::from([
+                ("foo".to_owned(), "bar".to_owned()),
+                ("par1".to_owned(), "val1".to_owned())
+            ])
+        );
     }
 }

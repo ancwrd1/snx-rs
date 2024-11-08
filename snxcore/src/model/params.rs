@@ -1,11 +1,12 @@
 use std::{
-    fmt,
+    fmt, fs,
     io::{Cursor, Write},
     path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
 };
 
+use crate::util;
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
@@ -220,60 +221,50 @@ impl TunnelParams {
 
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut params = Self::default();
-        let data = std::fs::read_to_string(&path)?;
-        for line in data.lines() {
-            if !line.trim().starts_with('#') {
-                let parts = line
-                    .split_once('=')
-                    .map(|(k, v)| (k.trim(), v.trim_matches(|c: char| c == '"' || c.is_whitespace())))
-                    .and_then(|(k, v)| if v.is_empty() { None } else { Some((k, v)) });
+        let data = fs::read_to_string(&path)?;
+        let config = util::parse_config(data)?;
 
-                if let Some((k, v)) = parts {
-                    let v = v.to_owned();
-                    match k {
-                        "server-name" => params.server_name = v,
-                        "user-name" => params.user_name = v,
-                        "password" => params.password = v,
-                        "log-level" => params.log_level = v,
-                        "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
-                        "ignore-search-domains" => {
-                            params.ignore_search_domains = v.split(',').map(|s| s.trim().to_owned()).collect();
-                        }
-                        "default-route" => params.default_route = v.parse().unwrap_or_default(),
-                        "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
-                        "add-routes" => params.add_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect(),
-                        "ignore-routes" => {
-                            params.ignore_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect();
-                        }
-                        "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
-                        "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
-                        "ipsec-cert-check" => params.ipsec_cert_check = v.parse().unwrap_or_default(),
-                        "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
-                        "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
-                        "ca-cert" => params.ca_cert = v.split(',').map(|s| s.trim().into()).collect(),
-                        "login-type" => params.login_type = v,
-                        "cert-type" => params.cert_type = v.parse().unwrap_or_default(),
-                        "cert-path" => params.cert_path = Some(v.into()),
-                        "cert-password" => params.cert_password = Some(v),
-                        "cert-id" => params.cert_id = Some(v),
-                        "if-name" => params.if_name = Some(v),
-                        "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
-                        "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
-                        "esp-lifetime" => {
-                            params.esp_lifetime =
-                                v.parse::<u64>().ok().map_or(DEFAULT_ESP_LIFETIME, Duration::from_secs);
-                        }
-                        "ike-lifetime" => {
-                            params.ike_lifetime =
-                                v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
-                        }
-                        "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
-                        "ike-persist" => params.ike_persist = v.parse().unwrap_or_default(),
-                        "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
-                        other => {
-                            warn!("Ignoring unknown option: {}", other);
-                        }
-                    }
+        for (k, v) in config.into_iter() {
+            match k.as_str() {
+                "server-name" => params.server_name = v,
+                "user-name" => params.user_name = v,
+                "password" => params.password = v,
+                "log-level" => params.log_level = v,
+                "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
+                "ignore-search-domains" => {
+                    params.ignore_search_domains = v.split(',').map(|s| s.trim().to_owned()).collect();
+                }
+                "default-route" => params.default_route = v.parse().unwrap_or_default(),
+                "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
+                "add-routes" => params.add_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect(),
+                "ignore-routes" => {
+                    params.ignore_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect();
+                }
+                "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
+                "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
+                "ipsec-cert-check" => params.ipsec_cert_check = v.parse().unwrap_or_default(),
+                "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
+                "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
+                "ca-cert" => params.ca_cert = v.split(',').map(|s| s.trim().into()).collect(),
+                "login-type" => params.login_type = v,
+                "cert-type" => params.cert_type = v.parse().unwrap_or_default(),
+                "cert-path" => params.cert_path = Some(v.into()),
+                "cert-password" => params.cert_password = Some(v),
+                "cert-id" => params.cert_id = Some(v),
+                "if-name" => params.if_name = Some(v),
+                "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
+                "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
+                "esp-lifetime" => {
+                    params.esp_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_ESP_LIFETIME, Duration::from_secs);
+                }
+                "ike-lifetime" => {
+                    params.ike_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
+                }
+                "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
+                "ike-persist" => params.ike_persist = v.parse().unwrap_or_default(),
+                "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
+                other => {
+                    warn!("Ignoring unknown option: {}", other);
                 }
             }
         }
