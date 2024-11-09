@@ -1,6 +1,6 @@
-use std::{fs, path::PathBuf};
-
 use async_trait::async_trait;
+use std::io::Write;
+use std::{fs, path::PathBuf};
 use tracing::debug;
 
 const RESOLV_CONF: &str = "/etc/resolv.conf";
@@ -135,28 +135,28 @@ impl ResolverConfigurator for ResolvConfConfigurator {
 
     async fn configure_dns_servers(&self, servers: &[String], cleanup: bool) -> anyhow::Result<()> {
         let conf = fs::read_to_string(&self.config_path)?;
-        let mut lines = Vec::new();
 
-        let mut servers = servers.to_vec();
+        let existing_nameservers = conf
+            .lines()
+            .filter(|line| line.starts_with("nameserver ") && !servers.iter().any(|s| line.contains(s)))
+            .collect::<Vec<_>>();
 
-        for line in conf.lines() {
-            if cleanup {
-                if line.starts_with("nameserver ") && servers.iter().any(|s| line.contains(s)) {
-                    continue;
-                }
-            } else if line.starts_with("nameserver ") {
-                servers.retain(|s| !line.contains(s));
-            }
-            lines.push(line.to_owned());
+        let other_lines = conf
+            .lines()
+            .filter(|line| !line.starts_with("nameserver "))
+            .collect::<Vec<_>>();
+
+        let new_nameservers = servers.iter().map(|s| format!("nameserver {}", s)).collect::<Vec<_>>();
+
+        let mut file = fs::File::create(&self.config_path)?;
+        if cleanup {
+            writeln!(file, "{}", other_lines.join("\n"))?;
+            writeln!(file, "{}", existing_nameservers.join("\n"))?;
+        } else {
+            writeln!(file, "{}", other_lines.join("\n"))?;
+            writeln!(file, "{}", new_nameservers.join("\n"))?;
+            writeln!(file, "{}", existing_nameservers.join("\n"))?;
         }
-
-        if !cleanup {
-            for server in servers {
-                lines.push(format!("nameserver {}", server));
-            }
-        }
-
-        fs::write(&self.config_path, format!("{}\n", lines.join("\n")))?;
 
         Ok(())
     }
@@ -190,7 +190,7 @@ mod tests {
             .unwrap();
 
         let new_conf = fs::read_to_string(&conf).unwrap();
-        assert_eq!(new_conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com dom1.com dom2.net\nnameserver 192.168.1.1\nnameserver 192.168.1.2\n");
+        assert_eq!(new_conf, "# comment\nsearch acme.com dom1.com dom2.net\nnameserver 192.168.1.1\nnameserver 192.168.1.2\nnameserver 10.0.0.1\n");
     }
 
     #[tokio::test]
@@ -211,6 +211,6 @@ mod tests {
             .unwrap();
 
         let new_conf = fs::read_to_string(&conf).unwrap();
-        assert_eq!(new_conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com\n");
+        assert_eq!(new_conf, "# comment\nsearch acme.com\nnameserver 10.0.0.1\n");
     }
 }
