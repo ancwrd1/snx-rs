@@ -8,7 +8,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * IPSec support (provides a much faster tunnel)
 * More authentication methods
 * Better privacy for DNS requests: only requests for VPN-specific suffixes are routed through the tunnel
-* Better integration with NetworkManager and systemd-resolved
+* Better integration with system DNS resolver
 * Optional integration with GNOME Keyring or KDE KWallet
 * Customizable routing and DNS settings
 
@@ -30,13 +30,12 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ## Roadmap
 
-* [ ] Add support for other DNS resolvers in addition to systemd-resolved (NetworkManager, resolvconf)
 * [ ] Packaging
 
 ## System Requirements
 
 * A recent Linux distribution with kernel version 4.19 or higher
-* systemd-resolved [configured](https://wiki.archlinux.org/title/Systemd-resolved) as a global DNS resolver
+* systemd-resolved [recommended](https://wiki.archlinux.org/title/Systemd-resolved) as a global DNS resolver
 * iproute2 (the `ip` command)
 * D-Bus
 * GTK3 and libappindicator3 for the GUI frontend

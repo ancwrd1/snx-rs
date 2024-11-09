@@ -17,13 +17,14 @@ use tracing::{debug, trace, warn};
 
 use codec::{SslPacketCodec, SslPacketType};
 
-use crate::platform::new_resolver_configurator;
-use crate::tunnel::ssl::device::TunDevice;
 use crate::{
     model::{params::TunnelParams, proto::*, *},
     platform,
     sexpr::SExpression,
-    tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
+    tunnel::{
+        ssl::{device::TunDevice, keepalive::KeepaliveRunner},
+        TunnelCommand, TunnelEvent, VpnTunnel,
+    },
     util,
 };
 
@@ -178,7 +179,9 @@ impl SslTunnel {
         }
 
         if let Some(ref device) = self.tun_device {
-            let _ = device.setup_dns(&self.params, true).await;
+            if !self.params.no_dns {
+                let _ = device.setup_dns(&self.params, true).await;
+            }
             platform::delete_device(device.name()).await;
         }
     }
@@ -203,10 +206,14 @@ impl VpnTunnel for SslTunnel {
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
         let tun = device::TunDevice::new(tun_name, &reply)?;
-        tun.setup_routing(&self.params).await?;
-        tun.setup_dns(&self.params, false).await?;
 
-        new_resolver_configurator(tun_name)?.configure_interface().await?;
+        tun.setup_routing(&self.params).await?;
+
+        if !self.params.no_dns {
+            tun.setup_dns(&self.params, false).await?;
+        }
+
+        let _ = platform::configure_device(tun_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 

@@ -1,5 +1,6 @@
 use std::net::Ipv4Addr;
 
+use crate::platform::ResolverConfig;
 use crate::{
     model::{params::TunnelParams, proto::HelloReplyData},
     platform::{self, new_resolver_configurator},
@@ -71,33 +72,41 @@ impl TunDevice {
     }
 
     pub async fn setup_dns(&self, params: &TunnelParams, cleanup: bool) -> anyhow::Result<()> {
-        if !params.no_dns {
-            let resolver = new_resolver_configurator(&self.dev_name)?;
+        let search_domains = if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
+            suffixes
+                .0
+                .iter()
+                .chain(params.search_domains.iter())
+                .filter(|s| {
+                    !s.is_empty()
+                        && !params
+                            .ignore_search_domains
+                            .iter()
+                            .any(|d| d.to_lowercase() == s.to_lowercase())
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
 
-            if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-                let suffixes = suffixes
-                    .0
-                    .iter()
-                    .chain(params.search_domains.iter())
-                    .filter(|s| {
-                        !s.is_empty()
-                            && !params
-                                .ignore_search_domains
-                                .iter()
-                                .any(|d| d.to_lowercase() == s.to_lowercase())
-                    })
-                    .cloned()
-                    .collect::<Vec<_>>();
+        let dns_servers = if let Some(ref servers) = self.reply.office_mode.dns_servers {
+            servers.clone()
+        } else {
+            Vec::new()
+        };
 
-                debug!("Configuring search domains: {:?}", suffixes);
+        let config = ResolverConfig {
+            search_domains,
+            dns_servers,
+        };
 
-                resolver.configure_dns_suffixes(&suffixes, cleanup).await?;
-            }
+        let resolver = new_resolver_configurator(&self.dev_name)?;
 
-            if let Some(ref servers) = self.reply.office_mode.dns_servers {
-                debug!("Configuring DNS servers: {servers:?}");
-                resolver.configure_dns_servers(servers, cleanup).await?;
-            }
+        if cleanup {
+            resolver.cleanup(&config).await?;
+        } else {
+            resolver.configure(&config).await?;
         }
 
         Ok(())

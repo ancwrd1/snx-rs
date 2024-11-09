@@ -11,7 +11,7 @@ use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
 
-pub use resolver::{new_resolver_configurator, ResolverConfigurator as ResolverImpl};
+pub use resolver::new_resolver_configurator;
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
 use crate::platform::{UdpEncap, UdpSocketExt};
@@ -179,6 +179,11 @@ impl Drop for SingleInstance {
 
 pub async fn delete_device(device_name: &str) {
     let _ = crate::util::run_command("ip", ["link", "del", "name", device_name]).await;
+}
+
+pub async fn configure_device(device_name: &str) -> anyhow::Result<()> {
+    crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
+    Ok(())
 }
 
 pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
