@@ -1,8 +1,10 @@
 use std::net::Ipv4Addr;
 
+use crate::platform::ResolverConfig;
 use crate::{
     model::{params::TunnelParams, proto::HelloReplyData},
-    platform, util,
+    platform::{self, new_resolver_configurator},
+    util,
 };
 use tracing::debug;
 use tun::AbstractDevice;
@@ -48,7 +50,7 @@ impl TunDevice {
         self.inner
     }
 
-    pub async fn setup_dns_and_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
+    pub async fn setup_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {
         let dest_ip = util::resolve_ipv4_host(&format!("{}:443", params.server_name))?;
         let mut subnets = params.add_routes.clone();
 
@@ -66,24 +68,45 @@ impl TunDevice {
             let _ = platform::add_routes(&subnets, &self.dev_name, self.ipaddr, &params.ignore_routes).await;
         }
 
-        if !params.no_dns {
-            if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
-                debug!("Adding acquired DNS suffixes: {:?}", suffixes.0);
-                debug!("Adding provided DNS suffixes: {:?}", params.search_domains);
-                let suffixes = suffixes.0.iter().chain(params.search_domains.iter()).filter(|&s| {
+        Ok(())
+    }
+
+    pub async fn setup_dns(&self, params: &TunnelParams, cleanup: bool) -> anyhow::Result<()> {
+        let search_domains = if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
+            suffixes
+                .0
+                .iter()
+                .chain(params.search_domains.iter())
+                .filter(|s| {
                     !s.is_empty()
                         && !params
                             .ignore_search_domains
                             .iter()
                             .any(|d| d.to_lowercase() == s.to_lowercase())
-                });
-                let _ = platform::add_dns_suffixes(suffixes, &self.dev_name).await;
-            }
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
 
-            if let Some(ref servers) = self.reply.office_mode.dns_servers {
-                debug!("Adding DNS servers: {servers:?}");
-                let _ = platform::add_dns_servers(servers, &self.dev_name).await;
-            }
+        let dns_servers = if let Some(ref servers) = self.reply.office_mode.dns_servers {
+            servers.clone()
+        } else {
+            Vec::new()
+        };
+
+        let config = ResolverConfig {
+            search_domains,
+            dns_servers,
+        };
+
+        let resolver = new_resolver_configurator(&self.dev_name)?;
+
+        if cleanup {
+            resolver.cleanup(&config).await?;
+        } else {
+            resolver.configure(&config).await?;
         }
 
         Ok(())

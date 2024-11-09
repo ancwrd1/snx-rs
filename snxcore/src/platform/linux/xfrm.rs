@@ -5,9 +5,10 @@ use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
 use rand::random;
 use tracing::{debug, trace};
 
+use crate::platform::ResolverConfig;
 use crate::{
     model::{params::TunnelParams, IpsecSession},
-    platform::{self, IpsecConfigurator},
+    platform::{self, new_resolver_configurator, IpsecConfigurator},
     util,
 };
 
@@ -36,7 +37,7 @@ impl<'a> XfrmLink<'a> {
         ])
         .await?;
 
-        platform::unmanage_device(self.name).await;
+        let _ = platform::configure_device(self.name).await;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
@@ -379,28 +380,44 @@ impl XfrmConfigurator {
         Ok(())
     }
 
-    async fn setup_dns(&self) -> anyhow::Result<()> {
-        if !self.tunnel_params.no_dns {
-            debug!("Adding acquired DNS suffixes: {:?}", self.ipsec_session.domains);
-            debug!("Adding provided DNS suffixes: {:?}", self.tunnel_params.search_domains);
-            let suffixes = self
-                .ipsec_session
-                .domains
-                .iter()
-                .map(|s| s.as_str())
-                .chain(self.tunnel_params.search_domains.iter().map(|s| s.as_ref()))
-                .filter(|&s| {
-                    !self
-                        .tunnel_params
-                        .ignore_search_domains
-                        .iter()
-                        .any(|d| d.to_lowercase() == s.to_lowercase())
-                });
-            let _ = platform::add_dns_suffixes(suffixes, &self.name).await;
+    async fn setup_dns(&self, cleanup: bool) -> anyhow::Result<()> {
+        let suffixes = self
+            .ipsec_session
+            .domains
+            .iter()
+            .chain(&self.tunnel_params.search_domains)
+            .filter(|s| {
+                !self
+                    .tunnel_params
+                    .ignore_search_domains
+                    .iter()
+                    .any(|d| d.to_lowercase() == s.to_lowercase())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
 
-            let servers = self.ipsec_session.dns.iter().map(|server| server.to_string());
-            let _ = platform::add_dns_servers(servers, &self.name).await;
+        let servers = self
+            .ipsec_session
+            .dns
+            .iter()
+            .map(|server| server.to_string())
+            .collect::<Vec<_>>();
+
+        let resolver = new_resolver_configurator(&self.name)?;
+
+        let config = ResolverConfig {
+            search_domains: suffixes,
+            dns_servers: servers,
+        };
+
+        debug!("Configuring resolver: {:?}", config);
+
+        if cleanup {
+            resolver.cleanup(&config).await?;
+        } else {
+            resolver.configure(&config).await?;
         }
+
         Ok(())
     }
 }
@@ -416,7 +433,10 @@ impl IpsecConfigurator for XfrmConfigurator {
         self.setup_xfrm_link().await?;
         self.setup_xfrm_state_and_policies().await?;
         self.setup_routing().await?;
-        self.setup_dns().await?;
+
+        if !self.tunnel_params.no_dns {
+            self.setup_dns(false).await?;
+        }
 
         Ok(())
     }
@@ -491,6 +511,10 @@ impl IpsecConfigurator for XfrmConfigurator {
         let _ = self
             .configure_xfrm_policy(CommandType::Delete, PolicyDir::In, self.dest_ip, self.source_ip)
             .await;
+
+        if !self.tunnel_params.no_dns {
+            let _ = self.setup_dns(true).await;
+        }
 
         let _ = self.new_xfrm_link().delete().await;
 

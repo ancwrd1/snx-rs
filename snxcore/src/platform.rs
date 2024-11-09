@@ -1,18 +1,19 @@
 use std::{net::Ipv4Addr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
+use async_trait::async_trait;
 use ipnet::Ipv4Net;
 use tokio::net::UdpSocket;
 
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
 pub use platform_impl::{
-    acquire_password, delete_device, get_machine_uuid,
+    acquire_password, configure_device, delete_device, get_machine_uuid,
     net::{
-        add_dns_servers, add_dns_suffixes, add_route, add_routes, get_default_ip, is_online, poll_online,
-        remove_default_route, setup_default_route, start_network_state_monitoring,
+        add_route, add_routes, get_default_ip, is_online, poll_online, remove_default_route, setup_default_route,
+        start_network_state_monitoring,
     },
-    new_tun_config, store_password, unmanage_device, IpsecImpl, SingleInstance,
+    new_resolver_configurator, new_tun_config, store_password, IpsecImpl, SingleInstance,
 };
 
 use crate::model::{params::TunnelParams, IpsecSession};
@@ -20,7 +21,7 @@ use crate::model::{params::TunnelParams, IpsecSession};
 #[cfg(target_os = "linux")]
 mod linux;
 
-#[async_trait::async_trait]
+#[async_trait]
 pub trait IpsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()>;
@@ -42,7 +43,7 @@ pub enum UdpEncap {
     EspInUdp,
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 pub trait UdpSocketExt {
     fn set_encap(&self, encap: UdpEncap) -> anyhow::Result<()>;
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()>;
@@ -62,4 +63,16 @@ async fn udp_send_receive(socket: &UdpSocket, data: &[u8], timeout: Duration) ->
     } else {
         Err(anyhow!("Error sending UDP request!"))
     }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ResolverConfig {
+    pub search_domains: Vec<String>,
+    pub dns_servers: Vec<String>,
+}
+
+#[async_trait]
+pub trait ResolverConfigurator {
+    async fn configure(&self, config: &ResolverConfig) -> anyhow::Result<()>;
+    async fn cleanup(&self, config: &ResolverConfig) -> anyhow::Result<()>;
 }
