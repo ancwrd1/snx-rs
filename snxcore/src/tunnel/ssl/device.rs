@@ -72,7 +72,7 @@ impl TunDevice {
 
     pub async fn setup_dns(&self, params: &TunnelParams, cleanup: bool) -> anyhow::Result<()> {
         if !params.no_dns {
-            let resolver = new_resolver_configurator()?;
+            let resolver = new_resolver_configurator(&self.dev_name)?;
 
             if let Some(ref suffixes) = self.reply.office_mode.dns_suffix {
                 let suffixes = suffixes
@@ -91,14 +91,12 @@ impl TunDevice {
 
                 debug!("Configuring search domains: {:?}", suffixes);
 
-                resolver
-                    .configure_dns_suffixes(&self.dev_name, &suffixes, cleanup)
-                    .await?;
+                resolver.configure_dns_suffixes(&suffixes, cleanup).await?;
             }
 
             if let Some(ref servers) = self.reply.office_mode.dns_servers {
                 debug!("Configuring DNS servers: {servers:?}");
-                resolver.configure_dns_servers(&self.dev_name, servers, cleanup).await?;
+                resolver.configure_dns_servers(servers, cleanup).await?;
             }
         }
 

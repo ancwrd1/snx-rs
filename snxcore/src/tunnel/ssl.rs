@@ -206,7 +206,7 @@ impl VpnTunnel for SslTunnel {
         tun.setup_routing(&self.params).await?;
         tun.setup_dns(&self.params, false).await?;
 
-        new_resolver_configurator()?.configure_interface(tun_name).await?;
+        new_resolver_configurator(tun_name)?.configure_interface().await?;
 
         let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
 

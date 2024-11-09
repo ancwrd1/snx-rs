@@ -36,8 +36,8 @@ impl<'a> XfrmLink<'a> {
         ])
         .await?;
 
-        platform::new_resolver_configurator()?
-            .configure_interface(self.name)
+        platform::new_resolver_configurator(&self.name)?
+            .configure_interface()
             .await?;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
@@ -400,9 +400,9 @@ impl XfrmConfigurator {
 
             debug!("Configuring search domains: {:?}", suffixes);
 
-            let resolver = new_resolver_configurator()?;
+            let resolver = new_resolver_configurator(&self.name)?;
 
-            resolver.configure_dns_suffixes(&self.name, &suffixes, cleanup).await?;
+            resolver.configure_dns_suffixes(&suffixes, cleanup).await?;
 
             let servers = self
                 .ipsec_session
@@ -413,7 +413,7 @@ impl XfrmConfigurator {
 
             debug!("Configuring DNS servers: {:?}", servers);
 
-            resolver.configure_dns_servers(&self.name, &servers, cleanup).await?;
+            resolver.configure_dns_servers(&servers, cleanup).await?;
         }
         Ok(())
     }

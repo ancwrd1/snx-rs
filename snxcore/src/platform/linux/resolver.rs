@@ -13,38 +13,41 @@ enum ResolverType {
 
 #[async_trait]
 pub trait ResolverConfigurator {
-    async fn configure_interface(&self, device: &str) -> anyhow::Result<()> {
-        let _ = crate::util::run_command("nmcli", ["device", "set", device, "managed", "no"]).await;
-        Ok(())
-    }
+    async fn configure_interface(&self) -> anyhow::Result<()>;
+    async fn configure_dns_suffixes(&self, suffixes: &[String], cleanup: bool) -> anyhow::Result<()>;
 
-    async fn configure_dns_suffixes(&self, device: &str, suffixes: &[String], cleanup: bool) -> anyhow::Result<()>;
-
-    async fn configure_dns_servers(&self, device: &str, servers: &[String], cleanup: bool) -> anyhow::Result<()>;
+    async fn configure_dns_servers(&self, servers: &[String], cleanup: bool) -> anyhow::Result<()>;
 }
 
-struct SystemdResolvedConfigurator;
+struct SystemdResolvedConfigurator {
+    device: String,
+}
 
 #[async_trait]
 impl ResolverConfigurator for SystemdResolvedConfigurator {
-    async fn configure_dns_suffixes(&self, device: &str, suffixes: &[String], cleanup: bool) -> anyhow::Result<()> {
+    async fn configure_interface(&self) -> anyhow::Result<()> {
+        let _ = crate::util::run_command("nmcli", ["device", "set", &self.device, "managed", "no"]).await;
+        Ok(())
+    }
+
+    async fn configure_dns_suffixes(&self, suffixes: &[String], cleanup: bool) -> anyhow::Result<()> {
         if !cleanup {
-            let mut args = vec!["domain", device];
+            let mut args = vec!["domain", &self.device];
 
             let suffixes = suffixes.iter().map(|s| s.trim()).collect::<Vec<_>>();
 
             args.extend(suffixes);
 
             crate::util::run_command("resolvectl", args).await?;
-            crate::util::run_command("resolvectl", ["default-route", device, "false"]).await?;
+            crate::util::run_command("resolvectl", ["default-route", &self.device, "false"]).await?;
         }
 
         Ok(())
     }
 
-    async fn configure_dns_servers(&self, device: &str, servers: &[String], cleanup: bool) -> anyhow::Result<()> {
+    async fn configure_dns_servers(&self, servers: &[String], cleanup: bool) -> anyhow::Result<()> {
         if !cleanup {
-            let mut args = vec!["dns", device];
+            let mut args = vec!["dns", &self.device];
 
             let servers = servers.iter().map(|s| s.trim()).collect::<Vec<_>>();
 
@@ -57,10 +60,17 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
     }
 }
 
-pub fn new_resolver_configurator() -> anyhow::Result<Box<dyn ResolverConfigurator + Send + Sync>> {
+pub fn new_resolver_configurator<S>(device: S) -> anyhow::Result<Box<dyn ResolverConfigurator + Send + Sync>>
+where
+    S: AsRef<str>,
+{
     match detect_resolver()? {
-        ResolverType::SystemdResolved => Ok(Box::new(SystemdResolvedConfigurator)),
-        ResolverType::ResolvConf => Ok(Box::new(ResolvConfConfigurator(RESOLV_CONF.into()))),
+        ResolverType::SystemdResolved => Ok(Box::new(SystemdResolvedConfigurator {
+            device: device.as_ref().to_owned(),
+        })),
+        ResolverType::ResolvConf => Ok(Box::new(ResolvConfConfigurator {
+            config_path: RESOLV_CONF.into(),
+        })),
     }
 }
 
@@ -80,12 +90,18 @@ fn detect_resolver() -> anyhow::Result<ResolverType> {
 }
 
 // Fallback resolver to modify resolv.conf directly
-struct ResolvConfConfigurator(PathBuf);
+struct ResolvConfConfigurator {
+    config_path: PathBuf,
+}
 
 #[async_trait]
 impl ResolverConfigurator for ResolvConfConfigurator {
-    async fn configure_dns_suffixes(&self, _device: &str, suffixes: &[String], cleanup: bool) -> anyhow::Result<()> {
-        let conf = fs::read_to_string(&self.0)?;
+    async fn configure_interface(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn configure_dns_suffixes(&self, suffixes: &[String], cleanup: bool) -> anyhow::Result<()> {
+        let conf = fs::read_to_string(&self.config_path)?;
         let mut found = false;
         let mut lines = Vec::new();
         let suffixes = suffixes.join(" ");
@@ -112,13 +128,13 @@ impl ResolverConfigurator for ResolvConfConfigurator {
             lines.push(format!("search {}", suffixes));
         }
 
-        fs::write(&self.0, format!("{}\n", lines.join("\n")))?;
+        fs::write(&self.config_path, format!("{}\n", lines.join("\n")))?;
 
         Ok(())
     }
 
-    async fn configure_dns_servers(&self, _device: &str, servers: &[String], cleanup: bool) -> anyhow::Result<()> {
-        let conf = fs::read_to_string(&self.0)?;
+    async fn configure_dns_servers(&self, servers: &[String], cleanup: bool) -> anyhow::Result<()> {
+        let conf = fs::read_to_string(&self.config_path)?;
         let mut lines = Vec::new();
 
         let mut servers = servers.to_vec();
@@ -140,7 +156,7 @@ impl ResolverConfigurator for ResolvConfConfigurator {
             }
         }
 
-        fs::write(&self.0, format!("{}\n", lines.join("\n")))?;
+        fs::write(&self.config_path, format!("{}\n", lines.join("\n")))?;
 
         Ok(())
     }
@@ -161,13 +177,15 @@ mod tests {
         let conf = tempfile::NamedTempFile::new().unwrap().into_temp_path();
         fs::write(&conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com\n").unwrap();
 
-        let cut = ResolvConfConfigurator(conf.to_owned());
+        let cut = ResolvConfConfigurator {
+            config_path: conf.to_owned(),
+        };
 
-        cut.configure_dns_servers("", &["192.168.1.1".to_owned(), "192.168.1.2".to_owned()], false)
+        cut.configure_dns_servers(&["192.168.1.1".to_owned(), "192.168.1.2".to_owned()], false)
             .await
             .unwrap();
 
-        cut.configure_dns_suffixes("", &["dom1.com".to_owned(), "dom2.net".to_owned()], false)
+        cut.configure_dns_suffixes(&["dom1.com".to_owned(), "dom2.net".to_owned()], false)
             .await
             .unwrap();
 
@@ -180,13 +198,15 @@ mod tests {
         let conf = tempfile::NamedTempFile::new().unwrap().into_temp_path();
         fs::write(&conf, "# comment\nnameserver 10.0.0.1\nsearch acme.com dom1.com dom2.net\nnameserver 192.168.1.1\nnameserver 192.168.1.2\n").unwrap();
 
-        let cut = ResolvConfConfigurator(conf.to_owned());
+        let cut = ResolvConfConfigurator {
+            config_path: conf.to_owned(),
+        };
 
-        cut.configure_dns_servers("", &["192.168.1.1".to_owned(), "192.168.1.2".to_owned()], true)
+        cut.configure_dns_servers(&["192.168.1.1".to_owned(), "192.168.1.2".to_owned()], true)
             .await
             .unwrap();
 
-        cut.configure_dns_suffixes("", &["dom1.com".to_owned(), "dom2.net".to_owned()], true)
+        cut.configure_dns_suffixes(&["dom1.com".to_owned(), "dom2.net".to_owned()], true)
             .await
             .unwrap();
 
