@@ -35,10 +35,28 @@ This project contains the source code for an unofficial Linux client for Check P
 ## System Requirements
 
 * A recent Linux distribution with kernel version 4.19 or higher
-* systemd-resolved [recommended](https://wiki.archlinux.org/title/Systemd-resolved) as a global DNS resolver
+* systemd-resolved recommended as a global DNS resolver
 * iproute2 (the `ip` command)
 * D-Bus
 * GTK3 and libappindicator3 for the GUI frontend
+
+## DNS resolver configuration
+
+By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back to modify the /etc/resolv.conf file directly
+and DNS servers acquired from VPN will be used globally. It is recommended to use split-tunneling for DNS requests using systemd-resolved.
+
+In order to find out whether it is already enabled, check the /etc/resolv.conf file:
+
+`readlink /etc/resolv.conf`
+
+If it is a symlink pointing to `/run/systemd/resolve/stub-resolv.conf` then it is already configured on your system.
+Otherwise follow these steps:
+
+1. `sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf`
+2. `sudo systemctl enable --now systemd-resolved`
+3. `sudo systemctl restart NetworkManager`
+
+Use `resolvectl` command to see and manage DNS configuration.
 
 ## Differences between SSL and IPSec tunnels
 
