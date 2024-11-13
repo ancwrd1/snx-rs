@@ -62,7 +62,7 @@ where
 fn detect_resolver() -> anyhow::Result<ResolverType> {
     let mut resolver_type = ResolverType::ResolvConf;
 
-    if fs::metadata(RESOLV_CONF)?.is_symlink() {
+    if fs::symlink_metadata(RESOLV_CONF)?.is_symlink() {
         if let Ok(conf_link) = fs::read_link(RESOLV_CONF) {
             for component in conf_link.components() {
                 if let Some("systemd") = component.as_os_str().to_str() {
