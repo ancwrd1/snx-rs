@@ -42,8 +42,9 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ## DNS resolver configuration
 
-By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back to modify the /etc/resolv.conf file directly
-and DNS servers acquired from VPN will be used globally. It is recommended to use split-tunneling for DNS requests using systemd-resolved.
+By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
+to modify the /etc/resolv.conf file directly and DNS servers acquired from VPN will be used globally.
+For better privacy, use split-tunneling provided by systemd-resolved.
 
 In order to find out whether it is already enabled, check the /etc/resolv.conf file:
 
@@ -55,8 +56,6 @@ Otherwise follow these steps:
 1. `sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf`
 2. `sudo systemctl enable --now systemd-resolved`
 3. `sudo systemctl restart NetworkManager`
-
-Use `resolvectl` command to see and manage DNS configuration.
 
 ## Differences between SSL and IPSec tunnels
 
