@@ -60,12 +60,16 @@ where
 }
 
 fn detect_resolver() -> anyhow::Result<ResolverType> {
-    let conf_link = fs::read_link(RESOLV_CONF)?;
     let mut resolver_type = ResolverType::ResolvConf;
 
-    for component in conf_link.components() {
-        if let Some("systemd") = component.as_os_str().to_str() {
-            resolver_type = ResolverType::SystemdResolved;
+    if fs::metadata(RESOLV_CONF)?.is_symlink() {
+        if let Ok(conf_link) = fs::read_link(RESOLV_CONF) {
+            for component in conf_link.components() {
+                if let Some("systemd") = component.as_os_str().to_str() {
+                    resolver_type = ResolverType::SystemdResolved;
+                    break;
+                }
+            }
         }
     }
 
