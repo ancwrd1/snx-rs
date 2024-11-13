@@ -43,8 +43,8 @@ This project contains the source code for an unofficial Linux client for Check P
 ## DNS resolver configuration
 
 By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
-to modify the /etc/resolv.conf file directly and DNS servers acquired from VPN will be used globally.
-For better privacy, use split-tunneling provided by systemd-resolved.
+to modify the /etc/resolv.conf file directly and DNS servers acquired from the tunnel will be used globally.
+For better privacy, use the split-tunneling provided by systemd-resolved.
 
 In order to find out whether it is already enabled, check the /etc/resolv.conf file:
 
