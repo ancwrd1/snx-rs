@@ -1,6 +1,7 @@
 use std::{path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
+use async_channel::Sender;
 use gtk::{
     glib::{self, clone},
     prelude::*,
@@ -9,6 +10,7 @@ use gtk::{
 use ipnet::Ipv4Net;
 use tracing::warn;
 
+use crate::tray::TrayCommand;
 use snxcore::{
     model::{
         params::{TunnelParams, TunnelType},
@@ -60,6 +62,7 @@ struct MyWidgets {
     ike_port: gtk::Entry,
     ike_persist: gtk::CheckButton,
     no_keepalive: gtk::CheckButton,
+    icon_theme: gtk::ComboBoxText,
     error: gtk::Label,
 }
 
@@ -217,6 +220,7 @@ impl SettingsDialog {
         let ike_port = gtk::Entry::builder().text(params.ike_port.to_string()).build();
         let ike_persist = gtk::CheckButton::builder().active(params.ike_persist).build();
         let no_keepalive = gtk::CheckButton::builder().active(params.no_keepalive).build();
+        let icon_theme = gtk::ComboBoxText::builder().build();
 
         let provider = gtk::CssProvider::new();
         provider.load_from_data(CSS_ERROR.as_bytes()).unwrap();
@@ -347,6 +351,7 @@ impl SettingsDialog {
             ike_port,
             ike_persist,
             no_keepalive,
+            icon_theme,
             error,
         });
 
@@ -467,6 +472,7 @@ impl SettingsDialog {
         params.ike_port = self.widgets.ike_port.text().parse()?;
         params.ike_persist = self.widgets.ike_persist.is_active();
         params.no_keepalive = self.widgets.no_keepalive.is_active();
+        params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
 
         params.save()?;
 
@@ -532,6 +538,16 @@ impl SettingsDialog {
         self.widgets.cert_type.set_active(Some(self.params.cert_type.as_u32()));
         cert_type_box.pack_start(&self.widgets.cert_type, false, true, 0);
         cert_type_box
+    }
+
+    fn icon_theme_box(&self) -> gtk::Box {
+        let icon_theme_box = self.form_box("Icon theme");
+        self.widgets.icon_theme.insert_text(0, "Auto");
+        self.widgets.icon_theme.insert_text(1, "Dark");
+        self.widgets.icon_theme.insert_text(2, "Light");
+        self.widgets.icon_theme.set_active(Some(self.params.icon_theme.as_u32()));
+        icon_theme_box.pack_start(&self.widgets.icon_theme, false, true, 0);
+        icon_theme_box
     }
 
     fn user_box(&self) -> gtk::Box {
@@ -647,6 +663,9 @@ impl SettingsDialog {
         no_keepalive.pack_start(&self.widgets.no_keepalive, false, true, 0);
         misc_box.pack_start(&no_keepalive, false, true, 6);
 
+        let icon_theme_box = self.icon_theme_box();
+        misc_box.pack_start(&icon_theme_box, false, true, 6);
+
         misc_box
     }
 
@@ -733,12 +752,14 @@ impl Drop for SettingsDialog {
     }
 }
 
-pub fn start_settings_dialog(params: Arc<TunnelParams>) {
+pub fn start_settings_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
     glib::idle_add(move || {
         let dialog = SettingsDialog::new(params.clone());
         if dialog.run() == ResponseType::Ok {
             if let Err(e) = dialog.save() {
                 warn!("{}", e);
+            } else {
+                let _ = sender.send_blocking(TrayCommand::Update);
             }
         }
         glib::ControlFlow::Break

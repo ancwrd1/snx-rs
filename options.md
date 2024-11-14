@@ -30,3 +30,4 @@
 | `ike-persist=true\|false`                 | Save IKE session to disk and try to reconnect automatically after application restart                                                                 |
 | `log-level=<log_level>`                   | Logging level: error, warn, debug, info, trace. Default is info. Note: trace-level log includes request and response dumps with sensitive information |
 | `no-keepalive=true\|false`                | Disable keepalive packets for IPSec. Some Check Point servers block the keepalive requests.                                                           |
+| `icon-theme=auto\|dark\|light`            | Set icon theme for the GUI app.                                                                                                                       |

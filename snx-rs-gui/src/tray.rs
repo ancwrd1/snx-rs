@@ -7,11 +7,12 @@ use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder,
 };
 
-use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme};
+use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme, theme::SystemColorTheme};
 
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
+    model::params::IconTheme,
     model::{params::TunnelParams, ConnectionStatus},
     prompt::SecurePrompt,
 };
@@ -22,9 +23,16 @@ fn browser(_params: Arc<TunnelParams>) -> impl BrowserController {
     snxcore::browser::SystemBrowser
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TrayCommand {
+    Service(ServiceCommand),
+    Update,
+    Exit,
+}
+
 pub struct AppTray {
-    command_sender: Sender<Option<ServiceCommand>>,
-    command_receiver: Option<Receiver<Option<ServiceCommand>>>,
+    command_sender: Sender<TrayCommand>,
+    command_receiver: Option<Receiver<TrayCommand>>,
     status: anyhow::Result<ConnectionStatus>,
     connecting: bool,
     config_file: PathBuf,
@@ -55,7 +63,7 @@ impl AppTray {
         Ok(app_tray)
     }
 
-    pub fn sender(&self) -> Sender<Option<ServiceCommand>> {
+    pub fn sender(&self) -> Sender<TrayCommand> {
         self.command_sender.clone()
     }
 
@@ -109,8 +117,24 @@ impl AppTray {
         Ok(Box::new(menu))
     }
 
+    fn icon_theme(&self) -> &'static assets::IconTheme {
+        let tunnel_params = TunnelParams::load(&self.config_file).unwrap_or_default();
+
+        let system_theme = match tunnel_params.icon_theme {
+            IconTheme::Auto => system_color_theme().ok().unwrap_or_default(),
+            IconTheme::Dark => SystemColorTheme::Light,
+            IconTheme::Light => SystemColorTheme::Dark,
+        };
+
+        if system_theme.is_dark() {
+            &assets::DARK_THEME_ARGB
+        } else {
+            &assets::LIGHT_THEME_ARGB
+        }
+    }
+
     fn icon(&self) -> anyhow::Result<Icon> {
-        let theme = assets::current_icon_theme();
+        let theme = self.icon_theme();
 
         let data = if self.connecting {
             theme.acquiring.clone()
@@ -143,12 +167,20 @@ impl AppTray {
 
         let rx = self.command_receiver.take().unwrap();
 
-        let rt = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
 
-        while let Ok(Some(command)) = rx.recv().await {
+        while let Ok(command) = rx.recv().await {
+            let command = match command {
+                TrayCommand::Service(command) => command,
+                TrayCommand::Update => {
+                    self.update()?;
+                    continue;
+                }
+                TrayCommand::Exit => {
+                    break;
+                }
+            };
+
             let theme = system_color_theme().ok();
             if theme != prev_theme {
                 prev_theme = theme;

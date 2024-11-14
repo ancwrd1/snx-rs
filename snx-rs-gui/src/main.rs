@@ -12,6 +12,7 @@ use tray_icon::menu::MenuEvent;
 use snxcore::{controller::ServiceCommand, model::params::TunnelParams, platform::SingleInstance};
 
 use crate::theme::init_theme_monitoring;
+use crate::tray::TrayCommand;
 
 mod assets;
 mod dbus;
@@ -55,29 +56,29 @@ fn main() -> anyhow::Result<()> {
 
         let tx_copy = sender.clone();
         std::thread::spawn(move || loop {
-            let _ = tx_copy.send_blocking(Some(ServiceCommand::Status));
+            let _ = tx_copy.send_blocking(TrayCommand::Service(ServiceCommand::Status));
             std::thread::sleep(PING_DURATION);
         });
 
         if tunnel_params.ike_persist {
-            let _ = sender.send_blocking(Some(ServiceCommand::Connect));
+            let _ = sender.send_blocking(TrayCommand::Service(ServiceCommand::Connect));
         }
 
         std::thread::spawn(move || {
             while let Ok(v) = MenuEvent::receiver().recv() {
                 match v.id.0.as_str() {
                     "connect" => {
-                        let _ = sender.send_blocking(Some(ServiceCommand::Connect));
+                        let _ = sender.send_blocking(TrayCommand::Service(ServiceCommand::Connect));
                     }
                     "disconnect" => {
-                        let _ = sender.send_blocking(Some(ServiceCommand::Disconnect));
+                        let _ = sender.send_blocking(TrayCommand::Service(ServiceCommand::Disconnect));
                     }
                     "settings" => {
                         let params = TunnelParams::load(params.config_file()).unwrap_or_default();
-                        settings::start_settings_dialog(Arc::new(params));
+                        settings::start_settings_dialog(sender.clone(), Arc::new(params));
                     }
                     "exit" => {
-                        let _ = sender.send_blocking(None);
+                        let _ = sender.send_blocking(TrayCommand::Exit);
                         glib::idle_add(|| {
                             gtk::main_quit();
                             ControlFlow::Break

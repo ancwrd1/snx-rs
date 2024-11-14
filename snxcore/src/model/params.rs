@@ -6,13 +6,14 @@ use std::{
     time::Duration,
 };
 
-use crate::util;
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
+
+use crate::util;
 
 const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
@@ -141,6 +142,58 @@ impl FromStr for CertType {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum IconTheme {
+    #[default]
+    Auto,
+    Dark,
+    Light,
+}
+
+impl IconTheme {
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::Auto => 0,
+            Self::Dark => 1,
+            Self::Light => 2,
+        }
+    }
+}
+
+impl From<u32> for IconTheme {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Dark,
+            2 => Self::Light,
+            _ => Self::Auto,
+        }
+    }
+}
+
+impl fmt::Display for IconTheme {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Auto => "auto",
+            Self::Dark => "dark",
+            Self::Light => "light",
+        };
+        write!(f, "{s}")
+    }
+}
+
+impl FromStr for IconTheme {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "auto" => Ok(IconTheme::Auto),
+            "dark" => Ok(IconTheme::Dark),
+            "light" => Ok(IconTheme::Light),
+            _ => Err(anyhow!("Invalid icon theme!")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelParams {
     pub server_name: String,
@@ -173,6 +226,7 @@ pub struct TunnelParams {
     pub ike_persist: bool,
     pub client_mode: String,
     pub no_keepalive: bool,
+    pub icon_theme: IconTheme,
     pub config_file: PathBuf,
 }
 
@@ -196,7 +250,7 @@ impl Default for TunnelParams {
             tunnel_type: TunnelType::default(),
             ca_cert: Vec::new(),
             login_type: String::new(),
-            cert_type: CertType::None,
+            cert_type: CertType::default(),
             cert_path: None,
             cert_password: None,
             cert_id: None,
@@ -209,6 +263,7 @@ impl Default for TunnelParams {
             ike_persist: false,
             client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
             no_keepalive: false,
+            icon_theme: IconTheme::default(),
             config_file: Self::default_config_path(),
         }
     }
@@ -263,6 +318,7 @@ impl TunnelParams {
                 "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
                 "ike-persist" => params.ike_persist = v.parse().unwrap_or_default(),
                 "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
+                "icon-theme" => params.icon_theme = v.parse().unwrap_or_default(),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -342,6 +398,7 @@ impl TunnelParams {
         writeln!(buf, "log-level={}", self.log_level)?;
         writeln!(buf, "client-mode={}", self.client_mode)?;
         writeln!(buf, "no-keepalive={}", self.no_keepalive)?;
+        writeln!(buf, "icon-theme={}", self.icon_theme)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = std::fs::create_dir_all(dir);
