@@ -245,7 +245,7 @@ impl<'de, T: TryFrom<u64>> Deserialize<'de> for Maybe<T> {
 #[derive(Default)]
 struct MaybeVisitor<T>(PhantomData<T>);
 
-impl<'de, T: TryFrom<u64>> Visitor<'de> for MaybeVisitor<T> {
+impl<T: TryFrom<u64>> Visitor<'_> for MaybeVisitor<T> {
     type Value = Maybe<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
