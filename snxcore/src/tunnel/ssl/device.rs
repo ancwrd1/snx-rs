@@ -10,7 +10,7 @@ use tracing::debug;
 use tun::AbstractDevice;
 
 pub struct TunDevice {
-    inner: tun::AsyncDevice,
+    inner: Option<tun::AsyncDevice>,
     reply: HelloReplyData,
     ipaddr: Ipv4Addr,
     dev_name: String,
@@ -35,7 +35,7 @@ impl TunDevice {
         debug!("Created tun device: {dev_name}");
 
         Ok(Self {
-            inner: dev,
+            inner: Some(dev),
             reply: reply.clone(),
             dev_name,
             ipaddr,
@@ -46,8 +46,8 @@ impl TunDevice {
         &self.dev_name
     }
 
-    pub fn into_inner(self) -> tun::AsyncDevice {
-        self.inner
+    pub fn take_inner(&mut self) -> Option<tun::AsyncDevice> {
+        self.inner.take()
     }
 
     pub async fn setup_routing(&self, params: &TunnelParams) -> anyhow::Result<()> {

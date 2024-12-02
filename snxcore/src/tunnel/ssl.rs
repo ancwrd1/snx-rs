@@ -205,7 +205,7 @@ impl VpnTunnel for SslTunnel {
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let tun = device::TunDevice::new(tun_name, &reply)?;
+        let mut tun = device::TunDevice::new(tun_name, &reply)?;
 
         tun.setup_routing(&self.params).await?;
 
@@ -215,7 +215,13 @@ impl VpnTunnel for SslTunnel {
 
         let _ = platform::configure_device(tun_name).await;
 
-        let (mut tun_sender, mut tun_receiver) = tun.into_inner().into_framed().split();
+        let (mut tun_sender, mut tun_receiver) = tun
+            .take_inner()
+            .ok_or_else(|| anyhow!("No tun device"))?
+            .into_framed()
+            .split();
+
+        self.tun_device = Some(tun);
 
         let mut snx_receiver = self.receiver.take().unwrap();
 
