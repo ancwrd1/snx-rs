@@ -45,7 +45,6 @@ impl AppTray {
 
         let tray_icon = TrayIconBuilder::new()
             .with_tooltip(TITLE)
-            .with_title(TITLE)
             .with_menu_on_left_click(true)
             .build()?;
 
