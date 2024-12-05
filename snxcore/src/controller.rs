@@ -122,15 +122,15 @@ where
     async fn get_mfa_input(&mut self, mfa: &MfaChallenge) -> anyhow::Result<String> {
         match mfa.mfa_type {
             MfaType::PasswordInput => {
+                let prompt = self
+                    .mfa_prompts
+                    .as_mut()
+                    .and_then(|p| p.pop_front())
+                    .unwrap_or_else(|| mfa.prompt.clone());
                 if !self.password.is_empty() && self.first_password {
                     self.first_password = false;
                     Ok(self.password.clone())
                 } else {
-                    let prompt = self
-                        .mfa_prompts
-                        .as_mut()
-                        .and_then(|p| p.pop_front())
-                        .unwrap_or_else(|| mfa.prompt.clone());
                     let input = self.prompt.get_secure_input(&prompt)?;
                     if self.first_password {
                         self.first_password = false;
