@@ -44,7 +44,7 @@ This project contains the source code for an unofficial Linux client for Check P
 
 By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
 to modify the /etc/resolv.conf file directly and DNS servers acquired from the tunnel will be used globally.
-For better privacy, use the split-tunneling provided by systemd-resolved.
+For better privacy, use the split-dns provided by systemd-resolved.
 
 In order to find out whether it is already enabled, check the /etc/resolv.conf file:
 
@@ -190,4 +190,4 @@ Special thanks to the [cpyvpn](https://gitlab.com/cpvpn/cpyvpn) project for insp
 ## License
 
 Licensed under the [GNU Affero General Public License version 3](https://opensource.org/license/agpl-v3/).
-c
+
