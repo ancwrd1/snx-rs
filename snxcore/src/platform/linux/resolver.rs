@@ -62,15 +62,29 @@ where
 fn detect_resolver() -> anyhow::Result<ResolverType> {
     let mut resolver_type = ResolverType::ResolvConf;
 
-    if fs::symlink_metadata(RESOLV_CONF)?.is_symlink() {
-        if let Ok(conf_link) = fs::read_link(RESOLV_CONF) {
-            for component in conf_link.components() {
-                if let Some("systemd") = component.as_os_str().to_str() {
-                    resolver_type = ResolverType::SystemdResolved;
-                    break;
+    // In some distros (NixOS, for example), /etc/resolv.conf is doubly linked.
+    // So, we must follow symbolic links until we find a real file.
+    // But we'll stop following after 10 hoops, because we don't want to fall into
+    // a circular reference loop.
+    let mut resolve_conf_path = RESOLV_CONF.to_owned();
+    let mut count_links = 0;
+    while count_links < 10 && fs::symlink_metadata(&resolve_conf_path)?.is_symlink() {
+        if let Ok(conf_link) = fs::read_link(&resolve_conf_path) {
+            if !conf_link.is_symlink() {
+                for component in conf_link.components() {
+                    if let Some("systemd") = component.as_os_str().to_str() {
+                        resolver_type = ResolverType::SystemdResolved;
+                        break;
+                    }
                 }
+                break;
+            } else if let Some(file_name) = conf_link.to_str() {
+                resolve_conf_path = file_name.to_owned();
+            } else {
+                break;
             }
         }
+        count_links += 1;
     }
 
     debug!("Detected resolver: {:?}", resolver_type);
