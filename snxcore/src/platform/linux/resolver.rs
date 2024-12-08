@@ -1,4 +1,4 @@
-use std::{fs, io::Write, path::PathBuf};
+use std::{fs, io::Write, path::Path, path::PathBuf};
 
 use async_trait::async_trait;
 use tracing::debug;
@@ -7,10 +7,10 @@ use crate::platform::{ResolverConfig, ResolverConfigurator};
 
 const RESOLV_CONF: &str = "/etc/resolv.conf";
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum ResolverType {
     SystemdResolved,
-    ResolvConf,
+    ResolvConf(PathBuf),
 }
 
 struct SystemdResolvedConfigurator {
@@ -49,47 +49,43 @@ pub fn new_resolver_configurator<S>(device: S) -> anyhow::Result<Box<dyn Resolve
 where
     S: AsRef<str>,
 {
-    match detect_resolver()? {
+    match detect_resolver(RESOLV_CONF)? {
         ResolverType::SystemdResolved => Ok(Box::new(SystemdResolvedConfigurator {
             device: device.as_ref().to_owned(),
         })),
-        ResolverType::ResolvConf => Ok(Box::new(ResolvConfConfigurator {
-            config_path: RESOLV_CONF.into(),
-        })),
+        ResolverType::ResolvConf(path) => Ok(Box::new(ResolvConfConfigurator { config_path: path })),
     }
 }
 
-fn detect_resolver() -> anyhow::Result<ResolverType> {
-    let mut resolver_type = ResolverType::ResolvConf;
-
+fn detect_resolver<P>(path: P) -> anyhow::Result<ResolverType>
+where
+    P: AsRef<Path>,
+{
     // In some distros (NixOS, for example), /etc/resolv.conf is doubly linked.
     // So, we must follow symbolic links until we find a real file.
     // But we'll stop following after 10 hoops, because we don't want to fall into
     // a circular reference loop.
-    let mut resolve_conf_path = RESOLV_CONF.to_owned();
+
+    let mut resolve_conf_path = path.as_ref().to_owned();
     let mut count_links = 0;
+
     while count_links < 10 && fs::symlink_metadata(&resolve_conf_path)?.is_symlink() {
-        if let Ok(conf_link) = fs::read_link(&resolve_conf_path) {
-            if !conf_link.is_symlink() {
-                for component in conf_link.components() {
-                    if let Some("systemd") = component.as_os_str().to_str() {
-                        resolver_type = ResolverType::SystemdResolved;
-                        break;
-                    }
-                }
-                break;
-            } else if let Some(file_name) = conf_link.to_str() {
-                resolve_conf_path = file_name.to_owned();
-            } else {
-                break;
-            }
-        }
+        resolve_conf_path = fs::read_link(&resolve_conf_path)?;
         count_links += 1;
     }
 
-    debug!("Detected resolver: {:?}", resolver_type);
+    let result = if resolve_conf_path
+        .components()
+        .any(|component| component.as_os_str().to_str() == Some("systemd"))
+    {
+        ResolverType::SystemdResolved
+    } else {
+        ResolverType::ResolvConf(resolve_conf_path)
+    };
 
-    Ok(resolver_type)
+    debug!("Detected resolver: {:?}", result);
+
+    Ok(result)
 }
 
 struct ResolvConfConfigurator {
@@ -167,9 +163,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_detect_resolver() {
-        let resolver = detect_resolver().expect("Failed to detect resolver");
-        println!("{:?}", resolver);
+    fn test_detect_resolver_systemd() {
+        // <dir>/
+        //    systemd/
+        //       resolv.conf
+        //    resolv-stub.conf -> systemd/resolv.conf
+        //    resolf.conf -> resolv-stub.conf
+        let dir = tempfile::TempDir::new().unwrap();
+
+        let subdir = dir.path().join("systemd");
+        fs::create_dir(&subdir).unwrap();
+
+        let conf_path = subdir.join("resolv.conf");
+        fs::write(&conf_path, "").unwrap();
+
+        let symlink1 = dir.path().join("resolv-stub.conf");
+        std::os::unix::fs::symlink(&conf_path, &symlink1).unwrap();
+
+        let symlink2 = dir.path().join("resolv.conf");
+        std::os::unix::fs::symlink(&symlink1, &symlink2).unwrap();
+
+        let resolver = detect_resolver(symlink2).expect("Failed to detect resolver");
+        assert_eq!(resolver, ResolverType::SystemdResolved);
+    }
+
+    #[test]
+    fn test_detect_resolver_resolvconf() {
+        let dir = tempfile::TempDir::new().unwrap();
+
+        let subdir = dir.path().join("NetworkManager");
+        fs::create_dir(&subdir).unwrap();
+
+        let conf_path = subdir.join("resolv.conf");
+        fs::write(&conf_path, "").unwrap();
+
+        let symlink = dir.path().join("resolv.conf");
+        std::os::unix::fs::symlink(&conf_path, &symlink).unwrap();
+
+        let resolver = detect_resolver(symlink).expect("Failed to detect resolver");
+        assert_eq!(resolver, ResolverType::ResolvConf(conf_path));
     }
 
     #[tokio::test]
