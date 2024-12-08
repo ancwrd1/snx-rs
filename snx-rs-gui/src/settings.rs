@@ -545,7 +545,9 @@ impl SettingsDialog {
         self.widgets.icon_theme.insert_text(0, "Auto");
         self.widgets.icon_theme.insert_text(1, "Dark");
         self.widgets.icon_theme.insert_text(2, "Light");
-        self.widgets.icon_theme.set_active(Some(self.params.icon_theme.as_u32()));
+        self.widgets
+            .icon_theme
+            .set_active(Some(self.params.icon_theme.as_u32()));
         icon_theme_box.pack_start(&self.widgets.icon_theme, false, true, 0);
         icon_theme_box
     }
