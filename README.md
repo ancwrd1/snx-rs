@@ -35,7 +35,7 @@ This project contains the source code for an unofficial Linux client for Check P
 ## System Requirements
 
 * A recent Linux distribution with kernel version 4.19 or higher
-* systemd-resolved recommended as a global DNS resolver
+* systemd-resolved is recommended as a global DNS resolver
 * iproute2 (the `ip` command)
 * D-Bus
 * GTK3 and libappindicator3 for the GUI frontend
