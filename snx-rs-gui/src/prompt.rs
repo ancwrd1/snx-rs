@@ -20,14 +20,14 @@ impl GtkPrompt {
         let prompt = prompt.to_owned();
 
         glib::idle_add(move || {
-            let dialog = gtk::Dialog::builder().title("Challenge code").modal(true).build();
+            let dialog = gtk::Dialog::builder().title("Authentication").modal(true).build();
 
             let ok = gtk::Button::builder().label("OK").can_default(true).build();
             let cancel = gtk::Button::builder().label("Cancel").build();
             dialog.add_action_widget(&ok, ResponseType::Ok);
             dialog.add_action_widget(&cancel, ResponseType::Cancel);
             dialog.set_default(Some(&ok));
-            dialog.set_default_width(300);
+            dialog.set_default_width(320);
             dialog.set_default_height(120);
             dialog.set_position(WindowPosition::CenterAlways);
 
