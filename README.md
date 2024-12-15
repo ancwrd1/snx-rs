@@ -1,5 +1,8 @@
 # Open Source Linux Client for Check Point VPN Tunnels
 
+[![github actions](https://github.com/ancwrd1/snx-rs/workflows/CI/badge.svg)](https://github.com/ancwrd1/snx-rs/actions)
+[![license](https://img.shields.io/badge/License-AGPL-v3.svg)](https://opensource.org/license/agpl-v3)
+
 This project contains the source code for an unofficial Linux client for Check Point VPN, written in Rust.
 
 ## Advantages Over the Official SNX Client for Linux
