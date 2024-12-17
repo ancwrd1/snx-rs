@@ -1,5 +1,5 @@
 use std::{fs, io::Write, path::Path, path::PathBuf};
-
+use anyhow::Context;
 use async_trait::async_trait;
 use tracing::debug;
 
@@ -57,24 +57,44 @@ where
     }
 }
 
+
+// In some distros (NixOS, for example), /etc/resolv.conf is doubly linked.
+// So, we must follow symbolic links until we find a real file.
+// But we'll stop following after 10 hoops, because we don't want to fall into
+// a circular reference loop.
+fn read_symlinks(path: PathBuf, depth: u8) -> anyhow::Result<PathBuf>
+{
+    if depth == 0 {
+        Err(anyhow::anyhow!("Cannot resolve symlink '{}', possible loop", path.display()))
+    } else {
+        let metadata = fs::symlink_metadata(&path)
+            .with_context(|| format!("Failed to get symlink metadata of '{}'", path.display()))?;
+        if metadata.is_symlink() {
+            let link_target = fs::read_link(&path)
+                .with_context(|| format!("Failed to read symlink target '{}'", path.display()))?;
+
+            let absolute_target = match path.parent() {
+                Some(parent) => parent.join(link_target),
+                None => link_target,
+            };
+
+            read_symlinks(absolute_target, depth - 1)
+                .with_context(|| format!("Failed to resolve symlink '{}'", path.display()))
+        } else {
+            Ok(path)
+        }
+    }
+}
+
+
 fn detect_resolver<P>(path: P) -> anyhow::Result<ResolverType>
 where
     P: AsRef<Path>,
 {
-    // In some distros (NixOS, for example), /etc/resolv.conf is doubly linked.
-    // So, we must follow symbolic links until we find a real file.
-    // But we'll stop following after 10 hoops, because we don't want to fall into
-    // a circular reference loop.
-
-    let mut resolve_conf_path = path.as_ref().to_owned();
-    let mut count_links = 0;
-
-    while count_links < 10 && fs::symlink_metadata(&resolve_conf_path)?.is_symlink() {
-        resolve_conf_path = fs::read_link(&resolve_conf_path)?;
-        count_links += 1;
-    }
+    let resolve_conf_path = read_symlinks(path.as_ref().to_owned(), 10)?;
 
     let result = if resolve_conf_path
+        .canonicalize()?
         .components()
         .any(|component| component.as_os_str().to_str() == Some("systemd"))
     {
@@ -160,6 +180,7 @@ impl ResolverConfigurator for ResolvConfConfigurator {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{Error, ErrorKind};
     use super::*;
 
     #[test]
@@ -202,6 +223,97 @@ mod tests {
 
         let resolver = detect_resolver(symlink).expect("Failed to detect resolver");
         assert_eq!(resolver, ResolverType::ResolvConf(conf_path));
+    }
+
+    #[test]
+    fn test_detect_resolver_relative_symlink() {
+        // <dir>/
+        //    etc/
+        //       resolv.conf -> ../run/systemd/resolve/stub-resolv.conf
+        //    run/
+        //       systemd/
+        //          resolve/
+        //             stub-resolv.conf
+        let dir = tempfile::TempDir::new().unwrap();
+
+        let etc = dir.path().join("etc");
+        fs::create_dir(&etc).unwrap();
+
+        let run_systemd_resolve = dir.path()
+            .join("run").join("systemd").join("resolve");
+        fs::create_dir_all(&run_systemd_resolve).unwrap();
+
+        let stub_resolv_conf = run_systemd_resolve.join("stub-resolv.conf");
+        fs::write(&stub_resolv_conf, "").unwrap();
+
+        let symlink = etc.join("resolv.conf");
+        let relative_target = Path::new("../run/systemd/resolve/stub-resolv.conf");
+        std::os::unix::fs::symlink(&relative_target, &symlink).unwrap();
+
+        let resolver = detect_resolver(symlink).expect("Failed to detect resolver");
+        assert_eq!(resolver, ResolverType::SystemdResolved);
+    }
+
+
+    #[test]
+    fn test_detect_resolver_invalid_symlink() {
+        // <dir>/
+        //    etc/
+        //       resolv.conf -> ../nonexistent.conf
+        let dir = tempfile::TempDir::new().unwrap();
+
+        let etc = dir.path().join("etc");
+        fs::create_dir(&etc).unwrap();
+
+        let symlink = etc.join("resolv.conf");
+        let relative_target = Path::new("../nonexistent.conf");
+        std::os::unix::fs::symlink(&relative_target, &symlink).unwrap();
+
+        let error = detect_resolver(symlink.clone())
+            .expect_err("Invalid symlink should trigger error");
+
+        println!("{:#}", error);
+
+        assert_eq!(format!("{}", error),
+                   format!("Failed to resolve symlink '{}'", symlink.display()));
+        assert_eq!(format!("{}", error.source().unwrap()),
+                   format!("Failed to get symlink metadata of '{}/../nonexistent.conf'", etc.display()));
+
+        let cause = error.root_cause().downcast_ref::<Error>()
+            .expect("Root cause should be an IO error");
+
+        assert_eq!(cause.kind(), ErrorKind::NotFound)
+    }
+
+
+    #[test]
+    fn test_detect_resolver_circular_symlink() {
+        // <dir>/
+        //    etc/
+        //       resolv.conf -> resolv2.conf
+        //       resolv2.conf -> resolv.conf
+        let dir = tempfile::TempDir::new().unwrap();
+
+        let etc = dir.path().join("etc");
+        fs::create_dir(&etc).unwrap();
+
+        let symlink1 = etc.join("resolv.conf");
+        let symlink2 = etc.join("resolv2.conf");
+        std::os::unix::fs::symlink(&symlink1, &symlink2).unwrap();
+        std::os::unix::fs::symlink(&symlink2, &symlink1).unwrap();
+
+        let error = detect_resolver(symlink1.clone())
+            .expect_err("Invalid symlink should trigger error");
+
+        println!("{:#}", error);
+
+        assert_eq!(format!("{}", error),
+                   format!("Failed to resolve symlink '{}'", symlink1.display()));
+        assert_eq!(format!("{}", error.source().unwrap()),
+                   format!("Failed to resolve symlink '{}'", symlink2.display()));
+
+        let root_cause = format!("{}", error.root_cause());
+        assert!(root_cause.contains("possible loop"), "'{}' should contain 'possible loop'", root_cause);
     }
 
     #[tokio::test]

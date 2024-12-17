@@ -85,7 +85,7 @@ impl CommandServer {
         let req = match serde_json::from_slice::<TunnelServiceRequest>(packet) {
             Ok(req) => req,
             Err(e) => {
-                warn!("{}", e);
+                warn!("Command deserialization error: {:#}", e);
                 return TunnelServiceResponse::Error(e.to_string());
             }
         };
@@ -118,7 +118,7 @@ impl CommandServer {
                 match self.challenge_code(&code, event_sender).await {
                     Ok(()) => TunnelServiceResponse::Ok,
                     Err(e) => {
-                        warn!("{}", e);
+                        warn!("Challenge code error: {:#}", e);
                         self.reset();
                         TunnelServiceResponse::Error(e.to_string())
                     }
