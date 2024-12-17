@@ -91,10 +91,6 @@ Alternatively, in standalone mode, they can be specified via the command line of
 
 Before the client can establish a connection, it must know the login (authentication) method to use (`--login-type` or `-o` option). To find the supported login types, run it with the `-m info` parameter:
 
-## Docker Usage
-
-Check [this repository](https://github.com/leleobhz/snx-rs-docker) for a docker container.
-
 ```sh
 snx-rs -m info -s remote.acme.com
 ```
@@ -126,6 +122,10 @@ There are two ways to use the application:
   - `info`: Show server authentication methods and supported tunnel types.
   - Run it with the `--help` option to get usage help.
 * **Standalone Service Mode**: Selected by the `-m standalone` parameter. This is the default mode if no parameters are specified. Run `snx-rs --help` to get help with all command line parameters. In this mode, the application takes connection parameters either from the command line or from the specified configuration file. This mode is recommended for headless usage.
+
+## Docker Usage
+
+Check [this repository](https://github.com/leleobhz/snx-rs-docker) for a docker container.
 
 ## Certificate validation
 
