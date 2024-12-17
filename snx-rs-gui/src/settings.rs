@@ -125,7 +125,11 @@ impl SettingsDialog {
             Some("VPN settings"),
             None::<&gtk::Window>,
             DialogFlags::MODAL,
-            &[("OK", ResponseType::Ok), ("Cancel", ResponseType::Cancel)],
+            &[
+                ("OK", ResponseType::Ok),
+                ("Apply", ResponseType::Apply),
+                ("Cancel", ResponseType::Cancel),
+            ],
         );
 
         dialog.set_default_width(700);
@@ -358,7 +362,7 @@ impl SettingsDialog {
         let widgets2 = widgets.clone();
 
         dialog.connect_response(move |dlg, response| {
-            if response == ResponseType::Ok {
+            if response == ResponseType::Ok || response == ResponseType::Apply {
                 if let Err(e) = widgets2.validate() {
                     let msg = gtk::MessageDialog::new(
                         Some(dlg),
@@ -757,11 +761,21 @@ impl Drop for SettingsDialog {
 pub fn start_settings_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
     glib::idle_add(move || {
         let dialog = SettingsDialog::new(params.clone());
-        if dialog.run() == ResponseType::Ok {
-            if let Err(e) = dialog.save() {
-                warn!("{}", e);
-            } else {
-                let _ = sender.send_blocking(TrayCommand::Update);
+        loop {
+            let response = dialog.run();
+
+            match response {
+                ResponseType::Ok | ResponseType::Apply => {
+                    if let Err(e) = dialog.save() {
+                        warn!("{}", e);
+                    } else {
+                        let _ = sender.send_blocking(TrayCommand::Update);
+                    }
+                }
+                _ => {}
+            }
+            if response != ResponseType::Apply {
+                break;
             }
         }
         glib::ControlFlow::Break

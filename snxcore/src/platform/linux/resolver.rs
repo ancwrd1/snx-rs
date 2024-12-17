@@ -1,6 +1,6 @@
-use std::{fs, io::Write, path::Path, path::PathBuf};
 use anyhow::Context;
 use async_trait::async_trait;
+use std::{fs, io::Write, path::Path, path::PathBuf};
 use tracing::debug;
 
 use crate::platform::{ResolverConfig, ResolverConfigurator};
@@ -57,21 +57,22 @@ where
     }
 }
 
-
 // In some distros (NixOS, for example), /etc/resolv.conf is doubly linked.
 // So, we must follow symbolic links until we find a real file.
 // But we'll stop following after 10 hoops, because we don't want to fall into
 // a circular reference loop.
-fn read_symlinks(path: PathBuf, depth: u8) -> anyhow::Result<PathBuf>
-{
+fn read_symlinks(path: PathBuf, depth: u8) -> anyhow::Result<PathBuf> {
     if depth == 0 {
-        Err(anyhow::anyhow!("Cannot resolve symlink '{}', possible loop", path.display()))
+        Err(anyhow::anyhow!(
+            "Cannot resolve symlink '{}', possible loop",
+            path.display()
+        ))
     } else {
         let metadata = fs::symlink_metadata(&path)
             .with_context(|| format!("Failed to get symlink metadata of '{}'", path.display()))?;
         if metadata.is_symlink() {
-            let link_target = fs::read_link(&path)
-                .with_context(|| format!("Failed to read symlink target '{}'", path.display()))?;
+            let link_target =
+                fs::read_link(&path).with_context(|| format!("Failed to read symlink target '{}'", path.display()))?;
 
             let absolute_target = match path.parent() {
                 Some(parent) => parent.join(link_target),
@@ -85,7 +86,6 @@ fn read_symlinks(path: PathBuf, depth: u8) -> anyhow::Result<PathBuf>
         }
     }
 }
-
 
 fn detect_resolver<P>(path: P) -> anyhow::Result<ResolverType>
 where
@@ -180,8 +180,8 @@ impl ResolverConfigurator for ResolvConfConfigurator {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Error, ErrorKind};
     use super::*;
+    use std::io::{Error, ErrorKind};
 
     #[test]
     fn test_detect_resolver_systemd() {
@@ -239,8 +239,7 @@ mod tests {
         let etc = dir.path().join("etc");
         fs::create_dir(&etc).unwrap();
 
-        let run_systemd_resolve = dir.path()
-            .join("run").join("systemd").join("resolve");
+        let run_systemd_resolve = dir.path().join("run").join("systemd").join("resolve");
         fs::create_dir_all(&run_systemd_resolve).unwrap();
 
         let stub_resolv_conf = run_systemd_resolve.join("stub-resolv.conf");
@@ -253,7 +252,6 @@ mod tests {
         let resolver = detect_resolver(symlink).expect("Failed to detect resolver");
         assert_eq!(resolver, ResolverType::SystemdResolved);
     }
-
 
     #[test]
     fn test_detect_resolver_invalid_symlink() {
@@ -269,22 +267,29 @@ mod tests {
         let relative_target = Path::new("../nonexistent.conf");
         std::os::unix::fs::symlink(&relative_target, &symlink).unwrap();
 
-        let error = detect_resolver(symlink.clone())
-            .expect_err("Invalid symlink should trigger error");
+        let error = detect_resolver(symlink.clone()).expect_err("Invalid symlink should trigger error");
 
         println!("{:#}", error);
 
-        assert_eq!(format!("{}", error),
-                   format!("Failed to resolve symlink '{}'", symlink.display()));
-        assert_eq!(format!("{}", error.source().unwrap()),
-                   format!("Failed to get symlink metadata of '{}/../nonexistent.conf'", etc.display()));
+        assert_eq!(
+            format!("{}", error),
+            format!("Failed to resolve symlink '{}'", symlink.display())
+        );
+        assert_eq!(
+            format!("{}", error.source().unwrap()),
+            format!(
+                "Failed to get symlink metadata of '{}/../nonexistent.conf'",
+                etc.display()
+            )
+        );
 
-        let cause = error.root_cause().downcast_ref::<Error>()
+        let cause = error
+            .root_cause()
+            .downcast_ref::<Error>()
             .expect("Root cause should be an IO error");
 
         assert_eq!(cause.kind(), ErrorKind::NotFound)
     }
-
 
     #[test]
     fn test_detect_resolver_circular_symlink() {
@@ -302,18 +307,25 @@ mod tests {
         std::os::unix::fs::symlink(&symlink1, &symlink2).unwrap();
         std::os::unix::fs::symlink(&symlink2, &symlink1).unwrap();
 
-        let error = detect_resolver(symlink1.clone())
-            .expect_err("Invalid symlink should trigger error");
+        let error = detect_resolver(symlink1.clone()).expect_err("Invalid symlink should trigger error");
 
         println!("{:#}", error);
 
-        assert_eq!(format!("{}", error),
-                   format!("Failed to resolve symlink '{}'", symlink1.display()));
-        assert_eq!(format!("{}", error.source().unwrap()),
-                   format!("Failed to resolve symlink '{}'", symlink2.display()));
+        assert_eq!(
+            format!("{}", error),
+            format!("Failed to resolve symlink '{}'", symlink1.display())
+        );
+        assert_eq!(
+            format!("{}", error.source().unwrap()),
+            format!("Failed to resolve symlink '{}'", symlink2.display())
+        );
 
         let root_cause = format!("{}", error.root_cause());
-        assert!(root_cause.contains("possible loop"), "'{}' should contain 'possible loop'", root_cause);
+        assert!(
+            root_cause.contains("possible loop"),
+            "'{}' should contain 'possible loop'",
+            root_cause
+        );
     }
 
     #[tokio::test]
