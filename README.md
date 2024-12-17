@@ -82,6 +82,10 @@ Note: IPSec requires that IPv6 module is enabled in the kernel.
 * Run the `snx-rs-gui` application, which will display a tray icon with a menu
 * GNOME environment: if the tray icon is not displayed, install the [Appindicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension
 
+## Docker Usage
+
+Check [this repository](https://github.com/leleobhz/snx-rs-docker) for a docker container.
+
 ## Command Line Usage
 
 Check the [Configuration Options](https://github.com/ancwrd1/snx-rs/blob/main/options.md) section for a list of all available options. Options can be specified in the configuration file
