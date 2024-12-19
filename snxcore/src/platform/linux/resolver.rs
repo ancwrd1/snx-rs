@@ -247,7 +247,7 @@ mod tests {
 
         let symlink = etc.join("resolv.conf");
         let relative_target = Path::new("../run/systemd/resolve/stub-resolv.conf");
-        std::os::unix::fs::symlink(&relative_target, &symlink).unwrap();
+        std::os::unix::fs::symlink(relative_target, &symlink).unwrap();
 
         let resolver = detect_resolver(symlink).expect("Failed to detect resolver");
         assert_eq!(resolver, ResolverType::SystemdResolved);
@@ -265,7 +265,7 @@ mod tests {
 
         let symlink = etc.join("resolv.conf");
         let relative_target = Path::new("../nonexistent.conf");
-        std::os::unix::fs::symlink(&relative_target, &symlink).unwrap();
+        std::os::unix::fs::symlink(relative_target, &symlink).unwrap();
 
         let error = detect_resolver(symlink.clone()).expect_err("Invalid symlink should trigger error");
 
