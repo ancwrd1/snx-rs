@@ -68,7 +68,7 @@ async fn udp_send_receive(socket: &UdpSocket, data: &[u8], timeout: Duration) ->
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ResolverConfig {
     pub search_domains: Vec<String>,
-    pub dns_servers: Vec<String>,
+    pub dns_servers: Vec<Ipv4Addr>,
 }
 
 #[async_trait]

@@ -1,7 +1,7 @@
-use std::{path::PathBuf, time::Duration};
-
 use clap::Parser;
 use ipnet::Ipv4Net;
+use std::net::Ipv4Addr;
+use std::{path::PathBuf, time::Duration};
 use tracing::level_filters::LevelFilter;
 
 use snxcore::model::params::{CertType, OperationMode, TunnelParams, TunnelType};
@@ -51,6 +51,22 @@ pub struct CmdlineParams {
         help = "Ignore specified search domains from the acquired list"
     )]
     pub ignore_search_domains: Vec<String>,
+
+    #[clap(
+        long = "dns-servers",
+        short = 'D',
+        value_delimiter = ',',
+        help = "Additional DNS servers"
+    )]
+    pub dns_servers: Vec<Ipv4Addr>,
+
+    #[clap(
+        long = "ignore-dns-servers",
+        short = 'G',
+        value_delimiter = ',',
+        help = "Ignore specified DNS servers from the acquired list"
+    )]
+    pub ignore_dns_servers: Vec<Ipv4Addr>,
 
     #[clap(
         long = "default-route",
@@ -213,6 +229,14 @@ impl CmdlineParams {
 
         if !self.ignore_search_domains.is_empty() {
             other.ignore_search_domains = self.ignore_search_domains;
+        }
+
+        if !self.dns_servers.is_empty() {
+            other.dns_servers = self.dns_servers;
+        }
+
+        if !self.ignore_dns_servers.is_empty() {
+            other.ignore_dns_servers = self.ignore_dns_servers;
         }
 
         if let Some(default_route) = self.default_route {

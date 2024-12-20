@@ -90,11 +90,17 @@ impl TunDevice {
             Vec::new()
         };
 
-        let dns_servers = if let Some(ref servers) = self.reply.office_mode.dns_servers {
-            servers.clone()
-        } else {
-            Vec::new()
-        };
+        let dns_servers = self
+            .reply
+            .office_mode
+            .dns_servers
+            .clone()
+            .unwrap_or_default()
+            .iter()
+            .chain(params.dns_servers.iter())
+            .filter(|s| !params.ignore_dns_servers.iter().any(|d| *d == **s))
+            .cloned()
+            .collect::<Vec<_>>();
 
         let config = ResolverConfig {
             search_domains,

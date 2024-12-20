@@ -29,9 +29,9 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
         crate::util::run_command("resolvectl", args).await?;
         crate::util::run_command("resolvectl", ["default-route", &self.device, "false"]).await?;
 
-        let mut args = vec!["dns", &self.device];
+        let mut args = vec!["dns".to_owned(), self.device.clone()];
 
-        let servers = config.dns_servers.iter().map(|s| s.trim()).collect::<Vec<_>>();
+        let servers = config.dns_servers.iter().map(|s| s.to_string()).collect::<Vec<_>>();
 
         args.extend(servers);
 
@@ -118,7 +118,9 @@ impl ResolvConfConfigurator {
 
         let existing_nameservers = conf
             .lines()
-            .filter(|line| line.starts_with("nameserver") && !config.dns_servers.iter().any(|s| line.contains(s)))
+            .filter(|line| {
+                line.starts_with("nameserver") && !config.dns_servers.iter().any(|s| line.contains(&s.to_string()))
+            })
             .collect::<Vec<_>>();
 
         let other_lines = conf
@@ -339,7 +341,7 @@ mod tests {
 
         let config = ResolverConfig {
             search_domains: vec!["dom1.com".to_owned(), "dom2.net".to_owned()],
-            dns_servers: vec!["192.168.1.1".to_owned(), "192.168.1.2".to_owned()],
+            dns_servers: vec!["192.168.1.1".parse().unwrap(), "192.168.1.2".parse().unwrap()],
         };
         cut.configure(&config).await.unwrap();
 
@@ -358,7 +360,7 @@ mod tests {
 
         let config = ResolverConfig {
             search_domains: vec!["dom1.com".to_owned(), "dom2.net".to_owned()],
-            dns_servers: vec!["192.168.1.1".to_owned(), "192.168.1.2".to_owned()],
+            dns_servers: vec!["192.168.1.1".parse().unwrap(), "192.168.1.2".parse().unwrap()],
         };
 
         cut.cleanup(&config).await.unwrap();
