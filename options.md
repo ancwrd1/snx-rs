@@ -12,6 +12,8 @@
 | `cert-id=<cert_id>`                       | hexadecimal ID of PKCS11 certificate, bytes could be optionally separated with colon                                                                  |
 | `search-domains=<search_domains>`         | additional search domains for DNS resolver, comma-separated                                                                                           |
 | `ignore-search-domains=<ignored_domains>` | acquired search domains to ignore                                                                                                                     |
+| `dns-servers=<dns_servers>`               | additional DNS servers, comma-separated                                                                                                               |
+| `ignore-dns-servers=<ignored_dns>`        | acquired DNS servers to ignore, comma-separated                                                                                                       |
 | `default-route=true\|false`               | set default route through the VPN tunnel, default is false                                                                                            |
 | `no-routing=true\|false`                  | ignore all routes acquired from the VPN server, default is false                                                                                      |
 | `add-routes=<routes>`                     | additional static routes, comma-separated, in the format of x.x.x.x/x                                                                                 |

@@ -1,3 +1,9 @@
+use anyhow::anyhow;
+use base64::Engine;
+use directories_next::ProjectDirs;
+use ipnet::Ipv4Net;
+use serde::{Deserialize, Serialize};
+use std::net::Ipv4Addr;
 use std::{
     fmt, fs,
     io::{Cursor, Write},
@@ -5,12 +11,6 @@ use std::{
     str::FromStr,
     time::Duration,
 };
-
-use anyhow::anyhow;
-use base64::Engine;
-use directories_next::ProjectDirs;
-use ipnet::Ipv4Net;
-use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::util;
@@ -202,6 +202,8 @@ pub struct TunnelParams {
     pub log_level: String,
     pub search_domains: Vec<String>,
     pub ignore_search_domains: Vec<String>,
+    pub dns_servers: Vec<Ipv4Addr>,
+    pub ignore_dns_servers: Vec<Ipv4Addr>,
     pub default_route: bool,
     pub no_routing: bool,
     pub add_routes: Vec<Ipv4Net>,
@@ -239,6 +241,8 @@ impl Default for TunnelParams {
             log_level: "off".to_owned(),
             search_domains: Vec::new(),
             ignore_search_domains: Vec::new(),
+            dns_servers: Vec::new(),
+            ignore_dns_servers: Vec::new(),
             default_route: false,
             no_routing: false,
             add_routes: Vec::new(),
@@ -288,6 +292,10 @@ impl TunnelParams {
                 "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                 "ignore-search-domains" => {
                     params.ignore_search_domains = v.split(',').map(|s| s.trim().to_owned()).collect();
+                }
+                "dns-servers" => params.dns_servers = v.split(',').flat_map(|s| s.trim().parse().ok()).collect(),
+                "ignore-dns-servers" => {
+                    params.ignore_dns_servers = v.split(',').flat_map(|s| s.trim().parse().ok()).collect();
                 }
                 "default-route" => params.default_route = v.parse().unwrap_or_default(),
                 "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
@@ -341,6 +349,24 @@ impl TunnelParams {
         )?;
         writeln!(buf, "search-domains={}", self.search_domains.join(","))?;
         writeln!(buf, "ignore-search-domains={}", self.ignore_search_domains.join(","))?;
+        writeln!(
+            buf,
+            "dns-servers={}",
+            self.dns_servers
+                .iter()
+                .map(|r| r.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )?;
+        writeln!(
+            buf,
+            "ignore-dns-servers={}",
+            self.ignore_dns_servers
+                .iter()
+                .map(|r| r.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )?;
         writeln!(buf, "default-route={}", self.default_route)?;
         writeln!(buf, "no-routing={}", self.no_routing)?;
         writeln!(

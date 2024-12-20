@@ -1,5 +1,3 @@
-use std::{path::Path, rc::Rc, sync::Arc, time::Duration};
-
 use anyhow::anyhow;
 use async_channel::Sender;
 use gtk::{
@@ -8,6 +6,8 @@ use gtk::{
     Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, WindowPosition,
 };
 use ipnet::Ipv4Net;
+use std::net::Ipv4Addr;
+use std::{path::Path, rc::Rc, sync::Arc, time::Duration};
 use tracing::warn;
 
 use crate::tray::TrayCommand;
@@ -43,6 +43,8 @@ struct MyWidgets {
     no_dns: gtk::CheckButton,
     search_domains: gtk::Entry,
     ignored_domains: gtk::Entry,
+    dns_servers: gtk::Entry,
+    ignored_dns_servers: gtk::Entry,
     no_routing: gtk::CheckButton,
     default_routing: gtk::CheckButton,
     add_routes: gtk::Entry,
@@ -101,6 +103,20 @@ impl MyWidgets {
         self.esp_lifetime.text().parse::<u32>()?;
         self.ike_port.text().parse::<u16>()?;
 
+        let dns_servers = self.dns_servers.text();
+        if !dns_servers.is_empty() {
+            for r in dns_servers.split(',') {
+                r.parse::<Ipv4Addr>()?;
+            }
+        }
+
+        let ignored_dns_servers = self.ignored_dns_servers.text();
+        if !ignored_dns_servers.is_empty() {
+            for r in ignored_dns_servers.split(',') {
+                r.parse::<Ipv4Addr>()?;
+            }
+        }
+
         let add_routes = self.add_routes.text();
         if !add_routes.is_empty() {
             for r in add_routes.split(',') {
@@ -153,6 +169,30 @@ impl SettingsDialog {
         let ignored_domains = gtk::Entry::builder()
             .placeholder_text("Comma-separated domains")
             .text(params.ignore_search_domains.join(","))
+            .build();
+
+        let dns_servers = gtk::Entry::builder()
+            .placeholder_text("Comma-separated IP addresses")
+            .text(
+                params
+                    .dns_servers
+                    .iter()
+                    .map(|r| r.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            )
+            .build();
+
+        let ignored_dns_servers = gtk::Entry::builder()
+            .placeholder_text("Comma-separated IP addresses")
+            .text(
+                params
+                    .ignore_dns_servers
+                    .iter()
+                    .map(|r| r.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            )
             .build();
 
         let no_routing = gtk::CheckButton::builder().active(params.no_routing).build();
@@ -336,6 +376,8 @@ impl SettingsDialog {
             no_dns,
             search_domains,
             ignored_domains,
+            dns_servers,
+            ignored_dns_servers,
             no_routing,
             default_routing,
             add_routes,
@@ -417,6 +459,20 @@ impl SettingsDialog {
             .text()
             .split(',')
             .map(|s| s.trim().to_owned())
+            .collect();
+        params.dns_servers = self
+            .widgets
+            .dns_servers
+            .text()
+            .split(',')
+            .flat_map(|s| s.trim().parse().ok())
+            .collect();
+        params.ignore_dns_servers = self
+            .widgets
+            .ignored_dns_servers
+            .text()
+            .split(',')
+            .flat_map(|s| s.trim().parse().ok())
             .collect();
         params.no_routing = self.widgets.no_routing.is_active();
         params.default_route = self.widgets.default_routing.is_active();
@@ -579,6 +635,14 @@ impl SettingsDialog {
         let no_dns = self.form_box("Do not change DNS resolver configuration");
         no_dns.pack_start(&self.widgets.no_dns, false, true, 0);
         dns_box.pack_start(&no_dns, false, true, 6);
+
+        let dns_servers = self.form_box("Additional DNS servers");
+        dns_servers.pack_start(&self.widgets.dns_servers, false, true, 0);
+        dns_box.pack_start(&dns_servers, false, true, 6);
+
+        let ignored_dns_servers = self.form_box("Ignored DNS servers");
+        ignored_dns_servers.pack_start(&self.widgets.ignored_dns_servers, false, true, 0);
+        dns_box.pack_start(&ignored_dns_servers, false, true, 6);
 
         let search_domains = self.form_box("Additional search domains");
         search_domains.pack_start(&self.widgets.search_domains, false, true, 0);

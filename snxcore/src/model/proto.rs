@@ -92,7 +92,7 @@ impl Serialize for AuthenticationAlgorithm {
 pub struct OfficeMode {
     pub ipaddr: String,
     pub keep_address: Option<bool>,
-    pub dns_servers: Option<Vec<String>>,
+    pub dns_servers: Option<Vec<Ipv4Addr>>,
     pub dns_suffix: Option<QuotedStringList>,
 }
 

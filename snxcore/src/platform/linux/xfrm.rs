@@ -400,7 +400,9 @@ impl XfrmConfigurator {
             .ipsec_session
             .dns
             .iter()
-            .map(|server| server.to_string())
+            .chain(self.tunnel_params.dns_servers.iter())
+            .filter(|s| !self.tunnel_params.ignore_dns_servers.iter().any(|d| *d == **s))
+            .cloned()
             .collect::<Vec<_>>();
 
         let resolver = new_resolver_configurator(&self.name)?;
