@@ -17,7 +17,6 @@ struct SExpressionParser;
 pub enum SExpression {
     Null,
     Value(String),
-    QuotedValue(String),
     Object(Option<String>, BTreeMap<String, SExpression>),
     Array(Vec<SExpression>),
 }
@@ -40,9 +39,7 @@ impl SExpression {
     }
 
     pub fn get_value<T: FromStr>(&self, path: &str) -> Option<T> {
-        self.get(path)
-            .and_then(|v| v.as_value().or_else(|| v.as_quoted_value()))
-            .and_then(|v| v.parse().ok())
+        self.get(path).and_then(|v| v.as_value()).and_then(|v| v.parse().ok())
     }
 
     pub fn get_num_value<T: Num>(&self, path: &str) -> Option<T> {
@@ -89,8 +86,7 @@ impl SExpression {
     fn encode_with_level(&self, level: u32) -> Option<String> {
         match self {
             SExpression::Null => None,
-            SExpression::Value(value) => Some(format!("({value})")),
-            SExpression::QuotedValue(value) => Some(format!("(\"{value}\")")),
+            SExpression::Value(value) => Some(format_value(value)),
             SExpression::Object(name, object) => Some(self.encode_object(level, name.as_deref(), object)),
             SExpression::Array(items) => Some(self.encode_array(level, items)),
         }
@@ -130,7 +126,6 @@ impl SExpression {
         match self {
             Self::Null => Value::Null,
             Self::Value(v) => to_json_value(v),
-            Self::QuotedValue(v) => Value::String(format!("\"{v}\"")),
             Self::Object(name, fields) => to_json_object(name.as_deref(), fields),
             SExpression::Array(elements) => Value::Array(elements.iter().map(|v| v.to_json()).collect()),
         }
@@ -141,13 +136,7 @@ impl SExpression {
             Value::Null => Self::Null,
             Value::Bool(v) => Self::Value(v.to_string()),
             Value::Number(v) => Self::Value(v.to_string()),
-            Value::String(v) => {
-                if v.starts_with('"') && v.ends_with('"') {
-                    Self::QuotedValue(v.trim_matches('"').to_string())
-                } else {
-                    Self::Value(v.to_string())
-                }
-            }
+            Value::String(v) => Self::Value(v.to_string()),
             Value::Array(v) => Self::Array(v.into_iter().map(Self::from_json).collect()),
             Value::Object(v) => match v.iter().next() {
                 Some((key, value)) if key.starts_with('(') => Self::Object(
@@ -208,6 +197,14 @@ fn to_json_value(v: &str) -> Value {
         Value::Bool(b)
     } else {
         Value::String(v.to_string())
+    }
+}
+
+fn format_value(value: &str) -> String {
+    if value.contains(|c: char| !c.is_alphanumeric()) {
+        format!("(\"{}\")", value)
+    } else {
+        format!("({})", value)
     }
 }
 
@@ -277,7 +274,7 @@ fn parse_value(mut pairs: RulePairs) -> anyhow::Result<SExpression> {
     match pairs.next() {
         Some(pair) if pair.as_rule() == Rule::quoted_str => {
             let value = pair.into_inner().as_str().to_owned();
-            Ok(SExpression::QuotedValue(value))
+            Ok(SExpression::Value(value))
         }
         Some(pair) if pair.as_rule() == Rule::simple_val => {
             let value = pair.as_str().to_owned();
@@ -356,8 +353,13 @@ mod tests {
     fn test_parse_array() {
         let data = "(Response :data (: (hello) : (world)))";
         let expr = data.parse::<SExpression>().unwrap();
-        println!("{expr:#?}");
-        println!("{expr}");
+        assert_eq!(
+            expr.get("Response:data").unwrap().as_array().unwrap(),
+            &vec![
+                SExpression::Value("hello".to_string()),
+                SExpression::Value("world".to_string())
+            ]
+        );
     }
 
     #[test]
@@ -368,7 +370,36 @@ mod tests {
         }
         let data = Data { key: None };
         let expr = SExpression::from(&data);
-        println!("{expr:#?}");
-        println!("{expr}");
+        assert_eq!(expr.get("key"), Some(&SExpression::Null));
+    }
+
+    #[test]
+    fn test_quoted_value_from_str() {
+        let data = "(Response\n\t:data (\"hello world\"))";
+        let expr = data.parse::<SExpression>().unwrap();
+
+        let inner = expr.get("Response:data").unwrap().as_value().unwrap();
+        assert_eq!(inner, "hello world");
+
+        let encoded = format!("{}", expr);
+        assert_eq!(encoded, data);
+    }
+
+    #[test]
+    fn test_quoted_value_from_pod() {
+        #[derive(Serialize)]
+        struct Data {
+            key: String,
+        }
+        let data = Data {
+            key: "Helloworld!".to_owned(),
+        };
+        let expr = SExpression::from(&data);
+
+        let inner = expr.get("key").unwrap().as_value().unwrap();
+        assert_eq!(inner, "Helloworld!");
+
+        let encoded = format!("{}", expr);
+        assert_eq!(encoded, "(\n\t:key (\"Helloworld!\"))");
     }
 }

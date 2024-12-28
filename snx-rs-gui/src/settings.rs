@@ -348,7 +348,7 @@ impl SettingsDialog {
                                 .map(|factor| factor.factor_type.clone())
                                 .collect::<Vec<_>>();
                             unsafe { auth_type.set_data(&option.id, factors); }
-                            auth_type.append(Some(&option.id), &option.display_name.0);
+                            auth_type.append(Some(&option.id), &option.display_name);
                             if params2.login_type == option.id {
                                 auth_type.set_active(Some(i as _));
                             }

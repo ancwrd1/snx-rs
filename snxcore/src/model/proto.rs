@@ -93,7 +93,7 @@ pub struct OfficeMode {
     pub ipaddr: String,
     pub keep_address: Option<bool>,
     pub dns_servers: Option<Vec<Ipv4Addr>>,
-    pub dns_suffix: Option<QuotedStringList>,
+    pub dns_suffix: Option<StringList>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -220,7 +220,7 @@ pub struct MultiChallengeRequest {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientLoggingData {
-    pub client_name: Option<QuotedString>,
+    pub client_name: Option<String>,
     pub client_ver: Option<String>,
     pub client_build_number: Option<String>,
     pub os_name: Option<String>,
@@ -228,8 +228,8 @@ pub struct ClientLoggingData {
     pub device_type: Option<String>,
     pub hardware_model: Option<String>,
     pub machine_name: Option<String>,
-    pub device_id: Option<QuotedString>,
-    pub mac_address: Option<QuotedStringList>,
+    pub device_id: Option<String>,
+    pub mac_address: Option<StringList>,
     pub physical_ip: Option<Ipv4Addr>,
     pub is_compliant: Option<String>,
 }
@@ -324,7 +324,7 @@ pub struct KeyManagementResponse {
     pub om_dns0: Option<u32>,
     pub om_dns1: Option<u32>,
     pub om_dns2: Option<u32>,
-    pub om_domain_name: Option<QuotedString>,
+    pub om_domain_name: Option<String>,
     pub lifetime: Option<u64>,
     pub encalg: EncryptionAlgorithm,
     pub authalg: AuthenticationAlgorithm,
@@ -380,7 +380,7 @@ pub struct DisconnectRequest {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DisconnectRequestData {
     pub code: String,
-    pub message: Option<QuotedString>,
+    pub message: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -406,7 +406,7 @@ pub struct ProtocolVersion {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UpgradeConfiguration {
     pub available_client_version: u32,
-    pub client_upgrade_url: QuotedString,
+    pub client_upgrade_url: String,
     pub upgrade_mode: String,
 }
 
@@ -420,7 +420,7 @@ pub struct ConnectivityInfo {
     pub ipsec_transport: String,
     pub tcpt_port: u16,
     pub natt_port: u16,
-    pub connect_with_certificate_url: QuotedString,
+    pub connect_with_certificate_url: String,
     pub cookie_name: String,
     pub internal_ca_fingerprint: BTreeMap<String, String>,
 }
@@ -435,7 +435,7 @@ pub struct LoginOptionsData {
 pub struct LoginOption {
     pub id: String,
     pub secondary_realm_hash: String,
-    pub display_name: QuotedString,
+    pub display_name: String,
     pub show_realm: u32,
     pub factors: BTreeMap<String, LoginFactor>,
 }
@@ -463,15 +463,15 @@ pub struct LoginFactor {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LoginDisplayLabelSelect {
-    LoginDisplayLabel(BTreeMap<String, QuotedString>),
+    LoginDisplayLabel(BTreeMap<String, String>),
     Empty(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginDisplayLabel {
-    pub header: QuotedString,
-    pub username: Option<QuotedString>,
-    pub password: Option<QuotedString>,
+    pub header: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

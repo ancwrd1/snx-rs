@@ -5,63 +5,11 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-/// String encoded with double quotes
+/// String separated with commas or semicolons
 #[derive(Default, Clone, PartialEq)]
-pub struct QuotedString(pub String);
+pub struct StringList(pub Vec<String>);
 
-impl Serialize for QuotedString {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        format!("\"{}\"", self.0).serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for QuotedString {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(Self(String::deserialize(deserializer)?.trim_matches('"').to_owned()))
-    }
-}
-
-impl From<String> for QuotedString {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<QuotedString> for String {
-    fn from(value: QuotedString) -> Self {
-        value.0
-    }
-}
-
-impl<'a> From<&'a str> for QuotedString {
-    fn from(value: &'a str) -> Self {
-        Self(value.to_owned())
-    }
-}
-
-impl fmt::Display for QuotedString {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        std::fmt::Display::fmt(&self.0, f)
-    }
-}
-
-impl fmt::Debug for QuotedString {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        std::fmt::Debug::fmt(&self.0, f)
-    }
-}
-
-/// String encoded with double quotes and separated with commas
-#[derive(Default, Clone, PartialEq)]
-pub struct QuotedStringList(pub Vec<String>);
-
-impl Serialize for QuotedStringList {
+impl Serialize for StringList {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -70,7 +18,7 @@ impl Serialize for QuotedStringList {
     }
 }
 
-impl<'de> Deserialize<'de> for QuotedStringList {
+impl<'de> Deserialize<'de> for StringList {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -85,19 +33,19 @@ impl<'de> Deserialize<'de> for QuotedStringList {
     }
 }
 
-impl From<Vec<String>> for QuotedStringList {
+impl From<Vec<String>> for StringList {
     fn from(value: Vec<String>) -> Self {
         Self(value)
     }
 }
 
-impl From<QuotedStringList> for Vec<String> {
-    fn from(value: QuotedStringList) -> Self {
+impl From<StringList> for Vec<String> {
+    fn from(value: StringList) -> Self {
         value.0
     }
 }
 
-impl fmt::Debug for QuotedStringList {
+impl fmt::Debug for StringList {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         std::fmt::Debug::fmt(&self.0, f)
     }
@@ -122,7 +70,7 @@ impl<'de> Deserialize<'de> for EncryptedString {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let decrypted = crate::util::snx_decrypt(s.as_bytes()).map_err(serde::de::Error::custom)?;
+        let decrypted = crate::util::snx_decrypt(s.as_bytes()).map_err(Error::custom)?;
         Ok(Self(String::from_utf8_lossy(&decrypted).into_owned()))
     }
 }
