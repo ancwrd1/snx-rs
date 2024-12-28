@@ -201,7 +201,7 @@ fn to_json_value(v: &str) -> Value {
 }
 
 fn format_value(value: &str) -> String {
-    if value.contains(|c: char| !c.is_alphanumeric()) {
+    if value.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
         format!("(\"{}\")", value)
     } else {
         format!("({})", value)
@@ -392,14 +392,32 @@ mod tests {
             key: String,
         }
         let data = Data {
-            key: "Helloworld!".to_owned(),
+            key: "Hello_world!".to_owned(),
         };
         let expr = SExpression::from(&data);
 
         let inner = expr.get("key").unwrap().as_value().unwrap();
-        assert_eq!(inner, "Helloworld!");
+        assert_eq!(inner, "Hello_world!");
 
         let encoded = format!("{}", expr);
-        assert_eq!(encoded, "(\n\t:key (\"Helloworld!\"))");
+        assert_eq!(encoded, "(\n\t:key (\"Hello_world!\"))");
+    }
+
+    #[test]
+    fn test_non_quoted_value() {
+        #[derive(Serialize)]
+        struct Data {
+            key: String,
+        }
+        let data = Data {
+            key: "Hello_world".to_owned(),
+        };
+        let expr = SExpression::from(&data);
+
+        let inner = expr.get("key").unwrap().as_value().unwrap();
+        assert_eq!(inner, "Hello_world");
+
+        let encoded = format!("{}", expr);
+        assert_eq!(encoded, "(\n\t:key (Hello_world))");
     }
 }
