@@ -287,35 +287,37 @@ impl SettingsDialog {
         let error = gtk::Label::new(None);
         error.style_context().add_provider(&provider, 100);
 
-        auth_type.connect_active_notify(
-            clone!(@weak dialog, @weak auth_type, @weak user_name, @weak password, @weak tunnel_type, @weak cert_path => move |widget| {
-                if let Some(id) = widget.active_id() {
-                    let factors = unsafe { auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
-                    if let Some(factors) = factors {
-                        let is_saml = factors.iter().any(|f| f == "identity_provider");
-                        let is_cert = factors.iter().any(|f| f == "certificate");
-                        set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
-                        set_container_visible(cert_path.as_ref(), is_cert);
-                        dialog.resize(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
-                        if is_saml {
-                            tunnel_type.set_active(Some(0));
-                            tunnel_type.set_sensitive(false);
-                        } else {
-                            tunnel_type.set_sensitive(true);
-                        }
+        auth_type.connect_active_notify(clone!(@weak dialog,
+            @weak auth_type,
+            @weak user_name,
+            @weak tunnel_type,
+            @weak cert_path => move |widget| {
+            if let Some(id) = widget.active_id() {
+                let factors = unsafe { auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
+                if let Some(factors) = factors {
+                    let is_saml = factors.iter().any(|f| f == "identity_provider");
+                    let is_cert = factors.iter().any(|f| f == "certificate");
+                    set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
+                    set_container_visible(cert_path.as_ref(), is_cert);
+                    dialog.resize(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
+                    if is_saml {
+                        tunnel_type.set_active(Some(0));
+                        tunnel_type.set_sensitive(false);
+                    } else {
+                        tunnel_type.set_sensitive(true);
                     }
                 }
-            }),
-        );
+            }
+        }));
 
         let (sender, receiver) = async_channel::bounded(1);
         let params2 = params.clone();
 
         fetch_info.connect_clicked(clone!(@weak dialog,
-                                        @weak auth_type,
-                                        @weak server_name,
-                                        @weak no_cert_name_check,
-                                        @weak no_cert_check => move |_| {
+            @weak auth_type,
+            @weak server_name,
+            @weak no_cert_name_check,
+            @weak no_cert_check => move |_| {
             if server_name.text().is_empty() {
                 auth_type.set_sensitive(false);
             } else {
