@@ -291,7 +291,8 @@ impl SettingsDialog {
             @weak auth_type,
             @weak user_name,
             @weak tunnel_type,
-            @weak cert_path => move |widget| {
+            @weak cert_path,
+            @weak cert_type => move |widget| {
             if let Some(id) = widget.active_id() {
                 let factors = unsafe { auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
                 if let Some(factors) = factors {
@@ -300,6 +301,9 @@ impl SettingsDialog {
                     set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
                     set_container_visible(cert_path.as_ref(), is_cert);
                     dialog.resize(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
+                    if !is_cert {
+                        cert_type.set_active(Some(0));
+                    }
                     if is_saml {
                         tunnel_type.set_active(Some(0));
                         tunnel_type.set_sensitive(false);
@@ -637,7 +641,7 @@ impl SettingsDialog {
     }
 
     fn password_box(&self) -> gtk::Box {
-        let password_box = self.form_box("Password (optional)");
+        let password_box = self.form_box("Password");
         password_box.pack_start(&self.widgets.password, false, true, 0);
         password_box
     }
