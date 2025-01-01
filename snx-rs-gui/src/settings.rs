@@ -3,7 +3,7 @@ use async_channel::Sender;
 use gtk::{
     glib::{self, clone},
     prelude::*,
-    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, WindowPosition,
+    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget, WindowPosition,
 };
 use ipnet::Ipv4Net;
 use std::net::Ipv4Addr;
@@ -26,6 +26,18 @@ const CSS_ERROR: &str = r"label {
     background-color: #a02a2a;
 }
 ";
+
+fn set_container_visible(widget: &Widget, flag: bool) {
+    if let Some(parent) = widget.parent() {
+        if let Some(parent) = parent.parent() {
+            if flag {
+                parent.show_all();
+            } else {
+                parent.hide();
+            }
+        }
+    }
+}
 
 struct SettingsDialog {
     params: Arc<TunnelParams>,
@@ -136,6 +148,9 @@ impl MyWidgets {
 }
 
 impl SettingsDialog {
+    const DEFAULT_WIDTH: i32 = 700;
+    const DEFAULT_HEIGHT: i32 = 370;
+
     pub fn new(params: Arc<TunnelParams>) -> Self {
         let dialog = gtk::Dialog::with_buttons(
             Some("VPN settings"),
@@ -148,8 +163,8 @@ impl SettingsDialog {
             ],
         );
 
-        dialog.set_default_width(700);
-        dialog.set_default_height(370);
+        dialog.set_default_width(Self::DEFAULT_WIDTH);
+        dialog.set_default_height(Self::DEFAULT_HEIGHT);
         dialog.set_position(WindowPosition::CenterAlways);
 
         let server_name = gtk::Entry::builder().text(&params.server_name).hexpand(true).build();
@@ -273,14 +288,15 @@ impl SettingsDialog {
         error.style_context().add_provider(&provider, 100);
 
         auth_type.connect_active_notify(
-            clone!(@weak auth_type, @weak user_name, @weak password, @weak tunnel_type => move |widget| {
+            clone!(@weak dialog, @weak auth_type, @weak user_name, @weak password, @weak tunnel_type, @weak cert_path => move |widget| {
                 if let Some(id) = widget.active_id() {
                     let factors = unsafe { auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
                     if let Some(factors) = factors {
                         let is_saml = factors.iter().any(|f| f == "identity_provider");
                         let is_cert = factors.iter().any(|f| f == "certificate");
-                        user_name.set_sensitive(!is_saml && !is_cert);
-                        password.set_sensitive(!is_saml && !is_cert);
+                        set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
+                        set_container_visible(cert_path.as_ref(), is_cert);
+                        dialog.resize(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
                         if is_saml {
                             tunnel_type.set_active(Some(0));
                             tunnel_type.set_sensitive(false);
@@ -663,21 +679,6 @@ impl SettingsDialog {
             .margin_end(16)
             .build();
 
-        let cert_type_box = self.cert_type_box();
-        certs_box.pack_start(&cert_type_box, false, true, 6);
-
-        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx/.p12, .so)");
-        cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
-        certs_box.pack_start(&cert_path, false, true, 6);
-
-        let cert_password = self.form_box("PFX password or PKCS11 pin");
-        cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
-        certs_box.pack_start(&cert_password, false, true, 6);
-
-        let cert_id = self.form_box("Hex ID of PKCS11 certificate");
-        cert_id.pack_start(&self.widgets.cert_id, false, true, 0);
-        certs_box.pack_start(&cert_id, false, true, 6);
-
         let ca_cert = self.form_box("Server CA root certificates");
         ca_cert.pack_start(&self.widgets.ca_cert, false, true, 0);
         certs_box.pack_start(&ca_cert, false, true, 6);
@@ -766,13 +767,53 @@ impl SettingsDialog {
         routing_box
     }
 
+    fn user_auth_box(&self) -> gtk::Box {
+        let user_auth_box = gtk::Box::builder()
+            .orientation(Orientation::Vertical)
+            .margin(0)
+            .margin_start(0)
+            .margin_end(0)
+            .build();
+        user_auth_box.pack_start(&self.user_box(), false, true, 6);
+        user_auth_box.pack_start(&self.password_box(), false, true, 6);
+
+        user_auth_box
+    }
+
+    fn cert_auth_box(&self) -> gtk::Box {
+        let certs_box = gtk::Box::builder()
+            .orientation(Orientation::Vertical)
+            .margin(0)
+            .margin_start(0)
+            .margin_end(0)
+            .build();
+
+        let cert_type_box = self.cert_type_box();
+        certs_box.pack_start(&cert_type_box, false, true, 6);
+
+        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx/.p12, .so)");
+        cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
+        certs_box.pack_start(&cert_path, false, true, 6);
+
+        let cert_password = self.form_box("PFX password or PKCS11 pin");
+        cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
+        certs_box.pack_start(&cert_password, false, true, 6);
+
+        let cert_id = self.form_box("Hex ID of PKCS11 certificate");
+        cert_id.pack_start(&self.widgets.cert_id, false, true, 0);
+        certs_box.pack_start(&cert_id, false, true, 6);
+
+        certs_box
+    }
+
     fn general_tab(&self) -> gtk::Box {
         let tab = gtk::Box::builder().orientation(Orientation::Vertical).margin(6).build();
         tab.pack_start(&self.server_box(), false, true, 6);
         tab.pack_start(&self.auth_box(), false, true, 6);
         tab.pack_start(&self.tunnel_box(), false, true, 6);
-        tab.pack_start(&self.user_box(), false, true, 6);
-        tab.pack_start(&self.password_box(), false, true, 6);
+        tab.show_all();
+        tab.pack_start(&self.user_auth_box(), false, true, 6);
+        tab.pack_start(&self.cert_auth_box(), false, true, 6);
         tab
     }
 
@@ -800,6 +841,7 @@ impl SettingsDialog {
 
         let scrolled_win = gtk::ScrolledWindow::builder().build();
         scrolled_win.add(&viewport);
+        scrolled_win.show_all();
         scrolled_win
     }
 
@@ -812,7 +854,7 @@ impl SettingsDialog {
         notebook.append_page(&self.general_tab(), Some(&gtk::Label::new(Some("General"))));
         notebook.append_page(&self.advanced_tab(), Some(&gtk::Label::new(Some("Advanced"))));
 
-        notebook.show_all();
+        notebook.show();
     }
 }
 
