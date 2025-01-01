@@ -65,7 +65,7 @@ impl CccHttpClient {
                 password,
                 client_logging_data: Some(ClientLoggingData {
                     os_name: Some("Windows".into()),
-                    device_id: Some(crate::util::get_device_id().into()),
+                    device_id: Some(crate::util::get_device_id()),
                     ..Default::default()
                 }),
                 selected_login_option: Some(self.params.login_type.clone()),

@@ -456,7 +456,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             secondary_realm_hash: None,
             client_logging_data: Some(ClientLoggingData {
                 os_name: Some("Windows".to_owned()),
-                device_id: Some(crate::util::get_device_id().into()),
+                device_id: Some(crate::util::get_device_id()),
                 ..Default::default()
             }),
         };
