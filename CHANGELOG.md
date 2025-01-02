@@ -1,5 +1,6 @@
-## v2,9.0 (unreleased)
+## v2.9.0 (unreleased)
 - Added `dns-servers` and `ignore-dns-servers` options
+- UI: refactored authentication settings, moved certificate authentication options to general tab
 
 ## v2.8.3 (2024-12-18)
 - Fixed a bug with incorrect resolver detection when /etc/resolv.conf is a relative symlink.
