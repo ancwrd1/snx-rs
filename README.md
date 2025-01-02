@@ -78,7 +78,7 @@ Note: IPSec requires that IPv6 module is enabled in the kernel.
 
 ## GUI Usage
 
-* Run the main application in command mode: `sudo snx-rs -m command` or install it as a systemd service
+* Run the main application in command mode: `sudo ./snx-rs -m command` or install it as a systemd service
 * Run the `snx-rs-gui` application, which will display a tray icon with a menu
 * GNOME environment: if the tray icon is not displayed, install the [Appindicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension
 
@@ -122,6 +122,16 @@ There are two ways to use the application:
   - `info`: Show server authentication methods and supported tunnel types.
   - Run it with the `--help` option to get usage help.
 * **Standalone Service Mode**: Selected by the `-m standalone` parameter. This is the default mode if no parameters are specified. Run `snx-rs --help` to get help with all command line parameters. In this mode, the application takes connection parameters either from the command line or from the specified configuration file. This mode is recommended for headless usage.
+
+## Usage examples
+
+```bash
+# standalone mode with trace logging and IPSec tunnel
+sudo ./snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com -e ipsec -l trace
+
+# command mode with debug logging (use snxctl to establish a connection)
+sudo ./snx-rs -m command -l debug
+```
 
 ## Docker Usage
 
@@ -167,7 +177,7 @@ Automatic channel reconnection will happen when running in the standalone mode, 
 
 | Problem                                                           | Solution                                                                                                                                                                                 |
 |-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `deadline has elapsed`                                            | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                       |
+| `deadline has elapsed`                                            | Try connecting again. Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                 |
 | `failed to fill whole buffer`                                     | This error means the IPSec traffic is intercepted by man-in-the-middle, which could be a router doing packet inspection or an attacker.                                                  |
 | `Unknown device type`                                             | Make sure IPv6 protocol is enabled in the Linux kernel and 'xfrm' module can be loaded with `sudo modprobe xfrm`. IPSec support requires IPv6 to be enabled.                             |
 | `[0020] The user is not defined properly`                         | Application failed to negotiate IPSec encryption parameters. Usually it means that Check Point server is misconfigured with the obsolete insecure ciphers.                               |
@@ -182,11 +192,10 @@ Before opening a PR, make sure to reformat the sources with the `cargo fmt` comm
 
 ## Building from Sources
 
-The easiest way to build the project is using the distrobox:
-
-* Provision distrobox container: `distrobox create --image ubuntu:22.04 --name snx-ubuntu`
-* Enter the container: `distrobox enter snx-ubuntu`
-* Install the required dependencies: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev`
+* Install the required dependencies:
+ - Debian/Ubuntu: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev`
+ - openSUSE: `sudo zypper install pkgconf libopenssl-3-devel gtk3-devel`
+ - Other distros: C compiler, pkg-config, OpenSSL and GTK 3 development packages
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
