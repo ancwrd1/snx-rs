@@ -1,8 +1,13 @@
-use std::{collections::VecDeque, future::Future, sync::Arc};
+use std::{
+    collections::VecDeque,
+    future::Future,
+    sync::{Arc, OnceLock},
+};
 
 use anyhow::anyhow;
 use clap::Parser;
 use futures::pin_mut;
+use openssl::provider::Provider;
 use tokio::{
     signal::unix,
     sync::{mpsc, oneshot},
@@ -62,6 +67,12 @@ async fn main() -> anyhow::Result<()> {
 
     if cmdline_params.mode != OperationMode::Info && !is_root() {
         return Err(anyhow!("Please run me as a root user!"));
+    }
+
+    static LEGACY_PROVIDER: OnceLock<Provider> = OnceLock::new();
+
+    if let Ok(provider) = Provider::try_load(None, "legacy", true) {
+        let _ = LEGACY_PROVIDER.set(provider);
     }
 
     let mode = cmdline_params.mode;

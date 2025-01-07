@@ -2977,6 +2977,7 @@ dependencies = [
  "futures",
  "ipnet",
  "libc",
+ "openssl",
  "snxcore",
  "tokio",
  "tracing",
