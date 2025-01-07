@@ -15,7 +15,7 @@ for arch in $arches; do
     mkdir "$target/$name"
 
     for app in $apps; do
-        if ! cp "$target/$triple/release/$app" "$target/$name/"; then
+        if ! cp "$target/$triple/lto/$app" "$target/$name/"; then
             exit 1
         fi
     done
