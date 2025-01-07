@@ -1,4 +1,4 @@
-## v2.9.0 (unreleased)
+## v2.9.0 (2025-01-07)
 - Added `dns-servers` and `ignore-dns-servers` options
 - UI: refactored authentication settings, moved certificate authentication options to general tab
 
