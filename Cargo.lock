@@ -235,9 +235,9 @@ checksum = "8b75356056920673b02621b35afd0f7dda9306d03c79a30f5c56c44cf256e3de"
 
 [[package]]
 name = "async-trait"
-version = "0.1.84"
+version = "0.1.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1244b10dcd56c92219da4e14caa97e312079e185f04ba3eea25061561dc0a0"
+checksum = "3f934833b4b7233644e5848f235df3f57ed8c80f1528a26c3dfa13d2147fa056"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1727,7 +1727,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#9b597ab6901e759b74af3581e169b5427a1fe4b4"
+source = "git+https://github.com/ancwrd1/isakmp.git#c6360f5ac959fa386871b43ea49d92856deb0c73"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1748,9 +1748,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -2392,9 +2392,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "915a1e146535de9163f3987b8944ed8cf49a18bb0056bcebcdcece385cece4ff"
+checksum = "3b3cff922bd51709b605d9ead9aa71031d81447142d828eb4a6eba76fe619f9b"
 
 [[package]]
 name = "pin-utils"
@@ -2853,9 +2853,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.134"
+version = "1.0.135"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d00f4175c42ee48b15416f6193a959ba3a0d67fc699a0db9ad12df9f83991c7d"
+checksum = "2b0d7ba2887406110130a978386c4e1befb98c674b4fba677954e4db976630d9"
 dependencies = [
  "itoa",
  "memchr",
@@ -2970,7 +2970,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "snx-rs"
-version = "2.8.3"
+version = "2.9.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2985,7 +2985,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "2.8.3"
+version = "2.9.0"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -3006,7 +3006,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "2.8.3"
+version = "2.9.0"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -3049,7 +3049,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "2.8.3"
+version = "2.9.0"
 dependencies = [
  "anyhow",
  "clap",
