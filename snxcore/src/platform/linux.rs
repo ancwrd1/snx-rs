@@ -22,6 +22,20 @@ pub mod xfrm;
 
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
 
+pub fn init() {
+    #[cfg(openssl3)]
+    {
+        use openssl::provider::Provider;
+        use std::sync::OnceLock;
+
+        static LEGACY_PROVIDER: OnceLock<Provider> = OnceLock::new();
+
+        if let Ok(provider) = Provider::try_load(None, "legacy", true) {
+            let _ = LEGACY_PROVIDER.set(provider);
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl UdpSocketExt for UdpSocket {
     fn set_encap(&self, encap: UdpEncap) -> anyhow::Result<()> {

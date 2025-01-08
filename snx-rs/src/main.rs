@@ -1,5 +1,3 @@
-#![allow(unexpected_cfgs)]
-
 use std::{collections::VecDeque, future::Future, sync::Arc};
 
 use anyhow::anyhow;
@@ -58,20 +56,6 @@ where
     }
 }
 
-fn init_openssl() {
-    #[cfg(openssl3)]
-    {
-        use openssl::provider::Provider;
-        use std::sync::OnceLock;
-
-        static LEGACY_PROVIDER: OnceLock<Provider> = OnceLock::new();
-
-        if let Ok(provider) = Provider::try_load(None, "legacy", true) {
-            let _ = LEGACY_PROVIDER.set(provider);
-        }
-    }
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
@@ -80,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
         return Err(anyhow!("Please run me as a root user!"));
     }
 
-    init_openssl();
+    platform::init();
 
     let mode = cmdline_params.mode;
 
