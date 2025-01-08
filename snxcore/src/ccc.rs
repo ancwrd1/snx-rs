@@ -90,22 +90,6 @@ impl CccHttpClient {
         }
     }
 
-    fn new_key_management_request(&self, spi: u32) -> CccClientRequestData {
-        CccClientRequestData {
-            header: RequestHeader {
-                id: new_request_id(),
-                request_type: "KeyManagement".to_string(),
-                session_id: self.session_id(),
-                protocol_version: Some(100),
-            },
-            data: RequestData::KeyManagement(KeyManagementRequest {
-                spi,
-                rekey: false,
-                req_om_addr: 0x0000_0000,
-            }),
-        }
-    }
-
     fn new_client_settings_request(&self) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
@@ -136,7 +120,7 @@ impl CccHttpClient {
         }
     }
 
-    async fn send_raw_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
+    async fn send_raw_request(&self, request: CccClientRequestData, with_cert: bool) -> anyhow::Result<SExpression> {
         let expr = SExpression::from(CccClientRequest { data: request });
 
         let mut builder = reqwest::Client::builder().connect_timeout(CONNECT_TIMEOUT);
@@ -156,7 +140,7 @@ impl CccHttpClient {
             builder = builder.danger_accept_invalid_certs(true);
         }
 
-        let path = if let Some(ref client_cert) = self.params.cert_path {
+        let path = if let (true, Some(client_cert)) = (with_cert, &self.params.cert_path) {
             let data = std::fs::read(client_cert)?;
             let identity = match self.params.cert_type {
                 CertType::Pkcs8 => Some(Identity::from_pkcs8_pem(&data, &data)?),
@@ -198,7 +182,7 @@ impl CccHttpClient {
 
     async fn send_request(&self, request: CccClientRequestData) -> anyhow::Result<CccServerResponseData> {
         Ok(self
-            .send_raw_request(request)
+            .send_raw_request(request, true)
             .await?
             .try_into::<CccServerResponse>()?
             .data)
@@ -226,15 +210,6 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn get_ipsec_tunnel_params(&self, spi: u32) -> anyhow::Result<KeyManagementResponse> {
-        let req = self.new_key_management_request(spi);
-
-        match self.send_ccc_request(req).await? {
-            ResponseData::KeyManagement(data) => Ok(data),
-            _ => Err(anyhow!("Invalid key management response!")),
-        }
-    }
-
     pub async fn get_client_settings(&self) -> anyhow::Result<ClientSettingsResponse> {
         let req = self.new_client_settings_request();
 
@@ -245,6 +220,6 @@ impl CccHttpClient {
     }
 
     pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
-        self.send_raw_request(self.new_client_hello_request()).await
+        self.send_raw_request(self.new_client_hello_request(), false).await
     }
 }

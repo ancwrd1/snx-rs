@@ -235,14 +235,6 @@ pub struct ClientLoggingData {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct KeyManagementRequest {
-    #[serde(rename = "SPI")]
-    pub spi: u32,
-    pub rekey: bool,
-    pub req_om_addr: u32,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientSettingsRequest {
     #[serde(rename = "(ClientSettings")]
     pub data: ClientSettingsData,
@@ -270,7 +262,6 @@ pub struct LocationAwarenessRequest {
 pub enum RequestData {
     Auth(AuthRequest),
     MultiChallenge(MultiChallengeRequest),
-    KeyManagement(KeyManagementRequest),
     LocationAwareness(LocationAwarenessRequest),
     ClientHello { client_info: ClientInfo },
     ClientSettings(ClientSettingsRequest),
