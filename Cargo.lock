@@ -2988,6 +2988,7 @@ dependencies = [
  "ipnet",
  "libc",
  "openssl",
+ "openssl-sys",
  "snxcore",
  "tokio",
  "tracing",
