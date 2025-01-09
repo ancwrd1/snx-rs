@@ -22,7 +22,7 @@ struct XfrmLink<'a> {
     address: Ipv4Net,
 }
 
-impl<'a> XfrmLink<'a> {
+impl XfrmLink<'_> {
     async fn add(&self) -> anyhow::Result<()> {
         let _ = self.delete().await;
 
@@ -70,7 +70,7 @@ struct XfrmState<'a> {
     params: &'a EspCryptMaterial,
 }
 
-impl<'a> XfrmState<'a> {
+impl XfrmState<'_> {
     fn auth_alg_as_xfrm_name(&self) -> &'static str {
         match self.params.auth_algorithm {
             EspAuthAlgorithm::HmacSha96 | EspAuthAlgorithm::HmacSha160 => "hmac(sha1)",
