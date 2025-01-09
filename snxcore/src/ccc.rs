@@ -182,12 +182,11 @@ impl CccHttpClient {
     }
 
     async fn send_ccc_request(&self, req: CccClientRequestData) -> anyhow::Result<ResponseData> {
-        Ok(self
-            .send_raw_request(req)
+        self.send_raw_request(req)
             .await?
             .try_into::<CccServerResponse>()?
             .data
-            .into_data()?)
+            .into_data()
     }
 
     pub async fn authenticate(&self) -> anyhow::Result<AuthResponse> {

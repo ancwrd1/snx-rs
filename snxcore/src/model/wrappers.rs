@@ -105,66 +105,6 @@ impl fmt::Debug for EncryptedString {
     }
 }
 
-/// Hex-encoded key in reverse byte order
-#[derive(Default, Clone, PartialEq)]
-pub struct HexKey(pub String);
-
-impl HexKey {
-    fn revert(s: &str) -> String {
-        let mut enckey = hex::decode(s).unwrap_or_default();
-        enckey.reverse();
-        hex::encode(enckey)
-    }
-}
-
-impl Serialize for HexKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        Self::revert(&self.0).serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for HexKey {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(Self(Self::revert(&String::deserialize(deserializer)?)))
-    }
-}
-
-impl From<String> for HexKey {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<HexKey> for String {
-    fn from(value: HexKey) -> Self {
-        value.0
-    }
-}
-
-impl fmt::Display for HexKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        std::fmt::Display::fmt(&self.0, f)
-    }
-}
-
-impl fmt::Debug for HexKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        std::fmt::Debug::fmt(&self.0, f)
-    }
-}
-
-impl<'a> From<&'a str> for HexKey {
-    fn from(value: &'a str) -> Self {
-        Self(value.to_owned())
-    }
-}
-
 /// Wrapper over possibly empty non-string values
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Maybe<T>(pub Option<T>);

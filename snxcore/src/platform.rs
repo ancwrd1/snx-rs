@@ -8,8 +8,7 @@ use tokio::net::UdpSocket;
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
 pub use platform_impl::{
-    init,
-    acquire_password, configure_device, delete_device, get_machine_uuid,
+    acquire_password, configure_device, delete_device, get_machine_uuid, init,
     net::{
         add_route, add_routes, get_default_ip, is_online, poll_online, remove_default_route, setup_default_route,
         start_network_state_monitoring,

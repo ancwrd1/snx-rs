@@ -252,17 +252,11 @@ pub struct PoliciesAndVersions {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct LocationAwarenessRequest {
-    pub source_ip: Ipv4Addr,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 #[allow(clippy::large_enum_variant)]
 pub enum RequestData {
     Auth(AuthRequest),
     MultiChallenge(MultiChallengeRequest),
-    LocationAwareness(LocationAwarenessRequest),
     ClientHello { client_info: ClientInfo },
     ClientSettings(ClientSettingsRequest),
 }
@@ -281,9 +275,7 @@ pub struct ResponseHeader {
 #[allow(clippy::large_enum_variant)]
 pub enum ResponseData {
     Auth(AuthResponse),
-    KeyManagement(KeyManagementResponse),
     ClientSettings(ClientSettingsResponse),
-    LocationAwareness(LocationAwarenessResponse),
     ServerInfo(ServerInfoResponse),
     Generic(serde_json::Value),
 }
@@ -303,33 +295,6 @@ pub struct AuthResponse {
     pub prompt: Option<EncryptedString>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct KeyManagementResponse {
-    pub client_encsa: IpsecSA,
-    pub client_decsa: IpsecSA,
-    pub om_addr: u32,
-    pub om_subnet_mask: u32,
-    pub om_nbns0: Option<u32>,
-    pub om_nbns1: Option<u32>,
-    pub om_nbns2: Option<u32>,
-    pub om_dns0: Option<u32>,
-    pub om_dns1: Option<u32>,
-    pub om_dns2: Option<u32>,
-    pub om_domain_name: Option<String>,
-    pub lifetime: Option<u64>,
-    pub encalg: EncryptionAlgorithm,
-    pub authalg: AuthenticationAlgorithm,
-    pub nattport: Option<u16>,
-    pub udpencapsulation: Option<bool>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct IpsecSA {
-    pub enckey: HexKey,
-    pub authkey: HexKey,
-    pub spi: u32,
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientSettingsResponse {
     pub gw_internal_ip: Ipv4Addr,
@@ -344,12 +309,6 @@ pub struct UpdatedPolicies {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Range {
     pub settings: Vec<NetworkRange>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct LocationAwarenessResponse {
-    pub location: String,
-    pub source_ip: Ipv4Addr,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
