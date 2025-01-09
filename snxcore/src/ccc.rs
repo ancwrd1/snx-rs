@@ -141,7 +141,9 @@ impl CccHttpClient {
             builder = builder.danger_accept_invalid_certs(true);
         }
 
-        let path = if let (true, Some(client_cert)) = (with_cert, &self.params.cert_path) {
+        let mut path = "/clients/";
+
+        if let (true, Some(client_cert)) = (with_cert, &self.params.cert_path) {
             let data = std::fs::read(client_cert)?;
             let identity = match self.params.cert_type {
                 CertType::Pkcs8 => Some(Identity::from_pkcs8_pem(&data, &data)?),
@@ -153,13 +155,9 @@ impl CccHttpClient {
             };
             if let Some(identity) = identity {
                 builder = builder.identity(identity);
-                "/clients/cert/"
-            } else {
-                "/clients/"
+                path = "/clients/cert/";
             }
-        } else {
-            "/clients/"
-        };
+        }
 
         let client = builder.build()?;
 
