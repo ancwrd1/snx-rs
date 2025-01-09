@@ -121,7 +121,7 @@ impl CccHttpClient {
     }
 
     async fn send_raw_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
-        let with_cert = matches!(request.data, RequestData::Auth(AuthRequest { .. }));
+        let with_cert = matches!(request.data, RequestData::Auth(_));
         let expr = SExpression::from(CccClientRequest { data: request });
 
         let mut builder = reqwest::Client::builder().connect_timeout(CONNECT_TIMEOUT);
