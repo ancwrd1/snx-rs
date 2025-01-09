@@ -120,7 +120,7 @@ impl CccHttpClient {
         }
     }
 
-    async fn send_raw_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
+    async fn send_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
         let with_cert = matches!(request.data, RequestData::Auth(_));
         let expr = SExpression::from(CccClientRequest { data: request });
 
@@ -182,7 +182,7 @@ impl CccHttpClient {
     }
 
     async fn send_ccc_request(&self, req: CccClientRequestData) -> anyhow::Result<ResponseData> {
-        self.send_raw_request(req)
+        self.send_request(req)
             .await?
             .try_into::<CccServerResponse>()?
             .data
@@ -217,6 +217,6 @@ impl CccHttpClient {
     }
 
     pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
-        self.send_raw_request(self.new_client_hello_request()).await
+        self.send_request(self.new_client_hello_request()).await
     }
 }
