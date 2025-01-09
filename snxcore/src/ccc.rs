@@ -120,7 +120,8 @@ impl CccHttpClient {
         }
     }
 
-    async fn send_raw_request(&self, request: CccClientRequestData, with_cert: bool) -> anyhow::Result<SExpression> {
+    async fn send_raw_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
+        let with_cert = matches!(request.data, RequestData::Auth(AuthRequest { .. }));
         let expr = SExpression::from(CccClientRequest { data: request });
 
         let mut builder = reqwest::Client::builder().connect_timeout(CONNECT_TIMEOUT);
@@ -180,16 +181,13 @@ impl CccHttpClient {
         reply.parse::<SExpression>()
     }
 
-    async fn send_request(&self, request: CccClientRequestData) -> anyhow::Result<CccServerResponseData> {
+    async fn send_ccc_request(&self, req: CccClientRequestData) -> anyhow::Result<ResponseData> {
         Ok(self
-            .send_raw_request(request, true)
+            .send_raw_request(req)
             .await?
             .try_into::<CccServerResponse>()?
-            .data)
-    }
-
-    async fn send_ccc_request(&self, req: CccClientRequestData) -> anyhow::Result<ResponseData> {
-        self.send_request(req).await?.into_data()
+            .data
+            .into_data()?)
     }
 
     pub async fn authenticate(&self) -> anyhow::Result<AuthResponse> {
@@ -220,6 +218,6 @@ impl CccHttpClient {
     }
 
     pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
-        self.send_raw_request(self.new_client_hello_request(), false).await
+        self.send_raw_request(self.new_client_hello_request()).await
     }
 }
