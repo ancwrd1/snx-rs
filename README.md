@@ -31,10 +31,6 @@ This project contains the source code for an unofficial Linux client for Check P
 
 * Certificate enrollment and renewal is not supported
 
-## Roadmap
-
-* [ ] Packaging
-
 ## System Requirements
 
 * A recent Linux distribution with kernel version 4.19 or higher
