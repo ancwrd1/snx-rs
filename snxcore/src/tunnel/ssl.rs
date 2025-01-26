@@ -289,8 +289,6 @@ impl VpnTunnel for SslTunnel {
 
         let _ = event_sender.send(TunnelEvent::Disconnected).await;
 
-        self.cleanup().await;
-
         result
     }
 }

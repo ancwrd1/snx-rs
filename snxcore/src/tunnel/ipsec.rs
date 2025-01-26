@@ -30,6 +30,8 @@ pub(crate) struct IpsecTunnel {
     keepalive_runner: KeepaliveRunner,
     natt_socket: Arc<UdpSocket>,
     ready: Arc<AtomicBool>,
+    params: Arc<TunnelParams>,
+    session: Arc<VpnSession>,
 }
 
 impl IpsecTunnel {
@@ -64,7 +66,7 @@ impl IpsecTunnel {
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
 
         let mut configurator = platform::new_ipsec_configurator(
-            params,
+            params.clone(),
             ipsec_session.clone(),
             natt_socket.local_addr()?.port(),
             gateway_address,
@@ -79,7 +81,14 @@ impl IpsecTunnel {
             keepalive_runner,
             natt_socket: Arc::new(natt_socket),
             ready,
+            params,
+            session,
         })
+    }
+
+    async fn cleanup(&mut self) {
+        let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+        let _ = client.signout().await;
     }
 }
 
@@ -146,7 +155,7 @@ impl Drop for IpsecTunnel {
     fn drop(&mut self) {
         debug!("Cleaning up IPSec tunnel");
         std::thread::scope(|s| {
-            s.spawn(|| crate::util::block_on(self.configurator.cleanup()));
+            s.spawn(|| crate::util::block_on(self.cleanup()));
         });
     }
 }
