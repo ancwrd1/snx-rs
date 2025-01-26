@@ -106,7 +106,12 @@ impl SExpression {
             })
             .collect::<Vec<String>>()
             .join("\n");
-        format!("({}\n{})", name.unwrap_or(""), fields)
+        format!(
+            "({}{}{})",
+            name.unwrap_or(""),
+            if fields.is_empty() { "" } else { "\n" },
+            fields
+        )
     }
 
     fn encode_array(&self, level: u32, items: &[SExpression]) -> String {
@@ -287,6 +292,7 @@ fn parse_value(mut pairs: RulePairs) -> anyhow::Result<SExpression> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::proto::{CccClientRequest, CccClientRequestData, RequestData, RequestHeader, SignoutRequest};
 
     #[test]
     fn test_parse_client_hello() {
@@ -419,5 +425,23 @@ mod tests {
 
         let encoded = format!("{}", expr);
         assert_eq!(encoded, "(\n\t:key (Hello_world))");
+    }
+
+    #[test]
+    fn test_signout_request() {
+        let req = CccClientRequest {
+            data: CccClientRequestData {
+                header: RequestHeader {
+                    id: 0,
+                    request_type: "Signout".to_string(),
+                    session_id: Some("1234".to_string()),
+                    protocol_version: Some(100),
+                },
+                data: RequestData::Signout(SignoutRequest::default()),
+            },
+        };
+
+        let expr = SExpression::from(&req);
+        println!("{}", expr);
     }
 }

@@ -17,6 +17,7 @@ use tracing::{debug, trace, warn};
 
 use codec::{SslPacketCodec, SslPacketType};
 
+use crate::ccc::CccHttpClient;
 use crate::{
     model::{params::TunnelParams, proto::*, *},
     platform,
@@ -173,16 +174,18 @@ impl SslTunnel {
         Ok(())
     }
 
-    async fn cleanup(&self) {
-        if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
-            let _ = platform::remove_default_route(dest_ip).await;
-        }
-
-        if let Some(ref device) = self.tun_device {
+    async fn cleanup(&mut self) {
+        if let Some(device) = self.tun_device.take() {
+            if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
+                let _ = platform::remove_default_route(dest_ip).await;
+            }
             if !self.params.no_dns {
                 let _ = device.setup_dns(&self.params, true).await;
             }
             platform::delete_device(device.name()).await;
+            debug!("Signing out");
+            let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+            let _ = client.signout().await;
         }
     }
 }

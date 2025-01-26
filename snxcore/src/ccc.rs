@@ -102,6 +102,18 @@ impl CccHttpClient {
         }
     }
 
+    fn new_signout_request(&self) -> CccClientRequestData {
+        CccClientRequestData {
+            header: RequestHeader {
+                id: new_request_id(),
+                request_type: "Signout".to_string(),
+                session_id: self.session_id(),
+                protocol_version: Some(100),
+            },
+            data: RequestData::Signout(SignoutRequest::default()),
+        }
+    }
+
     fn new_client_hello_request(&self) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
@@ -216,5 +228,13 @@ impl CccHttpClient {
 
     pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
         self.send_request(self.new_client_hello_request()).await
+    }
+
+    pub async fn signout(&self) -> anyhow::Result<()> {
+        let req = self.new_signout_request();
+
+        self.send_ccc_request(req).await?;
+
+        Ok(())
     }
 }

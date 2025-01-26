@@ -246,6 +246,9 @@ pub struct ClientSettingsData {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SignoutRequest {}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PoliciesAndVersions {
     pub range: Vec<NetworkRange>,
     pub nemo_client_1: Option<String>,
@@ -259,6 +262,7 @@ pub enum RequestData {
     MultiChallenge(MultiChallengeRequest),
     ClientHello { client_info: ClientInfo },
     ClientSettings(ClientSettingsRequest),
+    Signout(SignoutRequest),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
