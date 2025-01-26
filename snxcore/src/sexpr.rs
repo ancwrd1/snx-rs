@@ -442,6 +442,7 @@ mod tests {
         };
 
         let expr = SExpression::from(&req);
-        println!("{}", expr);
+        let s_expr = expr.to_string();
+        assert!(s_expr.contains("RequestData ()"));
     }
 }
