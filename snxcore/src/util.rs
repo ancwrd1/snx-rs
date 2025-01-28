@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use std::collections::HashMap;
 use std::{
@@ -133,7 +133,7 @@ pub fn resolve_ipv4_host(server_name: &str) -> anyhow::Result<Ipv4Addr> {
             IpAddr::V4(v4) => Some(v4),
             IpAddr::V6(_) => None,
         })
-        .ok_or_else(|| anyhow!("Cannot resolve {}", server_name))?;
+        .context(format!("Cannot resolve {}", server_name))?;
 
     Ok(address)
 }

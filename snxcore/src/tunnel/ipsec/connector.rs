@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
@@ -172,7 +172,7 @@ impl IpsecTunnelConnector {
 
         let inner = msg_obj
             .get("msg_obj:arguments:0:val")
-            .ok_or_else(|| anyhow!("Invalid challenge reply!"))?;
+            .context("Invalid challenge reply!")?;
 
         let id = inner.get_value::<String>("msg_obj:id").unwrap_or_else(String::new);
 
@@ -180,7 +180,7 @@ impl IpsecTunnelConnector {
 
         let prompt = inner
             .get_value::<String>("msg_obj:def_msg")
-            .ok_or_else(|| anyhow!("No challenge prompt!"))?;
+            .context("No challenge prompt!")?;
 
         debug!("Challenge prompt: {}", prompt);
 
@@ -199,16 +199,16 @@ impl IpsecTunnelConnector {
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
-            .ok_or_else(|| anyhow!("No CCC session in reply!"))?;
+            .context("No CCC session in reply!")?;
 
         self.ipsec_session.address = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
-            .ok_or_else(|| anyhow!("No IPv4 in reply!"))?
+            .context("No IPv4 in reply!")?
             .reader()
             .read_u32::<BigEndian>()?
             .into();
 
         self.ipsec_session.netmask = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Netmask)
-            .ok_or_else(|| anyhow!("No netmask in reply!"))?
+            .context("No netmask in reply!")?
             .reader()
             .read_u32::<BigEndian>()?
             .into();
@@ -334,7 +334,7 @@ impl IpsecTunnelConnector {
                 }),
                 _ => None,
             })
-            .ok_or_else(|| anyhow!("No lifetime in reply!"))?;
+            .context("No lifetime in reply!")?;
 
         debug!("ESP lifetime: {} seconds", lifetime);
 

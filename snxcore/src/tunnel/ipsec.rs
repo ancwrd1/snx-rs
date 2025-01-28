@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::anyhow;
+use anyhow::Context;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::debug;
 
@@ -36,10 +36,7 @@ pub(crate) struct IpsecTunnel {
 
 impl IpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
-        let ipsec_session = session
-            .ipsec_session
-            .as_ref()
-            .ok_or_else(|| anyhow!("No IPSEC session!"))?;
+        let ipsec_session = session.ipsec_session.as_ref().context("No IPSEC session!")?;
 
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use num_traits::Num;
 use pest::{iterators::Pairs, Parser};
 use pest_derive::Parser;
@@ -261,7 +261,7 @@ fn parse_obj(pairs: RulePairs) -> anyhow::Result<SExpression> {
 }
 
 fn parse_field(mut pairs: RulePairs) -> anyhow::Result<(String, SExpression)> {
-    let rule = pairs.next().ok_or_else(|| anyhow!("Invalid field"))?;
+    let rule = pairs.next().context("Invalid field")?;
     let name = rule.as_str()[1..].to_owned();
     let value = parse_sexpr(pairs)?;
     Ok((name, value))

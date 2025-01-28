@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, os::fd::AsRawFd, time::Duration};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
     sys::stat::Mode,
@@ -100,10 +100,7 @@ pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
 
     let search_items = ss.search_items(props.clone()).await?;
 
-    let item = search_items
-        .unlocked
-        .first()
-        .ok_or_else(|| anyhow!("No item in collection"))?;
+    let item = search_items.unlocked.first().context("No item in collection")?;
 
     let secret = item.get_secret().await?;
 

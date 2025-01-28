@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     pin_mut, SinkExt, StreamExt, TryStreamExt,
@@ -145,7 +145,7 @@ impl SslTunnel {
 
         let receiver = self.receiver.as_mut().unwrap();
 
-        let reply = receiver.next().await.ok_or_else(|| anyhow!("Channel closed!"))?;
+        let reply = receiver.next().await.context("Channel closed!")?;
 
         let reply = match reply {
             SslPacketType::Control(expr) => {
@@ -218,11 +218,7 @@ impl VpnTunnel for SslTunnel {
 
         let _ = platform::configure_device(tun_name).await;
 
-        let (mut tun_sender, mut tun_receiver) = tun
-            .take_inner()
-            .ok_or_else(|| anyhow!("No tun device"))?
-            .into_framed()
-            .split();
+        let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 
         self.tun_device = Some(tun);
 
