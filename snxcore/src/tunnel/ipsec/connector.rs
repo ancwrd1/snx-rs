@@ -5,7 +5,7 @@ use bytes::{Buf, Bytes};
 use isakmp::{
     ikev1::{codec::Ikev1Codec, service::Ikev1Service, session::Ikev1Session},
     message::IsakmpMessageCodec,
-    model::{ConfigAttributeType, EspAttributeType, Identity, PayloadType},
+    model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
     payload::AttributesPayload,
     session::IsakmpSession,
     transport::UdpTransport,
@@ -399,7 +399,7 @@ impl IpsecTunnelConnector {
         self.service.delete_sa().await
     }
 
-    async fn is_multi_factor_cert_login_type(&self) -> anyhow::Result<bool> {
+    async fn is_multi_factor_login_type(&self) -> anyhow::Result<bool> {
         Ok(server_info::get_login_factors(&self.params)
             .await?
             .into_iter()
@@ -465,25 +465,19 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         trace!("Authentication blob: {}", realm_expr);
 
-        self.service
-            .do_identity_protection(
-                self.gateway_address,
-                Bytes::copy_from_slice(realm_expr.to_string().as_bytes()),
-                self.params.ipsec_cert_check,
-                &self.params.ca_cert,
-            )
-            .await?;
+        let identity_request = IdentityRequest {
+            auth_blob: Bytes::copy_from_slice(realm_expr.to_string().as_bytes()),
+            verify_certs: self.params.ipsec_cert_check,
+            ca_certs: self.params.ca_cert.clone(),
+            with_mfa: self.params.cert_type == CertType::None
+                || self.is_multi_factor_login_type().await.unwrap_or(false),
+        };
 
-        if self.params.cert_type == CertType::None || self.is_multi_factor_cert_login_type().await.unwrap_or(false) {
-            debug!("Awaiting authentication factors");
-
-            let (attrs_reply, message_id) = self.service.get_auth_attributes().await?;
-
+        if let Some((attrs_reply, message_id)) = self.service.do_identity_protection(identity_request).await? {
             self.last_message_id = message_id;
 
             self.process_auth_attributes(attrs_reply).await
         } else {
-            debug!("No more authentication factors");
             let result = self.do_session_exchange().await?;
 
             if self.params.ike_persist {

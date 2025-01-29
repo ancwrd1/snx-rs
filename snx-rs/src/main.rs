@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
 
     if cmdline_params.mode != OperationMode::Info && !is_root() {
-        return Err(anyhow!("Please run me as a root user!"));
+        return Err(anyhow!("This program should be run as a root user!"));
     }
 
     platform::init();
@@ -157,7 +157,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 }
             }
             MfaType::SamlSso => {
-                println!("For SAML authentication please open the following URL in your browser:");
+                println!("For SAML authentication open the following URL in your browser:");
                 println!("{}", challenge.prompt);
                 let (tx, rx) = oneshot::channel();
                 tokio::spawn(run_otp_listener(tx));
