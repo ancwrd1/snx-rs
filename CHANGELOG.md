@@ -1,3 +1,8 @@
+## v2.10.0 (unreleased)
+- Added TCPT IKE transport support via `ike-transport=tcpt` option. Choose this option if you are getting the "failed to fill whole buffer" error.
+- Added signout call after tunnel disconnection.
+- Fixed a compatibility with openssl 1.x when building on older hosts.
+
 ## v2.9.0 (2025-01-07)
 - Added `dns-servers` and `ignore-dns-servers` options
 - UI: refactored authentication settings, moved certificate authentication options to general tab
