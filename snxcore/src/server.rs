@@ -137,7 +137,7 @@ impl CommandServer {
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
         let Some(ref mut connector) = self.connector else {
-            return Err(anyhow!("No tunnel connector!"));
+            anyhow::bail!("No tunnel connector!");
         };
 
         if let SessionState::PendingChallenge(ref challenge) = session.state {

@@ -151,7 +151,7 @@ impl SslTunnel {
             SslPacketType::Control(expr) => {
                 trace!("Hello reply: {:?}", expr);
                 if matches!(&expr, SExpression::Object(Some(name), _) if name == "disconnect") {
-                    return Err(anyhow!("Tunnel disconnected, last message: {}", expr));
+                    anyhow::bail!("Tunnel disconnected, last message: {}", expr);
                 }
                 let hello_reply = expr.try_into::<HelloReply>()?;
                 self.ip_address.clone_from(&hello_reply.data.office_mode.ipaddr);

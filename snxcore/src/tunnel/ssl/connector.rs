@@ -45,7 +45,7 @@ impl CccTunnelConnector {
             "done" => {}
             other => {
                 warn!("Authn status: {}", other);
-                return Err(anyhow!("Authentication failed!"));
+                anyhow::bail!("Authentication failed!");
             }
         }
 
@@ -57,7 +57,7 @@ impl CccTunnelConnector {
                     _ => "Authentication failed!".to_owned(),
                 };
                 warn!("{}", msg);
-                return Err(anyhow!(msg));
+                anyhow::bail!(msg);
             }
         };
 

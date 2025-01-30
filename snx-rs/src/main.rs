@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, future::Future, sync::Arc};
 
-use anyhow::anyhow;
 use clap::Parser;
 use futures::pin_mut;
 use tokio::{
@@ -61,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
 
     if cmdline_params.mode != OperationMode::Info && !is_root() {
-        return Err(anyhow!("This program should be run as a root user!"));
+        anyhow::bail!("This program should be run as a root user!");
     }
 
     platform::init();
@@ -97,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
 
 async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
     if params.server_name.is_empty() {
-        return Err(anyhow!("Missing required parameters: server name!"));
+        anyhow::bail!("Missing required parameters: server name!");
     }
     let client = CccHttpClient::new(Arc::new(params), None);
     let info = client.get_server_info().await?;
@@ -121,7 +120,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     let (command_sender, command_receiver) = mpsc::channel(16);
 
     if params.server_name.is_empty() || params.login_type.is_empty() {
-        return Err(anyhow!("Missing required parameters: server name and/or login type"));
+        anyhow::bail!("Missing required parameters: server name and/or login type");
     }
 
     let mut mfa_prompts = if params.server_prompt {

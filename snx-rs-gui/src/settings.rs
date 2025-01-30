@@ -1,6 +1,5 @@
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
-use anyhow::anyhow;
 use async_channel::Sender;
 use gtk::{
     glib::{self, clone},
@@ -85,22 +84,22 @@ struct MyWidgets {
 impl MyWidgets {
     fn validate(&self) -> anyhow::Result<()> {
         if self.server_name.text().is_empty() {
-            return Err(anyhow!("No server address specified"));
+            anyhow::bail!("No server address specified");
         }
 
         if self.auth_type.active().is_none() {
-            return Err(anyhow!("No authentication method selected"));
+            anyhow::bail!("No authentication method selected");
         }
 
         let cert_path = self.cert_path.text();
 
         if !cert_path.is_empty() && !Path::new(&cert_path).exists() {
-            return Err(anyhow!("File does not exist: {}", cert_path));
+            anyhow::bail!("File does not exist: {}", cert_path);
         }
 
         let cert_id = self.cert_id.text().replace(':', "");
         if !cert_id.is_empty() && hex::decode(&cert_id).is_err() {
-            return Err(anyhow!("Certificate ID not in hex format: {}", cert_id));
+            anyhow::bail!("Certificate ID not in hex format: {}", cert_id);
         }
 
         let ca_cert = self.ca_cert.text();
@@ -108,7 +107,7 @@ impl MyWidgets {
         if !ca_cert.is_empty() {
             for c in ca_cert.split(',') {
                 if !Path::new(c.trim()).exists() {
-                    return Err(anyhow!("CA root path does not exist: {}", c));
+                    anyhow::bail!("CA root path does not exist: {}", c);
                 }
             }
         }

@@ -133,7 +133,7 @@ impl IpsecTunnelConnector {
             .await?;
 
         let IpAddr::V4(gateway_address) = socket.peer_addr()?.ip() else {
-            return Err(anyhow!("No IPv4 address for {}", params.server_name));
+            anyhow::bail!("No IPv4 address for {}", params.server_name);
         };
 
         let prober = NattProber::new(gateway_address);
@@ -191,7 +191,7 @@ impl IpsecTunnelConnector {
             .unwrap_or_else(|| "challenge".to_owned());
 
         if state != "challenge" && state != "new_factor" && state != "failed_attempt" {
-            return Err(anyhow!("Not a challenge state!"));
+            anyhow::bail!("Not a challenge state!");
         }
 
         let inner = msg_obj
@@ -301,13 +301,13 @@ impl IpsecTunnelConnector {
                         }),
                     })
                 } else {
-                    return Err(anyhow!("No challenge in payload!"));
+                    anyhow::bail!("No challenge in payload!");
                 };
 
                 match attr {
                     ConfigAttributeType::UserName => {
                         if self.last_challenge_type == ConfigAttributeType::UserName {
-                            return Err(anyhow!("Endless loop of username challenges!"));
+                            anyhow::bail!("Endless loop of username challenges!");
                         }
 
                         self.last_challenge_type = attr;
