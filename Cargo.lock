@@ -1740,7 +1740,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#2935a1a0ff2eac9f5253a63d3fdb6a8040561096"
+source = "git+https://github.com/ancwrd1/isakmp.git#21a0a8329e3fac70d05aaf6b02672eec53cde41e"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3030,7 +3030,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "snx-rs"
-version = "2.9.1"
+version = "2.10.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -3045,7 +3045,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "2.9.1"
+version = "2.10.0"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -3066,7 +3066,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "2.9.1"
+version = "2.10.0"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -3111,7 +3111,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "2.9.1"
+version = "2.10.0"
 dependencies = [
  "anyhow",
  "clap",

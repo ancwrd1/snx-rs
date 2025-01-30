@@ -4,7 +4,7 @@ use std::net::Ipv4Addr;
 use std::{path::PathBuf, time::Duration};
 use tracing::level_filters::LevelFilter;
 
-use snxcore::model::params::{CertType, OperationMode, TunnelParams, TunnelType};
+use snxcore::model::params::{CertType, OperationMode, TransportType, TunnelParams, TunnelType};
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs")]
@@ -193,6 +193,9 @@ pub struct CmdlineParams {
     )]
     pub ike_persist: Option<bool>,
 
+    #[clap(long = "ike-transport", short = 'T', help = "IKE transport type, one of: udp, tcpt")]
+    pub ike_transport: Option<TransportType>,
+
     #[clap(
         long = "client-mode",
         short = 'C',
@@ -261,6 +264,10 @@ impl CmdlineParams {
 
         if let Some(tunnel_type) = self.tunnel_type {
             other.tunnel_type = tunnel_type;
+        }
+
+        if let Some(transport_type) = self.ike_transport {
+            other.ike_transport = transport_type;
         }
 
         if !self.ca_cert.is_empty() {

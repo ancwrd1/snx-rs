@@ -1,25 +1,28 @@
+use std::{
+    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
+
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
+use isakmp::transport::IsakmpTransport;
 use isakmp::{
     ikev1::{codec::Ikev1Codec, service::Ikev1Service, session::Ikev1Session},
     message::IsakmpMessageCodec,
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
     payload::AttributesPayload,
     session::IsakmpSession,
-    transport::UdpTransport,
-};
-use std::path::{Path, PathBuf};
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    sync::Arc,
-    time::{Duration, SystemTime},
+    transport::{TcptTransport, UdpTransport},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
 use crate::{
+    model::params::TransportType,
     model::{
         params::{CertType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData},
@@ -27,7 +30,10 @@ use crate::{
     },
     platform, server_info,
     sexpr::SExpression,
-    tunnel::{ipsec::natt::NattProber, ipsec::IpsecTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
+    tunnel::{
+        ipsec::{natt::NattProber, IpsecTunnel},
+        TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
+    },
 };
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
@@ -81,7 +87,7 @@ fn get_short_attribute(payload: &AttributesPayload, attr: ConfigAttributeType) -
 
 pub struct IpsecTunnelConnector {
     params: Arc<TunnelParams>,
-    service: Ikev1Service<UdpTransport<Ikev1Codec<Ikev1Session>>>,
+    service: Ikev1Service,
     gateway_address: Ipv4Addr,
     last_message_id: u32,
     last_identifier: u16,
@@ -134,7 +140,25 @@ impl IpsecTunnelConnector {
         prober.probe().await?;
 
         let ikev1_session = Ikev1Session::new(identity)?;
-        let transport = UdpTransport::new(socket, Ikev1Codec::new(ikev1_session.clone()));
+
+        debug!("Using IKE transport: {}", params.ike_transport);
+
+        let transport: Box<dyn IsakmpTransport + Send + Sync> = if params.ike_transport == TransportType::Udp {
+            Box::new(UdpTransport::new(
+                socket,
+                Box::new(Ikev1Codec::new(Box::new(ikev1_session.clone()))),
+            ))
+        } else {
+            let socket_address = format!("{}:443", params.server_name)
+                .to_socket_addrs()?
+                .next()
+                .context("No address!")?;
+            Box::new(TcptTransport::new(
+                socket_address,
+                Box::new(Ikev1Codec::new(Box::new(ikev1_session.clone()))),
+            ))
+        };
+
         let service = Ikev1Service::new(transport, ikev1_session)?;
 
         Ok(Self {
@@ -347,7 +371,7 @@ impl IpsecTunnelConnector {
     }
 
     async fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
-        let mut codec = Ikev1Codec::new(self.service.session());
+        let mut codec = Ikev1Codec::new(Box::new(self.service.session()));
 
         if let Some(msg) = codec.decode(&data)? {
             let payload_types = msg.payloads.iter().map(|p| p.as_payload_type()).collect::<Vec<_>>();
@@ -410,7 +434,7 @@ impl IpsecTunnelConnector {
         Path::new(SESSIONS_PATH).join(&self.params.server_name)
     }
 
-    fn save_ike_session(&self) -> anyhow::Result<()> {
+    fn save_ike_session(&mut self) -> anyhow::Result<()> {
         let data = self.service.session().save()?;
         let dir = Path::new(SESSIONS_PATH);
 
@@ -424,7 +448,7 @@ impl IpsecTunnelConnector {
         Ok(())
     }
 
-    fn load_ike_session(&self) -> anyhow::Result<()> {
+    fn load_ike_session(&mut self) -> anyhow::Result<()> {
         let filename = self.session_file_name();
         let data = std::fs::read(&filename)?;
         self.service.session().load(&data)?;

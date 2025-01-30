@@ -1,3 +1,5 @@
+use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
+
 use anyhow::anyhow;
 use async_channel::Sender;
 use gtk::{
@@ -6,11 +8,8 @@ use gtk::{
     Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget, WindowPosition,
 };
 use ipnet::Ipv4Net;
-use std::net::Ipv4Addr;
-use std::{path::Path, rc::Rc, sync::Arc, time::Duration};
 use tracing::warn;
 
-use crate::tray::TrayCommand;
 use snxcore::{
     model::{
         params::{TunnelParams, TunnelType},
@@ -18,6 +17,8 @@ use snxcore::{
     },
     server_info,
 };
+
+use crate::tray::TrayCommand;
 
 const CSS_ERROR: &str = r"label {
     padding: 6px;
@@ -75,6 +76,7 @@ struct MyWidgets {
     esp_lifetime: gtk::Entry,
     ike_port: gtk::Entry,
     ike_persist: gtk::CheckButton,
+    ike_transport: gtk::ComboBoxText,
     no_keepalive: gtk::CheckButton,
     icon_theme: gtk::ComboBoxText,
     error: gtk::Label,
@@ -278,6 +280,7 @@ impl SettingsDialog {
             .build();
         let ike_port = gtk::Entry::builder().text(params.ike_port.to_string()).build();
         let ike_persist = gtk::CheckButton::builder().active(params.ike_persist).build();
+        let ike_transport = gtk::ComboBoxText::builder().build();
         let no_keepalive = gtk::CheckButton::builder().active(params.no_keepalive).build();
         let icon_theme = gtk::ComboBoxText::builder().build();
 
@@ -418,6 +421,7 @@ impl SettingsDialog {
             esp_lifetime,
             ike_port,
             ike_persist,
+            ike_transport,
             no_keepalive,
             icon_theme,
             error,
@@ -555,6 +559,7 @@ impl SettingsDialog {
         params.ike_persist = self.widgets.ike_persist.is_active();
         params.no_keepalive = self.widgets.no_keepalive.is_active();
         params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
+        params.ike_transport = self.widgets.ike_transport.active().unwrap_or_default().into();
 
         params.save()?;
 
@@ -632,6 +637,17 @@ impl SettingsDialog {
             .set_active(Some(self.params.icon_theme.as_u32()));
         icon_theme_box.pack_start(&self.widgets.icon_theme, false, true, 0);
         icon_theme_box
+    }
+
+    fn ike_transport_box(&self) -> gtk::Box {
+        let ike_transport_box = self.form_box("IKE transport");
+        self.widgets.ike_transport.insert_text(0, "UDP");
+        self.widgets.ike_transport.insert_text(1, "TCPT");
+        self.widgets
+            .ike_transport
+            .set_active(Some(self.params.ike_transport.as_u32()));
+        ike_transport_box.pack_start(&self.widgets.ike_transport, false, true, 0);
+        ike_transport_box
     }
 
     fn user_box(&self) -> gtk::Box {
@@ -735,6 +751,9 @@ impl SettingsDialog {
         let ike_persist = self.form_box("Save IKE session and reconnect automatically");
         ike_persist.pack_start(&self.widgets.ike_persist, false, true, 0);
         misc_box.pack_start(&ike_persist, false, true, 6);
+
+        let ike_transport_box = self.ike_transport_box();
+        misc_box.pack_start(&ike_transport_box, false, true, 6);
 
         let no_keepalive = self.form_box("Disable keepalive packets");
         no_keepalive.pack_start(&self.widgets.no_keepalive, false, true, 0);

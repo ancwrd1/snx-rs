@@ -194,6 +194,59 @@ impl FromStr for IconTheme {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum TransportType {
+    #[default]
+    Udp,
+    Tcpt,
+}
+
+impl TransportType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            TransportType::Udp => "udp",
+            TransportType::Tcpt => "tcpt",
+        }
+    }
+
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::Udp => 0,
+            Self::Tcpt => 1,
+        }
+    }
+}
+
+impl FromStr for TransportType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "udp" => Ok(TransportType::Udp),
+            "tcpt" => Ok(TransportType::Tcpt),
+            _ => Err(anyhow!("Invalid transport type!")),
+        }
+    }
+}
+
+impl fmt::Display for TransportType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Udp => write!(f, "UDP"),
+            Self::Tcpt => write!(f, "TCPT"),
+        }
+    }
+}
+
+impl From<u32> for TransportType {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Tcpt,
+            _ => Self::Udp,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelParams {
     pub server_name: String,
@@ -229,6 +282,7 @@ pub struct TunnelParams {
     pub client_mode: String,
     pub no_keepalive: bool,
     pub icon_theme: IconTheme,
+    pub ike_transport: TransportType,
     pub config_file: PathBuf,
 }
 
@@ -268,6 +322,7 @@ impl Default for TunnelParams {
             client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
             no_keepalive: false,
             icon_theme: IconTheme::default(),
+            ike_transport: TransportType::default(),
             config_file: Self::default_config_path(),
         }
     }
@@ -325,6 +380,7 @@ impl TunnelParams {
                 }
                 "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
                 "ike-persist" => params.ike_persist = v.parse().unwrap_or_default(),
+                "ike-transport" => params.ike_transport = v.parse().unwrap_or_default(),
                 "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
                 "icon-theme" => params.icon_theme = v.parse().unwrap_or_default(),
                 other => {
@@ -425,6 +481,7 @@ impl TunnelParams {
         writeln!(buf, "client-mode={}", self.client_mode)?;
         writeln!(buf, "no-keepalive={}", self.no_keepalive)?;
         writeln!(buf, "icon-theme={}", self.icon_theme)?;
+        writeln!(buf, "ike-transport={}", self.ike_transport.as_str())?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = std::fs::create_dir_all(dir);
