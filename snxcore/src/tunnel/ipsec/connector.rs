@@ -14,7 +14,7 @@ use isakmp::{
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
     payload::AttributesPayload,
     session::IsakmpSession,
-    transport::{IsakmpTransport, TcptTransport, UdpTransport},
+    transport::{IsakmpTransport, TcptDataType, TcptTransport, UdpTransport},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
@@ -148,7 +148,11 @@ impl IpsecTunnelConnector {
                 .to_socket_addrs()?
                 .next()
                 .context("No address!")?;
-            Box::new(TcptTransport::new(socket_address, ikev1_session.new_codec()))
+            Box::new(TcptTransport::new(
+                TcptDataType::Ike,
+                socket_address,
+                ikev1_session.new_codec(),
+            ))
         };
 
         let service = Ikev1Service::new(transport, ikev1_session)?;
