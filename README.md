@@ -5,6 +5,8 @@
 
 This project contains the source code for an unofficial Linux client for Check Point VPN, written in Rust.
 
+⚠️ Important: before opening a bug ticket, please check the [FAQ section](#faq).
+
 ## Advantages Over the Official SNX Client for Linux
 
 * Open source
@@ -168,6 +170,8 @@ Automatic channel reconnection will happen when running in the standalone mode, 
 
 * If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
 * If the password is not provided in the configuration file, the first entered MFA challenge code will be stored in the OS keychain unless the `no-keychain` parameter is specified. Keychain integration is provided only in command mode.
+
+<a id="faq"></a>
 
 ## Troubleshooting common problems
 
