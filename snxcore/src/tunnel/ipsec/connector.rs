@@ -9,14 +9,12 @@ use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
-use isakmp::transport::IsakmpTransport;
 use isakmp::{
-    ikev1::{codec::Ikev1Codec, service::Ikev1Service, session::Ikev1Session},
-    message::IsakmpMessageCodec,
+    ikev1::{service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
     payload::AttributesPayload,
     session::IsakmpSession,
-    transport::{TcptTransport, UdpTransport},
+    transport::{IsakmpTransport, TcptTransport, UdpTransport},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
@@ -139,24 +137,18 @@ impl IpsecTunnelConnector {
         let prober = NattProber::new(gateway_address);
         prober.probe().await?;
 
-        let ikev1_session = Ikev1Session::new(identity)?;
+        let ikev1_session = Box::new(Ikev1Session::new(identity)?);
 
         debug!("Using IKE transport: {}", params.ike_transport);
 
         let transport: Box<dyn IsakmpTransport + Send + Sync> = if params.ike_transport == TransportType::Udp {
-            Box::new(UdpTransport::new(
-                socket,
-                Box::new(Ikev1Codec::new(Box::new(ikev1_session.clone()))),
-            ))
+            Box::new(UdpTransport::new(socket, ikev1_session.new_codec()))
         } else {
             let socket_address = format!("{}:443", params.server_name)
                 .to_socket_addrs()?
                 .next()
                 .context("No address!")?;
-            Box::new(TcptTransport::new(
-                socket_address,
-                Box::new(Ikev1Codec::new(Box::new(ikev1_session.clone()))),
-            ))
+            Box::new(TcptTransport::new(socket_address, ikev1_session.new_codec()))
         };
 
         let service = Ikev1Service::new(transport, ikev1_session)?;
@@ -371,7 +363,7 @@ impl IpsecTunnelConnector {
     }
 
     async fn parse_isakmp(&mut self, data: Bytes) -> anyhow::Result<()> {
-        let mut codec = Ikev1Codec::new(Box::new(self.service.session()));
+        let mut codec = self.service.session().new_codec();
 
         if let Some(msg) = codec.decode(&data)? {
             let payload_types = msg.payloads.iter().map(|p| p.as_payload_type()).collect::<Vec<_>>();
