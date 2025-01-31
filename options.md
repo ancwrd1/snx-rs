@@ -27,6 +27,7 @@
 | `no-keychain=true\|false`                 | do not store password in the OS keychain, default is false                                                                                            |
 | `server-prompt=true\|false`               | retrieve MFA prompts from the server, default is false                                                                                                |
 | `esp-lifetime=3600`                       | ESP SA lifetime in seconds, default is 3600                                                                                                           |
+| `esp-transport=udp\|tcpt`                 | Select network transport for ESP packets. UDP is the default and standard, TCPT is the Check Point proprietary protocol and is much slower.           |
 | `ike-lifetime=28800`                      | IKE SA lifetime in seconds, default is 28800. Set to higher value to extend IPSec session duration                                                    |
 | `ike-port=500`                            | IKE communication port, either 500 or 4500, default is 500                                                                                            |
 | `ike-persist=true\|false`                 | Save IKE session to disk and try to reconnect automatically after application restart                                                                 |

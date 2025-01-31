@@ -18,20 +18,19 @@ use tracing::{debug, trace, warn};
 use codec::{SslPacketCodec, SslPacketType};
 
 use crate::ccc::CccHttpClient;
+use crate::platform::{new_resolver_configurator, ResolverConfig};
+use crate::tunnel::device;
+use crate::tunnel::device::TunDevice;
 use crate::{
     model::{params::TunnelParams, proto::*, *},
     platform,
     sexpr::SExpression,
-    tunnel::{
-        ssl::{device::TunDevice, keepalive::KeepaliveRunner},
-        TunnelCommand, TunnelEvent, VpnTunnel,
-    },
+    tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
     util,
 };
 
 pub mod codec;
 pub mod connector;
-pub mod device;
 pub mod keepalive;
 
 const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
@@ -77,6 +76,7 @@ pub(crate) struct SslTunnel {
     receiver: Option<PacketReceiver>,
     keepalive_counter: Arc<AtomicI64>,
     tun_device: Option<TunDevice>,
+    hello_reply: HelloReplyData,
 }
 
 impl SslTunnel {
@@ -117,6 +117,7 @@ impl SslTunnel {
             receiver: Some(receiver),
             keepalive_counter: Arc::new(AtomicI64::default()),
             tun_device: None,
+            hello_reply: HelloReplyData::default(),
         })
     }
 
@@ -180,13 +181,85 @@ impl SslTunnel {
                 let _ = platform::remove_default_route(dest_ip).await;
             }
             if !self.params.no_dns {
-                let _ = device.setup_dns(&self.params, true).await;
+                let _ = self.setup_dns(device.name(), true).await;
             }
             platform::delete_device(device.name()).await;
             debug!("Signing out");
             let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
             let _ = client.signout().await;
         }
+    }
+
+    pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
+        let ipaddr = self.hello_reply.office_mode.ipaddr.parse()?;
+
+        let dest_ip = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name))?;
+
+        let mut subnets = self.params.add_routes.clone();
+
+        if !self.params.no_routing {
+            if self.params.default_route {
+                platform::setup_default_route(dev_name, dest_ip).await?;
+            } else {
+                subnets.extend(util::ranges_to_subnets(&self.hello_reply.range));
+            }
+        }
+
+        subnets.retain(|s| !s.contains(&dest_ip));
+
+        if !subnets.is_empty() {
+            let _ = platform::add_routes(&subnets, dev_name, ipaddr, &self.params.ignore_routes).await;
+        }
+
+        Ok(())
+    }
+
+    pub async fn setup_dns(&self, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
+        let search_domains = if let Some(ref suffixes) = self.hello_reply.office_mode.dns_suffix {
+            suffixes
+                .0
+                .iter()
+                .chain(self.params.search_domains.iter())
+                .filter(|s| {
+                    !s.is_empty()
+                        && !self
+                            .params
+                            .ignore_search_domains
+                            .iter()
+                            .any(|d| d.to_lowercase() == s.to_lowercase())
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+
+        let dns_servers = self
+            .hello_reply
+            .office_mode
+            .dns_servers
+            .clone()
+            .unwrap_or_default()
+            .iter()
+            .chain(self.params.dns_servers.iter())
+            .filter(|s| !self.params.ignore_dns_servers.iter().any(|d| *d == **s))
+            .cloned()
+            .collect::<Vec<_>>();
+
+        let config = ResolverConfig {
+            search_domains,
+            dns_servers,
+        };
+
+        let resolver = new_resolver_configurator(dev_name)?;
+
+        if cleanup {
+            resolver.cleanup(&config).await?;
+        } else {
+            resolver.configure(&config).await?;
+        }
+
+        Ok(())
     }
 }
 
@@ -202,18 +275,23 @@ impl VpnTunnel for SslTunnel {
         let reply = self.client_hello().await?;
         trace!("Hello reply: {:?}", reply);
 
+        self.hello_reply = reply;
+
+        let ip_address = self.hello_reply.office_mode.ipaddr.parse()?;
+        let netmask = self.hello_reply.optional.as_ref().and_then(|o| o.subnet.parse().ok());
+
         let tun_name = self
             .params
             .if_name
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let mut tun = device::TunDevice::new(tun_name, &reply)?;
+        let mut tun = device::TunDevice::new(tun_name, ip_address, netmask)?;
 
-        tun.setup_routing(&self.params).await?;
+        self.setup_routing(tun_name).await?;
 
         if !self.params.no_dns {
-            tun.setup_dns(&self.params, false).await?;
+            self.setup_dns(tun_name, false).await?;
         }
 
         let _ = platform::configure_device(tun_name).await;

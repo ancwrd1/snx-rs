@@ -180,6 +180,9 @@ pub struct CmdlineParams {
     #[clap(long = "esp-lifetime", short = 'E', help = "IPSec ESP lifetime in seconds")]
     pub esp_lifetime: Option<u64>,
 
+    #[clap(long = "esp-transport", short = 'Q', help = "ESP transport type, one of: udp, tcpt")]
+    pub esp_transport: Option<TransportType>,
+
     #[clap(long = "ike-lifetime", short = 'L', help = "IPSec IKE lifetime in seconds")]
     pub ike_lifetime: Option<u64>,
 
@@ -266,10 +269,6 @@ impl CmdlineParams {
             other.tunnel_type = tunnel_type;
         }
 
-        if let Some(transport_type) = self.ike_transport {
-            other.ike_transport = transport_type;
-        }
-
         if !self.ca_cert.is_empty() {
             other.ca_cert = self.ca_cert;
         }
@@ -322,6 +321,10 @@ impl CmdlineParams {
             other.esp_lifetime = Duration::from_secs(esp_lifetime);
         }
 
+        if let Some(esp_transport) = self.esp_transport {
+            other.esp_transport = esp_transport;
+        }
+
         if let Some(ike_lifetime) = self.ike_lifetime {
             other.ike_lifetime = Duration::from_secs(ike_lifetime);
         }
@@ -332,6 +335,10 @@ impl CmdlineParams {
 
         if let Some(ike_persist) = self.ike_persist {
             other.ike_persist = ike_persist;
+        }
+
+        if let Some(ike_transport) = self.ike_transport {
+            other.ike_transport = ike_transport;
         }
 
         if let Some(client_mode) = self.client_mode {

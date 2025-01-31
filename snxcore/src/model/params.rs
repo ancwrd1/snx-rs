@@ -276,6 +276,7 @@ pub struct TunnelParams {
     pub no_keychain: bool,
     pub server_prompt: bool,
     pub esp_lifetime: Duration,
+    pub esp_transport: TransportType,
     pub ike_lifetime: Duration,
     pub ike_port: u16,
     pub ike_persist: bool,
@@ -316,6 +317,7 @@ impl Default for TunnelParams {
             no_keychain: false,
             server_prompt: true,
             esp_lifetime: DEFAULT_ESP_LIFETIME,
+            esp_transport: TransportType::default(),
             ike_lifetime: DEFAULT_IKE_LIFETIME,
             ike_port: DEFAULT_IKE_PORT,
             ike_persist: false,
@@ -375,6 +377,7 @@ impl TunnelParams {
                 "esp-lifetime" => {
                     params.esp_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_ESP_LIFETIME, Duration::from_secs);
                 }
+                "esp-transport" => params.esp_transport = v.parse().unwrap_or_default(),
                 "ike-lifetime" => {
                     params.ike_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
                 }
@@ -474,6 +477,7 @@ impl TunnelParams {
         writeln!(buf, "no-keychain={}", self.no_keychain)?;
         writeln!(buf, "server-prompt={}", self.server_prompt)?;
         writeln!(buf, "esp-lifetime={}", self.esp_lifetime.as_secs())?;
+        writeln!(buf, "esp-transport={}", self.esp_transport.as_str())?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
         writeln!(buf, "ike-port={}", self.ike_port)?;
         writeln!(buf, "ike-persist={}", self.ike_persist)?;
@@ -484,9 +488,9 @@ impl TunnelParams {
         writeln!(buf, "ike-transport={}", self.ike_transport.as_str())?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
-            let _ = std::fs::create_dir_all(dir);
+            let _ = fs::create_dir_all(dir);
         });
-        std::fs::write(&self.config_file, buf.into_inner())?;
+        fs::write(&self.config_file, buf.into_inner())?;
 
         Ok(())
     }

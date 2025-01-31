@@ -12,6 +12,7 @@ use crate::{
     tunnel::{ipsec::connector::IpsecTunnelConnector, ssl::connector::CccTunnelConnector},
 };
 
+pub mod device;
 mod ipsec;
 mod ssl;
 

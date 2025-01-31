@@ -5,7 +5,7 @@
 
 This project contains the source code for an unofficial Linux client for Check Point VPN, written in Rust.
 
-⚠️ Important: before opening a bug ticket, please check the [FAQ section](#faq).
+⚠️ Before creating an issue, please check the [FAQ section](#faq).
 
 ## Advantages Over the Official SNX Client for Linux
 
@@ -25,7 +25,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * HW token support via PKCS11 (only with IPSec tunnel)
 * GTK frontend with tray icon
 * SSL tunnel via Linux TUN device
-* IPSec tunnel via Linux native kernel XFRM interface
+* IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
 * Store passwords in the keychain using Secret Service API
 * Automatic IPSec tunnel reconnection without authentication (via optional parameter)
 
@@ -66,11 +66,16 @@ which is a subject to some limitations.
 
 Note: IPSec requires that IPv6 module is enabled in the kernel.
 
+**New in version 3.0**: TCPT transport support has been added to the application.
+TCPT is a proprietary Check Point protocol that operates over TCP port 443, allowing users to bypass restrictive
+firewalls and tunnel all traffic through a single TCP port. Its performance is comparable to an SSL tunnel,
+and it functions via a TUN device rather than relying on the kernel's IPSec infrastructure.
+
 |                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
 |--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Implementation                 | User-space TCP-encapsulated tunnel via TUN device                     | Kernel-space UDP-encapsulated tunnel via native OS support                                                                                                                             |
-| Performance                    | Up to 2MB/s                                                           | Close to plain connection, limited by VPN server capacity                                                                                                                              |
-| Ports                          | TCP port 443                                                          | UDP ports 4500 and 500                                                                                                                                                                 |
+| Implementation                 | User-space TCP-encapsulated tunnel via TUN device                     | Kernel-space UDP-encapsulated tunnel via native OS support or user-space TCPT tunnel.                                                                                                  |
+| Performance                    | Up to 2MB/s                                                           | Close to plain connection for native UDP tunnel, 2-5 MB/s for TCPT transport.                                                                                                          |
+| Ports                          | TCP port 443                                                          | UDP ports 4500 and 500 for native UDP tunnel, TCP port 443 for TCPT transport.                                                                                                         |
 | Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul>   | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul> |
 
 
@@ -177,6 +182,7 @@ Automatic channel reconnection will happen when running in the standalone mode, 
 
 | Problem                                                           | Solution                                                                                                                                                                                 |
 |-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Probing failed, server is not reachable via ESPinUDP tunnel`     | IPSec ports are blocked by the firewall. Use `esp-transport=tcpt` option as a workaround. Note: tunnel performance will be slower than native IPSec via UDP.                             |
 | `deadline has elapsed`                                            | Try connecting again. Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                 |
 | `failed to fill whole buffer`                                     | Usually happens when a firewall blocks fragmented UDP packets. Try the `ike-transport=tcpt` option.                                                                                      |
 | `Unknown device type`                                             | Make sure IPv6 protocol is enabled in the Linux kernel and 'xfrm' module can be loaded with `sudo modprobe xfrm`. IPSec support requires IPv6 to be enabled.                             |

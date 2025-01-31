@@ -20,16 +20,15 @@ use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
 use crate::{
-    model::params::TransportType,
     model::{
-        params::{CertType, TunnelParams},
+        params::{CertType, TransportType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData},
         IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
     platform, server_info,
     sexpr::SExpression,
     tunnel::{
-        ipsec::{natt::NattProber, IpsecTunnel},
+        ipsec::{native::NativeIpsecTunnel, natt::NattProber, tcpt::TcptIpsecTunnel},
         TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
     },
 };
@@ -134,8 +133,12 @@ impl IpsecTunnelConnector {
             anyhow::bail!("No IPv4 address for {}", params.server_name);
         };
 
-        let prober = NattProber::new(gateway_address);
-        prober.probe().await?;
+        if params.esp_transport == TransportType::Udp {
+            let prober = NattProber::new(gateway_address);
+            prober.probe().await?;
+        }
+
+        debug!("Using ESP transport: {}", params.esp_transport);
 
         let ikev1_session = Box::new(Ikev1Session::new(identity)?);
 
@@ -545,7 +548,10 @@ impl TunnelConnector for IpsecTunnelConnector {
         command_sender: Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
-        Ok(Box::new(IpsecTunnel::create(self.params.clone(), session).await?))
+        match self.params.esp_transport {
+            TransportType::Udp => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::Tcpt => Ok(Box::new(TcptIpsecTunnel::create(self.params.clone(), session).await?)),
+        }
     }
 
     async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
