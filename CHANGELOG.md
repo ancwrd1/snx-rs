@@ -1,8 +1,8 @@
 ## v2.10.0 (unreleased)
-- Added a TCPT IKE transport support via `ike-transport=tcpt` option. Choose this option if you are getting the "failed to fill whole buffer" error.
-- Added a signout call after tunnel disconnection.
-- Fixed a problem with the failed NAT-T probes for some Check Point servers which unblock port 4500 only after they detect traffic on port 500.
-- Fixed a compatibility with openssl 1.x when building on the older hosts.
+- Added support for TCP Transport mode (TCPT) in IKE via the ike-transport=tcpt option. Use this option if you encounter the "failed to fill whole buffer" error.
+- Implemented a sign-out call after tunnel disconnection.
+- Fixed an issue where NAT-T probes failed for certain Check Point servers that only unblock port 4500 after detecting traffic on port 500.
+- Resolved a compatibility issue with OpenSSL 1.x when building on older hosts.
 
 ## v2.9.0 (2025-01-07)
 - Added `dns-servers` and `ignore-dns-servers` options
