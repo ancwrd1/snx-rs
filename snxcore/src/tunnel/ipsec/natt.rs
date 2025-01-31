@@ -39,8 +39,8 @@ impl NattProber {
             let ikev1_session = Box::new(Ikev1Session::new(Identity::None)?);
             let transport = Box::new(UdpTransport::new(socket, ikev1_session.new_codec()));
             let mut service = Ikev1Service::new(transport, ikev1_session)?;
-            service.do_sa_proposal(Duration::from_secs(5)).await?;
-            debug!("SA proposal succeeded");
+
+            let _ = service.do_sa_proposal(Duration::from_secs(2)).await;
 
             for _ in 0..MAX_NATT_PROBES {
                 if self.send_probe().await.is_ok() {
