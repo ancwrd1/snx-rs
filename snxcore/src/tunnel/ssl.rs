@@ -159,7 +159,7 @@ impl SslTunnel {
                 self.keepalive = Duration::from_secs(hello_reply.data.timeouts.keepalive);
                 hello_reply
             }
-            _ => return Err(anyhow!("Unexpected reply")),
+            _ => anyhow::bail!("Unexpected reply"),
         };
 
         Ok(reply.data)

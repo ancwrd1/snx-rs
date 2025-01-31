@@ -254,7 +254,7 @@ fn parse_obj(pairs: RulePairs) -> anyhow::Result<SExpression> {
                 let (key, value) = parse_field(pair.into_inner())?;
                 fields.insert(key, value);
             }
-            _ => return Err(anyhow!("Invalid object")),
+            _ => anyhow::bail!("Invalid object"),
         }
     }
     Ok(SExpression::Object(name, fields))

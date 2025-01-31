@@ -169,9 +169,7 @@ where
         let params = self.params.clone();
 
         if params.server_name.is_empty() || params.login_type.is_empty() {
-            return Err(anyhow!(
-                "Missing required parameters in the config file: server name and/or login type"
-            ));
+            anyhow::bail!("Missing required parameters in the config file: server name and/or login type");
         }
 
         if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {

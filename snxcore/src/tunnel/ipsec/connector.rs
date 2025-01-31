@@ -104,11 +104,11 @@ impl IpsecTunnelConnector {
                     path: path.clone(),
                     password: password.clone(),
                 },
-                _ => return Err(anyhow!("No PKCS12 path and password provided!")),
+                _ => anyhow::bail!("No PKCS12 path and password provided!"),
             },
             CertType::Pkcs8 => match params.cert_path {
                 Some(ref path) => Identity::Pkcs8 { path: path.clone() },
-                None => return Err(anyhow!("No PKCS8 PEM path provided!")),
+                None => anyhow::bail!("No PKCS8 PEM path provided!"),
             },
             CertType::Pkcs11 => match params.cert_password {
                 Some(ref pin) => Identity::Pkcs11 {
@@ -119,7 +119,7 @@ impl IpsecTunnelConnector {
                         .as_ref()
                         .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
                 },
-                None => return Err(anyhow!("No PKCS11 pin provided!")),
+                None => anyhow::bail!("No PKCS11 pin provided!"),
             },
 
             CertType::None => Identity::None,
