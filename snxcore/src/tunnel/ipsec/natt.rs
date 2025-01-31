@@ -1,8 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    sync::Arc,
-    time::Duration,
-};
+use std::{net::Ipv4Addr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use bytes::Bytes;
@@ -18,29 +14,25 @@ use tokio::{
 };
 use tracing::debug;
 
-use crate::{model::params::TunnelParams, platform::UdpSocketExt, tunnel::TunnelEvent};
+use crate::{platform::UdpSocketExt, tunnel::TunnelEvent};
 
 const MAX_NATT_PROBES: usize = 3;
 
 pub struct NattProber {
-    params: Arc<TunnelParams>,
+    address: Ipv4Addr,
     port: u16,
 }
 
 impl NattProber {
-    pub fn new(params: Arc<TunnelParams>) -> Self {
-        Self { params, port: 4500 }
+    pub fn new(address: Ipv4Addr) -> Self {
+        Self { address, port: 4500 }
     }
 
     pub async fn probe(&self) -> anyhow::Result<()> {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
-        socket.connect(format!("{}:{}", self.params.server_name, 500)).await?;
+        socket.connect(format!("{}:{}", self.address, 500)).await?;
 
-        let IpAddr::V4(gateway_address) = socket.peer_addr()?.ip() else {
-            anyhow::bail!("No IPv4 address for {}", self.params.server_name);
-        };
-
-        if self.send_probe(gateway_address).await.is_err() {
+        if self.send_probe().await.is_err() {
             // As reported by some users, CP gateway may not respond to the probe unless there is traffic on port 500.
             // So we try the SA exchange first to unblock port 4500.
             debug!("Sending dummy SA proposal to port 500");
@@ -52,17 +44,17 @@ impl NattProber {
         }
 
         for _ in 0..MAX_NATT_PROBES {
-            if self.send_probe(gateway_address).await.is_ok() {
+            if self.send_probe().await.is_ok() {
                 return Ok(());
             }
         }
         Err(anyhow!("Probing failed, server is not reachable via ESPinUDP tunnel!"))
     }
 
-    async fn send_probe(&self, address: Ipv4Addr) -> anyhow::Result<()> {
-        debug!("Sending NAT-T probe to {}", address);
+    async fn send_probe(&self) -> anyhow::Result<()> {
+        debug!("Sending NAT-T probe to {}", self.address);
         let udp = UdpSocket::bind("0.0.0.0:0").await?;
-        udp.connect(format!("{}:{}", address, self.port)).await?;
+        udp.connect(format!("{}:{}", self.address, self.port)).await?;
 
         let data = vec![0u8; 32];
 
@@ -74,7 +66,7 @@ impl NattProber {
                 let dstport: [u8; 4] = reply[12..16].try_into().unwrap();
                 debug!(
                     "Received NAT-T reply from {}: srcport: {}, dstport: {}, hash: {}",
-                    address,
+                    self.address,
                     u32::from_be_bytes(srcport),
                     u32::from_be_bytes(dstport),
                     hex::encode(&reply[reply.len() - 16..reply.len()])
