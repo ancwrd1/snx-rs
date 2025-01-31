@@ -29,26 +29,28 @@ impl NattProber {
     }
 
     pub async fn probe(&self) -> anyhow::Result<()> {
-        let socket = UdpSocket::bind("0.0.0.0:0").await?;
-        socket.connect(format!("{}:{}", self.address, 500)).await?;
-
         if self.send_probe().await.is_err() {
             // As reported by some users, CP gateway may not respond to the probe unless there is traffic on port 500.
             // So we try the SA exchange first to unblock port 4500.
+            let socket = UdpSocket::bind("0.0.0.0:0").await?;
+            socket.connect(format!("{}:{}", self.address, 500)).await?;
+
             debug!("Sending dummy SA proposal to port 500");
             let ikev1_session = Box::new(Ikev1Session::new(Identity::None)?);
             let transport = Box::new(UdpTransport::new(socket, ikev1_session.new_codec()));
             let mut service = Ikev1Service::new(transport, ikev1_session)?;
             service.do_sa_proposal(Duration::from_secs(5)).await?;
             debug!("SA proposal succeeded");
-        }
 
-        for _ in 0..MAX_NATT_PROBES {
-            if self.send_probe().await.is_ok() {
-                return Ok(());
+            for _ in 0..MAX_NATT_PROBES {
+                if self.send_probe().await.is_ok() {
+                    return Ok(());
+                }
             }
+            Err(anyhow!("Probing failed, server is not reachable via ESPinUDP tunnel!"))
+        } else {
+            Ok(())
         }
-        Err(anyhow!("Probing failed, server is not reachable via ESPinUDP tunnel!"))
     }
 
     async fn send_probe(&self) -> anyhow::Result<()> {
