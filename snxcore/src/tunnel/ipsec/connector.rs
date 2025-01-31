@@ -134,7 +134,7 @@ impl IpsecTunnelConnector {
             anyhow::bail!("No IPv4 address for {}", params.server_name);
         };
 
-        let prober = NattProber::new(gateway_address);
+        let prober = NattProber::new(params.clone());
         prober.probe().await?;
 
         let ikev1_session = Box::new(Ikev1Session::new(identity)?);
