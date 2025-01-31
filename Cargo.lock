@@ -1740,7 +1740,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#019b365a772d22109c0847e9575dfe3c22e8eada"
+source = "git+https://github.com/ancwrd1/isakmp.git#27eaad785a1108aa586c300df0fbf539e73ab7de"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1748,6 +1748,7 @@ dependencies = [
  "byteorder",
  "bytes",
  "cryptoki",
+ "futures",
  "hex",
  "itertools",
  "openssl",
@@ -1756,6 +1757,7 @@ dependencies = [
  "rmp-serde",
  "serde",
  "tokio",
+ "tokio-util",
  "tracing",
 ]
 
