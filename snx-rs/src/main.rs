@@ -136,7 +136,10 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         debug!("Attempting to load IKE session");
         match connector.restore_session().await {
             Ok(session) => session,
-            Err(_) => connector.authenticate().await?,
+            Err(_) => {
+                connector = tunnel::new_tunnel_connector(params.clone()).await?;
+                connector.authenticate().await?
+            }
         }
     } else {
         connector.authenticate().await?
