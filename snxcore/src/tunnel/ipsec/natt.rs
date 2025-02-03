@@ -55,6 +55,7 @@ impl NattProber {
         if self.send_probe().await.is_err() {
             // attempt to unblock port 4500 by sending some magic packets to port 500
             self.send_nmap_knock().await?;
+            self.send_nmap_knock().await?;
 
             for _ in 0..MAX_NATT_PROBES {
                 if self.send_probe().await.is_ok() {
@@ -100,12 +101,10 @@ impl NattProber {
         let udp = UdpSocket::bind("0.0.0.0:0").await?;
         udp.connect(format!("{}:500", self.address)).await?;
 
-        for _ in 0..2 {
-            for probe in NMAP_KNOCK {
-                let _ = udp.send(probe).await;
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
+        for probe in NMAP_KNOCK {
+            let _ = udp.send(probe).await;
         }
+        tokio::time::sleep(Duration::from_millis(100)).await;
 
         Ok(())
     }

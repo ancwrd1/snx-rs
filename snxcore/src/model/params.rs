@@ -503,8 +503,14 @@ impl TunnelParams {
         Ok(())
     }
 
+    pub fn default_config_dir() -> PathBuf {
+        ProjectDirs::from("", "", "snx-rs")
+            .expect("No home directory!")
+            .config_dir()
+            .to_owned()
+    }
+
     pub fn default_config_path() -> PathBuf {
-        let dir = ProjectDirs::from("", "", "snx-rs").expect("No home directory!");
-        dir.config_dir().join("snx-rs.conf")
+        Self::default_config_dir().join("snx-rs.conf")
     }
 }
