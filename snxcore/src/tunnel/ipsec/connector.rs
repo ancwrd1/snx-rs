@@ -13,7 +13,7 @@ use isakmp::{
     ikev1::{service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
     payload::AttributesPayload,
-    session::IsakmpSession,
+    session::{IsakmpSession, OfficeMode},
     transport::{IsakmpTransport, TcptDataType, TcptTransport, UdpTransport},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
@@ -251,15 +251,15 @@ impl IpsecTunnelConnector {
 
         self.do_esp_proposal().await?;
 
+        if self.params.ike_persist {
+            if let Err(e) = self.save_ike_session() {
+                warn!("Cannot save IKE session: {}", e);
+            }
+        }
+
         self.last_rekey = Some(SystemTime::now());
 
-        let session = Arc::new(VpnSession {
-            ccc_session_id: self.ccc_session.clone(),
-            ipsec_session: Some(self.ipsec_session.clone()),
-            state: SessionState::Authenticated(String::new()),
-        });
-
-        Ok(session)
+        Ok(self.new_vpn_session())
     }
 
     async fn process_auth_attributes(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<VpnSession>> {
@@ -271,12 +271,6 @@ impl IpsecTunnelConnector {
                 self.service
                     .send_ack_response(id_reply.identifier, self.last_message_id)
                     .await?;
-
-                if self.params.ike_persist {
-                    if let Err(e) = self.save_ike_session() {
-                        warn!("Cannot save IKE session: {}", e);
-                    }
-                }
 
                 self.do_session_exchange().await
             }
@@ -434,7 +428,15 @@ impl IpsecTunnelConnector {
     }
 
     fn save_ike_session(&mut self) -> anyhow::Result<()> {
-        let data = self.service.session().save()?;
+        let office_mode = OfficeMode {
+            ccc_session: self.ccc_session.clone(),
+            ip_address: self.ipsec_session.address,
+            netmask: self.ipsec_session.netmask,
+            dns: self.ipsec_session.dns.clone(),
+            domains: self.ipsec_session.domains.clone(),
+        };
+
+        let data = self.service.session().save(&office_mode)?;
         let dir = Path::new(SESSIONS_PATH);
 
         std::fs::create_dir_all(dir)?;
@@ -447,19 +449,49 @@ impl IpsecTunnelConnector {
         Ok(())
     }
 
-    fn load_ike_session(&mut self) -> anyhow::Result<()> {
+    fn load_ike_session(&mut self) -> anyhow::Result<OfficeMode> {
         let filename = self.session_file_name();
         let data = std::fs::read(&filename)?;
-        self.service.session().load(&data)?;
+        let office_mode = self.service.session().load(&data)?;
 
-        debug!("Loaded IKE session from: {}", filename.display());
+        debug!("Loaded IKE session from: {}: {:?}", filename.display(), office_mode);
 
-        Ok(())
+        if !office_mode.ccc_session.is_empty() {
+            Ok(office_mode)
+        } else {
+            Err(anyhow::anyhow!("Empty CCC session!"))
+        }
     }
 
     async fn do_restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
-        self.load_ike_session()?;
-        self.do_session_exchange().await
+        let office_mode = self.load_ike_session()?;
+
+        match self.do_session_exchange().await {
+            Ok(session) => Ok(session),
+            Err(e) => {
+                warn!("OM session exchange failed: {}, reusing previous settings", e);
+
+                self.ccc_session = office_mode.ccc_session;
+                self.ipsec_session.address = office_mode.ip_address;
+                self.ipsec_session.netmask = office_mode.netmask;
+                self.ipsec_session.dns = office_mode.dns;
+                self.ipsec_session.domains = office_mode.domains;
+
+                self.do_esp_proposal().await?;
+
+                self.last_rekey = Some(SystemTime::now());
+
+                Ok(self.new_vpn_session())
+            }
+        }
+    }
+
+    fn new_vpn_session(&self) -> Arc<VpnSession> {
+        Arc::new(VpnSession {
+            ccc_session_id: self.ccc_session.clone(),
+            ipsec_session: Some(self.ipsec_session.clone()),
+            state: SessionState::Authenticated(String::new()),
+        })
     }
 }
 
@@ -502,12 +534,6 @@ impl TunnelConnector for IpsecTunnelConnector {
             self.process_auth_attributes(attrs_reply).await
         } else {
             let result = self.do_session_exchange().await?;
-
-            if self.params.ike_persist {
-                if let Err(e) = self.save_ike_session() {
-                    warn!("Cannot save IKE session: {}", e);
-                }
-            }
 
             Ok(result)
         }

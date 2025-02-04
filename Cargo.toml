@@ -3,7 +3,7 @@ members = ["snxcore", "snxctl", "snx-rs", "snx-rs-gui"]
 resolver = "2"
 
 [workspace.package]
-version = "3.0.0"
+version = "3.0.2"
 license = "AGPL-3.0"
 edition = "2021"
 authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]
