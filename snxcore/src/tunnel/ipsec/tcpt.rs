@@ -140,11 +140,6 @@ impl TcptIpsecTunnel {
                 let _ = self.setup_dns(device.name(), true).await;
             }
             platform::delete_device(device.name()).await;
-            if !self.params.ike_persist {
-                debug!("Signing out");
-                let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-                let _ = client.signout().await;
-            }
         }
     }
 

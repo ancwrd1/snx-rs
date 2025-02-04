@@ -341,9 +341,6 @@ impl VpnTunnel for SslTunnel {
                 event = &mut command_fut => {
                     match event {
                         Some(TunnelCommand::Terminate(_)) | None => {
-                            debug!("Signing out");
-                            let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-                            let _ = client.signout().await;
                             break Ok(());
                         }
                         _ => {}
