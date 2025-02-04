@@ -1,3 +1,6 @@
+## v3.0.3 (2025-02-05)
+- Only do a signout call when manually disconnecting an IPSec tunnel
+
 ## v3.0.2 (2025-02-04)
 - Fixed a problem with persistent IKE session which wasn't restored for some VPN servers
 

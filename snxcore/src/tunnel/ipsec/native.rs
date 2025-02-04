@@ -112,7 +112,7 @@ impl VpnTunnel for NativeIpsecTunnel {
             while let Some(cmd) = command_receiver.recv().await {
                 match cmd {
                     TunnelCommand::Terminate(signout) => {
-                        if signout {
+                        if signout || !self.params.ike_persist {
                             debug!("Signing out");
                             let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
                             let _ = client.signout().await;

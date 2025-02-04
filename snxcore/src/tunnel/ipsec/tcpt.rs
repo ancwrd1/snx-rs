@@ -328,7 +328,7 @@ impl VpnTunnel for TcptIpsecTunnel {
             while let Some(cmd) = command_receiver.recv().await {
                 match cmd {
                     TunnelCommand::Terminate(signout) => {
-                        if signout {
+                        if signout || !params.ike_persist {
                             debug!("Signing out");
                             let client = CccHttpClient::new(params.clone(), Some(session.clone()));
                             let _ = client.signout().await;
