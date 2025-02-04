@@ -1,3 +1,9 @@
+## v3.0.2 (2025-02-04)
+- Fixed a problem with persistent IKE session which wasn't restored for some VPN servers
+
+## v3.0.1 (2025-02-03)
+- Connectivity fixes
+
 ## v3.0.0 (2025-02-03)
 - Added support for TCP Transport mode (TCPT) for IPSec tunnels. It can be selected by two options: `ike-transport=tcpt` and `esp-transport=tcpt`.
   Use the first option only if you encounter the "failed to fill whole buffer" error. Use the second option only if you encounter the "Probing failed, server is not reachable via ESPinUDP tunnel" error.
