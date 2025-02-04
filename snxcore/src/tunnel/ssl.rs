@@ -340,7 +340,15 @@ impl VpnTunnel for SslTunnel {
             tokio::select! {
                 event = &mut command_fut => {
                     match event {
-                        Some(TunnelCommand::Terminate) | None => {
+                        Some(TunnelCommand::Terminate(signout)) => {
+                            if signout {
+                                debug!("Signing out");
+                                let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+                                let _ = client.signout().await;
+                            }
+                            break Ok(());
+                        }
+                        None => {
                             break Ok(());
                         }
                         _ => {}

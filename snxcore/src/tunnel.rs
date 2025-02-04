@@ -18,7 +18,7 @@ mod ssl;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TunnelCommand {
-    Terminate,
+    Terminate(bool),
     ReKey(IpsecSession),
 }
 
@@ -50,7 +50,7 @@ pub trait TunnelConnector {
         session: Arc<VpnSession>,
         command_sender: mpsc::Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>>;
-    async fn terminate_tunnel(&mut self) -> anyhow::Result<()>;
+    async fn terminate_tunnel(&mut self, signout: bool) -> anyhow::Result<()>;
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }
 

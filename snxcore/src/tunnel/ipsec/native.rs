@@ -81,11 +81,6 @@ impl NativeIpsecTunnel {
 
     async fn cleanup(&mut self) {
         self.configurator.cleanup().await;
-        if !self.params.ike_persist {
-            debug!("Signing out");
-            let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-            let _ = client.signout().await;
-        }
     }
 }
 
@@ -116,7 +111,14 @@ impl VpnTunnel for NativeIpsecTunnel {
         let fut = async {
             while let Some(cmd) = command_receiver.recv().await {
                 match cmd {
-                    TunnelCommand::Terminate => break,
+                    TunnelCommand::Terminate(signout) => {
+                        if signout {
+                            debug!("Signing out");
+                            let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+                            let _ = client.signout().await;
+                        }
+                        break;
+                    }
                     TunnelCommand::ReKey(session) => {
                         debug!(
                             "Rekey command received, new lifetime: {}, configuring xfrm",

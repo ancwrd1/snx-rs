@@ -131,9 +131,9 @@ impl TunnelConnector for CccTunnelConnector {
         Ok(Box::new(SslTunnel::create(self.params.clone(), session).await?))
     }
 
-    async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
+    async fn terminate_tunnel(&mut self, signout: bool) -> anyhow::Result<()> {
         if let Some(sender) = self.command_sender.take() {
-            let _ = sender.send(TunnelCommand::Terminate).await;
+            let _ = sender.send(TunnelCommand::Terminate(signout)).await;
         }
         Ok(())
     }

@@ -207,7 +207,7 @@ impl CommandServer {
     async fn disconnect(&mut self) -> anyhow::Result<()> {
         if let Some(ref mut connector) = self.connector {
             connector.delete_session().await;
-            let _ = connector.terminate_tunnel().await;
+            let _ = connector.terminate_tunnel(true).await;
         }
         self.reset();
         Ok(())

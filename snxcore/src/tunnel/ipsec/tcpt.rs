@@ -326,10 +326,20 @@ impl VpnTunnel for TcptIpsecTunnel {
         let esp_codec_in = esp_codec_in.clone();
         let esp_codec_out = esp_codec_out.clone();
 
+        let params = self.params.clone();
+        let session = self.session.clone();
+
         let command_fut = async {
             while let Some(cmd) = command_receiver.recv().await {
                 match cmd {
-                    TunnelCommand::Terminate => break,
+                    TunnelCommand::Terminate(signout) => {
+                        if signout {
+                            debug!("Signing out");
+                            let client = CccHttpClient::new(params.clone(), Some(session.clone()));
+                            let _ = client.signout().await;
+                        }
+                        break;
+                    }
                     TunnelCommand::ReKey(session) => {
                         debug!(
                             "Rekey command received, new lifetime: {}, reconfiguring ESP codec",

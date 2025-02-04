@@ -576,9 +576,9 @@ impl TunnelConnector for IpsecTunnelConnector {
         }
     }
 
-    async fn terminate_tunnel(&mut self) -> anyhow::Result<()> {
+    async fn terminate_tunnel(&mut self, signout: bool) -> anyhow::Result<()> {
         if let Some(sender) = self.command_sender.take() {
-            let _ = sender.send(TunnelCommand::Terminate).await;
+            let _ = sender.send(TunnelCommand::Terminate(signout)).await;
         }
         Ok(())
     }
@@ -609,7 +609,7 @@ impl Drop for IpsecTunnelConnector {
             s.spawn(|| {
                 crate::util::block_on(async {
                     self.delete_sa().await?;
-                    self.terminate_tunnel().await
+                    self.terminate_tunnel(false).await
                 })
             });
         });
