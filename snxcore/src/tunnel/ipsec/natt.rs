@@ -55,9 +55,9 @@ impl NattProber {
         if self.send_probe().await.is_err() {
             // attempt to unblock port 4500 by sending some magic packets to port 500
             self.send_nmap_knock().await?;
-            self.send_nmap_knock().await?;
 
             for _ in 0..MAX_NATT_PROBES {
+                self.send_nmap_knock().await?;
                 if self.send_probe().await.is_ok() {
                     return Ok(());
                 }
