@@ -257,8 +257,6 @@ impl IpsecTunnelConnector {
             }
         }
 
-        self.last_rekey = Some(SystemTime::now());
-
         Ok(self.new_vpn_session())
     }
 
@@ -360,6 +358,8 @@ impl IpsecTunnelConnector {
         self.ipsec_session.esp_in = session.esp_in();
         self.ipsec_session.esp_out = session.esp_out();
 
+        self.last_rekey = Some(SystemTime::now());
+
         Ok(())
     }
 
@@ -394,8 +394,6 @@ impl IpsecTunnelConnector {
         {
             debug!("Start rekeying IPSec tunnel");
             self.do_esp_proposal().await?;
-
-            self.last_rekey = Some(SystemTime::now());
 
             debug!(
                 "New ESP SPI: {:04x}, {:04x}",
@@ -478,8 +476,6 @@ impl IpsecTunnelConnector {
                 self.ipsec_session.domains = office_mode.domains;
 
                 self.do_esp_proposal().await?;
-
-                self.last_rekey = Some(SystemTime::now());
 
                 Ok(self.new_vpn_session())
             }
