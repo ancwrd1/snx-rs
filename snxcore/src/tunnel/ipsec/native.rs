@@ -81,8 +81,11 @@ impl NativeIpsecTunnel {
 
     async fn cleanup(&mut self) {
         self.configurator.cleanup().await;
-        let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-        let _ = client.signout().await;
+        if !self.params.ike_persist {
+            debug!("Signing out");
+            let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+            let _ = client.signout().await;
+        }
     }
 }
 
