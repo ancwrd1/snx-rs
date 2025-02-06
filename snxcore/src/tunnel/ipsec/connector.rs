@@ -570,10 +570,17 @@ impl TunnelConnector for IpsecTunnelConnector {
         command_sender: Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
-        match self.params.esp_transport {
+        let result: anyhow::Result<Box<dyn VpnTunnel + Send>> = match self.params.esp_transport {
             TransportType::Udp => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
             TransportType::Tcpt => Ok(Box::new(TcptIpsecTunnel::create(self.params.clone(), session).await?)),
+        };
+
+        if let Err(ref e) = result {
+            warn!("Create tunnel failed: {}", e);
+            self.delete_session().await;
         }
+
+        result
     }
 
     async fn terminate_tunnel(&mut self, signout: bool) -> anyhow::Result<()> {
