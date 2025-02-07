@@ -10,20 +10,11 @@ use std::{
 use anyhow::{anyhow, Context};
 use bytes::Bytes;
 use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    pin_mut, SinkExt, StreamExt, TryStreamExt,
+    channel::mpsc::{Receiver, Sender},
+    pin_mut, SinkExt, StreamExt,
 };
-use isakmp::{
-    esp::EspCodec,
-    transport::{
-        tcpt::{handshake, TcptTransportCodec},
-        TcptDataType,
-    },
-};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    time::MissedTickBehavior,
-};
+use isakmp::esp::{EspCodec, EspEncapType};
+use tokio::time::MissedTickBehavior;
 use tracing::{debug, error};
 
 use crate::{
@@ -35,7 +26,6 @@ use crate::{
 };
 
 const SEND_TIMEOUT: Duration = Duration::from_secs(120);
-const CHANNEL_SIZE: usize = 1024;
 
 pub type PacketSender = Sender<Bytes>;
 pub type PacketReceiver = Receiver<Bytes>;
@@ -44,33 +34,7 @@ async fn iproute2(args: &[&str]) -> anyhow::Result<String> {
     util::run_command("ip", args).await
 }
 
-fn make_channel<S>(stream: S) -> (PacketSender, PacketReceiver)
-where
-    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
-{
-    let framed = tokio_util::codec::Framed::new(stream, TcptTransportCodec::new(TcptDataType::Esp));
-
-    let (tx_in, rx_in) = mpsc::channel(CHANNEL_SIZE);
-    let (tx_out, rx_out) = mpsc::channel(CHANNEL_SIZE);
-
-    let channel = async move {
-        let (mut sink, stream) = framed.split();
-
-        let mut rx = rx_out.map(Ok::<_, anyhow::Error>);
-        let to_wire = sink.send_all(&mut rx);
-
-        let mut tx = tx_in.sink_map_err(anyhow::Error::from);
-        let from_wire = stream.map_err(Into::into).forward(&mut tx);
-
-        futures::future::select(to_wire, from_wire).await;
-    };
-
-    tokio::spawn(channel);
-
-    (tx_out, rx_in)
-}
-
-pub(crate) struct TcptIpsecTunnel {
+pub(crate) struct TunIpsecTunnel {
     params: Arc<TunnelParams>,
     session: Arc<VpnSession>,
     ip_address: Ipv4Addr,
@@ -80,14 +44,17 @@ pub(crate) struct TcptIpsecTunnel {
     ready: Arc<AtomicBool>,
     client_settings: ClientSettingsResponse,
     gateway_address: Ipv4Addr,
+    encap_type: EspEncapType,
 }
 
-impl TcptIpsecTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
-        let mut tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
-
-        handshake(TcptDataType::Esp, &mut tcp).await?;
-
+impl TunIpsecTunnel {
+    pub(crate) async fn create(
+        params: Arc<TunnelParams>,
+        session: Arc<VpnSession>,
+        sender: PacketSender,
+        receiver: PacketReceiver,
+        encap_type: EspEncapType,
+    ) -> anyhow::Result<Self> {
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
 
@@ -99,8 +66,6 @@ impl TcptIpsecTunnel {
         );
 
         let ready = Arc::new(AtomicBool::new(false));
-
-        let (sender, receiver) = make_channel(tcp);
 
         ready.store(true, Ordering::SeqCst);
 
@@ -114,6 +79,7 @@ impl TcptIpsecTunnel {
             ready,
             client_settings,
             gateway_address,
+            encap_type,
         })
     }
 
@@ -233,15 +199,15 @@ impl TcptIpsecTunnel {
 }
 
 #[async_trait::async_trait]
-impl VpnTunnel for TcptIpsecTunnel {
+impl VpnTunnel for TunIpsecTunnel {
     async fn run(
         mut self: Box<Self>,
         mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
         debug!(
-            "Running IPSec (TCPT) tunnel for session {}",
-            self.session.ccc_session_id
+            "Running IPSec ({}) tunnel for session {}",
+            self.params.esp_transport, self.session.ccc_session_id,
         );
 
         let tun_name = self
@@ -270,13 +236,21 @@ impl VpnTunnel for TcptIpsecTunnel {
 
         let mut snx_receiver = self.receiver.take().context("No receiver")?;
 
-        let esp_codec_in = Arc::new(RwLock::new(EspCodec::new(self.gateway_address, self.ip_address)));
+        let esp_codec_in = Arc::new(RwLock::new(EspCodec::new(
+            self.gateway_address,
+            self.ip_address,
+            self.encap_type,
+        )));
         esp_codec_in
             .write()
             .unwrap()
             .set_params(ipsec_session.esp_in.spi, ipsec_session.esp_in.clone());
 
-        let esp_codec_out = Arc::new(RwLock::new(EspCodec::new(self.ip_address, self.gateway_address)));
+        let esp_codec_out = Arc::new(RwLock::new(EspCodec::new(
+            self.ip_address,
+            self.gateway_address,
+            self.encap_type,
+        )));
         esp_codec_out
             .write()
             .unwrap()
@@ -298,11 +272,11 @@ impl VpnTunnel for TcptIpsecTunnel {
         tokio::spawn(async move {
             while let Some(item) = snx_receiver.next().await {
                 let codec = esp_codec.clone();
-                let result = tokio::task::spawn_blocking(move || codec.read().unwrap().decode_from_ip_udp(&item));
+                let result = tokio::task::spawn_blocking(move || codec.read().unwrap().decode(&item));
 
                 match result.await {
                     Ok(Ok(packet)) => {
-                        let _ = tun_sender.send(packet).await;
+                        let _ = tun_sender.send(packet.into()).await;
                     }
                     Ok(Err(e)) => {
                         error!("Failed to decode packet: {}", e);
@@ -387,9 +361,11 @@ impl VpnTunnel for TcptIpsecTunnel {
                 result = tun_receiver.next() => {
                     if let Some(Ok(item)) = result {
                         let codec = esp_codec_out.clone();
-                        let result = tokio::task::spawn_blocking(move || codec.read().unwrap().encode_to_ip_udp(&item)).await;
+                        let result = tokio::task::spawn_blocking(move || codec.read().unwrap().encode(&item)).await;
                         match result {
-                            Ok(Ok(packet)) => self.send(packet).await?,
+                            Ok(Ok(packet)) => {
+                                self.send(packet).await?;
+                            },
                             Ok(Err(e)) => {
                                 error!("Failed to encode packet: {}", e);
                             }
@@ -410,9 +386,9 @@ impl VpnTunnel for TcptIpsecTunnel {
     }
 }
 
-impl Drop for TcptIpsecTunnel {
+impl Drop for TunIpsecTunnel {
     fn drop(&mut self) {
-        debug!("Cleaning up IPSec (TCPT) tunnel");
+        debug!("Cleaning up IPSec ({}) tunnel", self.params.esp_transport);
         std::thread::scope(|s| {
             s.spawn(|| util::block_on(self.cleanup()));
         });

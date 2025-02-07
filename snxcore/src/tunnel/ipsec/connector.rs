@@ -28,7 +28,10 @@ use crate::{
     platform, server_info,
     sexpr::SExpression,
     tunnel::{
-        ipsec::{native::NativeIpsecTunnel, natt::NattProber, tcpt::TcptIpsecTunnel},
+        ipsec::{
+            imp::{native::NativeIpsecTunnel, tcpt::TcptIpsecTunnel, udp::UdpIpsecTunnel},
+            natt::NattProber,
+        },
         TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
     },
 };
@@ -133,7 +136,7 @@ impl IpsecTunnelConnector {
             anyhow::bail!("No IPv4 address for {}", params.server_name);
         };
 
-        if params.esp_transport == TransportType::Udp {
+        if matches!(params.esp_transport, TransportType::Udp | TransportType::UdpTun) {
             let prober = NattProber::new(gateway_address);
             prober.probe().await?;
         }
@@ -142,21 +145,23 @@ impl IpsecTunnelConnector {
 
         let ikev1_session = Box::new(Ikev1Session::new(identity)?);
 
-        debug!("Using IKE transport: {}", params.ike_transport);
-
-        let transport: Box<dyn IsakmpTransport + Send + Sync> = if params.ike_transport == TransportType::Udp {
-            Box::new(UdpTransport::new(socket, ikev1_session.new_codec()))
-        } else {
-            let socket_address = format!("{}:443", params.server_name)
-                .to_socket_addrs()?
-                .next()
-                .context("No address!")?;
-            Box::new(TcptTransport::new(
-                TcptDataType::Ike,
-                socket_address,
-                ikev1_session.new_codec(),
-            ))
+        let transport: Box<dyn IsakmpTransport + Send + Sync> = match params.ike_transport {
+            TransportType::Udp => Box::new(UdpTransport::new(socket, ikev1_session.new_codec())),
+            TransportType::Tcpt => {
+                let socket_address = format!("{}:443", params.server_name)
+                    .to_socket_addrs()?
+                    .next()
+                    .context("No address!")?;
+                Box::new(TcptTransport::new(
+                    TcptDataType::Ike,
+                    socket_address,
+                    ikev1_session.new_codec(),
+                ))
+            }
+            TransportType::UdpTun => anyhow::bail!("Invalid transport for IKE"),
         };
+
+        debug!("Using IKE transport: {}", params.ike_transport);
 
         let service = Ikev1Service::new(transport, ikev1_session)?;
 
@@ -558,6 +563,7 @@ impl TunnelConnector for IpsecTunnelConnector {
         let result: anyhow::Result<Box<dyn VpnTunnel + Send>> = match self.params.esp_transport {
             TransportType::Udp => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
             TransportType::Tcpt => Ok(Box::new(TcptIpsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::UdpTun => Ok(Box::new(UdpIpsecTunnel::create(self.params.clone(), session).await?)),
         };
 
         if let Err(ref e) = result {

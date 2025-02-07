@@ -199,6 +199,7 @@ pub enum TransportType {
     #[default]
     Udp,
     Tcpt,
+    UdpTun,
 }
 
 impl TransportType {
@@ -206,6 +207,7 @@ impl TransportType {
         match self {
             TransportType::Udp => "udp",
             TransportType::Tcpt => "tcpt",
+            TransportType::UdpTun => "udp-tun",
         }
     }
 
@@ -213,6 +215,7 @@ impl TransportType {
         match self {
             Self::Udp => 0,
             Self::Tcpt => 1,
+            Self::UdpTun => 2,
         }
     }
 }
@@ -224,6 +227,7 @@ impl FromStr for TransportType {
         match s.to_lowercase().as_str() {
             "udp" => Ok(TransportType::Udp),
             "tcpt" => Ok(TransportType::Tcpt),
+            "udp-tun" => Ok(TransportType::UdpTun),
             _ => Err(anyhow!("Invalid transport type!")),
         }
     }
@@ -234,6 +238,7 @@ impl fmt::Display for TransportType {
         match self {
             Self::Udp => write!(f, "UDP"),
             Self::Tcpt => write!(f, "TCPT"),
+            Self::UdpTun => write!(f, "UDP-TUN"),
         }
     }
 }
@@ -242,6 +247,7 @@ impl From<u32> for TransportType {
     fn from(value: u32) -> Self {
         match value {
             1 => Self::Tcpt,
+            2 => Self::UdpTun,
             _ => Self::Udp,
         }
     }
