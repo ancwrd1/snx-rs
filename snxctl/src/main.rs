@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
     let tunnel_params = Arc::new(TunnelParams::load(config_file).unwrap_or_default());
 
-    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser, tunnel_params)?;
+    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser, tunnel_params);
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(

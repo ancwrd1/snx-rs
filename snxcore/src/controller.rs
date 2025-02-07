@@ -46,8 +46,9 @@ pub struct ServiceController<B, P> {
     pub params: Arc<TunnelParams>,
     prompt: P,
     mfa_prompts: Option<VecDeque<String>>,
-    password: String,
-    first_password: bool,
+    password_from_keychain: String,
+    username: String,
+    first_mfa: bool,
     browser_controller: B,
 }
 
@@ -56,15 +57,16 @@ where
     B: BrowserController + Send + Sync,
     P: SecurePrompt + Send + Sync,
 {
-    pub fn new(prompt: P, browser_controller: B, params: Arc<TunnelParams>) -> anyhow::Result<Self> {
-        Ok(Self {
+    pub fn new(prompt: P, browser_controller: B, params: Arc<TunnelParams>) -> Self {
+        Self {
             params,
             prompt,
             mfa_prompts: None,
-            password: String::new(),
-            first_password: true,
+            password_from_keychain: String::new(),
+            username: String::new(),
+            first_mfa: true,
             browser_controller,
-        })
+        }
     }
 
     pub async fn command(&mut self, command: ServiceCommand) -> anyhow::Result<ConnectionStatus> {
@@ -92,16 +94,18 @@ where
         match response {
             TunnelServiceResponse::ConnectionStatus(status) => {
                 if let (None, Some(mfa)) = (status.connected_since, &status.mfa) {
+                    let first_mfa = self.first_mfa;
+
                     match self.get_mfa_input(mfa).await {
                         Ok(input) => {
                             let result = self.do_challenge_code(input.clone()).await;
                             if result.is_ok()
                                 && mfa.mfa_type == MfaType::PasswordInput
-                                && !self.password.is_empty()
+                                && first_mfa
                                 && !self.params.no_keychain
+                                && !input.is_empty()
                             {
-                                let _ = platform::store_password(&self.params.user_name, &input).await;
-                                self.password.clear();
+                                let _ = platform::store_password(&self.username, &input).await;
                             }
                             result
                         }
@@ -127,17 +131,15 @@ where
                     .as_mut()
                     .and_then(|p| p.pop_front())
                     .unwrap_or_else(|| mfa.prompt.clone());
-                if !self.password.is_empty() && self.first_password {
-                    self.first_password = false;
-                    Ok(self.password.clone())
+
+                let result = if !self.password_from_keychain.is_empty() && self.first_mfa {
+                    Ok(self.password_from_keychain.clone())
                 } else {
                     let input = self.prompt.get_secure_input(&prompt)?;
-                    if self.first_password {
-                        self.first_password = false;
-                        self.password.clone_from(&input);
-                    }
                     Ok(input)
-                }
+                };
+                self.first_mfa = false;
+                result
             }
             MfaType::SamlSso => {
                 let (tx, rx) = oneshot::channel();
@@ -158,14 +160,20 @@ where
             }
             MfaType::UserNameInput => {
                 let input = self.prompt.get_plain_input(&mfa.prompt)?;
+                self.username = input.clone();
+
+                if !self.username.is_empty() && !self.params.no_keychain && self.params.password.is_empty() {
+                    if let Ok(password) = platform::acquire_password(&self.username).await {
+                        self.password_from_keychain = password;
+                    }
+                }
+
                 Ok(input)
             }
         }
     }
 
     async fn do_connect(&mut self) -> anyhow::Result<ConnectionStatus> {
-        self.fill_mfa_prompts().await;
-
         let params = self.params.clone();
 
         if params.server_name.is_empty() || params.login_type.is_empty() {
@@ -174,9 +182,13 @@ where
 
         if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {
             if let Ok(password) = platform::acquire_password(&self.params.user_name).await {
-                self.password = password;
+                self.password_from_keychain = password;
             }
         }
+
+        self.fill_mfa_prompts().await;
+
+        self.username = params.user_name.clone();
 
         let response = self
             .send_receive(TunnelServiceRequest::Connect((*self.params).clone()), CONNECT_TIMEOUT)
@@ -233,6 +245,11 @@ where
         if self.params.server_prompt {
             self.mfa_prompts
                 .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
+            if !self.params.password.is_empty() {
+                if let Some(ref mut prompts) = self.mfa_prompts {
+                    prompts.pop_front();
+                }
+            }
         } else {
             self.mfa_prompts.replace(VecDeque::new());
         }

@@ -188,38 +188,37 @@ impl AppTray {
 
             let tunnel_params = Arc::new(TunnelParams::load(&self.config_file).unwrap_or_default());
 
-            if let Ok(mut controller) =
-                ServiceController::new(prompt::GtkPrompt, browser(tunnel_params.clone()), tunnel_params)
-            {
-                if command == ServiceCommand::Connect {
-                    self.connecting = true;
-                    self.update()?;
-                }
+            let mut controller =
+                ServiceController::new(prompt::GtkPrompt, browser(tunnel_params.clone()), tunnel_params);
 
-                let result = rt.spawn(async move { controller.command(command).await }).await;
-
-                let status = match result {
-                    Ok(result) => result,
-                    Err(_) => Err(anyhow!("Internal error")),
-                };
-
-                let status_str = format!("{status:?}");
-
-                match status {
-                    Err(ref e) if command == ServiceCommand::Connect => {
-                        let _ = prompt::GtkPrompt.show_notification("Connection failed", &e.to_string());
-                    }
-                    _ => {}
-                }
-
-                if command != prev_command || status_str != prev_status {
-                    self.connecting = false;
-                    self.status = status;
-                    self.update()?;
-                }
-                prev_command = command;
-                prev_status = status_str;
+            if command == ServiceCommand::Connect {
+                self.connecting = true;
+                self.update()?;
             }
+
+            let result = rt.spawn(async move { controller.command(command).await }).await;
+
+            let status = match result {
+                Ok(result) => result,
+                Err(_) => Err(anyhow!("Internal error")),
+            };
+
+            let status_str = format!("{status:?}");
+
+            match status {
+                Err(ref e) if command == ServiceCommand::Connect => {
+                    let _ = prompt::GtkPrompt.show_notification("Connection failed", &e.to_string());
+                }
+                _ => {}
+            }
+
+            if command != prev_command || status_str != prev_status {
+                self.connecting = false;
+                self.status = status;
+                self.update()?;
+            }
+            prev_command = command;
+            prev_status = status_str;
         }
 
         Ok(())
