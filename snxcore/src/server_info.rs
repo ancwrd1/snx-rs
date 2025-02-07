@@ -34,9 +34,7 @@ pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<S
     let result = factors
         .into_iter()
         .filter_map(|factor| match factor.custom_display_labels {
-            LoginDisplayLabelSelect::LoginDisplayLabel(map) => {
-                map.get(&factor.factor_type).map(|label| format!("{}: ", label))
-            }
+            LoginDisplayLabelSelect::LoginDisplayLabel(map) => map.get("password").map(|label| format!("{}: ", label)),
             LoginDisplayLabelSelect::Empty(_) => None,
         })
         .collect();
