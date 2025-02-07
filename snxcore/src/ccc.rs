@@ -46,7 +46,7 @@ impl CccHttpClient {
             (
                 "UserPass",
                 Some(self.params.user_name.as_str().into()),
-                Some(self.params.password.as_str().into()),
+                Some(Default::default()),
             )
         } else {
             ("CertAuth", None, None)

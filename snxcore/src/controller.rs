@@ -132,7 +132,9 @@ where
                     .and_then(|p| p.pop_front())
                     .unwrap_or_else(|| mfa.prompt.clone());
 
-                let result = if !self.password_from_keychain.is_empty() && self.first_mfa {
+                let result = if !self.params.password.is_empty() && self.first_mfa {
+                    Ok(self.params.password.clone())
+                } else if !self.password_from_keychain.is_empty() && self.first_mfa {
                     Ok(self.password_from_keychain.clone())
                 } else {
                     let input = self.prompt.get_secure_input(&prompt)?;
@@ -245,11 +247,6 @@ where
         if self.params.server_prompt {
             self.mfa_prompts
                 .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
-            if !self.params.password.is_empty() {
-                if let Some(ref mut prompts) = self.mfa_prompts {
-                    prompts.pop_front();
-                }
-            }
         } else {
             self.mfa_prompts.replace(VecDeque::new());
         }

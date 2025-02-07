@@ -310,21 +310,6 @@ impl IpsecTunnelConnector {
                             self.challenge_code(Arc::new(VpnSession::empty()), &user_name).await
                         }
                     }
-                    ConfigAttributeType::UserPassword
-                        if !self.params.password.is_empty()
-                            && self.last_challenge_type != ConfigAttributeType::UserPassword
-                            && !matches!(
-                                session.state,
-                                SessionState::PendingChallenge(MfaChallenge {
-                                    mfa_type: MfaType::SamlSso,
-                                    ..
-                                })
-                            ) =>
-                    {
-                        self.last_challenge_type = ConfigAttributeType::UserPassword;
-                        let user_password = self.params.password.clone();
-                        self.challenge_code(Arc::new(VpnSession::empty()), &user_password).await
-                    }
                     other => {
                         self.last_challenge_type = other;
                         Ok(session)
