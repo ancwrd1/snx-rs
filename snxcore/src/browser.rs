@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::anyhow;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -6,6 +8,8 @@ use tokio::{
     net::TcpListener,
     sync::oneshot,
 };
+
+const OTP_TIMEOUT: Duration = Duration::from_secs(120);
 
 pub trait BrowserController {
     fn open(&self, url: &str) -> anyhow::Result<()>;
@@ -22,30 +26,41 @@ impl BrowserController for SystemBrowser {
     fn close(&self) {}
 }
 
-pub async fn run_otp_listener(sender: oneshot::Sender<String>) -> anyhow::Result<()> {
+pub fn spawn_otp_listener() -> oneshot::Receiver<anyhow::Result<String>> {
     static OTP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^GET /(?<otp>[0-9a-f]{60}|[0-9A-F]{60}).*").unwrap());
 
-    let tcp = TcpListener::bind("127.0.0.1:7779").await?;
-    let (mut stream, _) = tcp.accept().await?;
+    let (sender, receiver) = oneshot::channel();
 
-    let mut buf = [0u8; 65];
-    stream.read_exact(&mut buf).await?;
+    let fut = async move {
+        let tcp = TcpListener::bind("127.0.0.1:7779").await?;
+        let (mut stream, _) = tcp.accept().await?;
 
-    let mut data = String::from_utf8_lossy(&buf).into_owned();
+        let mut buf = [0u8; 65];
+        stream.read_exact(&mut buf).await?;
 
-    while stream.read(&mut buf[0..1]).await.is_ok() && buf[0] != b'\n' && buf[0] != b'\r' {
-        data.push(buf[0].into());
-    }
+        let mut data = String::from_utf8_lossy(&buf).into_owned();
 
-    let _ = stream.shutdown().await;
-    drop(stream);
-    drop(tcp);
-
-    if let Some(captures) = OTP_RE.captures(&data) {
-        if let Some(otp) = captures.name("otp") {
-            let _ = sender.send(otp.as_str().to_owned());
-            return Ok(());
+        while stream.read(&mut buf[0..1]).await.is_ok() && buf[0] != b'\n' && buf[0] != b'\r' {
+            data.push(buf[0].into());
         }
-    }
-    Err(anyhow!("No OTP acquired!"))
+
+        let _ = stream.shutdown().await;
+
+        if let Some(captures) = OTP_RE.captures(&data) {
+            if let Some(otp) = captures.name("otp") {
+                return Ok(otp.as_str().to_owned());
+            }
+        }
+        Err(anyhow!("Invalid OTP reply"))
+    };
+
+    tokio::spawn(async move {
+        let result = tokio::time::timeout(OTP_TIMEOUT, fut)
+            .await
+            .unwrap_or_else(|e| Err(e.into()));
+
+        let _ = sender.send(result);
+    });
+
+    receiver
 }

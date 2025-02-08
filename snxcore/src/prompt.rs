@@ -1,11 +1,6 @@
 use anyhow::anyhow;
 use std::io::Write;
-use std::{
-    io::{stderr, stdin, IsTerminal},
-    time::Duration,
-};
-
-pub const OTP_TIMEOUT: Duration = Duration::from_secs(120);
+use std::io::{stderr, stdin, IsTerminal};
 
 pub trait SecurePrompt {
     fn get_secure_input(&self, prompt: &str) -> anyhow::Result<String>;

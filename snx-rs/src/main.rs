@@ -2,26 +2,23 @@ use std::{collections::VecDeque, future::Future, sync::Arc};
 
 use clap::Parser;
 use futures::pin_mut;
-use tokio::{
-    signal::unix,
-    sync::{mpsc, oneshot},
-};
+use tokio::{signal::unix, sync::mpsc};
 use tracing::{debug, metadata::LevelFilter, warn};
 
+use crate::cmdline::CmdlineParams;
+use snxcore::model::params::TunnelType;
 use snxcore::{
-    browser::run_otp_listener,
+    browser::spawn_otp_listener,
     ccc::CccHttpClient,
     model::{
         params::{OperationMode, TunnelParams},
         MfaType, SessionState,
     },
     platform,
-    prompt::{SecurePrompt, TtyPrompt, OTP_TIMEOUT},
+    prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
     server_info, tunnel,
 };
-
-use crate::cmdline::CmdlineParams;
 
 mod cmdline;
 
@@ -161,9 +158,8 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             MfaType::SamlSso => {
                 println!("For SAML authentication open the following URL in your browser:");
                 println!("{}", challenge.prompt);
-                let (tx, rx) = oneshot::channel();
-                tokio::spawn(run_otp_listener(tx));
-                let otp = tokio::time::timeout(OTP_TIMEOUT, rx).await??;
+                let receiver = spawn_otp_listener();
+                let otp = receiver.await??;
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {
@@ -173,7 +169,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         }
     }
 
-    let tunnel = connector.create_tunnel(session, command_sender).await?;
+    let tunnel = connector.create_tunnel(session.clone(), command_sender).await?;
 
     if let Err(e) = platform::start_network_state_monitoring().await {
         warn!("Unable to start network monitoring: {}", e);
@@ -198,6 +194,11 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 }
             }
             result = &mut tunnel_fut => {
+                if params.tunnel_type == TunnelType::Ssl || !params.ike_persist {
+                    debug!("Signing out");
+                    let client = CccHttpClient::new(params.clone(), Some(session));
+                    let _ = client.signout().await;
+                }
                 break result;
             }
         }

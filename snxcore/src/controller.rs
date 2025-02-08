@@ -1,17 +1,16 @@
 use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
-use tokio::sync::oneshot;
 use tracing::warn;
 
 use crate::{
-    browser::{run_otp_listener, BrowserController},
+    browser::{spawn_otp_listener, BrowserController},
     ccc::CccHttpClient,
     model::{
         params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest, TunnelServiceResponse,
     },
     platform::{self, UdpSocketExt},
-    prompt::{SecurePrompt, OTP_TIMEOUT},
+    prompt::SecurePrompt,
     server_info,
 };
 
@@ -148,18 +147,17 @@ where
                 result
             }
             MfaType::SamlSso => {
-                let (tx, rx) = oneshot::channel();
-                tokio::spawn(run_otp_listener(tx));
+                let receiver = spawn_otp_listener();
 
                 self.browser_controller.open(&mfa.prompt)?;
 
-                match tokio::time::timeout(OTP_TIMEOUT, rx).await {
+                match receiver.await {
                     Ok(Ok(otp)) => {
                         self.browser_controller.close();
                         Ok(otp)
                     }
-                    _ => {
-                        warn!("Unable to acquire OTP from the browser");
+                    other => {
+                        warn!("Unable to acquire OTP from the browser: {:?}", other);
                         Err(anyhow!("Unable to acquire OTP from the browser!"))
                     }
                 }
