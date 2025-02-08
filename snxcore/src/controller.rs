@@ -94,32 +94,36 @@ where
         match response {
             TunnelServiceResponse::ConnectionStatus(status) => {
                 if let (None, Some(mfa)) = (status.connected_since, &status.mfa) {
-                    let first_mfa = self.first_mfa;
-
-                    match self.get_mfa_input(mfa).await {
-                        Ok(input) => {
-                            let result = self.do_challenge_code(input.clone()).await;
-                            if result.is_ok()
-                                && mfa.mfa_type == MfaType::PasswordInput
-                                && first_mfa
-                                && !self.params.no_keychain
-                                && !input.is_empty()
-                            {
-                                let _ = platform::store_password(&self.username, &input).await;
-                            }
-                            result
-                        }
-                        Err(e) => {
-                            let _ = self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT).await;
-                            Err(e)
-                        }
-                    }
+                    self.process_mfa_request(mfa).await
                 } else {
                     Ok(status)
                 }
             }
             TunnelServiceResponse::Error(e) => Err(anyhow!(e)),
             TunnelServiceResponse::Ok => Err(anyhow!("Unexpected response")),
+        }
+    }
+
+    async fn process_mfa_request(&mut self, mfa: &MfaChallenge) -> anyhow::Result<ConnectionStatus> {
+        let first_mfa = self.first_mfa;
+
+        match self.get_mfa_input(mfa).await {
+            Ok(input) => {
+                let result = self.do_challenge_code(input.clone()).await;
+                if result.is_ok()
+                    && mfa.mfa_type == MfaType::PasswordInput
+                    && first_mfa
+                    && !self.params.no_keychain
+                    && !input.is_empty()
+                {
+                    let _ = platform::store_password(&self.username, &input).await;
+                }
+                result
+            }
+            Err(e) => {
+                let _ = self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT).await;
+                Err(e)
+            }
         }
     }
 
