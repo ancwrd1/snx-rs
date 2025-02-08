@@ -480,9 +480,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.12"
+version = "1.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "755717a7de9ec452bf7f3f1a3099085deabd7f2962b861dae91ecd7a365903d2"
+checksum = "c7777341816418c02e033934a09f20dc0ccaf65a5201ef8a450ae0105a573fda"
 dependencies = [
  "shlex",
 ]
@@ -1746,7 +1746,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#96be69bbf2639256520603fa7f303cb7f0f7f62e"
+source = "git+https://github.com/ancwrd1/isakmp.git#8b0b53a033a3d47483454c9b486694c20743882c"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3120,7 +3120,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tray-icon",
- "zbus 5.4.0",
+ "zbus 5.5.0",
 ]
 
 [[package]]
@@ -3165,7 +3165,7 @@ dependencies = [
  "tracing",
  "tun",
  "uuid",
- "zbus 5.4.0",
+ "zbus 5.5.0",
 ]
 
 [[package]]
@@ -4188,9 +4188,9 @@ dependencies = [
 
 [[package]]
 name = "zbus"
-version = "5.4.0"
+version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbddd8b6cb25d5d8ec1b23277b45299a98bfb220f1761ca11e186d5c702507f8"
+checksum = "59c333f648ea1b647bc95dc1d34807c8e25ed7a6feff3394034dc4776054b236"
 dependencies = [
  "async-broadcast",
  "async-recursion",
@@ -4198,7 +4198,7 @@ dependencies = [
  "enumflags2",
  "event-listener",
  "futures-core",
- "futures-util",
+ "futures-lite",
  "hex",
  "nix",
  "ordered-stream",
@@ -4211,7 +4211,7 @@ dependencies = [
  "windows-sys 0.59.0",
  "winnow 0.7.1",
  "xdg-home",
- "zbus_macros 5.4.0",
+ "zbus_macros 5.5.0",
  "zbus_names 4.2.0",
  "zvariant 5.4.0",
 ]
@@ -4231,9 +4231,9 @@ dependencies = [
 
 [[package]]
 name = "zbus_macros"
-version = "5.4.0"
+version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dac404d48b4e9cf193c8b49589f3280ceca5ff63519e7e64f55b4cf9c47ce146"
+checksum = "f325ad10eb0d0a3eb060203494c3b7ec3162a01a59db75d2deee100339709fc0"
 dependencies = [
  "proc-macro-crate 3.2.0",
  "proc-macro2",
