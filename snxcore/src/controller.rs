@@ -186,8 +186,12 @@ where
     async fn do_connect(&mut self) -> anyhow::Result<ConnectionStatus> {
         let params = self.params.clone();
 
-        if params.server_name.is_empty() || params.login_type.is_empty() {
-            anyhow::bail!("Missing required parameters in the config file: server name and/or login type");
+        if params.server_name.is_empty() {
+            anyhow::bail!("Missing required parameter: server-name");
+        }
+
+        if params.login_type.is_empty() {
+            anyhow::bail!("Missing required parameter: login-type");
         }
 
         if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {
