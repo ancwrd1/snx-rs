@@ -145,7 +145,10 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
             MfaType::PasswordInput => {
-                let prompt = mfa_prompts.pop_front().unwrap_or_else(|| challenge.prompt.clone());
+                let prompt = mfa_prompts
+                    .pop_front()
+                    .map(|prompt| prompt.prompt)
+                    .unwrap_or_else(|| challenge.prompt.clone());
                 match TtyPrompt.get_secure_input(&prompt) {
                     Ok(input) => {
                         session = connector.challenge_code(session, &input).await?;

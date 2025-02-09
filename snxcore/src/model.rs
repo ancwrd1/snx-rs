@@ -132,3 +132,32 @@ pub enum TunnelServiceResponse {
     Error(String),
     ConnectionStatus(ConnectionStatus),
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoginPrompt {
+    pub factor_type: String,
+    pub prompt: String,
+}
+
+impl LoginPrompt {
+    pub fn new<F, S>(factor_type: F, prompt: S) -> Self
+    where
+        F: AsRef<str>,
+        S: AsRef<str>,
+    {
+        Self {
+            factor_type: factor_type.as_ref().to_owned(),
+            prompt: prompt.as_ref().to_owned(),
+        }
+    }
+
+    pub fn new_password<S: AsRef<str>>(prompt: S) -> Self {
+        Self {
+            factor_type: "password".to_owned(),
+            prompt: prompt.as_ref().to_owned(),
+        }
+    }
+    pub fn is_password(&self) -> bool {
+        self.factor_type == "password"
+    }
+}

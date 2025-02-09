@@ -7,7 +7,8 @@ use crate::{
     browser::{spawn_otp_listener, BrowserController},
     ccc::CccHttpClient,
     model::{
-        params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest, TunnelServiceResponse,
+        params::TunnelParams, ConnectionStatus, LoginPrompt, MfaChallenge, MfaType, TunnelServiceRequest,
+        TunnelServiceResponse,
     },
     platform::{self, UdpSocketExt},
     prompt::SecurePrompt,
@@ -44,7 +45,7 @@ impl FromStr for ServiceCommand {
 pub struct ServiceController<B, P> {
     pub params: Arc<TunnelParams>,
     prompt: P,
-    mfa_prompts: Option<VecDeque<String>>,
+    mfa_prompts: Option<VecDeque<LoginPrompt>>,
     password_from_keychain: String,
     username: String,
     first_mfa: bool,
@@ -133,18 +134,23 @@ where
                     .mfa_prompts
                     .as_mut()
                     .and_then(|p| p.pop_front())
-                    .unwrap_or_else(|| mfa.prompt.clone());
+                    .unwrap_or_else(|| LoginPrompt::new_password(&mfa.prompt));
 
-                let result = if !self.params.password.is_empty() && self.first_mfa {
+                if !self.params.password.is_empty() && self.first_mfa && prompt.is_password() {
+                    self.first_mfa = false;
                     Ok(self.params.password.clone())
-                } else if !self.password_from_keychain.is_empty() && self.first_mfa {
+                } else if !self.password_from_keychain.is_empty() && self.first_mfa && prompt.is_password() {
+                    self.first_mfa = false;
                     Ok(self.password_from_keychain.clone())
                 } else {
-                    let input = self.prompt.get_secure_input(&prompt)?;
+                    let prompt = if self.params.server_prompt {
+                        &prompt.prompt
+                    } else {
+                        &mfa.prompt
+                    };
+                    let input = self.prompt.get_secure_input(prompt)?;
                     Ok(input)
-                };
-                self.first_mfa = false;
-                result
+                }
             }
             MfaType::SamlSso => {
                 let receiver = spawn_otp_listener();
@@ -246,12 +252,8 @@ where
     }
 
     async fn fill_mfa_prompts(&mut self) {
-        if self.params.server_prompt {
-            self.mfa_prompts
-                .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
-        } else {
-            self.mfa_prompts.replace(VecDeque::new());
-        }
+        self.mfa_prompts
+            .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {

@@ -1,4 +1,5 @@
 use crate::model::proto::LoginDisplayLabelSelect;
+use crate::model::LoginPrompt;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -24,17 +25,19 @@ pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
 
 #[cached(
     result = true,
-    ty = "cached::UnboundCache<String, VecDeque<String>>",
+    ty = "cached::UnboundCache<String, VecDeque<LoginPrompt>>",
     create = "{ cached::UnboundCache::new() }",
     convert = r#"{ params.server_name.to_owned() }"#
 )]
-pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<String>> {
+pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<LoginPrompt>> {
     let factors = get_login_factors(params).await?;
 
     let result = factors
         .into_iter()
         .filter_map(|factor| match factor.custom_display_labels {
-            LoginDisplayLabelSelect::LoginDisplayLabel(map) => map.get("password").map(|label| format!("{}: ", label)),
+            LoginDisplayLabelSelect::LoginDisplayLabel(map) => map
+                .get("password")
+                .map(|label| LoginPrompt::new(factor.factor_type, format!("{}: ", label))),
             LoginDisplayLabelSelect::Empty(_) => None,
         })
         .collect();
