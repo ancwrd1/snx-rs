@@ -23,12 +23,6 @@ pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
         .try_into()
 }
 
-#[cached(
-    result = true,
-    ty = "cached::UnboundCache<String, VecDeque<LoginPrompt>>",
-    create = "{ cached::UnboundCache::new() }",
-    convert = r#"{ params.server_name.to_owned() }"#
-)]
 pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<LoginPrompt>> {
     let factors = get_login_factors(params).await?;
 
