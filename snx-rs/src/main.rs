@@ -142,14 +142,24 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         connector.authenticate().await?
     };
 
+    let mut password = params.password.clone();
+
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
             MfaType::PasswordInput => {
-                let prompt = mfa_prompts
-                    .pop_front()
-                    .map(|prompt| prompt.prompt)
-                    .unwrap_or_else(|| challenge.prompt.clone());
-                match TtyPrompt.get_secure_input(&prompt) {
+                let input = if !password.is_empty() {
+                    let input = password.clone();
+                    password.clear();
+                    Ok(input)
+                } else {
+                    let prompt = mfa_prompts
+                        .pop_front()
+                        .map(|prompt| prompt.prompt)
+                        .unwrap_or_else(|| challenge.prompt.clone());
+
+                    TtyPrompt.get_secure_input(&prompt)
+                };
+                match input {
                     Ok(input) => {
                         session = connector.challenge_code(session, &input).await?;
                     }
