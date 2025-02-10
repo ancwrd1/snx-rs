@@ -1,3 +1,8 @@
+## v3.0.4 (2025-02-10)
+- Fixed a bug with the wrong MFA code being stored in the keychain.
+- Fixed several issues with the loading and storing password in the keychain.
+- Delete persistent IKE session if the tunnel cannot be created.
+
 ## v3.0.3 (2025-02-05)
 - Only do a signout call when manually disconnecting an IPSec tunnel
 
