@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, future::Future, sync::Arc};
+use std::{future::Future, sync::Arc};
 
 use clap::Parser;
 use futures::pin_mut;
@@ -7,6 +7,7 @@ use tracing::{debug, metadata::LevelFilter, warn};
 
 use crate::cmdline::CmdlineParams;
 use snxcore::model::params::TunnelType;
+use snxcore::model::LoginPrompt;
 use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
@@ -120,11 +121,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         anyhow::bail!("Missing required parameters: server name and/or login type");
     }
 
-    let mut mfa_prompts = if params.server_prompt {
-        server_info::get_mfa_prompts(&params).await.unwrap_or_default()
-    } else {
-        VecDeque::default()
-    };
+    let mut mfa_prompts = server_info::get_mfa_prompts(&params).await.unwrap_or_default();
 
     let params = Arc::new(params);
     let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
@@ -142,23 +139,22 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         connector.authenticate().await?
     };
 
-    let mut password = params.password.clone();
+    let mut first_mfa = true;
 
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
             MfaType::PasswordInput => {
-                let input = if !password.is_empty() {
-                    let input = password.clone();
-                    password.clear();
-                    Ok(input)
-                } else {
-                    let prompt = mfa_prompts
-                        .pop_front()
-                        .map(|prompt| prompt.prompt)
-                        .unwrap_or_else(|| challenge.prompt.clone());
+                let prompt = mfa_prompts
+                    .pop_front()
+                    .unwrap_or_else(|| LoginPrompt::new_password(&challenge.prompt));
 
-                    TtyPrompt.get_secure_input(&prompt)
+                let input = if !params.password.is_empty() && first_mfa && prompt.is_password() {
+                    first_mfa = false;
+                    Ok(params.password.clone())
+                } else {
+                    TtyPrompt.get_secure_input(&prompt.prompt)
                 };
+
                 match input {
                     Ok(input) => {
                         session = connector.challenge_code(session, &input).await?;
