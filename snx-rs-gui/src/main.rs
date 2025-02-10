@@ -21,7 +21,7 @@ mod prompt;
 mod settings;
 mod theme;
 mod tray;
-const PING_DURATION: Duration = Duration::from_secs(1);
+const PING_DURATION: Duration = Duration::from_secs(2);
 
 fn main() -> anyhow::Result<()> {
     let params = params::CmdlineParams::parse();

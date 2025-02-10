@@ -72,7 +72,6 @@ impl CommandServer {
                 result = recv => {
                     let (data, addr) = result?;
                     let resp = self.handle(&data, event_sender.clone()).await;
-                    trace!("Response: {:?}", resp);
                     let json = serde_json::to_vec(&resp)?;
                     let _ = socket.send_to(&json, addr).await;
                 }
@@ -81,7 +80,6 @@ impl CommandServer {
     }
 
     async fn handle(&mut self, packet: &[u8], event_sender: mpsc::Sender<TunnelEvent>) -> TunnelServiceResponse {
-        trace!("Command received");
         let req = match serde_json::from_slice::<TunnelServiceRequest>(packet) {
             Ok(req) => req,
             Err(e) => {
@@ -109,10 +107,7 @@ impl CommandServer {
                     Err(e) => TunnelServiceResponse::Error(e.to_string()),
                 }
             }
-            TunnelServiceRequest::GetStatus => {
-                trace!("Handling get status command");
-                TunnelServiceResponse::ConnectionStatus(self.get_status().clone())
-            }
+            TunnelServiceRequest::GetStatus => TunnelServiceResponse::ConnectionStatus(self.get_status().clone()),
             TunnelServiceRequest::ChallengeCode(code, _) => {
                 debug!("Handling challenge code command");
                 match self.challenge_code(&code, event_sender).await {

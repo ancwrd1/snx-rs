@@ -392,6 +392,7 @@ impl TunnelParams {
                 "ike-transport" => params.ike_transport = v.parse().unwrap_or_default(),
                 "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
                 "icon-theme" => params.icon_theme = v.parse().unwrap_or_default(),
+                "client-mode" => params.client_mode = v,
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
