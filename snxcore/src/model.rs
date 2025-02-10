@@ -158,6 +158,6 @@ impl LoginPrompt {
         }
     }
     pub fn is_password(&self) -> bool {
-        self.factor_type == "password"
+        self.factor_type == "password" || self.factor_type == "user_defined"
     }
 }
