@@ -1,3 +1,6 @@
+## v3.0.5 (2025-02-11)
+- Fixed a bug with the password being not taken from the configuration file in some situations.
+
 ## v3.0.4 (2025-02-10)
 - Fixed a bug with the wrong MFA code being stored in the keychain.
 - Fixed several issues with the loading and storing password in the keychain.
