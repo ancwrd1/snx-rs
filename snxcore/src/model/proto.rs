@@ -339,13 +339,6 @@ pub enum LoginDisplayLabelSelect {
     Empty(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct LoginDisplayLabel {
-    pub header: String,
-    pub username: Option<String>,
-    pub password: Option<String>,
-}
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AuthenticationRealm {
     #[serde(rename = "clientType")]

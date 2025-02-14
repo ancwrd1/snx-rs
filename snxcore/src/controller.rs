@@ -7,7 +7,7 @@ use crate::{
     browser::{spawn_otp_listener, BrowserController},
     ccc::CccHttpClient,
     model::{
-        params::TunnelParams, ConnectionStatus, LoginPrompt, MfaChallenge, MfaType, TunnelServiceRequest,
+        params::TunnelParams, AuthPrompt, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest,
         TunnelServiceResponse,
     },
     platform::{self, UdpSocketExt},
@@ -45,7 +45,7 @@ impl FromStr for ServiceCommand {
 pub struct ServiceController<B, P> {
     pub params: Arc<TunnelParams>,
     prompt: P,
-    mfa_prompts: Option<VecDeque<LoginPrompt>>,
+    mfa_prompts: Option<VecDeque<AuthPrompt>>,
     password_from_keychain: String,
     username: String,
     first_mfa: bool,
@@ -134,7 +134,7 @@ where
                     .mfa_prompts
                     .as_mut()
                     .and_then(|p| p.pop_front())
-                    .unwrap_or_else(|| LoginPrompt::new_password(&mfa.prompt));
+                    .unwrap_or_else(|| AuthPrompt::new_password(&mfa.prompt));
 
                 if !self.params.password.is_empty() && self.first_mfa && prompt.is_password() {
                     self.first_mfa = false;
@@ -144,11 +144,11 @@ where
                     Ok(self.password_from_keychain.clone())
                 } else {
                     let prompt = if self.params.server_prompt {
-                        &prompt.prompt
+                        prompt
                     } else {
-                        &mfa.prompt
+                        AuthPrompt::new_password(&mfa.prompt)
                     };
-                    let input = self.prompt.get_secure_input(prompt)?;
+                    let input = self.prompt.get_secure_input(&prompt)?;
                     Ok(input)
                 }
             }
@@ -169,7 +169,8 @@ where
                 }
             }
             MfaType::UserNameInput => {
-                let input = self.prompt.get_plain_input(&mfa.prompt)?;
+                let prompt = AuthPrompt::new("", "username", &mfa.prompt);
+                let input = self.prompt.get_plain_input(&prompt)?;
                 self.username = input.clone();
 
                 if !self.username.is_empty() && !self.params.no_keychain && self.params.password.is_empty() {

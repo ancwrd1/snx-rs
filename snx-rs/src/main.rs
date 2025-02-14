@@ -7,7 +7,7 @@ use tracing::{debug, metadata::LevelFilter, warn};
 
 use crate::cmdline::CmdlineParams;
 use snxcore::model::params::TunnelType;
-use snxcore::model::LoginPrompt;
+use snxcore::model::AuthPrompt;
 use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
@@ -146,13 +146,13 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             MfaType::PasswordInput => {
                 let prompt = mfa_prompts
                     .pop_front()
-                    .unwrap_or_else(|| LoginPrompt::new_password(&challenge.prompt));
+                    .unwrap_or_else(|| AuthPrompt::new_password(&challenge.prompt));
 
                 let input = if !params.password.is_empty() && first_mfa && prompt.is_password() {
                     first_mfa = false;
                     Ok(params.password.clone())
                 } else {
-                    TtyPrompt.get_secure_input(&prompt.prompt)
+                    TtyPrompt.get_secure_input(&prompt)
                 };
 
                 match input {
@@ -172,7 +172,8 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {
-                let input = TtyPrompt.get_plain_input(&challenge.prompt)?;
+                let prompt = AuthPrompt::new("", "username", &challenge.prompt);
+                let input = TtyPrompt.get_plain_input(&prompt)?;
                 session = connector.challenge_code(session, &input).await?;
             }
         }
