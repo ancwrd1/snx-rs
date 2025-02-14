@@ -1,3 +1,7 @@
+## v3.0.6 (unreleased)
+- Improved authentication prompts by displaying a header retrieved from VPN server
+- Lowered Rust compiler MSRV to 1.79 (RHEL 9.5)
+
 ## v3.0.5 (2025-02-11)
 - Fixed a bug with the password being not taken from the configuration file in some situations.
 
