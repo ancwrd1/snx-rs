@@ -1,6 +1,6 @@
 ## v3.0.6 (2025-02-16)
 - Improved authentication prompts by displaying a header retrieved from VPN server
-- Fixed IPSec over TCPT for AES encryption ciphers less than 256 bits
+- Fixed IPSec over TCPT for AES encryption ciphers with key length shorter than 256 bits
 - Added 3DES support for IKE SA exchange
 - Lowered Rust compiler MSRV to 1.79 (RHEL 9.5)
 
