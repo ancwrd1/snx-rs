@@ -26,6 +26,13 @@ pub struct CmdlineParams {
     #[clap(long = "password", short = 'p', help = "Password in base64-encoded form")]
     pub password: Option<String>,
 
+    #[clap(
+        long = "password-factor",
+        short = 'Y',
+        help = "Numerical index of the password factor, 1..N [default: 1]"
+    )]
+    pub password_factor: Option<usize>,
+
     #[clap(long = "config-file", short = 'c', help = "Read parameters from config file")]
     pub config_file: Option<PathBuf>,
 
@@ -223,6 +230,10 @@ impl CmdlineParams {
         if let Some(password) = self.password {
             other.password = password;
             let _ = other.decode_password();
+        }
+
+        if let Some(password_factor) = self.password_factor {
+            other.password_factor = password_factor;
         }
 
         if let Some(log_level) = self.log_level {

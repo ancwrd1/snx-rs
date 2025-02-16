@@ -52,6 +52,7 @@ struct MyWidgets {
     tunnel_type: gtk::ComboBoxText,
     user_name: gtk::Entry,
     password: gtk::Entry,
+    password_factor: gtk::Entry,
     no_dns: gtk::CheckButton,
     search_domains: gtk::Entry,
     ignored_domains: gtk::Entry,
@@ -116,6 +117,7 @@ impl MyWidgets {
         self.ike_lifetime.text().parse::<u32>()?;
         self.esp_lifetime.text().parse::<u32>()?;
         self.ike_port.text().parse::<u16>()?;
+        self.password_factor.text().parse::<usize>()?;
 
         let dns_servers = self.dns_servers.text();
         if !dns_servers.is_empty() {
@@ -175,6 +177,7 @@ impl SettingsDialog {
         let tunnel_type = gtk::ComboBoxText::builder().build();
         let user_name = gtk::Entry::builder().text(&params.user_name).build();
         let password = gtk::Entry::builder().text(&params.password).visibility(false).build();
+        let password_factor = gtk::Entry::builder().text(params.password_factor.to_string()).build();
 
         let no_dns = gtk::CheckButton::builder().active(params.no_dns).build();
 
@@ -399,6 +402,7 @@ impl SettingsDialog {
             tunnel_type,
             user_name,
             password,
+            password_factor,
             no_dns,
             search_domains,
             ignored_domains,
@@ -473,6 +477,7 @@ impl SettingsDialog {
         };
         params.user_name = self.widgets.user_name.text().into();
         params.password = self.widgets.password.text().into();
+        params.password_factor = self.widgets.password_factor.text().parse()?;
         params.no_dns = self.widgets.no_dns.is_active();
         params.search_domains = self
             .widgets
@@ -745,6 +750,10 @@ impl SettingsDialog {
         let mfa_prompts = self.form_box("Ask server for MFA prompts");
         mfa_prompts.pack_start(&self.widgets.mfa_prompts, false, true, 0);
         misc_box.pack_start(&mfa_prompts, false, true, 6);
+
+        let password_factor = self.form_box("Index of password factor, 1..N");
+        password_factor.pack_start(&self.widgets.password_factor, false, true, 0);
+        misc_box.pack_start(&password_factor, false, true, 6);
 
         let no_keychain = self.form_box("Do not store passwords in the keychain");
         no_keychain.pack_start(&self.widgets.no_keychain, false, true, 0);

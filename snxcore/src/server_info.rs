@@ -32,7 +32,6 @@ pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<A
             LoginDisplayLabelSelect::LoginDisplayLabel(map) => map.get("password").map(|label| {
                 AuthPrompt::new(
                     map.get("header").map(ToOwned::to_owned).unwrap_or_default(),
-                    factor.factor_type,
                     format!("{}: ", label),
                 )
             }),

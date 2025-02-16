@@ -136,32 +136,18 @@ pub enum TunnelServiceResponse {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AuthPrompt {
     pub header: String,
-    pub factor_type: String,
     pub prompt: String,
 }
 
 impl AuthPrompt {
-    pub fn new<H, F, S>(header: H, factor_type: F, prompt: S) -> Self
+    pub fn new<H, S>(header: H, prompt: S) -> Self
     where
         H: AsRef<str>,
-        F: AsRef<str>,
         S: AsRef<str>,
     {
         Self {
             header: header.as_ref().to_owned(),
-            factor_type: factor_type.as_ref().to_owned(),
             prompt: prompt.as_ref().to_owned(),
         }
-    }
-
-    pub fn new_password<S: AsRef<str>>(prompt: S) -> Self {
-        Self {
-            header: String::new(),
-            factor_type: "password".to_owned(),
-            prompt: prompt.as_ref().to_owned(),
-        }
-    }
-    pub fn is_password(&self) -> bool {
-        self.factor_type == "password" || self.factor_type == "user_defined"
     }
 }

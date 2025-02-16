@@ -48,7 +48,7 @@ pub struct ServiceController<B, P> {
     mfa_prompts: Option<VecDeque<AuthPrompt>>,
     password_from_keychain: String,
     username: String,
-    first_mfa: bool,
+    mfa_index: usize,
     browser_controller: B,
 }
 
@@ -64,7 +64,7 @@ where
             mfa_prompts: None,
             password_from_keychain: String::new(),
             username: String::new(),
-            first_mfa: true,
+            mfa_index: 0,
             browser_controller,
         }
     }
@@ -105,14 +105,12 @@ where
     }
 
     async fn process_mfa_request(&mut self, mfa: &MfaChallenge) -> anyhow::Result<ConnectionStatus> {
-        let first_mfa = self.first_mfa;
-
         match self.get_mfa_input(mfa).await {
             Ok(input) => {
                 let result = self.do_challenge_code(input.clone()).await;
                 if result.is_ok()
                     && mfa.mfa_type == MfaType::PasswordInput
-                    && first_mfa
+                    && self.mfa_index == self.params.password_factor
                     && !self.params.no_keychain
                     && !input.is_empty()
                 {
@@ -130,23 +128,23 @@ where
     async fn get_mfa_input(&mut self, mfa: &MfaChallenge) -> anyhow::Result<String> {
         match mfa.mfa_type {
             MfaType::PasswordInput => {
+                self.mfa_index += 1;
+
                 let prompt = self
                     .mfa_prompts
                     .as_mut()
                     .and_then(|p| p.pop_front())
-                    .unwrap_or_else(|| AuthPrompt::new_password(&mfa.prompt));
+                    .unwrap_or_else(|| AuthPrompt::new("", &mfa.prompt));
 
-                if !self.params.password.is_empty() && self.first_mfa && prompt.is_password() {
-                    self.first_mfa = false;
+                if !self.params.password.is_empty() && self.mfa_index == self.params.password_factor {
                     Ok(self.params.password.clone())
-                } else if !self.password_from_keychain.is_empty() && self.first_mfa && prompt.is_password() {
-                    self.first_mfa = false;
+                } else if !self.password_from_keychain.is_empty() && self.mfa_index == self.params.password_factor {
                     Ok(self.password_from_keychain.clone())
                 } else {
                     let prompt = if self.params.server_prompt {
                         prompt
                     } else {
-                        AuthPrompt::new_password(&mfa.prompt)
+                        AuthPrompt::new("", &mfa.prompt)
                     };
                     let input = self.prompt.get_secure_input(&prompt)?;
                     Ok(input)
@@ -169,7 +167,7 @@ where
                 }
             }
             MfaType::UserNameInput => {
-                let prompt = AuthPrompt::new("", "username", &mfa.prompt);
+                let prompt = AuthPrompt::new("Username is required for authentication", &mfa.prompt);
                 let input = self.prompt.get_plain_input(&prompt)?;
                 self.username = input.clone();
 
@@ -257,6 +255,7 @@ where
     }
 
     async fn fill_mfa_prompts(&mut self) {
+        self.mfa_index = 0;
         self.mfa_prompts
             .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
     }

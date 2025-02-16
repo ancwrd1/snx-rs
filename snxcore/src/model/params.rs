@@ -258,6 +258,7 @@ pub struct TunnelParams {
     pub server_name: String,
     pub user_name: String,
     pub password: String,
+    pub password_factor: usize,
     pub log_level: String,
     pub search_domains: Vec<String>,
     pub ignore_search_domains: Vec<String>,
@@ -299,6 +300,7 @@ impl Default for TunnelParams {
             server_name: String::new(),
             user_name: String::new(),
             password: String::new(),
+            password_factor: 1,
             log_level: "off".to_owned(),
             search_domains: Vec::new(),
             ignore_search_domains: Vec::new(),
@@ -351,6 +353,7 @@ impl TunnelParams {
                 "server-name" => params.server_name = v,
                 "user-name" => params.user_name = v,
                 "password" => params.password = v,
+                "password-factor" => params.password_factor = v.parse().unwrap_or(1),
                 "log-level" => params.log_level = v,
                 "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
                 "ignore-search-domains" => {
@@ -413,6 +416,7 @@ impl TunnelParams {
             "password={}",
             base64::engine::general_purpose::STANDARD.encode(&self.password)
         )?;
+        writeln!(buf, "password-factor={}", self.password_factor)?;
         writeln!(buf, "search-domains={}", self.search_domains.join(","))?;
         writeln!(buf, "ignore-search-domains={}", self.ignore_search_domains.join(","))?;
         writeln!(

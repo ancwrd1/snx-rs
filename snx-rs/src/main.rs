@@ -139,17 +139,18 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         connector.authenticate().await?
     };
 
-    let mut first_mfa = true;
+    let mut mfa_index = 0;
 
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
             MfaType::PasswordInput => {
+                mfa_index += 1;
+
                 let prompt = mfa_prompts
                     .pop_front()
-                    .unwrap_or_else(|| AuthPrompt::new_password(&challenge.prompt));
+                    .unwrap_or_else(|| AuthPrompt::new("", &challenge.prompt));
 
-                let input = if !params.password.is_empty() && first_mfa && prompt.is_password() {
-                    first_mfa = false;
+                let input = if !params.password.is_empty() && mfa_index == params.password_factor {
                     Ok(params.password.clone())
                 } else {
                     TtyPrompt.get_secure_input(&prompt)
@@ -172,7 +173,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {
-                let prompt = AuthPrompt::new("", "username", &challenge.prompt);
+                let prompt = AuthPrompt::new("Username is required for authentication", &challenge.prompt);
                 let input = TtyPrompt.get_plain_input(&prompt)?;
                 session = connector.challenge_code(session, &input).await?;
             }
