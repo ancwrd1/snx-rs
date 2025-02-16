@@ -6,6 +6,7 @@
 | `login-type=vpn_xxx`                      | authentication method, acquired from the server, this is a required parameter                                                                         |
 | `user-name=<username>`                    | user name to authenticate, not used for SAML or certificate authentication                                                                            |
 | `password=<pass>`                         | optional password in base64 encoding                                                                                                                  |
+| `password-factor=<1..N>`                  | index of the password authentication factor which is used for keychain storage and for reading the password from config file. Default is 1 (first).   |
 | `cert-type=<cert_type>`                   | enable certificate-based authentication using given type: pkcs8, pkcs11, pkcs12, none                                                                 |
 | `cert-path=<cert_path>`                   | path to PEM file for PKCS8, path to PFX file for PKCS12, path to driver file for PKCS11                                                               |
 | `cert-password=<cert_password>`           | password for PKCS12 or pin for PKCS11                                                                                                                 |

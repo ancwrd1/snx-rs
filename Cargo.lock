@@ -3088,7 +3088,7 @@ checksum = "7fcf8323ef1faaee30a44a340193b1ac6814fd9b7b4e88e9d4519a3e4abe1cfd"
 
 [[package]]
 name = "snx-rs"
-version = "3.0.6"
+version = "3.0.7"
 dependencies = [
  "anyhow",
  "clap",
@@ -3103,7 +3103,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "3.0.6"
+version = "3.0.7"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -3124,7 +3124,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "3.0.6"
+version = "3.0.7"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -3169,7 +3169,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "3.0.6"
+version = "3.0.7"
 dependencies = [
  "anyhow",
  "clap",

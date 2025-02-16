@@ -1,3 +1,6 @@
+## v3.0.7 (unreleased)
+- Added `password-factor=N` option to determine which authentication factor is the password.
+
 ## v3.0.6 (2025-02-16)
 - Improved authentication prompts by displaying a header retrieved from VPN server
 - Fixed IPSec over TCPT for AES encryption ciphers with key length shorter than 256 bits
