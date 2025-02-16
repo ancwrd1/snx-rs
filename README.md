@@ -174,7 +174,7 @@ Automatic channel reconnection will happen when running in the standalone mode, 
 ## Additional Usage Notes
 
 * If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
-* If the password is not provided in the configuration file, the first entered MFA challenge code will be stored in the OS keychain unless the `no-keychain` parameter is specified. Keychain integration is provided only in command mode.
+* If the password is not provided in the configuration file, the first entered MFA challenge code will be stored in the OS keychain unless the `no-keychain` parameter is specified. Keychain integration is provided only in command mode. The `password-factor` option controls which MFA factor to consider a password.
 
 <a id="faq"></a>
 
