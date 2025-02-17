@@ -11,7 +11,7 @@ use snxcore::{
 };
 
 #[derive(Parser)]
-#[clap(about = "VPN client for Checkpoint security gateway", name = "snxctl")]
+#[clap(about = "VPN client for Check Point security gateway", name = "snxctl", version = env!("CARGO_PKG_VERSION"))]
 pub struct CmdlineParams {
     #[clap(
         long = "config-file",

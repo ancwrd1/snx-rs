@@ -4,7 +4,7 @@ use clap::Parser;
 use snxcore::model::params::TunnelParams;
 
 #[derive(Parser, Clone)]
-#[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs-gui")]
+#[clap(about = "VPN client for Check Point security gateway", name = "snx-rs-gui", version = env!("CARGO_PKG_VERSION"))]
 pub struct CmdlineParams {
     #[clap(
         long = "config-file",

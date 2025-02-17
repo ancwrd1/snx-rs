@@ -7,7 +7,7 @@ use tracing::level_filters::LevelFilter;
 use snxcore::model::params::{CertType, OperationMode, TransportType, TunnelParams, TunnelType};
 
 #[derive(Parser)]
-#[clap(about = "VPN client for Checkpoint security gateway", name = "snx-rs")]
+#[clap(about = "VPN client for Check Point security gateway", name = "snx-rs", version = env!("CARGO_PKG_VERSION"))]
 pub struct CmdlineParams {
     #[clap(long = "server-name", short = 's', help = "Server name")]
     pub server_name: Option<String>,
