@@ -60,7 +60,7 @@ Otherwise follow these steps:
 
 With `systemd-resolved` it is also possible to use **routing domains** (as opposed to **search domains**).
 Routing domains are prefixed with `~` character and when configured only requests with fully-qualified domains
-will be forwarded through the tunnel. For further explanation please check (this article)[https://systemd.io/RESOLVED-VPNS/].
+will be forwarded through the tunnel. For further explanation please check [this article](https://systemd.io/RESOLVED-VPNS/).
 
 ## Differences between SSL and IPSec tunnels
 
