@@ -66,16 +66,16 @@ The `set-routing-domains=true|false` option controls whether to treat all acquir
 
 ## Differences between SSL and IPSec tunnels
 
-IPSec is recommended for all connections because of the performance and feature set. However, in certain situations,
+IPSec is recommended for all connections because of it's performance and features. However, in certain situations,
 it might not work (for example because of the corporate firewall policies). In this case the SSL tunnel can be used
 which is a subject to some limitations.
 
-Note: IPSec requires that IPv6 module is enabled in the kernel.
-
-**New in version 3.0**: TCPT transport support has been added to the application.
+**New in version 3.0**: TCPT transport support has been added to the application which largely deprecates SSL tunnel.
 TCPT is a proprietary Check Point protocol that operates over TCP port 443, allowing users to bypass restrictive
 firewalls and tunnel all traffic through a single TCP port. Its performance is comparable to an SSL tunnel,
 and it functions via a TUN device rather than relying on the kernel's IPSec infrastructure.
+
+**NOTE**: IPSec over UDP requires that IPv6 module is enabled in the kernel.
 
 |                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
 |--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
