@@ -291,6 +291,7 @@ pub struct TunnelParams {
     pub no_keepalive: bool,
     pub icon_theme: IconTheme,
     pub ike_transport: TransportType,
+    pub set_routing_domains: bool,
     pub config_file: PathBuf,
 }
 
@@ -333,6 +334,7 @@ impl Default for TunnelParams {
             no_keepalive: false,
             icon_theme: IconTheme::default(),
             ike_transport: TransportType::default(),
+            set_routing_domains: false,
             config_file: Self::default_config_path(),
         }
     }
@@ -396,6 +398,7 @@ impl TunnelParams {
                 "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
                 "icon-theme" => params.icon_theme = v.parse().unwrap_or_default(),
                 "client-mode" => params.client_mode = v,
+                "set-routing-domains" => params.set_routing_domains = v.parse().unwrap_or_default(),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -497,6 +500,7 @@ impl TunnelParams {
         writeln!(buf, "no-keepalive={}", self.no_keepalive)?;
         writeln!(buf, "icon-theme={}", self.icon_theme)?;
         writeln!(buf, "ike-transport={}", self.ike_transport.as_str())?;
+        writeln!(buf, "set-routing-domains={}", self.set_routing_domains)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);

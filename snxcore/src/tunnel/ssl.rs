@@ -215,24 +215,36 @@ impl SslTunnel {
     }
 
     pub async fn setup_dns(&self, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
-        let search_domains = if let Some(ref suffixes) = self.hello_reply.office_mode.dns_suffix {
-            suffixes
-                .0
-                .iter()
-                .chain(self.params.search_domains.iter())
-                .filter(|s| {
-                    !s.is_empty()
-                        && !self
-                            .params
-                            .ignore_search_domains
-                            .iter()
-                            .any(|d| d.to_lowercase() == s.to_lowercase())
-                })
-                .cloned()
-                .collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
+        let acquired_domains = self
+            .hello_reply
+            .office_mode
+            .dns_suffix
+            .as_ref()
+            .map(|s| s.0.as_slice())
+            .unwrap_or_default()
+            .iter()
+            .map(|s| {
+                if self.params.set_routing_domains {
+                    format!("~{}", s)
+                } else {
+                    s.clone()
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let search_domains = acquired_domains
+            .iter()
+            .chain(self.params.search_domains.iter())
+            .filter(|s| {
+                !s.is_empty()
+                    && !self
+                        .params
+                        .ignore_search_domains
+                        .iter()
+                        .any(|d| d.to_lowercase() == s.trim_matches('~').to_lowercase())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
 
         let dns_servers = self
             .hello_reply

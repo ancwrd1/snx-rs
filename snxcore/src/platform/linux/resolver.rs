@@ -140,7 +140,8 @@ impl ResolvConfConfigurator {
             .map(ToOwned::to_owned)
             .collect::<Vec<_>>();
 
-        let search_domains = config.search_domains.join(" ");
+        // resolv.conf has no concept of routing domains
+        let search_domains = config.search_domains.join(" ").replace('~', "");
 
         if configure {
             if search.is_empty() {

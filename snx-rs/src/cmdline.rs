@@ -76,6 +76,13 @@ pub struct CmdlineParams {
     pub ignore_dns_servers: Vec<Ipv4Addr>,
 
     #[clap(
+        long = "set-routing-domains",
+        short = 'Z',
+        help = "Treat received search domains as routing domains"
+    )]
+    pub set_routing_domains: Option<bool>,
+
+    #[clap(
         long = "default-route",
         short = 't',
         help = "Set the default route through the tunnel"
@@ -254,6 +261,10 @@ impl CmdlineParams {
 
         if !self.ignore_dns_servers.is_empty() {
             other.ignore_dns_servers = self.ignore_dns_servers;
+        }
+
+        if let Some(set_routing_domains) = self.set_routing_domains {
+            other.set_routing_domains = set_routing_domains;
         }
 
         if let Some(default_route) = self.default_route {

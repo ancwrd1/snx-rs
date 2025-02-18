@@ -58,6 +58,7 @@ struct MyWidgets {
     ignored_domains: gtk::Entry,
     dns_servers: gtk::Entry,
     ignored_dns_servers: gtk::Entry,
+    set_routing_domains: gtk::CheckButton,
     no_routing: gtk::CheckButton,
     default_routing: gtk::CheckButton,
     add_routes: gtk::Entry,
@@ -180,6 +181,7 @@ impl SettingsDialog {
         let password_factor = gtk::Entry::builder().text(params.password_factor.to_string()).build();
 
         let no_dns = gtk::CheckButton::builder().active(params.no_dns).build();
+        let set_routing_domains = gtk::CheckButton::builder().active(params.set_routing_domains).build();
 
         let search_domains = gtk::Entry::builder()
             .placeholder_text("Comma-separated domains")
@@ -408,6 +410,7 @@ impl SettingsDialog {
             ignored_domains,
             dns_servers,
             ignored_dns_servers,
+            set_routing_domains,
             no_routing,
             default_routing,
             add_routes,
@@ -479,6 +482,7 @@ impl SettingsDialog {
         params.password = self.widgets.password.text().into();
         params.password_factor = self.widgets.password_factor.text().parse()?;
         params.no_dns = self.widgets.no_dns.is_active();
+        params.set_routing_domains = self.widgets.set_routing_domains.is_active();
         params.search_domains = self
             .widgets
             .search_domains
@@ -708,6 +712,10 @@ impl SettingsDialog {
         let ignored_domains = self.form_box("Ignored search domains");
         ignored_domains.pack_start(&self.widgets.ignored_domains, false, true, 0);
         dns_box.pack_start(&ignored_domains, false, true, 6);
+
+        let set_routing_domains = self.form_box("Treat received search domains as routing domains");
+        set_routing_domains.pack_start(&self.widgets.set_routing_domains, false, true, 0);
+        dns_box.pack_start(&set_routing_domains, false, true, 6);
 
         dns_box
     }

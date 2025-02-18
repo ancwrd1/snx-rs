@@ -41,11 +41,11 @@ This project contains the source code for an unofficial Linux client for Check P
 * D-Bus
 * GTK3 and libappindicator3 for the GUI frontend
 
-## DNS resolver configuration
+## DNS resolver configuration and privacy
 
 By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
 to modify the /etc/resolv.conf file directly and DNS servers acquired from the tunnel will be used globally.
-For better privacy, use the split-dns provided by systemd-resolved.
+For better privacy, use the split DNS provided by systemd-resolved.
 
 In order to find out whether it is already enabled, check the /etc/resolv.conf file:
 
@@ -61,6 +61,8 @@ Otherwise follow these steps:
 With `systemd-resolved` it is also possible to use **routing domains** (as opposed to **search domains**).
 Routing domains are prefixed with `~` character and when configured only requests for the fully-qualified domains
 will be forwarded through the tunnel. For further explanation please check [this article](https://systemd.io/RESOLVED-VPNS/).
+
+The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
 ## Differences between SSL and IPSec tunnels
 

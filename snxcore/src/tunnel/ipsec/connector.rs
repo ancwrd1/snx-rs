@@ -251,7 +251,13 @@ impl IpsecTunnelConnector {
             .map(|v| String::from_utf8_lossy(&v).into_owned())
             .unwrap_or_default()
             .split([',', ';'])
-            .map(ToOwned::to_owned)
+            .map(|s| {
+                if self.params.set_routing_domains {
+                    format!("~{}", s)
+                } else {
+                    s.to_owned()
+                }
+            })
             .collect();
 
         self.do_esp_proposal().await?;

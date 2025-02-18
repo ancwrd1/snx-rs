@@ -161,7 +161,7 @@ impl TunIpsecTunnel {
                             .params
                             .ignore_search_domains
                             .iter()
-                            .any(|d| d.to_lowercase() == s.to_lowercase())
+                            .any(|d| d.to_lowercase() == s.trim_matches('~').to_lowercase())
                 })
                 .cloned()
                 .collect::<Vec<_>>()
