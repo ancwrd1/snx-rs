@@ -76,24 +76,22 @@ async fn main() -> anyhow::Result<()> {
 
     let command = params.command.into();
 
-    match service_controller.command(command).await {
-        Ok(status) if command != ServiceCommand::Info => {
-            if let Some(since) = status.connected_since {
-                println!(
-                    "{} since: {}",
-                    if status.mfa.is_some() {
-                        "MFA pending"
-                    } else {
-                        "Connected"
-                    },
-                    since
-                );
-            } else {
-                println!("Disconnected");
-            }
+    let status = service_controller.command(command).await?;
+
+    if command != ServiceCommand::Info {
+        if let Some(since) = status.connected_since {
+            println!(
+                "{} since: {}",
+                if status.mfa.is_some() {
+                    "MFA pending"
+                } else {
+                    "Connected"
+                },
+                since
+            );
+        } else {
+            println!("Disconnected");
         }
-        Err(e) => println!("Error: {e}"),
-        _ => {}
     }
 
     Ok(())
