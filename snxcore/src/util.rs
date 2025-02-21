@@ -98,8 +98,9 @@ pub fn print_login_options(server_info: &SExpression) {
     {
         println!("Supported tunnel protocols:");
         for item in items {
-            if let Some(v) = item.get_value::<String>("") {
-                println!("\t{v}");
+            match item.get_value::<String>("") {
+                Some(v) if v != "L2TP" => println!("\t{v}"),
+                _ => {}
             }
         }
     }
@@ -112,6 +113,20 @@ pub fn print_login_options(server_info: &SExpression) {
                 (opt.get_value::<String>("display_name"), opt.get_value::<String>("id"))
             {
                 println!("\t{id} ({display_name})");
+
+                if let Some(SExpression::Object(_, factors)) = opt.get("factors") {
+                    for (index, (_, factor)) in factors.iter().enumerate() {
+                        let factor_type = factor.get_value::<String>("factor_type").unwrap_or_default();
+
+                        let prompt = factor
+                            .get("custom_display_labels")
+                            .and_then(|s| s.get_value::<String>("password"))
+                            .map(|p| format!(", prompt = \"{}\"", p))
+                            .unwrap_or_default();
+
+                        println!("\t\tfactor {}: type = {}{}", index + 1, factor_type, prompt);
+                    }
+                }
             }
             i += 1;
         }
