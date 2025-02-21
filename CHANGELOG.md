@@ -1,7 +1,8 @@
-## v3.1.0 (unreleased)
+## v3.1.0 (2025-02-21)
 - Added `password-factor=N` option to determine which authentication factor is the password. Default is 1 (first).
 - Added `set-routing-domains=true|false` option to treat the received search domains as [routing domains](https://systemd.io/RESOLVED-VPNS/).
 - Return non-zero exit code from snxctl when an error is euncountered.
+- Extended "-m info" to show list of factors per login type
 
 ## v3.0.6 (2025-02-16)
 - Improved authentication prompts by displaying a header retrieved from VPN server

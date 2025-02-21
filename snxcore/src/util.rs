@@ -109,14 +109,14 @@ pub fn print_login_options(server_info: &SExpression) {
         server_info.get("CCCserverResponse:ResponseData:login_options_data:login_options_list")
     {
         println!("Available login types:");
-        for (_, opt) in options {
+        for opt in options.values() {
             if let (Some(display_name), Some(id)) =
                 (opt.get_value::<String>("display_name"), opt.get_value::<String>("id"))
             {
                 println!("    {id} ({display_name})");
 
                 if let Some(SExpression::Object(_, factors)) = opt.get("factors") {
-                    for (index, (_, factor)) in factors.iter().enumerate() {
+                    for (index, factor) in factors.values().enumerate() {
                         let factor_type = factor.get_value::<String>("factor_type").unwrap_or_default();
 
                         let prompt = factor
