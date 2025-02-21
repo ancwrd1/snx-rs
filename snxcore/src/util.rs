@@ -99,20 +99,21 @@ pub fn print_login_options(server_info: &SExpression) {
         println!("Supported tunnel protocols:");
         for item in items {
             match item.get_value::<String>("") {
-                Some(v) if v != "L2TP" => println!("\t{v}"),
+                Some(v) if v != "L2TP" => println!("    {v}"),
                 _ => {}
             }
         }
     }
 
-    if let Some(options) = server_info.get("CCCserverResponse:ResponseData:login_options_data:login_options_list") {
+    if let Some(SExpression::Object(_, options)) =
+        server_info.get("CCCserverResponse:ResponseData:login_options_data:login_options_list")
+    {
         println!("Available login types:");
-        let mut i = 0;
-        while let Some(opt) = options.get(&format!("{i}")) {
+        for (_, opt) in options {
             if let (Some(display_name), Some(id)) =
                 (opt.get_value::<String>("display_name"), opt.get_value::<String>("id"))
             {
-                println!("\t{id} ({display_name})");
+                println!("    {id} ({display_name})");
 
                 if let Some(SExpression::Object(_, factors)) = opt.get("factors") {
                     for (index, (_, factor)) in factors.iter().enumerate() {
@@ -124,11 +125,10 @@ pub fn print_login_options(server_info: &SExpression) {
                             .map(|p| format!(", prompt = \"{}\"", p))
                             .unwrap_or_default();
 
-                        println!("\t\tfactor {}: type = {}{}", index + 1, factor_type, prompt);
+                        println!("        factor {}: type = {}{}", index + 1, factor_type, prompt);
                     }
                 }
             }
-            i += 1;
         }
     }
 }
