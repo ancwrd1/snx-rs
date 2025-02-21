@@ -513,7 +513,7 @@ impl TunnelConnector for IpsecTunnelConnector {
         trace!("Authentication blob: {}", realm_expr);
 
         let identity_request = IdentityRequest {
-            auth_blob: Bytes::copy_from_slice(realm_expr.to_string().as_bytes()),
+            auth_blob: realm_expr.to_string(),
             verify_certs: self.params.ipsec_cert_check,
             ca_certs: self.params.ca_cert.clone(),
             with_mfa: self.params.cert_type == CertType::None

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fs, os::fd::AsRawFd, time::Duration};
 
 use anyhow::{anyhow, Context};
+use cached::proc_macro::cached;
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
     sys::stat::Mode,
@@ -193,6 +194,7 @@ pub async fn configure_device(device_name: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cached(result = true)]
 pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
     let data = fs::read_to_string("/etc/machine-id")?;
     Ok(Uuid::try_parse(data.trim())?)
