@@ -64,7 +64,7 @@ will be forwarded through the tunnel. For further explanation please check [this
 
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
-## Tunnel transport selection
+## Tunnel Transport Selection
 
 IPSec is the default transport and is preferred because of it's performance and support for extended authentication types.
 By default, it will use kernel IPSec infrastructure with UDP-based tunnel over ports 500 and 4500.
