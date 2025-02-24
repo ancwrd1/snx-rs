@@ -66,7 +66,7 @@ The `set-routing-domains=true|false` option controls whether to treat all acquir
 
 ## Tunnel transport selection
 
-IPSec transport is the default transport and is preferred because of it's performance and support for extended authentication types.
+IPSec is the default transport and is preferred because of it's performance and support for extended authentication types.
 By default, it will use kernel IPSec infrastructure with UDP-based tunnel over ports 500 and 4500.
 
 In some environments those ports may be blocked by the firewall, in this case use the `ike-transport=tcpt` and `esp-transport=tcpt` options
