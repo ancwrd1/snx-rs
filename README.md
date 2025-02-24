@@ -64,18 +64,16 @@ will be forwarded through the tunnel. For further explanation please check [this
 
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
-## Differences between SSL and IPSec tunnels
+## Tunnel transport selection
 
-IPSec is recommended for all connections because of it's performance and features. However, in certain situations,
-it might not work (for example because of the corporate firewall policies). In this case the SSL tunnel can be used
-which is a subject to some limitations.
+IPSec transport is the default transport and is preferred because of it's performance and support for extended authentication types.
+By default, it will use kernel IPSec infrastructure with UDP-based tunnel over ports 500 and 4500.
 
-**New in version 3.0**: TCPT transport support has been added to the application which largely deprecates SSL tunnel.
-TCPT is a proprietary Check Point protocol that operates over TCP port 443, allowing users to bypass restrictive
-firewalls and tunnel all traffic through a single TCP port. Its performance is comparable to an SSL tunnel,
-and it functions via a TUN device rather than relying on the kernel's IPSec infrastructure.
+In some environments those ports may be blocked by the firewall, in this case use the `ike-transport=tcpt` and `esp-transport=tcpt` options
+to tunnel IPSec traffic over TCP port 443. Note that TCPT transport is slower than native IPSec over UDP.
 
-**NOTE**: IPSec over UDP requires that IPv6 module is enabled in the kernel.
+For older VPN Servers or in case they don't have IPSec enabled, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
+SSL tunnel has a limited support for authentication types: no browser-based SSO, no hardware token support, no MFA in combination with the certificates.  
 
 |                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
 |--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
