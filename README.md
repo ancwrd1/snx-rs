@@ -19,7 +19,7 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ## Implemented Features
 
-* SAML SSO authentication (only with IPSec tunnel)
+* Browser-based SSO authentication (only with IPSec tunnel)
 * Username/password authentication with MFA support
 * Certificate authentication via provided client certificate (PFX, PEM, or HW token)
 * HW token support via PKCS11 (only with IPSec tunnel)
