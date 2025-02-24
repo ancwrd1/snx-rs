@@ -19,15 +19,15 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ## Implemented Features
 
-* Browser-based SSO authentication (only with IPSec tunnel)
+* Browser-based SSO authentication
 * Username/password authentication with MFA support
 * Certificate authentication via provided client certificate (PFX, PEM, or HW token)
-* HW token support via PKCS11 (only with IPSec tunnel)
+* HW token support via PKCS11
 * GTK frontend with tray icon
 * IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
+* Automatic IPSec tunnel reconnection without authentication, via optional parameter
 * SSL tunnel via Linux TUN device (deprecated in favour of IPSec/TCPT)
-* Store passwords in the keychain using Secret Service API
-* Automatic IPSec tunnel reconnection without authentication (via optional parameter)
+* Store password factor in the OS keychain using Secret Service API
 
 ## Limitations
 
