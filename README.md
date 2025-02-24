@@ -24,8 +24,8 @@ This project contains the source code for an unofficial Linux client for Check P
 * Certificate authentication via provided client certificate (PFX, PEM, or HW token)
 * HW token support via PKCS11 (only with IPSec tunnel)
 * GTK frontend with tray icon
-* SSL tunnel via Linux TUN device
 * IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
+* SSL tunnel via Linux TUN device (deprecated in favour of IPSec/TCPT)
 * Store passwords in the keychain using Secret Service API
 * Automatic IPSec tunnel reconnection without authentication (via optional parameter)
 
@@ -72,7 +72,7 @@ By default, it will use kernel IPSec infrastructure with UDP-based tunnel over p
 In some environments those ports may be blocked by the firewall, in this case use the `ike-transport=tcpt` and `esp-transport=tcpt` options
 to tunnel IPSec traffic over TCP port 443. Note that TCPT transport is slower than native IPSec over UDP.
 
-For older VPN Servers or in case they don't have IPSec enabled, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
+For older VPN servers or in case they don't have IPSec enabled, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
 SSL tunnel has a limited support for authentication types: no browser-based SSO, no hardware token support, no MFA in combination with the certificates.  
 
 |                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
