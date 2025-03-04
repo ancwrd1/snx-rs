@@ -28,7 +28,8 @@ fn main() -> anyhow::Result<()> {
 
     let tunnel_params = Arc::new(TunnelParams::load(params.config_file()).unwrap_or_default());
 
-    let instance = SingleInstance::new("/tmp/snx-rs-gui.s")?;
+    let uid = unsafe { libc::getuid() };
+    let instance = SingleInstance::new(format!("/tmp/snx-rs-gui-{}.lock", uid))?;
     if !instance.is_single() {
         return Ok(());
     }

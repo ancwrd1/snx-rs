@@ -26,3 +26,4 @@ clap = { version = "4", features = ["derive"] }
 hex = "0.4"
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 futures = "0.3"
+libc = "0.2"
