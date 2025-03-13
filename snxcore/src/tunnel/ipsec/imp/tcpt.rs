@@ -6,7 +6,7 @@ use futures::{
 };
 use isakmp::esp::EspEncapType;
 use isakmp::transport::{
-    tcpt::{handshake, TcptTransportCodec},
+    tcpt::{TcptHandshaker, TcptTransportCodec},
     TcptDataType,
 };
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -53,7 +53,7 @@ impl TcptIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let mut tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
 
-        handshake(TcptDataType::Esp, &mut tcp).await?;
+        tcp.handshake(TcptDataType::Esp).await?;
 
         let (sender, receiver) = make_channel(tcp);
 
