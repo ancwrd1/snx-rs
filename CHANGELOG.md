@@ -1,4 +1,4 @@
-## next (unreleased)
+## v3.1.1 (2025-03-15)
 - Fixed a problem with snx-rs-gui lock file in the multi-user environments
 
 ## v3.1.0 (2025-02-21)
