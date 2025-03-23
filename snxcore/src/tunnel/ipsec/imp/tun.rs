@@ -30,10 +30,6 @@ const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 pub type PacketSender = Sender<Bytes>;
 pub type PacketReceiver = Receiver<Bytes>;
 
-async fn iproute2(args: &[&str]) -> anyhow::Result<String> {
-    util::run_command("ip", args).await
-}
-
 pub(crate) struct TunIpsecTunnel {
     params: Arc<TunnelParams>,
     session: Arc<VpnSession>,
@@ -93,14 +89,7 @@ impl TunIpsecTunnel {
         if let Some(device) = self.tun_device.take() {
             if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
                 let _ = platform::remove_default_route(dest_ip).await;
-
-                let dst = dest_ip.to_string();
-                let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
-
-                let _ = iproute2(&[
-                    "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-                ])
-                .await;
+                let _ = platform::remove_keepalive_route(dest_ip).await;
             }
             if !self.params.no_dns {
                 let _ = self.setup_dns(device.name(), true).await;
@@ -127,18 +116,7 @@ impl TunIpsecTunnel {
             }
         }
 
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
-        let dst = dest_ip.to_string();
-
-        if !default_route_set {
-            iproute2(&["route", "add", "table", &port, &dst, "dev", dev_name]).await?;
-        }
-
-        // route keepalive packets through the tunnel
-        iproute2(&[
-            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-        ])
-        .await?;
+        platform::setup_keepalive_route(dev_name, dest_ip, !default_route_set).await?;
 
         subnets.retain(|s| !s.contains(&dest_ip));
 

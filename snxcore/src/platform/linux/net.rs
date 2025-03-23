@@ -151,11 +151,47 @@ pub async fn setup_default_route(device: &str, ipaddr: Ipv4Addr) -> anyhow::Resu
     Ok(())
 }
 
+pub async fn setup_keepalive_route(device: &str, ipaddr: Ipv4Addr, with_table: bool) -> anyhow::Result<()> {
+    debug!("Setting up keepalive route through {device}");
+
+    let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
+    let dst = ipaddr.to_string();
+
+    if with_table {
+        crate::util::run_command("ip", &["route", "add", "table", &port, &dst, "dev", device]).await?;
+    }
+
+    crate::util::run_command(
+        "ip",
+        &[
+            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+        ],
+    )
+    .await?;
+
+    Ok(())
+}
+
 pub async fn remove_default_route(ipaddr: Ipv4Addr) -> anyhow::Result<()> {
     let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
     let dst = ipaddr.to_string();
 
     crate::util::run_command("ip", ["rule", "del", "not", "to", &dst, "table", &port]).await?;
+
+    Ok(())
+}
+
+pub async fn remove_keepalive_route(ipaddr: Ipv4Addr) -> anyhow::Result<()> {
+    let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
+    let dst = ipaddr.to_string();
+
+    crate::util::run_command(
+        "ip",
+        &[
+            "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
+        ],
+    )
+    .await?;
 
     Ok(())
 }
