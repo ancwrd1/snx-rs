@@ -14,10 +14,10 @@ keywords = ["snx", "vpn", "ipsec"]
 publish = false
 
 [profile.release]
-strip = true
 panic = "abort"
 
 [profile.lto]
 inherits = "release"
+strip = true
 lto = true
 codegen-units = 1
