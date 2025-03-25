@@ -341,9 +341,6 @@ impl XfrmConfigurator {
     async fn setup_routing(&self) -> anyhow::Result<()> {
         let mut subnets = self.tunnel_params.add_routes.clone();
 
-        let dst = self.dest_ip.to_string();
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
-
         let mut default_route_set = false;
 
         if !self.tunnel_params.no_routing {
@@ -355,15 +352,7 @@ impl XfrmConfigurator {
             }
         }
 
-        if !default_route_set {
-            iproute2(&["route", "add", "table", &port, &dst, "dev", &self.name]).await?;
-        }
-
-        // route keepalive packets through the tunnel
-        iproute2(&[
-            "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-        ])
-        .await?;
+        platform::setup_keepalive_route(&self.name, self.dest_ip, !default_route_set).await?;
 
         subnets.retain(|s| !s.contains(&self.dest_ip));
 
@@ -520,14 +509,7 @@ impl IpsecConfigurator for XfrmConfigurator {
 
         let _ = self.new_xfrm_link().delete().await;
 
-        let dst = self.dest_ip.to_string();
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
-
-        let _ = iproute2(&[
-            "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-        ])
-        .await;
-
+        let _ = platform::remove_keepalive_route(self.dest_ip).await;
         let _ = platform::remove_default_route(self.dest_ip).await;
     }
 }
