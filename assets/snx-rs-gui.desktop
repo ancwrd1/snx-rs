@@ -2,7 +2,7 @@
 Name=SNX-RS VPN client
 GenericName=Checkpoint VPN client
 Comment=Checkpoint VPN client
-Categories=Network;VPN;
+Categories=Network;
 Exec=/opt/snx-rs/snx-rs-gui
 Icon=network-vpn
 Keywords=network;vpn;
