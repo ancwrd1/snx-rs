@@ -1,5 +1,5 @@
 [Unit]
-Description=VPN client for Checkpoint security gateway
+Description=SNX-RS VPN client
 After = network.target network-online.target
 Wants = network-online.target
 
