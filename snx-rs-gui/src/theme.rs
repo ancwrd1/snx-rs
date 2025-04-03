@@ -54,7 +54,10 @@ pub fn init_theme_monitoring() -> anyhow::Result<()> {
         let connection = Connection::session().await?;
         let proxy = DesktopSettingsProxy::new(&connection).await?;
         let scheme = proxy.read_one("org.freedesktop.appearance", "color-scheme").await?;
-        let scheme = u32::try_from(scheme)?;
+        let mut scheme = u32::try_from(scheme)?;
+        if scheme == 0 && is_ubuntu() {
+            scheme = 2;
+        }
         COLOR_THEME.store(scheme, Ordering::SeqCst);
 
         debug!("System color scheme: {}", scheme);
@@ -64,7 +67,10 @@ pub fn init_theme_monitoring() -> anyhow::Result<()> {
             while let Some(signal) = stream.next().await {
                 let args = signal.args()?;
                 if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
-                    let scheme = u32::try_from(args.value)?;
+                    let mut scheme = u32::try_from(args.value)?;
+                    if scheme == 0 && is_ubuntu() {
+                        scheme = 2;
+                    }
                     debug!("New system color scheme: {}", scheme);
                     COLOR_THEME.store(scheme, Ordering::SeqCst);
                 }
@@ -74,4 +80,8 @@ pub fn init_theme_monitoring() -> anyhow::Result<()> {
 
         Ok(())
     })
+}
+
+fn is_ubuntu() -> bool {
+    std::env::var("XDG_CURRENT_DESKTOP") == Ok("ubuntu:GNOME".to_string())
 }
