@@ -9,6 +9,7 @@ readme.workspace = true
 repository.workspace = true
 keywords.workspace = true
 publish.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 isakmp = { git = "https://github.com/ancwrd1/isakmp.git" }
@@ -25,7 +26,7 @@ reqwest = { version = "0.12", features = ["native-tls"] }
 futures = "0.3"
 bytes = "1"
 hex = "0.4"
-tun = { version = "0.7", features = ["async"] }
+tun = { version = "=0.7.13", features = ["async"] }
 ipnet = {  version = "2", features = ["serde"] }
 libc = "0.2"
 base64 = "0.22"

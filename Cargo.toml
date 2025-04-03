@@ -12,6 +12,7 @@ readme = "README.md"
 repository = "https://github.com/ancwrd1/snx-rs"
 keywords = ["snx", "vpn", "ipsec"]
 publish = false
+rust-version = "1.79"
 
 [profile.release]
 panic = "abort"
