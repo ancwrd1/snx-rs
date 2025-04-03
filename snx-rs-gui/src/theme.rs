@@ -83,5 +83,5 @@ pub fn init_theme_monitoring() -> anyhow::Result<()> {
 }
 
 fn is_ubuntu() -> bool {
-    std::env::var("XDG_CURRENT_DESKTOP") == Ok("ubuntu:GNOME".to_string())
+    std::env::var("XDG_CURRENT_DESKTOP").is_ok_and(|v| v == "ubuntu:GNOME")
 }
