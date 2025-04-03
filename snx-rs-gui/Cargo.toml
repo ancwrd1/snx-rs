@@ -9,7 +9,6 @@ readme.workspace = true
 repository.workspace = true
 keywords.workspace = true
 publish.workspace = true
-rust-version.workspace = true
 
 [dependencies]
 snxcore = { path = "../snxcore" }
