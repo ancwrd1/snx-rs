@@ -101,9 +101,7 @@ pub async fn get_default_ip() -> anyhow::Result<String> {
                 while let Some(part) = parts.next() {
                     if part == "inet" {
                         if let Some(ip) = parts.next() {
-                            if let Some((ip, _)) = ip.split_once('/') {
-                                return Ok(ip.to_string());
-                            }
+                            return Ok(ip.split_once('/').map_or(ip, |(before, _)| before).to_string());
                         }
                     }
                 }
