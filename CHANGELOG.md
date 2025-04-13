@@ -1,3 +1,8 @@
+## v3.1.2 (2025-04-13)
+- Fixed a problem with default IP address detection on some systems
+- Removed invalid "VPN" category from the .desktop file
+- Improved desktop theme detection on Ubuntu
+
 ## v3.1.1 (2025-03-15)
 - Fixed a problem with snx-rs-gui lock file in the multi-user environments
 
