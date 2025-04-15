@@ -13,7 +13,7 @@ use isakmp::{
     ikev1::{service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
     payload::AttributesPayload,
-    session::{IsakmpSession, OfficeMode},
+    session::{IsakmpSession, OfficeMode, SessionType},
     transport::{IsakmpTransport, TcptDataType, TcptTransport, UdpTransport},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
@@ -103,7 +103,7 @@ impl IpsecTunnelConnector {
         let identity = match params.cert_type {
             CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
                 (Some(path), Some(password)) => Identity::Pkcs12 {
-                    path: path.clone(),
+                    data: std::fs::read(path)?,
                     password: password.clone(),
                 },
                 _ => anyhow::bail!("No PKCS12 path and password provided!"),
@@ -143,7 +143,7 @@ impl IpsecTunnelConnector {
 
         debug!("Using ESP transport: {}", params.esp_transport);
 
-        let ikev1_session = Box::new(Ikev1Session::new(identity)?);
+        let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
 
         let transport: Box<dyn IsakmpTransport + Send + Sync> = match params.ike_transport {
             TransportType::Udp => Box::new(UdpTransport::new(socket, ikev1_session.new_codec())),
@@ -520,7 +520,7 @@ impl TunnelConnector for IpsecTunnelConnector {
                 || self.is_multi_factor_login_type().await.unwrap_or(false),
         };
 
-        if let Some((attrs_reply, message_id)) = self.service.do_identity_protection(identity_request).await? {
+        if let (Some(attrs_reply), message_id) = self.service.do_identity_protection(identity_request).await? {
             self.last_message_id = message_id;
 
             self.process_auth_attributes(attrs_reply).await
@@ -548,7 +548,7 @@ impl TunnelConnector for IpsecTunnelConnector {
     async fn challenge_code(&mut self, _session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
         let id_reply = self
             .service
-            .send_auth_attribute(
+            .send_attribute(
                 self.last_identifier,
                 self.last_message_id,
                 self.last_challenge_type,
