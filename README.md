@@ -151,7 +151,6 @@ The following parameters control certificate validation during TLS and IKE excha
 * `ca-cert`: Comma-separated list of paths to PEM or DER files which contain custom CA root certificates
 * `no-cert-check`: true|false. Disable server hostname check for TLS connection. Insecure and not recommended. Default is false.
 * `ignore-server-cert`: true|false. Disable all TLS certificate checks. Insecure and not recommended. Default is false.
-* `ipsec-cert-check`: true|false. Enable additional certificate checks for IKE exchange. Requires custom CA root certificate to be specified. Standard system-wide CA roots are not used. Default is false (certificates are not checked).
 
 Note that enabling any of the insecure options may compromise the channel security.
 

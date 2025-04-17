@@ -271,7 +271,6 @@ pub struct TunnelParams {
     pub no_dns: bool,
     pub no_cert_check: bool,
     pub ignore_server_cert: bool,
-    pub ipsec_cert_check: bool,
     pub tunnel_type: TunnelType,
     pub ca_cert: Vec<PathBuf>,
     pub login_type: String,
@@ -314,7 +313,6 @@ impl Default for TunnelParams {
             no_dns: false,
             no_cert_check: false,
             ignore_server_cert: false,
-            ipsec_cert_check: false,
             tunnel_type: TunnelType::default(),
             ca_cert: Vec::new(),
             login_type: String::new(),
@@ -323,7 +321,7 @@ impl Default for TunnelParams {
             cert_password: None,
             cert_id: None,
             if_name: None,
-            no_keychain: false,
+            no_keychain: true,
             server_prompt: true,
             esp_lifetime: DEFAULT_ESP_LIFETIME,
             esp_transport: TransportType::default(),
@@ -373,7 +371,6 @@ impl TunnelParams {
                 }
                 "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                 "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
-                "ipsec-cert-check" => params.ipsec_cert_check = v.parse().unwrap_or_default(),
                 "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
                 "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                 "ca-cert" => params.ca_cert = v.split(',').map(|s| s.trim().into()).collect(),
@@ -463,7 +460,6 @@ impl TunnelParams {
         writeln!(buf, "no-dns={}", self.no_dns)?;
         writeln!(buf, "no-cert-check={}", self.no_cert_check)?;
         writeln!(buf, "ignore-server-cert={}", self.ignore_server_cert)?;
-        writeln!(buf, "ipsec-cert-check={}", self.ipsec_cert_check)?;
         writeln!(buf, "tunnel-type={}", self.tunnel_type.as_str())?;
         writeln!(
             buf,

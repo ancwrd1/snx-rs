@@ -322,6 +322,10 @@ impl LoginOption {
             factors: BTreeMap::default(),
         }
     }
+
+    pub fn is_multi_factor(&self) -> bool {
+        self.factors.values().any(|v| v.factor_type != "certificate")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -34,6 +34,7 @@ use crate::{
         },
         TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
     },
+    util,
 };
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
@@ -411,10 +412,10 @@ impl IpsecTunnelConnector {
     }
 
     async fn is_multi_factor_login_type(&self) -> anyhow::Result<bool> {
-        Ok(server_info::get_login_factors(&self.params)
+        Ok(server_info::get_login_option(&self.params)
             .await?
-            .into_iter()
-            .any(|factor| factor.factor_type != "certificate"))
+            .map(|opt| opt.is_multi_factor())
+            .unwrap_or(true))
     }
 
     fn session_file_name(&self) -> PathBuf {
@@ -494,13 +495,15 @@ impl TunnelConnector for IpsecTunnelConnector {
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
 
+        let login_option = server_info::get_login_option(&self.params).await?;
+
         let realm = AuthenticationRealm {
             client_type: self.params.tunnel_type.as_client_type().to_owned(),
             old_session_id: String::new(),
             protocol_version: 100,
             client_mode: self.params.client_mode.clone(),
             selected_realm_id: self.params.login_type.clone(),
-            secondary_realm_hash: None,
+            secondary_realm_hash: login_option.map(|o| o.secondary_realm_hash),
             client_logging_data: Some(ClientLoggingData {
                 os_name: Some("Windows".to_owned()),
                 device_id: Some(crate::util::get_device_id()),
@@ -512,12 +515,20 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         trace!("Authentication blob: {}", realm_expr);
 
+        let info = server_info::get(&self.params).await?;
+
+        let internal_ca_fingerprints = info
+            .connectivity_info
+            .internal_ca_fingerprint
+            .into_values()
+            .flat_map(|fp| util::snx_decrypt(fp.as_bytes()).ok())
+            .map(|v| String::from_utf8_lossy(&v).into_owned())
+            .collect();
+
         let identity_request = IdentityRequest {
             auth_blob: realm_expr.to_string(),
-            verify_certs: self.params.ipsec_cert_check,
-            ca_certs: self.params.ca_cert.clone(),
-            with_mfa: self.params.cert_type == CertType::None
-                || self.is_multi_factor_login_type().await.unwrap_or(false),
+            with_mfa: self.is_multi_factor_login_type().await.unwrap_or(true),
+            internal_ca_fingerprints,
         };
 
         if let (Some(attrs_reply), message_id) = self.service.do_identity_protection(identity_request).await? {

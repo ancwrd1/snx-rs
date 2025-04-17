@@ -67,7 +67,6 @@ struct MyWidgets {
     no_keychain: gtk::CheckButton,
     no_cert_name_check: gtk::CheckButton,
     no_cert_check: gtk::CheckButton,
-    ipsec_cert_check: gtk::CheckButton,
     cert_type: gtk::ComboBoxText,
     cert_path: gtk::Entry,
     cert_password: gtk::Entry,
@@ -248,7 +247,6 @@ impl SettingsDialog {
         let no_keychain = gtk::CheckButton::builder().active(params.no_keychain).build();
         let no_cert_name_check = gtk::CheckButton::builder().active(params.no_cert_check).build();
         let no_cert_check = gtk::CheckButton::builder().active(params.ignore_server_cert).build();
-        let ipsec_cert_check = gtk::CheckButton::builder().active(params.ipsec_cert_check).build();
         let cert_type = gtk::ComboBoxText::builder().build();
         let cert_path = gtk::Entry::builder()
             .text(
@@ -419,7 +417,6 @@ impl SettingsDialog {
             no_keychain,
             no_cert_name_check,
             no_cert_check,
-            ipsec_cert_check,
             cert_type,
             cert_path,
             cert_password,
@@ -531,7 +528,6 @@ impl SettingsDialog {
         params.no_keychain = self.widgets.no_keychain.is_active();
         params.no_cert_check = self.widgets.no_cert_name_check.is_active();
         params.ignore_server_cert = self.widgets.no_cert_check.is_active();
-        params.ipsec_cert_check = self.widgets.ipsec_cert_check.is_active();
         params.cert_type = self.widgets.cert_type.active().unwrap_or_default().into();
         params.cert_path = {
             let text = self.widgets.cert_path.text();
@@ -739,10 +735,6 @@ impl SettingsDialog {
         let no_cert_check = self.form_box("Disable all TLS certificate checks (INSECURE!)");
         no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
         certs_box.pack_start(&no_cert_check, false, true, 6);
-
-        let ipsec_cert_check = self.form_box("Enable IPSec certificate validation");
-        ipsec_cert_check.pack_start(&self.widgets.ipsec_cert_check, false, true, 0);
-        certs_box.pack_start(&ipsec_cert_check, false, true, 6);
 
         certs_box
     }

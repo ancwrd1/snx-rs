@@ -1,17 +1,23 @@
-use crate::model::proto::LoginDisplayLabelSelect;
-use crate::model::AuthPrompt;
+use std::{collections::VecDeque, sync::Arc};
+
 use crate::{
     ccc::CccHttpClient,
     model::{
         params::TunnelParams,
-        proto::{LoginFactor, ServerInfoResponse},
+        proto::{LoginDisplayLabelSelect, LoginOption, ServerInfoResponse},
+        AuthPrompt,
     },
     sexpr::SExpression,
 };
 use cached::proc_macro::cached;
-use std::{collections::VecDeque, sync::Arc};
 use tracing::trace;
 
+#[cached(
+    result = true,
+    ty = "cached::UnboundCache<String, ServerInfoResponse>",
+    create = "{ cached::UnboundCache::new() }",
+    convert = r#"{ format!("{}/{}", params.server_name, params.login_type) }"#
+)]
 pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
     let client = CccHttpClient::new(Arc::new(params.clone()), None);
 
@@ -24,10 +30,13 @@ pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
 }
 
 pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<AuthPrompt>> {
-    let factors = get_login_factors(params).await?;
+    let factors = get_login_option(params)
+        .await?
+        .map(|o| o.factors)
+        .unwrap_or_default()
+        .into_values();
 
     let result = factors
-        .into_iter()
         .filter_map(|factor| match factor.custom_display_labels {
             LoginDisplayLabelSelect::LoginDisplayLabel(map) => map.get("password").map(|label| {
                 AuthPrompt::new(
@@ -44,27 +53,14 @@ pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<A
     Ok(result)
 }
 
-#[cached(
-    result = true,
-    ty = "cached::UnboundCache<String, Vec<LoginFactor>>",
-    create = "{ cached::UnboundCache::new() }",
-    convert = r#"{ format!("{}/{}", params.server_name, params.login_type) }"#
-)]
-pub async fn get_login_factors(params: &TunnelParams) -> anyhow::Result<Vec<LoginFactor>> {
+pub async fn get_login_option(params: &TunnelParams) -> anyhow::Result<Option<LoginOption>> {
     let info = get(params).await?;
 
-    let result = info
-        .login_options_data
-        .and_then(|data| {
-            data.login_options_list.into_values().find_map(|option| {
-                if option.id == params.login_type {
-                    Some(option.factors.into_values().collect::<Vec<_>>())
-                } else {
-                    None
-                }
-            })
-        })
-        .unwrap_or_default();
+    let result = info.login_options_data.and_then(|data| {
+        data.login_options_list
+            .into_values()
+            .find(|option| option.id == params.login_type)
+    });
 
     Ok(result)
 }

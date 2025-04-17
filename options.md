@@ -23,8 +23,7 @@
 | `no-dns=true\|false`                      | Do not change DNS resolver configuration, default is false                                                                                            |
 | `no-cert-check=true\|false`               | do not check server certificate common name, default is false                                                                                         |
 | `ignore-server-cert=true\|false`          | Disable all certificate checks, default is false                                                                                                      |
-| `ca-cert=<ca_certs>`                      | One or more comma-separated custom CA root certificates used to validate TLS connection and optionally IPSec certificates.                            |
-| `ipsec-cert-check=true\|false`            | Enable IPSec certificate check during IKE identity protection phase. Requires custom CA root certificate to be specified.                             |
+| `ca-cert=<ca_certs>`                      | One or more comma-separated custom CA root certificates used to validate TLS connection.                                                              |
 | `tunnel-type=ipsec\|ssl`                  | Tunnel type, default is ipsec                                                                                                                         |
 | `no-keychain=true\|false`                 | Do not store password in the OS keychain, default is false                                                                                            |
 | `server-prompt=true\|false`               | Retrieve MFA prompts from the server, default is false                                                                                                |

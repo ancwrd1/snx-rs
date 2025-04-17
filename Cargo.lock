@@ -1614,7 +1614,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#67fb09ab39cba42a6011a5b911276c7c76f9ba38"
+source = "git+https://github.com/ancwrd1/isakmp.git#227682da0c1be4d028d043cd8e6a1088fa3ea128"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2406,9 +2406,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a31971752e70b8b2686d7e46ec17fb38dad4051d94024c88df49b667caea9c84"
+checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
 dependencies = [
  "unicode-ident",
 ]
