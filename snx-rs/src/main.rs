@@ -96,9 +96,7 @@ async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
     if params.server_name.is_empty() {
         anyhow::bail!("Missing required parameters: server name!");
     }
-    let client = CccHttpClient::new(Arc::new(params), None);
-    let info = client.get_server_info().await?;
-    snxcore::util::print_login_options(&info);
+    snxcore::util::print_login_options(&params).await?;
 
     Ok(())
 }

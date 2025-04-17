@@ -269,7 +269,6 @@ pub struct TunnelParams {
     pub add_routes: Vec<Ipv4Net>,
     pub ignore_routes: Vec<Ipv4Net>,
     pub no_dns: bool,
-    pub no_cert_check: bool,
     pub ignore_server_cert: bool,
     pub tunnel_type: TunnelType,
     pub ca_cert: Vec<PathBuf>,
@@ -280,7 +279,6 @@ pub struct TunnelParams {
     pub cert_id: Option<String>,
     pub if_name: Option<String>,
     pub no_keychain: bool,
-    pub server_prompt: bool,
     pub esp_lifetime: Duration,
     pub esp_transport: TransportType,
     pub ike_lifetime: Duration,
@@ -311,7 +309,6 @@ impl Default for TunnelParams {
             add_routes: Vec::new(),
             ignore_routes: Vec::new(),
             no_dns: false,
-            no_cert_check: false,
             ignore_server_cert: false,
             tunnel_type: TunnelType::default(),
             ca_cert: Vec::new(),
@@ -322,7 +319,6 @@ impl Default for TunnelParams {
             cert_id: None,
             if_name: None,
             no_keychain: true,
-            server_prompt: true,
             esp_lifetime: DEFAULT_ESP_LIFETIME,
             esp_transport: TransportType::default(),
             ike_lifetime: DEFAULT_IKE_LIFETIME,
@@ -370,7 +366,6 @@ impl TunnelParams {
                     params.ignore_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect();
                 }
                 "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
-                "no-cert-check" => params.no_cert_check = v.parse().unwrap_or_default(),
                 "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
                 "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                 "ca-cert" => params.ca_cert = v.split(',').map(|s| s.trim().into()).collect(),
@@ -381,7 +376,6 @@ impl TunnelParams {
                 "cert-id" => params.cert_id = Some(v),
                 "if-name" => params.if_name = Some(v),
                 "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
-                "server-prompt" => params.server_prompt = v.parse().unwrap_or_default(),
                 "esp-lifetime" => {
                     params.esp_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_ESP_LIFETIME, Duration::from_secs);
                 }
@@ -458,7 +452,6 @@ impl TunnelParams {
                 .join(",")
         )?;
         writeln!(buf, "no-dns={}", self.no_dns)?;
-        writeln!(buf, "no-cert-check={}", self.no_cert_check)?;
         writeln!(buf, "ignore-server-cert={}", self.ignore_server_cert)?;
         writeln!(buf, "tunnel-type={}", self.tunnel_type.as_str())?;
         writeln!(
@@ -485,7 +478,6 @@ impl TunnelParams {
             writeln!(buf, "if-name={if_name}")?;
         }
         writeln!(buf, "no-keychain={}", self.no_keychain)?;
-        writeln!(buf, "server-prompt={}", self.server_prompt)?;
         writeln!(buf, "esp-lifetime={}", self.esp_lifetime.as_secs())?;
         writeln!(buf, "esp-transport={}", self.esp_transport.as_str())?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;

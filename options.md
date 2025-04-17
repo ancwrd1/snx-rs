@@ -21,12 +21,10 @@
 | `add-routes=<routes>`                     | Additional static routes, comma-separated, in the format of x.x.x.x/x                                                                                 |
 | `ignore-routes=<routes>`                  | Ignore the specified routes acquired from the VPN server                                                                                              |
 | `no-dns=true\|false`                      | Do not change DNS resolver configuration, default is false                                                                                            |
-| `no-cert-check=true\|false`               | do not check server certificate common name, default is false                                                                                         |
 | `ignore-server-cert=true\|false`          | Disable all certificate checks, default is false                                                                                                      |
 | `ca-cert=<ca_certs>`                      | One or more comma-separated custom CA root certificates used to validate TLS connection.                                                              |
 | `tunnel-type=ipsec\|ssl`                  | Tunnel type, default is ipsec                                                                                                                         |
 | `no-keychain=true\|false`                 | Do not store password in the OS keychain, default is false                                                                                            |
-| `server-prompt=true\|false`               | Retrieve MFA prompts from the server, default is false                                                                                                |
 | `esp-lifetime=3600`                       | ESP SA lifetime in seconds, default is 3600                                                                                                           |
 | `esp-transport=udp\|tcpt`                 | Select network transport for ESP packets. UDP is the default and standard, TCPT is the Check Point proprietary protocol and is much slower.           |
 | `ike-lifetime=28800`                      | IKE SA lifetime in seconds, default is 28800. Set to higher value to extend IPSec session duration                                                    |

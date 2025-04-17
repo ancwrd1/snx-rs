@@ -112,13 +112,6 @@ pub struct CmdlineParams {
     pub no_dns: Option<bool>,
 
     #[clap(
-        long = "no-cert-check",
-        short = 'H',
-        help = "Do not validate server common name in the certificate"
-    )]
-    pub no_cert_check: Option<bool>,
-
-    #[clap(
         long = "ignore-server-cert",
         short = 'X',
         help = "Disable all certificate validations (NOT SECURE!)"
@@ -176,13 +169,6 @@ pub struct CmdlineParams {
         help = "Do not use OS keychain to store or retrieve user password"
     )]
     pub no_keychain: Option<bool>,
-
-    #[clap(
-        long = "server-prompt",
-        short = 'P',
-        help = "Ask server for authentication data prompt values"
-    )]
-    pub server_prompt: Option<bool>,
 
     #[clap(long = "esp-lifetime", short = 'E', help = "IPSec ESP lifetime in seconds")]
     pub esp_lifetime: Option<u64>,
@@ -288,10 +274,6 @@ impl CmdlineParams {
             other.ca_cert = self.ca_cert;
         }
 
-        if let Some(no_cert_check) = self.no_cert_check {
-            other.no_cert_check = no_cert_check;
-        }
-
         if let Some(ignore_server_cert) = self.ignore_server_cert {
             other.ignore_server_cert = ignore_server_cert;
         }
@@ -322,10 +304,6 @@ impl CmdlineParams {
 
         if let Some(no_keychain) = self.no_keychain {
             other.no_keychain = no_keychain;
-        }
-
-        if let Some(server_prompt) = self.server_prompt {
-            other.server_prompt = server_prompt;
         }
 
         if let Some(esp_lifetime) = self.esp_lifetime {

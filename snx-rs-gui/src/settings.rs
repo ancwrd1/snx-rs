@@ -63,9 +63,7 @@ struct MyWidgets {
     default_routing: gtk::CheckButton,
     add_routes: gtk::Entry,
     ignored_routes: gtk::Entry,
-    mfa_prompts: gtk::CheckButton,
     no_keychain: gtk::CheckButton,
-    no_cert_name_check: gtk::CheckButton,
     no_cert_check: gtk::CheckButton,
     cert_type: gtk::ComboBoxText,
     cert_path: gtk::Entry,
@@ -243,9 +241,7 @@ impl SettingsDialog {
             )
             .build();
 
-        let mfa_prompts = gtk::CheckButton::builder().active(params.server_prompt).build();
         let no_keychain = gtk::CheckButton::builder().active(params.no_keychain).build();
-        let no_cert_name_check = gtk::CheckButton::builder().active(params.no_cert_check).build();
         let no_cert_check = gtk::CheckButton::builder().active(params.ignore_server_cert).build();
         let cert_type = gtk::ComboBoxText::builder().build();
         let cert_path = gtk::Entry::builder()
@@ -327,7 +323,6 @@ impl SettingsDialog {
         fetch_info.connect_clicked(clone!(@weak dialog,
             @weak auth_type,
             @weak server_name,
-            @weak no_cert_name_check,
             @weak no_cert_check => move |_| {
             if server_name.text().is_empty() {
                 auth_type.set_sensitive(false);
@@ -335,7 +330,6 @@ impl SettingsDialog {
                 dialog.set_sensitive(false);
                 let params = TunnelParams {
                     server_name: server_name.text().into(),
-                    no_cert_check: no_cert_name_check.is_active(),
                     ignore_server_cert: no_cert_check.is_active(),
                     ..(*params2).clone()
                 };
@@ -413,9 +407,7 @@ impl SettingsDialog {
             default_routing,
             add_routes,
             ignored_routes,
-            mfa_prompts,
             no_keychain,
-            no_cert_name_check,
             no_cert_check,
             cert_type,
             cert_path,
@@ -524,9 +516,7 @@ impl SettingsDialog {
             .split(',')
             .flat_map(|s| s.trim().parse().ok())
             .collect();
-        params.server_prompt = self.widgets.mfa_prompts.is_active();
         params.no_keychain = self.widgets.no_keychain.is_active();
-        params.no_cert_check = self.widgets.no_cert_name_check.is_active();
         params.ignore_server_cert = self.widgets.no_cert_check.is_active();
         params.cert_type = self.widgets.cert_type.active().unwrap_or_default().into();
         params.cert_path = {
@@ -728,10 +718,6 @@ impl SettingsDialog {
         ca_cert.pack_start(&self.widgets.ca_cert, false, true, 0);
         certs_box.pack_start(&ca_cert, false, true, 6);
 
-        let no_cert_name_check = self.form_box("Disable TLS server hostname check");
-        no_cert_name_check.pack_start(&self.widgets.no_cert_name_check, false, true, 0);
-        certs_box.pack_start(&no_cert_name_check, false, true, 6);
-
         let no_cert_check = self.form_box("Disable all TLS certificate checks (INSECURE!)");
         no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
         certs_box.pack_start(&no_cert_check, false, true, 6);
@@ -746,10 +732,6 @@ impl SettingsDialog {
             .margin_start(16)
             .margin_end(16)
             .build();
-
-        let mfa_prompts = self.form_box("Ask server for MFA prompts");
-        mfa_prompts.pack_start(&self.widgets.mfa_prompts, false, true, 0);
-        misc_box.pack_start(&mfa_prompts, false, true, 6);
 
         let password_factor = self.form_box("Index of password factor, 1..N");
         password_factor.pack_start(&self.widgets.password_factor, false, true, 0);

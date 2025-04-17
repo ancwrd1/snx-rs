@@ -1,3 +1,8 @@
+## Unreleased
+- Refactored internal IPSec certificate validation based on the advertised internal_ca_fingerprint
+- Removed `no-cert-check` option which used to disable hostname verification. Use `ignore-server-cert` instead.
+- Removed `server-prompt` option. Server prompts are always enabled.
+
 ## v3.1.2 (2025-04-13)
 - Fixed a problem with default IP address detection on some systems
 - Removed invalid "VPN" category from the .desktop file

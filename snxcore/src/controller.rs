@@ -5,7 +5,6 @@ use tracing::warn;
 
 use crate::{
     browser::{spawn_otp_listener, BrowserController},
-    ccc::CccHttpClient,
     model::{
         params::TunnelParams, AuthPrompt, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest,
         TunnelServiceResponse,
@@ -141,11 +140,6 @@ where
                 } else if !self.password_from_keychain.is_empty() && self.mfa_index == self.params.password_factor {
                     Ok(self.password_from_keychain.clone())
                 } else {
-                    let prompt = if self.params.server_prompt {
-                        prompt
-                    } else {
-                        AuthPrompt::new("", &mfa.prompt)
-                    };
                     let input = self.prompt.get_secure_input(&prompt)?;
                     Ok(input)
                 }
@@ -261,10 +255,7 @@ where
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {
-        let client = CccHttpClient::new(self.params.clone(), None);
-        let info = client.get_server_info().await?;
-
-        crate::util::print_login_options(&info);
+        crate::util::print_login_options(&self.params).await?;
 
         Ok(ConnectionStatus::default())
     }

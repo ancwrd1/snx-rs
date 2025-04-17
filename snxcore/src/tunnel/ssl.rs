@@ -91,10 +91,6 @@ impl SslTunnel {
             builder.add_root_certificate(cert);
         }
 
-        if params.no_cert_check {
-            builder.danger_accept_invalid_hostnames(true);
-        }
-
         if params.ignore_server_cert {
             warn!("Disabling all certificate checks!!!");
             builder.danger_accept_invalid_certs(true);

@@ -293,7 +293,6 @@ pub struct ConnectivityInfo {
     pub tcpt_port: u16,
     pub natt_port: u16,
     pub connect_with_certificate_url: String,
-    pub cookie_name: String,
     pub internal_ca_fingerprint: BTreeMap<String, String>,
 }
 

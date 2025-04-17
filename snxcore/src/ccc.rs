@@ -144,10 +144,6 @@ impl CccHttpClient {
             builder = builder.add_root_certificate(cert);
         }
 
-        if self.params.no_cert_check {
-            builder = builder.danger_accept_invalid_hostnames(true);
-        }
-
         if self.params.ignore_server_cert {
             warn!("Disabling all certificate checks!!!");
             builder = builder.danger_accept_invalid_certs(true);

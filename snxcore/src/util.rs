@@ -13,7 +13,9 @@ use tokio::process::Command;
 use tracing::trace;
 use uuid::Uuid;
 
-use crate::{model::proto::NetworkRange, sexpr::SExpression};
+use crate::model::params::TunnelParams;
+use crate::model::proto::LoginDisplayLabelSelect;
+use crate::{model::proto::NetworkRange, server_info};
 
 // reverse engineered from vendor snx utility
 const XOR_TABLE: &[u8] = b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";
@@ -92,45 +94,55 @@ pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Ne
     ranges.iter().flat_map(|r| Ipv4Subnets::new(r.from, r.to, 0))
 }
 
-pub fn print_login_options(server_info: &SExpression) {
-    if let Some(SExpression::Array(items)) =
-        server_info.get("CCCserverResponse:ResponseData:connectivity_info:supported_data_tunnel_protocols")
+pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
+    let info = server_info::get(params).await?;
+
+    println!("Supported tunnel protocols:");
+
+    for item in info
+        .connectivity_info
+        .supported_data_tunnel_protocols
+        .iter()
+        .filter(|&v| v != "L2TP")
     {
-        println!("Supported tunnel protocols:");
-        for item in items {
-            match item.get_value::<String>("") {
-                Some(v) if v != "L2TP" => println!("    {v}"),
-                _ => {}
-            }
-        }
+        println!("\t{item}");
     }
 
-    if let Some(SExpression::Object(_, options)) =
-        server_info.get("CCCserverResponse:ResponseData:login_options_data:login_options_list")
-    {
+    println!(
+        "Internal CA fingerprint: {}",
+        String::from_utf8_lossy(&snx_decrypt(
+            info.connectivity_info
+                .internal_ca_fingerprint
+                .values()
+                .cloned()
+                .collect::<Vec<String>>()
+                .join(" ")
+                .as_bytes()
+        )?)
+    );
+
+    if let Some(login_options_data) = info.login_options_data {
         println!("Available login types:");
-        for opt in options.values() {
-            if let (Some(display_name), Some(id)) =
-                (opt.get_value::<String>("display_name"), opt.get_value::<String>("id"))
-            {
-                println!("    {id} ({display_name})");
 
-                if let Some(SExpression::Object(_, factors)) = opt.get("factors") {
-                    for (index, factor) in factors.values().enumerate() {
-                        let factor_type = factor.get_value::<String>("factor_type").unwrap_or_default();
+        for opt in login_options_data.login_options_list.values() {
+            println!("\t{} ({})", opt.id, opt.display_name);
 
-                        let prompt = factor
-                            .get("custom_display_labels")
-                            .and_then(|s| s.get_value::<String>("password"))
-                            .map(|p| format!(", prompt = \"{}\"", p))
-                            .unwrap_or_default();
+            for (index, factor) in opt.factors.values().enumerate() {
+                if let LoginDisplayLabelSelect::LoginDisplayLabel(ref labels) = factor.custom_display_labels {
+                    let prompt = labels
+                        .get("password")
+                        .map(|p| format!(", prompt = \"{}\"", p))
+                        .unwrap_or_default();
 
-                        println!("        factor {}: type = {}{}", index + 1, factor_type, prompt);
-                    }
+                    println!("\t\tfactor {}: type = {}{}", index + 1, factor.factor_type, prompt);
+                } else {
+                    println!("\t\tfactor {}: type = {}", index + 1, factor.factor_type);
                 }
             }
         }
     }
+
+    Ok(())
 }
 
 pub fn get_device_id() -> String {
