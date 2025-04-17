@@ -16,7 +16,7 @@ use tracing::trace;
     result = true,
     ty = "cached::UnboundCache<String, ServerInfoResponse>",
     create = "{ cached::UnboundCache::new() }",
-    convert = r#"{ format!("{}/{}", params.server_name, params.login_type) }"#
+    convert = r#"{ params.server_name.clone() }"#
 )]
 pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
     let client = CccHttpClient::new(Arc::new(params.clone()), None);
