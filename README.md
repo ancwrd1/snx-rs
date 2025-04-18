@@ -199,9 +199,9 @@ Before opening a PR, make sure to reformat the sources with the `cargo fmt` comm
 ## Building from Sources
 
 * Install the required dependencies:
-  - Debian/Ubuntu: `sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev`
-  - openSUSE: `sudo zypper install pkgconf libopenssl-3-devel gtk3-devel`
-  - Other distros: C compiler, pkg-config, OpenSSL and GTK 3 development packages
+  - Debian/Ubuntu: `sudo apt install build-essential pkg-config libssl-dev libgtk-4-dev`
+  - openSUSE: `sudo zypper install pkgconf libopenssl-3-devel gtk4-devel`
+  - Other distros: C compiler, pkg-config, OpenSSL and GTK 4 development packages
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
