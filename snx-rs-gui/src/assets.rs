@@ -8,7 +8,11 @@ fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     let mut buf = vec![0; reader.output_buffer_size()];
 
     let info = reader.next_frame(&mut buf)?;
-    let bytes = buf[..info.buffer_size()].to_vec();
+    let mut bytes = buf[..info.buffer_size()].to_vec();
+
+    for pixel in bytes.chunks_exact_mut(4) {
+        pixel.rotate_right(1);
+    }
 
     Ok(bytes)
 }

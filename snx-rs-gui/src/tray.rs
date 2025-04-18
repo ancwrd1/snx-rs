@@ -2,12 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::anyhow;
 use async_channel::{Receiver, Sender};
-use tray_icon::{
-    menu::{ContextMenu, Menu, MenuItem, PredefinedMenuItem},
-    Icon, TrayIcon, TrayIconBuilder,
-};
-
-use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme, theme::SystemColorTheme};
+use ksni::{menu::StandardItem, Handle, Icon, MenuItem, TrayMethods};
 
 use snxcore::{
     browser::BrowserController,
@@ -17,10 +12,19 @@ use snxcore::{
     prompt::SecurePrompt,
 };
 
-const TITLE: &str = "SNX-RS VPN client";
+use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme, theme::SystemColorTheme};
 
 fn browser(_params: Arc<TunnelParams>) -> impl BrowserController {
     snxcore::browser::SystemBrowser
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TrayEvent {
+    Connect,
+    Disconnect,
+    Settings,
+    Exit,
+    About,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -36,17 +40,15 @@ pub struct AppTray {
     status: anyhow::Result<ConnectionStatus>,
     connecting: bool,
     config_file: PathBuf,
-    tray_icon: TrayIcon,
+    tray_icon: Handle<KsniTray>,
 }
 
 impl AppTray {
-    pub fn new(params: &CmdlineParams) -> anyhow::Result<Self> {
+    pub async fn new(params: &CmdlineParams, event_sender: Sender<TrayEvent>) -> anyhow::Result<Self> {
         let (tx, rx) = async_channel::bounded(256);
 
-        let tray_icon = TrayIconBuilder::new()
-            .with_tooltip(TITLE)
-            .with_menu_on_left_click(true)
-            .build()?;
+        let tray_icon = KsniTray::new(event_sender);
+        let handle = tray_icon.spawn().await?;
 
         let app_tray = AppTray {
             command_sender: tx,
@@ -54,10 +56,10 @@ impl AppTray {
             status: Err(anyhow!("No service connection")),
             connecting: false,
             config_file: params.config_file().clone(),
-            tray_icon,
+            tray_icon: handle,
         };
 
-        app_tray.update()?;
+        app_tray.update().await;
 
         Ok(app_tray)
     }
@@ -87,35 +89,6 @@ impl AppTray {
         }
     }
 
-    fn menu(&self) -> anyhow::Result<Box<dyn ContextMenu>> {
-        let menu = Menu::new();
-        menu.append(&MenuItem::new(self.status_label(), false, None))?;
-        menu.append(&PredefinedMenuItem::separator())?;
-        menu.append(&MenuItem::with_id(
-            "connect",
-            "Connect",
-            self.status
-                .as_ref()
-                .is_ok_and(|status| status.connected_since.is_none() && status.mfa.is_none())
-                && !self.connecting,
-            None,
-        ))?;
-        menu.append(&MenuItem::with_id(
-            "disconnect",
-            "Disconnect",
-            self.status
-                .as_ref()
-                .is_ok_and(|status| status.connected_since.is_some()),
-            None,
-        ))?;
-
-        menu.append(&MenuItem::with_id("settings", "Settings...", true, None))?;
-        menu.append(&MenuItem::with_id("about", "About...", true, None))?;
-        menu.append(&MenuItem::with_id("exit", "Exit", true, None))?;
-
-        Ok(Box::new(menu))
-    }
-
     fn icon_theme(&self) -> &'static assets::IconTheme {
         let tunnel_params = TunnelParams::load(&self.config_file).unwrap_or_default();
 
@@ -132,7 +105,7 @@ impl AppTray {
         }
     }
 
-    fn icon(&self) -> anyhow::Result<Icon> {
+    fn icon(&self) -> Icon {
         let theme = self.icon_theme();
 
         let data = if self.connecting {
@@ -150,13 +123,35 @@ impl AppTray {
             }
         };
 
-        Ok(Icon::from_rgba(data, 256, 256)?)
+        Icon {
+            width: 256,
+            height: 256,
+            data,
+        }
     }
 
-    fn update(&self) -> anyhow::Result<()> {
-        self.tray_icon.set_icon(Some(self.icon()?))?;
-        self.tray_icon.set_menu(Some(self.menu()?));
-        Ok(())
+    async fn update(&self) {
+        let status_label = self.status_label();
+        let icon = self.icon();
+        let connect_enabled = self
+            .status
+            .as_ref()
+            .is_ok_and(|status| status.connected_since.is_none() && status.mfa.is_none())
+            && !self.connecting;
+
+        let disconnect_enabled = self
+            .status
+            .as_ref()
+            .is_ok_and(|status| status.connected_since.is_some());
+
+        self.tray_icon
+            .update(move |tray| {
+                tray.status_label = status_label;
+                tray.icon = icon;
+                tray.connect_enabled = connect_enabled;
+                tray.disconnect_enabled = disconnect_enabled;
+            })
+            .await;
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
@@ -166,13 +161,11 @@ impl AppTray {
 
         let rx = self.command_receiver.take().unwrap();
 
-        let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
-
         while let Ok(command) = rx.recv().await {
             let command = match command {
                 TrayCommand::Service(command) => command,
                 TrayCommand::Update => {
-                    self.update()?;
+                    self.update().await;
                     continue;
                 }
                 TrayCommand::Exit => {
@@ -183,7 +176,7 @@ impl AppTray {
             let theme = system_color_theme().ok();
             if theme != prev_theme {
                 prev_theme = theme;
-                self.update()?;
+                self.update().await;
             }
 
             let tunnel_params = Arc::new(TunnelParams::load(&self.config_file).unwrap_or_default());
@@ -193,10 +186,10 @@ impl AppTray {
 
             if command == ServiceCommand::Connect {
                 self.connecting = true;
-                self.update()?;
+                self.update().await;
             }
 
-            let result = rt.spawn(async move { controller.command(command).await }).await;
+            let result = tokio::spawn(async move { controller.command(command).await }).await;
 
             let status = match result {
                 Ok(result) => result,
@@ -215,12 +208,97 @@ impl AppTray {
             if command != prev_command || status_str != prev_status {
                 self.connecting = false;
                 self.status = status;
-                self.update()?;
+                self.update().await;
             }
             prev_command = command;
             prev_status = status_str;
         }
 
         Ok(())
+    }
+}
+
+struct KsniTray {
+    status_label: String,
+    connect_enabled: bool,
+    disconnect_enabled: bool,
+    icon: Icon,
+    event_sender: Sender<TrayEvent>,
+}
+
+impl KsniTray {
+    fn new(event_sender: Sender<TrayEvent>) -> Self {
+        Self {
+            status_label: String::new(),
+            connect_enabled: false,
+            disconnect_enabled: false,
+            icon: Icon {
+                width: 0,
+                height: 0,
+                data: Vec::new(),
+            },
+            event_sender,
+        }
+    }
+}
+
+impl ksni::Tray for KsniTray {
+    const MENU_ON_ACTIVATE: bool = true;
+
+    fn id(&self) -> String {
+        "SNX-RS".to_string()
+    }
+
+    fn icon_pixmap(&self) -> Vec<Icon> {
+        vec![self.icon.clone()]
+    }
+
+    fn menu(&self) -> Vec<MenuItem<Self>> {
+        vec![
+            MenuItem::Standard(StandardItem {
+                label: self.status_label.clone(),
+                enabled: false,
+                visible: true,
+                ..Default::default()
+            }),
+            MenuItem::Separator,
+            MenuItem::Standard(StandardItem {
+                label: "Connect".to_string(),
+                enabled: self.connect_enabled,
+                activate: Box::new(|tray: &mut KsniTray| {
+                    let _ = tray.event_sender.send_blocking(TrayEvent::Connect);
+                }),
+                ..Default::default()
+            }),
+            MenuItem::Standard(StandardItem {
+                label: "Disconnect".to_string(),
+                enabled: self.disconnect_enabled,
+                activate: Box::new(|tray: &mut KsniTray| {
+                    let _ = tray.event_sender.send_blocking(TrayEvent::Disconnect);
+                }),
+                ..Default::default()
+            }),
+            MenuItem::Standard(StandardItem {
+                label: "Settings...".to_string(),
+                activate: Box::new(|tray: &mut KsniTray| {
+                    let _ = tray.event_sender.send_blocking(TrayEvent::Settings);
+                }),
+                ..Default::default()
+            }),
+            MenuItem::Standard(StandardItem {
+                label: "About...".to_string(),
+                activate: Box::new(|tray: &mut KsniTray| {
+                    let _ = tray.event_sender.send_blocking(TrayEvent::About);
+                }),
+                ..Default::default()
+            }),
+            MenuItem::Standard(StandardItem {
+                label: "Exit".to_string(),
+                activate: Box::new(|tray: &mut KsniTray| {
+                    let _ = tray.event_sender.send_blocking(TrayEvent::Exit);
+                }),
+                ..Default::default()
+            }),
+        ]
     }
 }

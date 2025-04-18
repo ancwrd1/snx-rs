@@ -322,12 +322,7 @@ impl SettingsDialog {
                     ..(*params2).clone()
                 };
                 glib::spawn_future_local(clone!(@strong sender => async move {
-                    let rt = tokio::runtime::Builder::new_multi_thread()
-                        .enable_all()
-                        .build()
-                        .unwrap();
-                    let response = rt
-                        .spawn(async move { server_info::get(&params).await })
+                    let response = tokio::spawn(async move { server_info::get(&params).await })
                         .await
                         .unwrap();
                     let _ = sender.send(response).await;

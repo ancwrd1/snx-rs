@@ -2,8 +2,6 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use anyhow::anyhow;
 use futures::StreamExt;
-use once_cell::sync::Lazy;
-use tokio::runtime::Runtime;
 use tracing::debug;
 use zbus::Connection;
 
@@ -42,44 +40,35 @@ pub fn system_color_theme() -> anyhow::Result<SystemColorTheme> {
     COLOR_THEME.load(Ordering::SeqCst).try_into()
 }
 
-pub fn init_theme_monitoring() -> anyhow::Result<()> {
-    static RT: Lazy<Runtime> = Lazy::new(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap()
+pub async fn init_theme_monitoring() -> anyhow::Result<()> {
+    let connection = Connection::session().await?;
+    let proxy = DesktopSettingsProxy::new(&connection).await?;
+    let scheme = proxy.read_one("org.freedesktop.appearance", "color-scheme").await?;
+    let mut scheme = u32::try_from(scheme)?;
+    if scheme == 0 && is_ubuntu() {
+        scheme = 2;
+    }
+    COLOR_THEME.store(scheme, Ordering::SeqCst);
+
+    debug!("System color scheme: {}", scheme);
+
+    tokio::spawn(async move {
+        let mut stream = proxy.receive_setting_changed().await?;
+        while let Some(signal) = stream.next().await {
+            let args = signal.args()?;
+            if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
+                let mut scheme = u32::try_from(args.value)?;
+                if scheme == 0 && is_ubuntu() {
+                    scheme = 2;
+                }
+                debug!("New system color scheme: {}", scheme);
+                COLOR_THEME.store(scheme, Ordering::SeqCst);
+            }
+        }
+        Ok::<_, anyhow::Error>(())
     });
 
-    RT.block_on(async {
-        let connection = Connection::session().await?;
-        let proxy = DesktopSettingsProxy::new(&connection).await?;
-        let scheme = proxy.read_one("org.freedesktop.appearance", "color-scheme").await?;
-        let mut scheme = u32::try_from(scheme)?;
-        if scheme == 0 && is_ubuntu() {
-            scheme = 2;
-        }
-        COLOR_THEME.store(scheme, Ordering::SeqCst);
-
-        debug!("System color scheme: {}", scheme);
-
-        tokio::spawn(async move {
-            let mut stream = proxy.receive_setting_changed().await?;
-            while let Some(signal) = stream.next().await {
-                let args = signal.args()?;
-                if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
-                    let mut scheme = u32::try_from(args.value)?;
-                    if scheme == 0 && is_ubuntu() {
-                        scheme = 2;
-                    }
-                    debug!("New system color scheme: {}", scheme);
-                    COLOR_THEME.store(scheme, Ordering::SeqCst);
-                }
-            }
-            Ok::<_, anyhow::Error>(())
-        });
-
-        Ok(())
-    })
+    Ok(())
 }
 
 fn is_ubuntu() -> bool {
