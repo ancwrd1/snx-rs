@@ -4,7 +4,6 @@ use futures::{
     channel::mpsc::{self},
     SinkExt, StreamExt, TryStreamExt,
 };
-use isakmp::esp::EspEncapType;
 use isakmp::transport::{
     tcpt::{TcptHandshaker, TcptTransportCodec},
     TcptDataType,
@@ -12,7 +11,10 @@ use isakmp::transport::{
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{
-    model::{params::TunnelParams, *},
+    model::{
+        params::{TransportType, TunnelParams},
+        VpnSession,
+    },
     tunnel::{
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
         TunnelCommand, TunnelEvent, VpnTunnel,
@@ -58,7 +60,7 @@ impl TcptIpsecTunnel {
         let (sender, receiver) = make_channel(tcp);
 
         Ok(Self(Box::new(
-            TunIpsecTunnel::create(params, session, sender, receiver, EspEncapType::Udp).await?,
+            TunIpsecTunnel::create(params, session, sender, receiver, TransportType::Tcpt).await?,
         )))
     }
 }

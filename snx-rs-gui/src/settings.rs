@@ -71,11 +71,7 @@ struct MyWidgets {
     cert_id: gtk::Entry,
     ca_cert: gtk::Entry,
     ike_lifetime: gtk::Entry,
-    esp_lifetime: gtk::Entry,
-    ike_port: gtk::Entry,
     ike_persist: gtk::CheckButton,
-    ike_transport: gtk::ComboBoxText,
-    esp_transport: gtk::ComboBoxText,
     no_keepalive: gtk::CheckButton,
     icon_theme: gtk::ComboBoxText,
     error: gtk::Label,
@@ -113,8 +109,6 @@ impl MyWidgets {
         }
 
         self.ike_lifetime.text().parse::<u32>()?;
-        self.esp_lifetime.text().parse::<u32>()?;
-        self.ike_port.text().parse::<u16>()?;
         self.password_factor.text().parse::<usize>()?;
 
         let dns_servers = self.dns_servers.text();
@@ -274,13 +268,7 @@ impl SettingsDialog {
         let ike_lifetime = gtk::Entry::builder()
             .text(params.ike_lifetime.as_secs().to_string())
             .build();
-        let esp_lifetime = gtk::Entry::builder()
-            .text(params.esp_lifetime.as_secs().to_string())
-            .build();
-        let esp_transport = gtk::ComboBoxText::builder().build();
-        let ike_port = gtk::Entry::builder().text(params.ike_port.to_string()).build();
         let ike_persist = gtk::CheckButton::builder().active(params.ike_persist).build();
-        let ike_transport = gtk::ComboBoxText::builder().build();
         let no_keepalive = gtk::CheckButton::builder().active(params.no_keepalive).build();
         let icon_theme = gtk::ComboBoxText::builder().build();
 
@@ -415,11 +403,7 @@ impl SettingsDialog {
             cert_id,
             ca_cert,
             ike_lifetime,
-            esp_lifetime,
-            esp_transport,
-            ike_port,
             ike_persist,
-            ike_transport,
             no_keepalive,
             icon_theme,
             error,
@@ -551,13 +535,9 @@ impl SettingsDialog {
             .map(|s| s.trim().into())
             .collect();
         params.ike_lifetime = Duration::from_secs(self.widgets.ike_lifetime.text().parse()?);
-        params.esp_lifetime = Duration::from_secs(self.widgets.esp_lifetime.text().parse()?);
-        params.esp_transport = self.widgets.esp_transport.active().unwrap_or_default().into();
-        params.ike_port = self.widgets.ike_port.text().parse()?;
         params.ike_persist = self.widgets.ike_persist.is_active();
         params.no_keepalive = self.widgets.no_keepalive.is_active();
         params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
-        params.ike_transport = self.widgets.ike_transport.active().unwrap_or_default().into();
 
         params.save()?;
 
@@ -635,28 +615,6 @@ impl SettingsDialog {
             .set_active(Some(self.params.icon_theme.as_u32()));
         icon_theme_box.pack_start(&self.widgets.icon_theme, false, true, 0);
         icon_theme_box
-    }
-
-    fn ike_transport_box(&self) -> gtk::Box {
-        let ike_transport_box = self.form_box("IKE transport");
-        self.widgets.ike_transport.insert_text(0, "UDP");
-        self.widgets.ike_transport.insert_text(1, "TCPT");
-        self.widgets
-            .ike_transport
-            .set_active(Some(self.params.ike_transport.as_u32()));
-        ike_transport_box.pack_start(&self.widgets.ike_transport, false, true, 0);
-        ike_transport_box
-    }
-
-    fn esp_transport_box(&self) -> gtk::Box {
-        let esp_transport_box = self.form_box("ESP transport");
-        self.widgets.esp_transport.insert_text(0, "UDP");
-        self.widgets.esp_transport.insert_text(1, "TCPT");
-        self.widgets
-            .esp_transport
-            .set_active(Some(self.params.esp_transport.as_u32()));
-        esp_transport_box.pack_start(&self.widgets.esp_transport, false, true, 0);
-        esp_transport_box
     }
 
     fn user_box(&self) -> gtk::Box {
@@ -745,23 +703,9 @@ impl SettingsDialog {
         ike_lifetime.pack_start(&self.widgets.ike_lifetime, false, true, 0);
         misc_box.pack_start(&ike_lifetime, false, true, 6);
 
-        let esp_lifetime = self.form_box("ESP lifetime, seconds");
-        esp_lifetime.pack_start(&self.widgets.esp_lifetime, false, true, 0);
-        misc_box.pack_start(&esp_lifetime, false, true, 6);
-
-        let esp_transport_box = self.esp_transport_box();
-        misc_box.pack_start(&esp_transport_box, false, true, 6);
-
-        let ike_port = self.form_box("IKE port");
-        ike_port.pack_start(&self.widgets.ike_port, false, true, 0);
-        misc_box.pack_start(&ike_port, false, true, 6);
-
         let ike_persist = self.form_box("Save IKE session and reconnect automatically");
         ike_persist.pack_start(&self.widgets.ike_persist, false, true, 0);
         misc_box.pack_start(&ike_persist, false, true, 6);
-
-        let ike_transport_box = self.ike_transport_box();
-        misc_box.pack_start(&ike_transport_box, false, true, 6);
 
         let no_keepalive = self.form_box("Disable keepalive packets");
         no_keepalive.pack_start(&self.widgets.no_keepalive, false, true, 0);

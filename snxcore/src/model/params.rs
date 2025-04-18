@@ -15,9 +15,7 @@ use tracing::warn;
 
 use crate::util;
 
-const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
-const DEFAULT_IKE_PORT: u16 = 500;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum OperationMode {
@@ -197,58 +195,17 @@ impl FromStr for IconTheme {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TransportType {
     #[default]
-    Udp,
+    Native,
     Tcpt,
-    UdpTun,
-}
-
-impl TransportType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            TransportType::Udp => "udp",
-            TransportType::Tcpt => "tcpt",
-            TransportType::UdpTun => "udp-tun",
-        }
-    }
-
-    pub fn as_u32(&self) -> u32 {
-        match self {
-            Self::Udp => 0,
-            Self::Tcpt => 1,
-            Self::UdpTun => 2,
-        }
-    }
-}
-
-impl FromStr for TransportType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "udp" => Ok(TransportType::Udp),
-            "tcpt" => Ok(TransportType::Tcpt),
-            "udp-tun" => Ok(TransportType::UdpTun),
-            _ => Err(anyhow!("Invalid transport type!")),
-        }
-    }
+    Udp, // for future support of other platforms like *BSD or Mac
 }
 
 impl fmt::Display for TransportType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Udp => write!(f, "UDP"),
+            Self::Native => write!(f, "Native"),
             Self::Tcpt => write!(f, "TCPT"),
-            Self::UdpTun => write!(f, "UDP-TUN"),
-        }
-    }
-}
-
-impl From<u32> for TransportType {
-    fn from(value: u32) -> Self {
-        match value {
-            1 => Self::Tcpt,
-            2 => Self::UdpTun,
-            _ => Self::Udp,
+            Self::Udp => write!(f, "UDP"),
         }
     }
 }
@@ -279,16 +236,13 @@ pub struct TunnelParams {
     pub cert_id: Option<String>,
     pub if_name: Option<String>,
     pub no_keychain: bool,
-    pub esp_lifetime: Duration,
-    pub esp_transport: TransportType,
     pub ike_lifetime: Duration,
-    pub ike_port: u16,
     pub ike_persist: bool,
     pub client_mode: String,
     pub no_keepalive: bool,
     pub icon_theme: IconTheme,
-    pub ike_transport: TransportType,
     pub set_routing_domains: bool,
+    #[serde(skip)]
     pub config_file: PathBuf,
 }
 
@@ -319,15 +273,11 @@ impl Default for TunnelParams {
             cert_id: None,
             if_name: None,
             no_keychain: true,
-            esp_lifetime: DEFAULT_ESP_LIFETIME,
-            esp_transport: TransportType::default(),
             ike_lifetime: DEFAULT_IKE_LIFETIME,
-            ike_port: DEFAULT_IKE_PORT,
             ike_persist: false,
             client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
             no_keepalive: false,
             icon_theme: IconTheme::default(),
-            ike_transport: TransportType::default(),
             set_routing_domains: false,
             config_file: Self::default_config_path(),
         }
@@ -376,16 +326,10 @@ impl TunnelParams {
                 "cert-id" => params.cert_id = Some(v),
                 "if-name" => params.if_name = Some(v),
                 "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
-                "esp-lifetime" => {
-                    params.esp_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_ESP_LIFETIME, Duration::from_secs);
-                }
-                "esp-transport" => params.esp_transport = v.parse().unwrap_or_default(),
                 "ike-lifetime" => {
                     params.ike_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
                 }
-                "ike-port" => params.ike_port = v.parse().ok().unwrap_or(DEFAULT_IKE_PORT),
                 "ike-persist" => params.ike_persist = v.parse().unwrap_or_default(),
-                "ike-transport" => params.ike_transport = v.parse().unwrap_or_default(),
                 "no-keepalive" => params.no_keepalive = v.parse().unwrap_or_default(),
                 "icon-theme" => params.icon_theme = v.parse().unwrap_or_default(),
                 "client-mode" => params.client_mode = v,
@@ -478,16 +422,12 @@ impl TunnelParams {
             writeln!(buf, "if-name={if_name}")?;
         }
         writeln!(buf, "no-keychain={}", self.no_keychain)?;
-        writeln!(buf, "esp-lifetime={}", self.esp_lifetime.as_secs())?;
-        writeln!(buf, "esp-transport={}", self.esp_transport.as_str())?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
-        writeln!(buf, "ike-port={}", self.ike_port)?;
         writeln!(buf, "ike-persist={}", self.ike_persist)?;
         writeln!(buf, "log-level={}", self.log_level)?;
         writeln!(buf, "client-mode={}", self.client_mode)?;
         writeln!(buf, "no-keepalive={}", self.no_keepalive)?;
         writeln!(buf, "icon-theme={}", self.icon_theme)?;
-        writeln!(buf, "ike-transport={}", self.ike_transport.as_str())?;
         writeln!(buf, "set-routing-domains={}", self.set_routing_domains)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {

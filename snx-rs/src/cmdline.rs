@@ -4,7 +4,7 @@ use std::net::Ipv4Addr;
 use std::{path::PathBuf, time::Duration};
 use tracing::level_filters::LevelFilter;
 
-use snxcore::model::params::{CertType, OperationMode, TransportType, TunnelParams, TunnelType};
+use snxcore::model::params::{CertType, OperationMode, TunnelParams, TunnelType};
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Check Point security gateway", name = "snx-rs", version = env!("CARGO_PKG_VERSION"))]
@@ -170,17 +170,8 @@ pub struct CmdlineParams {
     )]
     pub no_keychain: Option<bool>,
 
-    #[clap(long = "esp-lifetime", short = 'E', help = "IPSec ESP lifetime in seconds")]
-    pub esp_lifetime: Option<u64>,
-
-    #[clap(long = "esp-transport", short = 'Q', help = "ESP transport type, one of: udp, tcpt")]
-    pub esp_transport: Option<TransportType>,
-
     #[clap(long = "ike-lifetime", short = 'L', help = "IPSec IKE lifetime in seconds")]
     pub ike_lifetime: Option<u64>,
-
-    #[clap(long = "ike-port", short = 'R', help = "IPSec IKE communication port [default: 500]")]
-    pub ike_port: Option<u16>,
 
     #[clap(
         long = "ike-persist",
@@ -188,9 +179,6 @@ pub struct CmdlineParams {
         help = "Store IKE session to disk and load it automatically"
     )]
     pub ike_persist: Option<bool>,
-
-    #[clap(long = "ike-transport", short = 'T', help = "IKE transport type, one of: udp, tcpt")]
-    pub ike_transport: Option<TransportType>,
 
     #[clap(
         long = "client-mode",
@@ -306,28 +294,12 @@ impl CmdlineParams {
             other.no_keychain = no_keychain;
         }
 
-        if let Some(esp_lifetime) = self.esp_lifetime {
-            other.esp_lifetime = Duration::from_secs(esp_lifetime);
-        }
-
-        if let Some(esp_transport) = self.esp_transport {
-            other.esp_transport = esp_transport;
-        }
-
         if let Some(ike_lifetime) = self.ike_lifetime {
             other.ike_lifetime = Duration::from_secs(ike_lifetime);
         }
 
-        if let Some(ike_port) = self.ike_port {
-            other.ike_port = ike_port;
-        }
-
         if let Some(ike_persist) = self.ike_persist {
             other.ike_persist = ike_persist;
-        }
-
-        if let Some(ike_transport) = self.ike_transport {
-            other.ike_transport = ike_transport;
         }
 
         if let Some(client_mode) = self.client_mode {

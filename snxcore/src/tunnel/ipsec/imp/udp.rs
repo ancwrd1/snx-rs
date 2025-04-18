@@ -2,7 +2,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use crate::{
-    model::{params::TunnelParams, *},
+    model::{
+        params::{TransportType, TunnelParams},
+        VpnSession,
+    },
     tunnel::{
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
         TunnelCommand, TunnelEvent, VpnTunnel,
@@ -12,7 +15,6 @@ use futures::{
     channel::mpsc::{self},
     SinkExt, StreamExt, TryStreamExt,
 };
-use isakmp::esp::EspEncapType;
 use tokio::net::UdpSocket;
 
 const CHANNEL_SIZE: usize = 1024;
@@ -54,7 +56,7 @@ impl UdpIpsecTunnel {
         let (sender, receiver) = make_channel(socket, address);
 
         Ok(Self(Box::new(
-            TunIpsecTunnel::create(params, session, sender, receiver, EspEncapType::None).await?,
+            TunIpsecTunnel::create(params, session, sender, receiver, TransportType::Udp).await?,
         )))
     }
 }

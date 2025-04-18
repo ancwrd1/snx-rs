@@ -26,7 +26,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * GTK frontend with tray icon
 * IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
 * Automatic IPSec tunnel reconnection without authentication, via optional parameter
-* SSL tunnel via Linux TUN device (deprecated in favour of IPSec/TCPT)
+* SSL tunnel via Linux TUN device (deprecated)
 * Store password factor in the OS keychain using Secret Service API
 
 ## Limitations
@@ -67,19 +67,19 @@ The `set-routing-domains=true|false` option controls whether to treat all acquir
 ## Tunnel Transport Selection
 
 IPSec is the default transport and is preferred because of it's performance and support for extended authentication types.
-By default, it will use kernel IPSec infrastructure with UDP-based tunnel over ports 500 and 4500.
+By default, it will use native kernel IPSec infrastructure with UDP-based tunnel over port 4500.
 
-In some environments those ports may be blocked by the firewall, in this case use the `ike-transport=tcpt` and `esp-transport=tcpt` options
-to tunnel IPSec traffic over TCP port 443. Note that TCPT transport is slower than native IPSec over UDP.
+In some environments those ports may be blocked by the firewall, in this case the application will fall back to the proprietary Check Point TCPT
+transport via TCP port 443, which is slower than native UDP.
 
-For older VPN servers or in case they don't have IPSec enabled, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
+For older VPN servers or in case IPSec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
 SSL tunnel has a limited support for authentication types: no browser-based SSO, no hardware token support, no MFA in combination with the certificates.  
 
 |                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
 |--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Implementation                 | User-space TCP-encapsulated tunnel via TUN device                     | Kernel-space UDP-encapsulated tunnel via native OS support or user-space TCPT tunnel.                                                                                                  |
 | Performance                    | Up to 2MB/s                                                           | Close to plain connection for native UDP tunnel, 2-5 MB/s for TCPT transport.                                                                                                          |
-| Ports                          | TCP port 443                                                          | UDP ports 4500 and 500 for native UDP tunnel, TCP port 443 for TCPT transport.                                                                                                         |
+| Ports                          | TCP port 443                                                          | UDP port 4500 for native UDP tunnel, TCP port 443 for TCPT transport.                                                                                                                  |
 | Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul>   | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul> |
 
 
@@ -182,15 +182,13 @@ Automatic channel reconnection will happen when running in the standalone mode, 
 
 ## Troubleshooting common problems
 
-| Problem                                                           | Solution                                                                                                                                                                                 |
-|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Probing failed, server is not reachable via ESPinUDP tunnel`     | IPSec ports are blocked by the firewall. Use `esp-transport=tcpt` and `ike-transport=tcpt` options as a workaround. Note: tunnel performance will be slower than native IPSec via UDP.   |
-| `deadline has elapsed`                                            | Try connecting again. Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                 |
-| `failed to fill whole buffer`                                     | Usually happens when a firewall blocks fragmented UDP packets. Try the `ike-transport=tcpt` option.                                                                                      |
-| `Unknown device type`                                             | Make sure IPv6 protocol is enabled in the Linux kernel and 'xfrm' module can be loaded with `sudo modprobe xfrm`. Alternatively, use `esp-transport=tcpt` option.                        |
-| `error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks. |
-| `No CCC session in reply!`                                        | Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect`                                                                            | 
-| A specific feature is missing or connection does not work         | Use the [cp-ikev1-proxy](https://github.com/ancwrd1/cp-ikev1-proxy) MITM proxy tool to capture the packets from the working Windows VPN client, then create an issue for it.             | 
+| Problem                                                           | Solution                                                                                                                                                                     |
+|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `deadline has elapsed`                                            | Try connecting again. Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                     |
+| `Unknown device type`                                             | Make sure IPv6 protocol is enabled in the Linux kernel and 'xfrm' module can be loaded with `sudo modprobe xfrm`. Alternatively, use `esp-transport=tcpt` option.            |
+| `error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks.                                              |
+| `No CCC session in reply!`                                        | Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect`                                                                | 
+| A specific feature is missing or connection does not work         | Use the [cp-ikev1-proxy](https://github.com/ancwrd1/cp-ikev1-proxy) MITM proxy tool to capture the packets from the working Windows VPN client, then create an issue for it. | 
 
 ## Contributing
 

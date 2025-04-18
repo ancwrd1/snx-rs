@@ -19,8 +19,13 @@ use tracing::{debug, error};
 
 use crate::{
     ccc::CccHttpClient,
-    model::{params::TunnelParams, proto::*, *},
+    model::{
+        params::{TransportType, TunnelParams},
+        proto::ClientSettingsResponse,
+        VpnSession,
+    },
     platform::{self, new_resolver_configurator, ResolverConfig},
+    server_info,
     tunnel::{device::TunDevice, ipsec::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
     util,
 };
@@ -41,6 +46,7 @@ pub(crate) struct TunIpsecTunnel {
     client_settings: ClientSettingsResponse,
     gateway_address: Ipv4Addr,
     encap_type: EspEncapType,
+    esp_transport: TransportType,
 }
 
 impl TunIpsecTunnel {
@@ -49,12 +55,18 @@ impl TunIpsecTunnel {
         session: Arc<VpnSession>,
         sender: PacketSender,
         receiver: PacketReceiver,
-        encap_type: EspEncapType,
+        esp_transport: TransportType,
     ) -> anyhow::Result<Self> {
+        let server_info = server_info::get(&params).await?;
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
 
-        let gateway_address = util::resolve_ipv4_host(&format!("{}:{}", params.server_name, params.ike_port))?;
+        let (port, encap_type) = match esp_transport {
+            TransportType::Tcpt => (server_info.connectivity_info.tcpt_port, EspEncapType::Udp),
+            _ => (server_info.connectivity_info.tcpt_port, EspEncapType::None),
+        };
+
+        let gateway_address = util::resolve_ipv4_host(&format!("{}:{}", params.server_name, port))?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",
@@ -76,6 +88,7 @@ impl TunIpsecTunnel {
             client_settings,
             gateway_address,
             encap_type,
+            esp_transport,
         })
     }
 
@@ -185,7 +198,7 @@ impl VpnTunnel for TunIpsecTunnel {
     ) -> anyhow::Result<()> {
         debug!(
             "Running IPSec ({}) tunnel for session {}",
-            self.params.esp_transport, self.session.ccc_session_id,
+            self.esp_transport, self.session.ccc_session_id,
         );
 
         let tun_name = self
@@ -366,7 +379,7 @@ impl VpnTunnel for TunIpsecTunnel {
 
 impl Drop for TunIpsecTunnel {
     fn drop(&mut self) {
-        debug!("Cleaning up IPSec ({}) tunnel", self.params.esp_transport);
+        debug!("Cleaning up IPSec ({}) tunnel", self.esp_transport);
         std::thread::scope(|s| {
             s.spawn(|| util::block_on(self.cleanup()));
         });

@@ -14,6 +14,7 @@ use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, VpnSession},
     platform::{self, IpsecConfigurator, UdpEncap, UdpSocketExt},
+    server_info,
     tunnel::{
         ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener},
         TunnelCommand, TunnelEvent, VpnTunnel,
@@ -32,12 +33,17 @@ pub(crate) struct NativeIpsecTunnel {
 
 impl NativeIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
+        let server_info = server_info::get(&params).await?;
+
         let ipsec_session = session.ipsec_session.as_ref().context("No IPSEC session!")?;
 
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
 
-        let gateway_address = util::resolve_ipv4_host(&format!("{}:{}", params.server_name, params.ike_port))?;
+        let gateway_address = util::resolve_ipv4_host(&format!(
+            "{}:{}",
+            params.server_name, server_info.connectivity_info.natt_port
+        ))?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",
