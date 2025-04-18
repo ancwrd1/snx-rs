@@ -14,7 +14,7 @@ use isakmp::{
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
     payload::AttributesPayload,
     session::{IsakmpSession, OfficeMode, SessionType},
-    transport::{IsakmpTransport, TcptDataType, TcptTransport, UdpTransport},
+    transport::{TcptDataType, TcptTransport},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
@@ -38,6 +38,7 @@ use crate::{
 };
 
 const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
+const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 
 const SESSIONS_PATH: &str = "/var/cache/snx-rs/sessions";
 
@@ -97,6 +98,7 @@ pub struct IpsecTunnelConnector {
     ipsec_session: IpsecSession,
     last_rekey: Option<SystemTime>,
     command_sender: Option<Sender<TunnelCommand>>,
+    esp_transport: TransportType,
 }
 
 impl IpsecTunnelConnector {
@@ -142,32 +144,30 @@ impl IpsecTunnelConnector {
             anyhow::bail!("No IPv4 address for {}", params.server_name);
         };
 
-        if matches!(params.esp_transport, TransportType::Udp | TransportType::UdpTun) {
-            let prober = NattProber::new(socket.peer_addr()?);
-            prober.probe().await?;
-        }
+        let prober = NattProber::new(socket.peer_addr()?);
 
-        debug!("Using ESP transport: {}", params.esp_transport);
+        let esp_transport = if prober.probe().await.is_ok() {
+            TransportType::Native
+        } else {
+            TransportType::Tcpt
+        };
+
+        debug!("Using ESP transport: {}", esp_transport);
 
         let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
 
-        let transport: Box<dyn IsakmpTransport + Send + Sync> = match params.ike_transport {
-            TransportType::Udp => Box::new(UdpTransport::new(socket, ikev1_session.new_codec())),
-            TransportType::Tcpt => {
-                let socket_address = format!("{}:{}", params.server_name, server_info.connectivity_info.tcpt_port)
-                    .to_socket_addrs()?
-                    .next()
-                    .context("No address!")?;
-                Box::new(TcptTransport::new(
-                    TcptDataType::Ike,
-                    socket_address,
-                    ikev1_session.new_codec(),
-                ))
-            }
-            TransportType::UdpTun => anyhow::bail!("Invalid transport for IKE"),
-        };
+        let tcpt_address = format!("{}:{}", params.server_name, server_info.connectivity_info.tcpt_port)
+            .to_socket_addrs()?
+            .next()
+            .context("No address!")?;
 
-        debug!("Using IKE transport: {}", params.ike_transport);
+        let transport = Box::new(TcptTransport::new(
+            TcptDataType::Ike,
+            tcpt_address,
+            ikev1_session.new_codec(),
+        ));
+
+        debug!("Using IKE transport: {:?}", TransportType::Tcpt);
 
         let service = Ikev1Service::new(transport, ikev1_session)?;
 
@@ -182,6 +182,7 @@ impl IpsecTunnelConnector {
             ipsec_session: IpsecSession::default(),
             last_rekey: None,
             command_sender: None,
+            esp_transport,
         })
     }
 
@@ -339,7 +340,7 @@ impl IpsecTunnelConnector {
     async fn do_esp_proposal(&mut self) -> anyhow::Result<()> {
         let attributes = self
             .service
-            .do_esp_proposal(self.ipsec_session.address, self.params.esp_lifetime)
+            .do_esp_proposal(self.ipsec_session.address, DEFAULT_ESP_LIFETIME)
             .await?;
 
         let lifetime = attributes
@@ -582,10 +583,10 @@ impl TunnelConnector for IpsecTunnelConnector {
         command_sender: Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
-        let result: anyhow::Result<Box<dyn VpnTunnel + Send>> = match self.params.esp_transport {
-            TransportType::Udp => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
+        let result: anyhow::Result<Box<dyn VpnTunnel + Send>> = match self.esp_transport {
+            TransportType::Native => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
             TransportType::Tcpt => Ok(Box::new(TcptIpsecTunnel::create(self.params.clone(), session).await?)),
-            TransportType::UdpTun => Ok(Box::new(UdpIpsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::Udp => Ok(Box::new(UdpIpsecTunnel::create(self.params.clone(), session).await?)),
         };
 
         if let Err(ref e) = result {

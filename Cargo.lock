@@ -2876,7 +2876,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 
 [[package]]
 name = "snx-rs"
-version = "3.1.2"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2891,7 +2891,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "3.1.2"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -2913,7 +2913,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "3.1.2"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -2958,7 +2958,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "3.1.2"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -3362,9 +3362,9 @@ dependencies = [
 
 [[package]]
 name = "tray-icon"
-version = "0.20.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d433764348e7084bad2c5ea22c96c71b61b17afe3a11645710f533bd72b6a2b5"
+checksum = "9f7eee98ec5c90daf179d55c20a49d8c0d043054ce7c26336c09a24d31f14fa0"
 dependencies = [
  "crossbeam-channel",
  "dirs",

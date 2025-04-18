@@ -26,11 +26,8 @@
 | `tunnel-type=ipsec\|ssl`                  | Tunnel type, default is ipsec                                                                                                                         |
 | `no-keychain=true\|false`                 | Do not store password in the OS keychain, default is false                                                                                            |
 | `esp-lifetime=3600`                       | ESP SA lifetime in seconds, default is 3600                                                                                                           |
-| `esp-transport=udp\|tcpt`                 | Select network transport for ESP packets. UDP is the default and standard, TCPT is the Check Point proprietary protocol and is much slower.           |
 | `ike-lifetime=28800`                      | IKE SA lifetime in seconds, default is 28800. Set to higher value to extend IPSec session duration                                                    |
-| `ike-port=500`                            | IKE communication port, either 500 or 4500, default is 500                                                                                            |
 | `ike-persist=true\|false`                 | Save IKE session to disk and try to reconnect automatically after application restart                                                                 |
-| `ike-transport=udp\|tcpt`                 | Select network transport for IKE exchange. UDP is the default and standard, TCPT is the Check Point proprietary protocol.                             |
 | `log-level=<log_level>`                   | Logging level: error, warn, debug, info, trace. Default is info. Note: trace-level log includes request and response dumps with sensitive information |
 | `no-keepalive=true\|false`                | Disable keepalive packets for IPSec. Some Check Point servers block the keepalive requests.                                                           |
 | `icon-theme=auto\|dark\|light`            | Set icon theme for the GUI app.                                                                                                                       |
