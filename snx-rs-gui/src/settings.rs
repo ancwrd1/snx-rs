@@ -23,7 +23,7 @@ const CSS_ERROR: &str = r"label {
     padding: 6px;
     border: 1px solid #f44336;
     color: #ffffff;
-    background-color: #a02a2a;
+    background-color: #AF0606;
 }
 ";
 
@@ -170,7 +170,7 @@ impl SettingsDialog {
             gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
-        let mut builder = gtk4::Dialog::builder().title("VPN settings");
+        let mut builder = gtk4::Dialog::builder().title("VPN settings").modal(true);
 
         if let Some(parent) = parent {
             builder = builder.transient_for(parent);
@@ -220,6 +220,7 @@ impl SettingsDialog {
         dialog.set_default_size(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
 
         let server_name = gtk4::Entry::builder().text(&params.server_name).hexpand(true).build();
+
         let fetch_info = gtk4::Button::builder().label("Fetch info").halign(Align::End).build();
         let auth_type = gtk4::ComboBoxText::builder().build();
         let tunnel_type = gtk4::ComboBoxText::builder().build();
@@ -397,9 +398,7 @@ impl SettingsDialog {
                         #[strong]
                         sender,
                         async move {
-                            let response = tokio::spawn(async move { server_info::get(&params).await })
-                                .await
-                                .unwrap();
+                            let response = server_info::get(&params).await;
                             let _ = sender.send(response).await;
                             Ok::<_, anyhow::Error>(())
                         }
@@ -457,10 +456,25 @@ impl SettingsDialog {
             }
         ));
 
+        // Workaround for GTK4 quirks. Without this hackery the cursor for text entries is not rendered.
         dialog.connect_show(clone!(
             #[weak]
             fetch_info,
-            move |_| fetch_info.emit_clicked()
+            move |dialog| {
+                dialog.add_tick_callback(move |dialog, _| {
+                    dialog.add_tick_callback(clone!(
+                        #[weak]
+                        fetch_info,
+                        #[upgrade_or]
+                        glib::ControlFlow::Break,
+                        move |_, _| {
+                            fetch_info.emit_clicked();
+                            glib::ControlFlow::Break
+                        }
+                    ));
+                    glib::ControlFlow::Break
+                });
+            }
         ));
 
         let widgets = Rc::new(MyWidgets {
@@ -534,7 +548,7 @@ impl SettingsDialog {
     }
 
     pub async fn run(&self) -> ResponseType {
-        self.dialog.show();
+        self.dialog.present();
         self.dialog.run_future().await
     }
 
@@ -972,7 +986,6 @@ impl SettingsDialog {
 
         let scrolled_win = gtk4::ScrolledWindow::builder().build();
         scrolled_win.set_child(Some(&viewport));
-        scrolled_win.show();
         scrolled_win
     }
 
@@ -990,8 +1003,6 @@ impl SettingsDialog {
 
         notebook.append_page(&self.general_tab(), Some(&gtk4::Label::new(Some("General"))));
         notebook.append_page(&self.advanced_tab(), Some(&gtk4::Label::new(Some("Advanced"))));
-
-        notebook.show();
     }
 }
 
