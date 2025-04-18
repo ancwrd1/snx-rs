@@ -1,19 +1,19 @@
-use std::{sync::Arc, time::Duration};
+use std::{cell::OnceCell, sync::Arc, time::Duration};
 
 use clap::Parser;
-use gtk4::glib::{clone, MainLoop};
-use gtk4::prelude::WidgetExt;
 use gtk4::{
-    glib::{self, ControlFlow},
-    prelude::ApplicationExt,
-    Application, License,
+    glib::{self, clone, ControlFlow},
+    prelude::{ApplicationExt, ApplicationExtManual, WidgetExt},
+    Application, ApplicationWindow, License,
 };
 use tracing::level_filters::LevelFilter;
 
 use snxcore::{controller::ServiceCommand, model::params::TunnelParams, platform::SingleInstance};
 
-use crate::theme::init_theme_monitoring;
-use crate::tray::{TrayCommand, TrayEvent};
+use crate::{
+    theme::init_theme_monitoring,
+    tray::{TrayCommand, TrayEvent},
+};
 
 mod assets;
 mod dbus;
@@ -22,7 +22,12 @@ mod prompt;
 mod settings;
 mod theme;
 mod tray;
+
 const PING_DURATION: Duration = Duration::from_secs(2);
+
+thread_local! {
+    static MAIN_WINDOW: OnceCell<ApplicationWindow> = OnceCell::new();
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -35,6 +40,8 @@ async fn main() -> anyhow::Result<()> {
     if !instance.is_single() {
         return Ok(());
     }
+
+    gtk4::init()?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(
@@ -71,11 +78,9 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
-    let main_loop = MainLoop::new(None, false);
-
     glib::spawn_future_local(clone!(
-        #[strong]
-        main_loop,
+        #[weak]
+        app,
         async move {
             while let Ok(v) = event_receiver.recv().await {
                 match v {
@@ -87,11 +92,13 @@ async fn main() -> anyhow::Result<()> {
                     }
                     TrayEvent::Settings => {
                         let params = TunnelParams::load(params.config_file()).unwrap_or_default();
-                        settings::start_settings_dialog(sender2.clone(), Arc::new(params));
+                        MAIN_WINDOW.with(|cell| {
+                            settings::start_settings_dialog(cell.get(), sender2.clone(), Arc::new(params));
+                        });
                     }
                     TrayEvent::Exit => {
                         let _ = sender2.send(TrayCommand::Exit).await;
-                        main_loop.quit();
+                        app.quit();
                     }
                     TrayEvent::About => {
                         glib::idle_add(|| {
@@ -115,11 +122,15 @@ async fn main() -> anyhow::Result<()> {
         }
     ));
 
-    app.connect_activate(|_| {});
+    app.connect_activate(move |app| {
+        let app_window = ApplicationWindow::builder().application(app).visible(false).build();
 
-    gtk4::init()?;
+        MAIN_WINDOW.with(move |cell| {
+            cell.set(app_window).unwrap();
+        });
+    });
 
-    main_loop.run();
+    app.run_with_args::<&str>(&[]);
 
     Ok(())
 }

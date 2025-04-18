@@ -1,15 +1,12 @@
 use std::sync::mpsc;
 
 use anyhow::anyhow;
-use gtk4::glib::clone;
-use gtk4::prelude::{ButtonExt, DialogExtManual, EditableExt, EntryExt};
 use gtk4::{
-    glib::{self, ControlFlow},
-    prelude::{BoxExt, DialogExt, GtkWindowExt, WidgetExt},
+    glib::{self, clone, ControlFlow},
+    prelude::*,
     Align, Orientation, ResponseType,
 };
-use snxcore::model::AuthPrompt;
-use snxcore::prompt::SecurePrompt;
+use snxcore::{model::AuthPrompt, prompt::SecurePrompt};
 
 use crate::dbus::send_notification;
 
