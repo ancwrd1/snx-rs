@@ -12,7 +12,7 @@ publish.workspace = true
 
 [dependencies]
 snxcore = { path = "../snxcore" }
-tray-icon = { version = "0.20", default-features = false }
+ksni = "0.3"
 gtk = "0.18"
 png = "0.17"
 async-channel = "2"
