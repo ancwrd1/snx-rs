@@ -13,7 +13,7 @@ publish.workspace = true
 [dependencies]
 snxcore = { path = "../snxcore" }
 ksni = "0.3"
-gtk = "0.18"
+gtk4 = "0.9"
 png = "0.17"
 async-channel = "2"
 tracing = "0.1"
