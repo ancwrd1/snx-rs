@@ -26,7 +26,7 @@ mod tray;
 const PING_DURATION: Duration = Duration::from_secs(2);
 
 thread_local! {
-    static MAIN_WINDOW: OnceCell<ApplicationWindow> = OnceCell::new();
+    static MAIN_WINDOW: OnceCell<ApplicationWindow> = const { OnceCell::new() };
 }
 
 #[tokio::main]
@@ -40,8 +40,6 @@ async fn main() -> anyhow::Result<()> {
     if !instance.is_single() {
         return Ok(());
     }
-
-    gtk4::init()?;
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(
@@ -126,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
         let app_window = ApplicationWindow::builder().application(app).visible(false).build();
 
         MAIN_WINDOW.with(move |cell| {
-            cell.set(app_window).unwrap();
+            let _ = cell.set(app_window);
         });
     });
 
