@@ -1,4 +1,4 @@
-use std::{net::Ipv4Addr, sync::Arc, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use bytes::Bytes;
@@ -42,13 +42,12 @@ const NMAP_KNOCK: &[&[u8]] = &[
 ];
 
 pub struct NattProber {
-    address: Ipv4Addr,
-    port: u16,
+    address: SocketAddr,
 }
 
 impl NattProber {
-    pub fn new(address: Ipv4Addr) -> Self {
-        Self { address, port: 4500 }
+    pub fn new(address: SocketAddr) -> Self {
+        Self { address }
     }
 
     pub async fn probe(&self) -> anyhow::Result<()> {
@@ -72,7 +71,7 @@ impl NattProber {
         debug!("Sending NAT-T probe to {}", self.address);
 
         let udp = UdpSocket::bind("0.0.0.0:0").await?;
-        udp.connect(format!("{}:{}", self.address, self.port)).await?;
+        udp.connect(self.address).await?;
 
         let data = vec![0u8; 32];
 
@@ -99,7 +98,7 @@ impl NattProber {
         debug!("Sending magic knock IKE SAs to {}", self.address);
 
         let udp = UdpSocket::bind("0.0.0.0:0").await?;
-        udp.connect(format!("{}:500", self.address)).await?;
+        udp.connect(format!("{}:500", self.address.ip())).await?;
 
         for probe in NMAP_KNOCK {
             let _ = udp.send(probe).await;

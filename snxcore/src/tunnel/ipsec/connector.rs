@@ -101,6 +101,8 @@ pub struct IpsecTunnelConnector {
 
 impl IpsecTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
+        let server_info = server_info::get(&params).await?;
+
         let identity = match params.cert_type {
             CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
                 (Some(path), Some(password)) => Identity::Pkcs12 {
@@ -130,7 +132,10 @@ impl IpsecTunnelConnector {
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         socket
-            .connect(format!("{}:{}", params.server_name, params.ike_port))
+            .connect(format!(
+                "{}:{}",
+                params.server_name, server_info.connectivity_info.natt_port
+            ))
             .await?;
 
         let IpAddr::V4(gateway_address) = socket.peer_addr()?.ip() else {
@@ -138,7 +143,7 @@ impl IpsecTunnelConnector {
         };
 
         if matches!(params.esp_transport, TransportType::Udp | TransportType::UdpTun) {
-            let prober = NattProber::new(gateway_address);
+            let prober = NattProber::new(socket.peer_addr()?);
             prober.probe().await?;
         }
 
@@ -149,7 +154,7 @@ impl IpsecTunnelConnector {
         let transport: Box<dyn IsakmpTransport + Send + Sync> = match params.ike_transport {
             TransportType::Udp => Box::new(UdpTransport::new(socket, ikev1_session.new_codec())),
             TransportType::Tcpt => {
-                let socket_address = format!("{}:443", params.server_name)
+                let socket_address = format!("{}:{}", params.server_name, server_info.connectivity_info.tcpt_port)
                     .to_socket_addrs()?
                     .next()
                     .context("No address!")?;
