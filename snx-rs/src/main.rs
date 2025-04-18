@@ -7,7 +7,7 @@ use tracing::{debug, metadata::LevelFilter, warn};
 
 use crate::cmdline::CmdlineParams;
 use snxcore::model::params::TunnelType;
-use snxcore::model::AuthPrompt;
+use snxcore::model::PromptInfo;
 use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
@@ -119,7 +119,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         anyhow::bail!("Missing required parameters: server name and/or login type");
     }
 
-    let mut mfa_prompts = server_info::get_mfa_prompts(&params).await.unwrap_or_default();
+    let mut mfa_prompts = server_info::get_login_prompts(&params).await.unwrap_or_default();
 
     let params = Arc::new(params);
     let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
@@ -146,7 +146,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
                 let prompt = mfa_prompts
                     .pop_front()
-                    .unwrap_or_else(|| AuthPrompt::new("", &challenge.prompt));
+                    .unwrap_or_else(|| PromptInfo::new("", &challenge.prompt));
 
                 let input = if !params.password.is_empty() && mfa_index == params.password_factor {
                     Ok(params.password.clone())
@@ -171,7 +171,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {
-                let prompt = AuthPrompt::new("Username is required for authentication", &challenge.prompt);
+                let prompt = PromptInfo::new("Username is required for authentication", &challenge.prompt);
                 let input = TtyPrompt.get_plain_input(&prompt)?;
                 session = connector.challenge_code(session, &input).await?;
             }

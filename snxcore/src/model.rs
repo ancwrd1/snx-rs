@@ -134,12 +134,12 @@ pub enum TunnelServiceResponse {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AuthPrompt {
+pub struct PromptInfo {
     pub header: String,
     pub prompt: String,
 }
 
-impl AuthPrompt {
+impl PromptInfo {
     pub fn new<H, S>(header: H, prompt: S) -> Self
     where
         H: AsRef<str>,

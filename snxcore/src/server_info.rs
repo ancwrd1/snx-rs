@@ -5,7 +5,7 @@ use crate::{
     model::{
         params::TunnelParams,
         proto::{LoginDisplayLabelSelect, LoginOption, ServerInfoResponse},
-        AuthPrompt,
+        PromptInfo,
     },
     sexpr::SExpression,
 };
@@ -29,7 +29,7 @@ pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
         .try_into()
 }
 
-pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<AuthPrompt>> {
+pub async fn get_login_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>> {
     let factors = get_login_option(params)
         .await?
         .map(|o| o.factors)
@@ -39,7 +39,7 @@ pub async fn get_mfa_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<A
     let result = factors
         .filter_map(|factor| match factor.custom_display_labels {
             LoginDisplayLabelSelect::LoginDisplayLabel(map) => map.get("password").map(|label| {
-                AuthPrompt::new(
+                PromptInfo::new(
                     map.get("header").map(ToOwned::to_owned).unwrap_or_default(),
                     format!("{}: ", label),
                 )

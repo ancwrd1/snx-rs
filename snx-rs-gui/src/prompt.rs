@@ -6,14 +6,14 @@ use gtk4::{
     prelude::*,
     Align, Orientation, ResponseType,
 };
-use snxcore::{model::AuthPrompt, prompt::SecurePrompt};
+use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 
 use crate::dbus::send_notification;
 
 pub struct GtkPrompt;
 
 impl GtkPrompt {
-    fn get_input(&self, prompt: &AuthPrompt, secure: bool) -> anyhow::Result<String> {
+    fn get_input(&self, prompt: &PromptInfo, secure: bool) -> anyhow::Result<String> {
         let (tx, rx) = mpsc::channel();
 
         let prompt = prompt.to_owned();
@@ -120,11 +120,11 @@ impl GtkPrompt {
 }
 
 impl SecurePrompt for GtkPrompt {
-    fn get_secure_input(&self, prompt: &AuthPrompt) -> anyhow::Result<String> {
+    fn get_secure_input(&self, prompt: &PromptInfo) -> anyhow::Result<String> {
         self.get_input(prompt, true)
     }
 
-    fn get_plain_input(&self, prompt: &AuthPrompt) -> anyhow::Result<String> {
+    fn get_plain_input(&self, prompt: &PromptInfo) -> anyhow::Result<String> {
         self.get_input(prompt, false)
     }
 

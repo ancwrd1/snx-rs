@@ -6,7 +6,7 @@ use tracing::warn;
 use crate::{
     browser::{spawn_otp_listener, BrowserController},
     model::{
-        params::TunnelParams, AuthPrompt, ConnectionStatus, MfaChallenge, MfaType, TunnelServiceRequest,
+        params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, PromptInfo, TunnelServiceRequest,
         TunnelServiceResponse,
     },
     platform::{self, UdpSocketExt},
@@ -44,7 +44,7 @@ impl FromStr for ServiceCommand {
 pub struct ServiceController<B, P> {
     pub params: Arc<TunnelParams>,
     prompt: P,
-    mfa_prompts: Option<VecDeque<AuthPrompt>>,
+    mfa_prompts: Option<VecDeque<PromptInfo>>,
     password_from_keychain: String,
     username: String,
     mfa_index: usize,
@@ -133,7 +133,7 @@ where
                     .mfa_prompts
                     .as_mut()
                     .and_then(|p| p.pop_front())
-                    .unwrap_or_else(|| AuthPrompt::new("", &mfa.prompt));
+                    .unwrap_or_else(|| PromptInfo::new("", &mfa.prompt));
 
                 if !self.params.password.is_empty() && self.mfa_index == self.params.password_factor {
                     Ok(self.params.password.clone())
@@ -161,7 +161,7 @@ where
                 }
             }
             MfaType::UserNameInput => {
-                let prompt = AuthPrompt::new("Username is required for authentication", &mfa.prompt);
+                let prompt = PromptInfo::new("Username is required for authentication", &mfa.prompt);
                 let input = self.prompt.get_plain_input(&prompt)?;
                 self.username = input.clone();
 
@@ -251,7 +251,7 @@ where
     async fn fill_mfa_prompts(&mut self) {
         self.mfa_index = 0;
         self.mfa_prompts
-            .replace(server_info::get_mfa_prompts(&self.params).await.unwrap_or_default());
+            .replace(server_info::get_login_prompts(&self.params).await.unwrap_or_default());
     }
 
     async fn do_info(&self) -> anyhow::Result<ConnectionStatus> {

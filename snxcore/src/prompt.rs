@@ -1,12 +1,12 @@
-use crate::model::AuthPrompt;
+use crate::model::PromptInfo;
 use anyhow::anyhow;
 use std::io::Write;
 use std::io::{stderr, stdin, IsTerminal};
 
 pub trait SecurePrompt {
-    fn get_secure_input(&self, prompt: &AuthPrompt) -> anyhow::Result<String>;
+    fn get_secure_input(&self, prompt: &PromptInfo) -> anyhow::Result<String>;
 
-    fn get_plain_input(&self, prompt: &AuthPrompt) -> anyhow::Result<String>;
+    fn get_plain_input(&self, prompt: &PromptInfo) -> anyhow::Result<String>;
 
     fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()>;
 }
@@ -14,7 +14,7 @@ pub trait SecurePrompt {
 pub struct TtyPrompt;
 
 impl SecurePrompt for TtyPrompt {
-    fn get_secure_input(&self, prompt: &AuthPrompt) -> anyhow::Result<String> {
+    fn get_secure_input(&self, prompt: &PromptInfo) -> anyhow::Result<String> {
         if stdin().is_terminal() && stderr().is_terminal() {
             if !prompt.header.is_empty() {
                 println!("{}", prompt.header);
@@ -28,7 +28,7 @@ impl SecurePrompt for TtyPrompt {
         }
     }
 
-    fn get_plain_input(&self, prompt: &AuthPrompt) -> anyhow::Result<String> {
+    fn get_plain_input(&self, prompt: &PromptInfo) -> anyhow::Result<String> {
         if stdin().is_terminal() && stderr().is_terminal() {
             if !prompt.header.is_empty() {
                 println!("{}", prompt.header);
