@@ -160,7 +160,7 @@ impl SettingsDialog {
     const DEFAULT_WIDTH: i32 = 700;
     const DEFAULT_HEIGHT: i32 = 370;
 
-    pub fn new(params: Arc<TunnelParams>) -> Self {
+    pub fn new(parent: Option<&gtk4::ApplicationWindow>, params: Arc<TunnelParams>) -> Self {
         let provider = gtk4::CssProvider::new();
         provider.load_from_data(CSS_APP);
 
@@ -170,7 +170,13 @@ impl SettingsDialog {
             gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
-        let dialog = gtk4::Dialog::builder().title("VPN settings").build();
+        let mut builder = gtk4::Dialog::builder().title("VPN settings");
+
+        if let Some(parent) = parent {
+            builder = builder.transient_for(parent);
+        }
+
+        let dialog = builder.build();
 
         let button_box = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
@@ -995,29 +1001,30 @@ impl Drop for SettingsDialog {
     }
 }
 
-pub fn start_settings_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
-    glib::idle_add(move || {
-        let dialog = SettingsDialog::new(params.clone());
-        let sender = sender.clone();
-        glib::spawn_future_local(async move {
-            loop {
-                let response = dialog.run().await;
+pub fn start_settings_dialog(
+    parent: Option<&gtk4::ApplicationWindow>,
+    sender: Sender<TrayCommand>,
+    params: Arc<TunnelParams>,
+) {
+    let dialog = SettingsDialog::new(parent, params.clone());
+    let sender = sender.clone();
+    glib::spawn_future_local(async move {
+        loop {
+            let response = dialog.run().await;
 
-                match response {
-                    ResponseType::Ok | ResponseType::Apply => {
-                        if let Err(e) = dialog.save() {
-                            warn!("{}", e);
-                        } else {
-                            let _ = sender.send(TrayCommand::Update).await;
-                        }
+            match response {
+                ResponseType::Ok | ResponseType::Apply => {
+                    if let Err(e) = dialog.save() {
+                        warn!("{}", e);
+                    } else {
+                        let _ = sender.send(TrayCommand::Update).await;
                     }
-                    _ => {}
                 }
-                if response != ResponseType::Apply {
-                    break;
-                }
+                _ => {}
             }
-        });
-        glib::ControlFlow::Break
+            if response != ResponseType::Apply {
+                break;
+            }
+        }
     });
 }
