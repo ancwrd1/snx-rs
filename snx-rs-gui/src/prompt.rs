@@ -1,10 +1,12 @@
 use std::sync::mpsc;
 
 use anyhow::anyhow;
-use gtk::{
+use gtk4::glib::clone;
+use gtk4::prelude::{ButtonExt, DialogExtManual, EditableExt, EntryExt};
+use gtk4::{
     glib::{self, ControlFlow},
-    prelude::{BoxExt, DialogExt, EntryExt, GtkWindowExt, WidgetExt},
-    Align, Orientation, ResponseType, WindowPosition,
+    prelude::{BoxExt, DialogExt, GtkWindowExt, WidgetExt},
+    Align, Orientation, ResponseType,
 };
 use snxcore::model::AuthPrompt;
 use snxcore::prompt::SecurePrompt;
@@ -20,53 +22,98 @@ impl GtkPrompt {
         let prompt = prompt.to_owned();
 
         glib::idle_add(move || {
-            let dialog = gtk::Dialog::builder().title("Authentication").modal(true).build();
+            let dialog = gtk4::Dialog::builder().title("Authentication").modal(true).build();
 
-            let ok = gtk::Button::builder().label("OK").can_default(true).build();
-            let cancel = gtk::Button::builder().label("Cancel").build();
-            dialog.add_action_widget(&ok, ResponseType::Ok);
-            dialog.add_action_widget(&cancel, ResponseType::Cancel);
-            dialog.set_default(Some(&ok));
-            dialog.set_default_width(320);
-            dialog.set_default_height(120);
-            dialog.set_position(WindowPosition::CenterAlways);
+            let ok = gtk4::Button::builder().label("OK").build();
+            ok.connect_clicked(clone!(
+                #[weak]
+                dialog,
+                move |_| {
+                    dialog.response(ResponseType::Ok);
+                }
+            ));
+
+            let cancel = gtk4::Button::builder().label("Cancel").build();
+            cancel.connect_clicked(clone!(
+                #[weak]
+                dialog,
+                move |_| {
+                    dialog.response(ResponseType::Cancel);
+                }
+            ));
+
+            let button_box = gtk4::Box::builder()
+                .orientation(Orientation::Horizontal)
+                .spacing(6)
+                .margin_top(6)
+                .margin_start(6)
+                .margin_end(6)
+                .homogeneous(true)
+                .halign(Align::End)
+                .build();
+
+            button_box.append(&ok);
+            button_box.append(&cancel);
+
+            dialog.set_default_response(ResponseType::Ok);
+            dialog.set_default_size(320, 120);
 
             let content = dialog.content_area();
-            let inner = gtk::Box::builder().orientation(Orientation::Vertical).margin(6).build();
+            let inner = gtk4::Box::builder()
+                .orientation(Orientation::Vertical)
+                .margin_bottom(6)
+                .margin_top(6)
+                .margin_start(6)
+                .margin_end(6)
+                .spacing(6)
+                .build();
 
             if !prompt.header.is_empty() {
-                inner.pack_start(
-                    &gtk::Label::builder().label(&prompt.header).halign(Align::Start).build(),
-                    false,
-                    true,
-                    12,
+                inner.append(
+                    &gtk4::Label::builder()
+                        .label(&prompt.header)
+                        .halign(Align::Start)
+                        .build(),
                 );
             }
-            inner.pack_start(
-                &gtk::Label::builder().label(&prompt.prompt).halign(Align::Start).build(),
-                false,
-                true,
-                6,
+            inner.append(
+                &gtk4::Label::builder()
+                    .label(&prompt.prompt)
+                    .halign(Align::Start)
+                    .build(),
             );
 
-            let entry = gtk::Entry::builder()
+            let entry = gtk4::Entry::builder()
+                .name("entry")
                 .visibility(!secure)
                 .activates_default(true)
                 .build();
-            inner.pack_start(&entry, false, true, 6);
 
-            content.pack_start(&inner, false, true, 6);
+            entry.connect_activate(clone!(
+                #[weak]
+                dialog,
+                move |_| {
+                    dialog.response(ResponseType::Ok);
+                }
+            ));
 
-            dialog.show_all();
+            inner.append(&entry);
 
-            let result = dialog.run();
-            dialog.close();
+            content.append(&inner);
+            content.append(&button_box);
 
-            if result == ResponseType::Ok {
-                let _ = tx.send(Ok(entry.text().into()));
-            } else {
-                let _ = tx.send(Err(anyhow!("User input canceled")));
-            }
+            let tx = tx.clone();
+
+            dialog.run_async(move |dlg, response| {
+                if response == ResponseType::Ok {
+                    let _ = tx.send(Ok(entry.text().to_string()));
+                } else {
+                    let _ = tx.send(Err(anyhow!("User input canceled")));
+                }
+                dlg.close();
+            });
+
+            dialog.show();
 
             ControlFlow::Break
         });

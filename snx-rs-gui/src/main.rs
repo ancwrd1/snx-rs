@@ -1,9 +1,11 @@
 use std::{sync::Arc, time::Duration};
 
 use clap::Parser;
-use gtk::{
+use gtk4::glib::{clone, MainLoop};
+use gtk4::prelude::WidgetExt;
+use gtk4::{
     glib::{self, ControlFlow},
-    prelude::{ApplicationExt, ApplicationExtManual, DialogExt, GtkWindowExt},
+    prelude::ApplicationExt,
     Application, License,
 };
 use tracing::level_filters::LevelFilter;
@@ -67,59 +69,57 @@ async fn main() -> anyhow::Result<()> {
     let params = params.clone();
     let sender2 = sender.clone();
 
-    tokio::spawn(async move {
-        while let Ok(v) = event_receiver.recv().await {
-            match v {
-                TrayEvent::Connect => {
-                    let _ = sender2.send(TrayCommand::Service(ServiceCommand::Connect)).await;
-                }
-                TrayEvent::Disconnect => {
-                    let _ = sender2.send(TrayCommand::Service(ServiceCommand::Disconnect)).await;
-                }
-                TrayEvent::Settings => {
-                    let params = TunnelParams::load(params.config_file()).unwrap_or_default();
-                    settings::start_settings_dialog(sender2.clone(), Arc::new(params));
-                }
-                TrayEvent::Exit => {
-                    let _ = sender2.send(TrayCommand::Exit).await;
-                    glib::idle_add(|| {
-                        gtk::main_quit();
-                        ControlFlow::Break
-                    });
-                }
-                TrayEvent::About => {
-                    glib::idle_add(|| {
-                        let dialog = gtk::AboutDialog::builder()
-                            .version(env!("CARGO_PKG_VERSION"))
-                            .logo_icon_name("network-vpn")
-                            .website("https://github.com/ancwrd1/snx-rs")
-                            .authors(["Dmitry Pankratov"])
-                            .license_type(License::Agpl30)
-                            .program_name("SNX-RS VPN Client for Linux")
-                            .title("SNX-RS VPN Client for Linux")
-                            .build();
+    let app = Application::builder().application_id("com.github.snx-rs").build();
 
-                        dialog.run();
-                        dialog.close();
+    let main_loop = MainLoop::new(None, false);
 
-                        ControlFlow::Break
-                    });
+    glib::spawn_future_local(clone!(
+        #[strong]
+        main_loop,
+        async move {
+            while let Ok(v) = event_receiver.recv().await {
+                match v {
+                    TrayEvent::Connect => {
+                        let _ = sender2.send(TrayCommand::Service(ServiceCommand::Connect)).await;
+                    }
+                    TrayEvent::Disconnect => {
+                        let _ = sender2.send(TrayCommand::Service(ServiceCommand::Disconnect)).await;
+                    }
+                    TrayEvent::Settings => {
+                        let params = TunnelParams::load(params.config_file()).unwrap_or_default();
+                        settings::start_settings_dialog(sender2.clone(), Arc::new(params));
+                    }
+                    TrayEvent::Exit => {
+                        let _ = sender2.send(TrayCommand::Exit).await;
+                        main_loop.quit();
+                    }
+                    TrayEvent::About => {
+                        glib::idle_add(|| {
+                            let dialog = gtk4::AboutDialog::builder()
+                                .version(env!("CARGO_PKG_VERSION"))
+                                .logo_icon_name("network-vpn")
+                                .website("https://github.com/ancwrd1/snx-rs")
+                                .authors(["Dmitry Pankratov"])
+                                .license_type(License::Agpl30)
+                                .program_name("SNX-RS VPN Client for Linux")
+                                .title("SNX-RS VPN Client for Linux")
+                                .build();
+
+                            dialog.show();
+
+                            ControlFlow::Break
+                        });
+                    }
                 }
             }
         }
-    });
+    ));
 
-    let app = Application::builder().application_id("com.github.snx-rs").build();
+    app.connect_activate(|_| {});
 
-    app.connect_activate(move |_| {
-        if tunnel_params.ike_persist {
-            let _ = sender.send_blocking(TrayCommand::Service(ServiceCommand::Connect));
-        }
+    gtk4::init()?;
 
-        gtk::main();
-    });
-
-    app.run_with_args::<&str>(&[]);
+    main_loop.run();
 
     Ok(())
 }

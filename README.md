@@ -39,7 +39,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * systemd-resolved is recommended as a global DNS resolver
 * iproute2 (the `ip` command)
 * D-Bus
-* GTK3 and libappindicator3 for the GUI frontend
+* GTK4 for the GUI frontend
 
 ## DNS resolver configuration and privacy
 
@@ -47,7 +47,7 @@ By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs
 to modify the /etc/resolv.conf file directly and DNS servers acquired from the tunnel will be used globally.
 For better privacy, use the split DNS provided by systemd-resolved.
 
-In order to find out whether it is already enabled, check the /etc/resolv.conf file:
+To find out whether it is already enabled, check the /etc/resolv.conf file:
 
 `readlink /etc/resolv.conf`
 

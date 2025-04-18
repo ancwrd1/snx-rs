@@ -1,10 +1,10 @@
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use async_channel::Sender;
-use gtk::{
+use gtk4::{
     glib::{self, clone},
     prelude::*,
-    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget, WindowPosition,
+    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget,
 };
 use ipnet::Ipv4Net;
 use tracing::warn;
@@ -27,11 +27,23 @@ const CSS_ERROR: &str = r"label {
 }
 ";
 
+const CSS_APP: &str = r"
+.arrow-icon {
+    transition: transform 200ms ease-in-out;
+}
+.rotate-90 {
+    transform: rotate(90deg);
+}
+entry text placeholder {
+    color: @insensitive_fg_color;
+}
+";
+
 fn set_container_visible(widget: &Widget, flag: bool) {
     if let Some(parent) = widget.parent() {
         if let Some(parent) = parent.parent() {
             if flag {
-                parent.show_all();
+                parent.show();
             } else {
                 parent.hide();
             }
@@ -41,40 +53,41 @@ fn set_container_visible(widget: &Widget, flag: bool) {
 
 struct SettingsDialog {
     params: Arc<TunnelParams>,
-    dialog: gtk::Dialog,
+    dialog: gtk4::Dialog,
     widgets: Rc<MyWidgets>,
 }
 
 struct MyWidgets {
-    server_name: gtk::Entry,
-    fetch_info: gtk::Button,
-    auth_type: gtk::ComboBoxText,
-    tunnel_type: gtk::ComboBoxText,
-    user_name: gtk::Entry,
-    password: gtk::Entry,
-    password_factor: gtk::Entry,
-    no_dns: gtk::CheckButton,
-    search_domains: gtk::Entry,
-    ignored_domains: gtk::Entry,
-    dns_servers: gtk::Entry,
-    ignored_dns_servers: gtk::Entry,
-    set_routing_domains: gtk::CheckButton,
-    no_routing: gtk::CheckButton,
-    default_routing: gtk::CheckButton,
-    add_routes: gtk::Entry,
-    ignored_routes: gtk::Entry,
-    no_keychain: gtk::CheckButton,
-    no_cert_check: gtk::CheckButton,
-    cert_type: gtk::ComboBoxText,
-    cert_path: gtk::Entry,
-    cert_password: gtk::Entry,
-    cert_id: gtk::Entry,
-    ca_cert: gtk::Entry,
-    ike_lifetime: gtk::Entry,
-    ike_persist: gtk::CheckButton,
-    no_keepalive: gtk::CheckButton,
-    icon_theme: gtk::ComboBoxText,
-    error: gtk::Label,
+    server_name: gtk4::Entry,
+    fetch_info: gtk4::Button,
+    auth_type: gtk4::ComboBoxText,
+    tunnel_type: gtk4::ComboBoxText,
+    user_name: gtk4::Entry,
+    password: gtk4::Entry,
+    password_factor: gtk4::Entry,
+    no_dns: gtk4::CheckButton,
+    search_domains: gtk4::Entry,
+    ignored_domains: gtk4::Entry,
+    dns_servers: gtk4::Entry,
+    ignored_dns_servers: gtk4::Entry,
+    set_routing_domains: gtk4::CheckButton,
+    no_routing: gtk4::CheckButton,
+    default_routing: gtk4::CheckButton,
+    add_routes: gtk4::Entry,
+    ignored_routes: gtk4::Entry,
+    no_keychain: gtk4::CheckButton,
+    no_cert_check: gtk4::CheckButton,
+    cert_type: gtk4::ComboBoxText,
+    cert_path: gtk4::Entry,
+    cert_password: gtk4::Entry,
+    cert_id: gtk4::Entry,
+    ca_cert: gtk4::Entry,
+    ike_lifetime: gtk4::Entry,
+    ike_persist: gtk4::CheckButton,
+    no_keepalive: gtk4::CheckButton,
+    icon_theme: gtk4::ComboBoxText,
+    error: gtk4::Label,
+    button_box: gtk4::Box,
 }
 
 impl MyWidgets {
@@ -148,43 +161,80 @@ impl SettingsDialog {
     const DEFAULT_HEIGHT: i32 = 370;
 
     pub fn new(params: Arc<TunnelParams>) -> Self {
-        let dialog = gtk::Dialog::with_buttons(
-            Some("VPN settings"),
-            None::<&gtk::Window>,
-            DialogFlags::MODAL,
-            &[
-                ("OK", ResponseType::Ok),
-                ("Apply", ResponseType::Apply),
-                ("Cancel", ResponseType::Cancel),
-            ],
+        let provider = gtk4::CssProvider::new();
+        provider.load_from_data(CSS_APP);
+
+        gtk4::style_context_add_provider_for_display(
+            &gtk4::gdk::Display::default().expect("Could not connect to display"),
+            &provider,
+            gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
-        dialog.set_default_width(Self::DEFAULT_WIDTH);
-        dialog.set_default_height(Self::DEFAULT_HEIGHT);
-        dialog.set_position(WindowPosition::CenterAlways);
+        let dialog = gtk4::Dialog::builder().title("VPN settings").build();
 
-        let server_name = gtk::Entry::builder().text(&params.server_name).hexpand(true).build();
-        let fetch_info = gtk::Button::builder().label("Fetch info").halign(Align::End).build();
-        let auth_type = gtk::ComboBoxText::builder().build();
-        let tunnel_type = gtk::ComboBoxText::builder().build();
-        let user_name = gtk::Entry::builder().text(&params.user_name).build();
-        let password = gtk::Entry::builder().text(&params.password).visibility(false).build();
-        let password_factor = gtk::Entry::builder().text(params.password_factor.to_string()).build();
+        let button_box = gtk4::Box::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(6)
+            .margin_top(6)
+            .homogeneous(true)
+            .halign(Align::End)
+            .build();
 
-        let no_dns = gtk::CheckButton::builder().active(params.no_dns).build();
-        let set_routing_domains = gtk::CheckButton::builder().active(params.set_routing_domains).build();
+        let ok_button = gtk4::Button::with_label("OK");
+        ok_button.connect_clicked(clone!(
+            #[weak]
+            dialog,
+            move |_| {
+                dialog.response(ResponseType::Ok);
+            }
+        ));
 
-        let search_domains = gtk::Entry::builder()
+        let apply_button = gtk4::Button::with_label("Apply");
+        apply_button.connect_clicked(clone!(
+            #[weak]
+            dialog,
+            move |_| {
+                dialog.response(ResponseType::Apply);
+            }
+        ));
+
+        let cancel_button = gtk4::Button::with_label("Cancel");
+        cancel_button.connect_clicked(clone!(
+            #[weak]
+            dialog,
+            move |_| {
+                dialog.response(ResponseType::Cancel);
+            }
+        ));
+
+        button_box.append(&ok_button);
+        button_box.append(&apply_button);
+        button_box.append(&cancel_button);
+
+        dialog.set_default_size(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
+
+        let server_name = gtk4::Entry::builder().text(&params.server_name).hexpand(true).build();
+        let fetch_info = gtk4::Button::builder().label("Fetch info").halign(Align::End).build();
+        let auth_type = gtk4::ComboBoxText::builder().build();
+        let tunnel_type = gtk4::ComboBoxText::builder().build();
+        let user_name = gtk4::Entry::builder().text(&params.user_name).build();
+        let password = gtk4::Entry::builder().text(&params.password).visibility(false).build();
+        let password_factor = gtk4::Entry::builder().text(params.password_factor.to_string()).build();
+
+        let no_dns = gtk4::CheckButton::builder().active(params.no_dns).build();
+        let set_routing_domains = gtk4::CheckButton::builder().active(params.set_routing_domains).build();
+
+        let search_domains = gtk4::Entry::builder()
             .placeholder_text("Comma-separated domains")
             .text(params.search_domains.join(","))
             .build();
 
-        let ignored_domains = gtk::Entry::builder()
+        let ignored_domains = gtk4::Entry::builder()
             .placeholder_text("Comma-separated domains")
             .text(params.ignore_search_domains.join(","))
             .build();
 
-        let dns_servers = gtk::Entry::builder()
+        let dns_servers = gtk4::Entry::builder()
             .placeholder_text("Comma-separated IP addresses")
             .text(
                 params
@@ -196,7 +246,7 @@ impl SettingsDialog {
             )
             .build();
 
-        let ignored_dns_servers = gtk::Entry::builder()
+        let ignored_dns_servers = gtk4::Entry::builder()
             .placeholder_text("Comma-separated IP addresses")
             .text(
                 params
@@ -208,10 +258,10 @@ impl SettingsDialog {
             )
             .build();
 
-        let no_routing = gtk::CheckButton::builder().active(params.no_routing).build();
-        let default_routing = gtk::CheckButton::builder().active(params.default_route).build();
+        let no_routing = gtk4::CheckButton::builder().active(params.no_routing).build();
+        let default_routing = gtk4::CheckButton::builder().active(params.default_route).build();
 
-        let add_routes = gtk::Entry::builder()
+        let add_routes = gtk4::Entry::builder()
             .placeholder_text("Comma-separated x.x.x.x/x")
             .text(
                 params
@@ -223,7 +273,7 @@ impl SettingsDialog {
             )
             .build();
 
-        let ignored_routes = gtk::Entry::builder()
+        let ignored_routes = gtk4::Entry::builder()
             .placeholder_text("Comma-separated x.x.x.x/x")
             .text(
                 params
@@ -235,10 +285,10 @@ impl SettingsDialog {
             )
             .build();
 
-        let no_keychain = gtk::CheckButton::builder().active(params.no_keychain).build();
-        let no_cert_check = gtk::CheckButton::builder().active(params.ignore_server_cert).build();
-        let cert_type = gtk::ComboBoxText::builder().build();
-        let cert_path = gtk::Entry::builder()
+        let no_keychain = gtk4::CheckButton::builder().active(params.no_keychain).build();
+        let no_cert_check = gtk4::CheckButton::builder().active(params.ignore_server_cert).build();
+        let cert_type = gtk4::ComboBoxText::builder().build();
+        let cert_path = gtk4::Entry::builder()
             .text(
                 params
                     .cert_path
@@ -247,14 +297,14 @@ impl SettingsDialog {
                     .unwrap_or_default(),
             )
             .build();
-        let cert_password = gtk::Entry::builder()
+        let cert_password = gtk4::Entry::builder()
             .text(params.cert_password.as_deref().unwrap_or_default())
             .visibility(false)
             .build();
-        let cert_id = gtk::Entry::builder()
+        let cert_id = gtk4::Entry::builder()
             .text(params.cert_id.as_deref().unwrap_or_default())
             .build();
-        let ca_cert = gtk::Entry::builder()
+        let ca_cert = gtk4::Entry::builder()
             .placeholder_text("Comma-separated PEM or DER files")
             .text(
                 params
@@ -265,112 +315,147 @@ impl SettingsDialog {
                     .join(","),
             )
             .build();
-        let ike_lifetime = gtk::Entry::builder()
+        let ike_lifetime = gtk4::Entry::builder()
             .text(params.ike_lifetime.as_secs().to_string())
             .build();
-        let ike_persist = gtk::CheckButton::builder().active(params.ike_persist).build();
-        let no_keepalive = gtk::CheckButton::builder().active(params.no_keepalive).build();
-        let icon_theme = gtk::ComboBoxText::builder().build();
+        let ike_persist = gtk4::CheckButton::builder().active(params.ike_persist).build();
+        let no_keepalive = gtk4::CheckButton::builder().active(params.no_keepalive).build();
+        let icon_theme = gtk4::ComboBoxText::builder().build();
 
-        let provider = gtk::CssProvider::new();
-        provider.load_from_data(CSS_ERROR.as_bytes()).unwrap();
+        let provider = gtk4::CssProvider::new();
+        provider.load_from_data(CSS_ERROR);
 
-        let error = gtk::Label::new(None);
+        let error = gtk4::Label::new(None);
+        error.set_visible(false);
         error.style_context().add_provider(&provider, 100);
 
-        auth_type.connect_active_notify(clone!(@weak dialog,
-            @weak auth_type,
-            @weak user_name,
-            @weak tunnel_type,
-            @weak cert_path,
-            @weak cert_type => move |widget| {
-            if let Some(id) = widget.active_id() {
-                let factors = unsafe { auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
-                if let Some(factors) = factors {
-                    let is_saml = factors.iter().any(|f| f == "identity_provider");
-                    let is_cert = factors.iter().any(|f| f == "certificate");
-                    set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
-                    set_container_visible(cert_path.as_ref(), is_cert);
-                    dialog.resize(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
-                    if !is_cert {
-                        cert_type.set_active(Some(0));
-                    }
-                    if is_saml {
-                        tunnel_type.set_active(Some(0));
-                        tunnel_type.set_sensitive(false);
-                    } else {
-                        tunnel_type.set_sensitive(true);
+        auth_type.connect_active_notify(clone!(
+            #[weak]
+            dialog,
+            #[weak]
+            auth_type,
+            #[weak]
+            user_name,
+            #[weak]
+            tunnel_type,
+            #[weak]
+            cert_path,
+            #[weak]
+            cert_type,
+            move |widget| {
+                if let Some(id) = widget.active_id() {
+                    let factors = unsafe { auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
+                    if let Some(factors) = factors {
+                        let is_saml = factors.iter().any(|f| f == "identity_provider");
+                        let is_cert = factors.iter().any(|f| f == "certificate");
+                        set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
+                        set_container_visible(cert_path.as_ref(), is_cert);
+                        dialog.set_default_size(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
+                        if !is_cert {
+                            cert_type.set_active(Some(0));
+                        }
+                        if is_saml {
+                            tunnel_type.set_active(Some(0));
+                            tunnel_type.set_sensitive(false);
+                        } else {
+                            tunnel_type.set_sensitive(true);
+                        }
                     }
                 }
             }
-        }));
+        ));
 
         let (sender, receiver) = async_channel::bounded(1);
         let params2 = params.clone();
 
-        fetch_info.connect_clicked(clone!(@weak dialog,
-            @weak auth_type,
-            @weak server_name,
-            @weak no_cert_check => move |_| {
-            if server_name.text().is_empty() {
-                auth_type.set_sensitive(false);
-            } else {
-                dialog.set_sensitive(false);
-                let params = TunnelParams {
-                    server_name: server_name.text().into(),
-                    ignore_server_cert: no_cert_check.is_active(),
-                    ..(*params2).clone()
-                };
-                glib::spawn_future_local(clone!(@strong sender => async move {
-                    let response = tokio::spawn(async move { server_info::get(&params).await })
-                        .await
-                        .unwrap();
-                    let _ = sender.send(response).await;
-                    Ok::<_, anyhow::Error>(())
-                }));
+        fetch_info.connect_clicked(clone!(
+            #[weak]
+            dialog,
+            #[weak]
+            auth_type,
+            #[weak]
+            server_name,
+            #[weak]
+            no_cert_check,
+            move |_| {
+                if server_name.text().is_empty() {
+                    auth_type.set_sensitive(false);
+                } else {
+                    dialog.set_sensitive(false);
+                    let params = TunnelParams {
+                        server_name: server_name.text().into(),
+                        ignore_server_cert: no_cert_check.is_active(),
+                        ..(*params2).clone()
+                    };
+                    glib::spawn_future_local(clone!(
+                        #[strong]
+                        sender,
+                        async move {
+                            let response = tokio::spawn(async move { server_info::get(&params).await })
+                                .await
+                                .unwrap();
+                            let _ = sender.send(response).await;
+                            Ok::<_, anyhow::Error>(())
+                        }
+                    ));
+                }
             }
-        }));
+        ));
 
         let params2 = params.clone();
 
-        glib::spawn_future_local(clone!(@weak dialog, @weak auth_type, @weak error => async move {
-            while let Ok(result) = receiver.recv().await {
-                auth_type.remove_all();
-                match result {
-                    Ok(server_info) => {
-                        error.set_label("");
-                        error.set_visible(false);
-                        let mut options_list = server_info
-                            .login_options_data
-                            .map(|d| d.login_options_list)
-                            .unwrap_or_default();
-                        if options_list.is_empty() {
-                            options_list.insert(String::new(), LoginOption::unspecified());
-                        }
-                        for (i, (_, option)) in options_list.into_iter().enumerate() {
-                            let factors = option
-                                .factors
-                                .values()
-                                .map(|factor| factor.factor_type.clone())
-                                .collect::<Vec<_>>();
-                            unsafe { auth_type.set_data(&option.id, factors); }
-                            auth_type.append(Some(&option.id), &option.display_name);
-                            if params2.login_type == option.id {
-                                auth_type.set_active(Some(i as _));
+        glib::spawn_future_local(clone!(
+            #[weak]
+            dialog,
+            #[weak]
+            auth_type,
+            #[weak]
+            error,
+            async move {
+                while let Ok(result) = receiver.recv().await {
+                    auth_type.remove_all();
+                    match result {
+                        Ok(server_info) => {
+                            error.set_label("");
+                            error.set_visible(false);
+                            let mut options_list = server_info
+                                .login_options_data
+                                .map(|d| d.login_options_list)
+                                .unwrap_or_default();
+                            if options_list.is_empty() {
+                                options_list.insert(String::new(), LoginOption::unspecified());
                             }
+                            for (i, (_, option)) in options_list.into_iter().enumerate() {
+                                let factors = option
+                                    .factors
+                                    .values()
+                                    .map(|factor| factor.factor_type.clone())
+                                    .collect::<Vec<_>>();
+                                unsafe {
+                                    auth_type.set_data(&option.id, factors);
+                                }
+                                auth_type.append(Some(&option.id), &option.display_name);
+                                if params2.login_type == option.id {
+                                    auth_type.set_active(Some(i as _));
+                                }
+                            }
+                            auth_type.set_sensitive(true);
                         }
-                        auth_type.set_sensitive(true);
+                        Err(e) => {
+                            error.set_label(&e.to_string());
+                            error.set_visible(true);
+                        }
                     }
-                    Err(e) => {
-                        error.set_label(&e.to_string());
-                        error.set_visible(true);
-                    }
+                    dialog.set_sensitive(true);
                 }
-                dialog.set_sensitive(true);
             }
-        }));
+        ));
 
-        dialog.connect_show(clone!(@weak fetch_info => move |_| fetch_info.emit_clicked()));
+        dialog.connect_show(clone!(
+            #[weak]
+            fetch_info,
+            move |_| fetch_info.emit_clicked()
+        ));
 
         let widgets = Rc::new(MyWidgets {
             server_name,
@@ -402,6 +487,7 @@ impl SettingsDialog {
             no_keepalive,
             icon_theme,
             error,
+            button_box,
         });
 
         let widgets2 = widgets.clone();
@@ -409,15 +495,22 @@ impl SettingsDialog {
         dialog.connect_response(move |dlg, response| {
             if response == ResponseType::Ok || response == ResponseType::Apply {
                 if let Err(e) = widgets2.validate() {
-                    let msg = gtk::MessageDialog::new(
-                        Some(dlg),
-                        DialogFlags::MODAL,
-                        MessageType::Error,
-                        ButtonsType::Ok,
-                        &e.to_string(),
-                    );
-                    msg.run();
-                    msg.close();
+                    glib::spawn_future_local(clone!(
+                        #[weak]
+                        dlg,
+                        async move {
+                            let msg = gtk4::MessageDialog::new(
+                                Some(&dlg),
+                                DialogFlags::MODAL,
+                                MessageType::Error,
+                                ButtonsType::Ok,
+                                e.to_string(),
+                            );
+                            msg.set_title(Some("Validation error"));
+                            msg.run_future().await;
+                            msg.close();
+                        },
+                    ));
                     dlg.stop_signal_emission_by_name("response");
                 }
             }
@@ -434,8 +527,9 @@ impl SettingsDialog {
         result
     }
 
-    pub fn run(&self) -> ResponseType {
-        self.dialog.run()
+    pub async fn run(&self) -> ResponseType {
+        self.dialog.show();
+        self.dialog.run_future().await
     }
 
     pub fn save(&self) -> anyhow::Result<()> {
@@ -539,42 +633,38 @@ impl SettingsDialog {
         Ok(())
     }
 
-    fn form_box(&self, label: &str) -> gtk::Box {
-        let form = gtk::Box::builder()
+    fn form_box(&self, label: &str) -> gtk4::Box {
+        let form = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .homogeneous(true)
+            .spacing(6)
             .build();
 
-        form.pack_start(
-            &gtk::Label::builder().label(label).halign(Align::Start).build(),
-            false,
-            true,
-            0,
-        );
+        form.append(&gtk4::Label::builder().label(label).halign(Align::Start).build());
         form
     }
 
-    fn server_box(&self) -> gtk::Box {
-        let entry_box = gtk::Box::builder()
+    fn server_box(&self) -> gtk4::Box {
+        let entry_box = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .spacing(2)
             .homogeneous(false)
             .build();
-        entry_box.pack_start(&self.widgets.server_name, false, true, 0);
-        entry_box.pack_start(&self.widgets.fetch_info, false, false, 0);
+        entry_box.append(&self.widgets.server_name);
+        entry_box.append(&self.widgets.fetch_info);
 
         let server_box = self.form_box("Check Point VPN server");
-        server_box.pack_start(&entry_box, false, true, 0);
+        server_box.append(&entry_box);
         server_box
     }
 
-    fn auth_box(&self) -> gtk::Box {
+    fn auth_box(&self) -> gtk4::Box {
         let auth_box = self.form_box("Authentication method");
-        auth_box.pack_start(&self.widgets.auth_type, false, true, 0);
+        auth_box.append(&self.widgets.auth_type);
         auth_box
     }
 
-    fn tunnel_box(&self) -> gtk::Box {
+    fn tunnel_box(&self) -> gtk4::Box {
         let tunnel_box = self.form_box("Tunnel type");
         self.widgets.tunnel_type.insert_text(0, "IPSec");
         self.widgets.tunnel_type.insert_text(1, "SSL");
@@ -585,22 +675,22 @@ impl SettingsDialog {
             } else {
                 Some(1)
             });
-        tunnel_box.pack_start(&self.widgets.tunnel_type, false, true, 0);
+        tunnel_box.append(&self.widgets.tunnel_type);
         tunnel_box
     }
 
-    fn cert_type_box(&self) -> gtk::Box {
+    fn cert_type_box(&self) -> gtk4::Box {
         let cert_type_box = self.form_box("Certificate auth type");
         self.widgets.cert_type.insert_text(0, "None");
         self.widgets.cert_type.insert_text(1, "PFX file");
         self.widgets.cert_type.insert_text(2, "PEM file");
         self.widgets.cert_type.insert_text(3, "Hardware token");
         self.widgets.cert_type.set_active(Some(self.params.cert_type.as_u32()));
-        cert_type_box.pack_start(&self.widgets.cert_type, false, true, 0);
+        cert_type_box.append(&self.widgets.cert_type);
         cert_type_box
     }
 
-    fn icon_theme_box(&self) -> gtk::Box {
+    fn icon_theme_box(&self) -> gtk4::Box {
         let icon_theme_box = self.form_box("Icon theme");
         self.widgets.icon_theme.insert_text(0, "Auto");
         self.widgets.icon_theme.insert_text(1, "Dark");
@@ -608,223 +698,292 @@ impl SettingsDialog {
         self.widgets
             .icon_theme
             .set_active(Some(self.params.icon_theme.as_u32()));
-        icon_theme_box.pack_start(&self.widgets.icon_theme, false, true, 0);
+        icon_theme_box.append(&self.widgets.icon_theme);
         icon_theme_box
     }
 
-    fn user_box(&self) -> gtk::Box {
+    fn user_box(&self) -> gtk4::Box {
         let user_box = self.form_box("User name");
-        user_box.pack_start(&self.widgets.user_name, false, true, 0);
+        user_box.append(&self.widgets.user_name);
         user_box
     }
 
-    fn password_box(&self) -> gtk::Box {
+    fn password_box(&self) -> gtk4::Box {
         let password_box = self.form_box("Password");
-        password_box.pack_start(&self.widgets.password, false, true, 0);
+        password_box.append(&self.widgets.password);
         password_box
     }
 
-    fn dns_box(&self) -> gtk::Box {
-        let dns_box = gtk::Box::builder()
+    fn dns_box(&self) -> gtk4::Box {
+        let dns_box = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
-            .margin(6)
-            .margin_start(16)
-            .margin_end(16)
+            .margin_top(6)
+            .margin_bottom(6)
+            .margin_start(12)
+            .margin_end(12)
+            .spacing(12)
             .build();
 
         let no_dns = self.form_box("Do not change DNS resolver configuration");
-        no_dns.pack_start(&self.widgets.no_dns, false, true, 0);
-        dns_box.pack_start(&no_dns, false, true, 6);
+        no_dns.append(&self.widgets.no_dns);
+        dns_box.append(&no_dns);
 
         let dns_servers = self.form_box("Additional DNS servers");
-        dns_servers.pack_start(&self.widgets.dns_servers, false, true, 0);
-        dns_box.pack_start(&dns_servers, false, true, 6);
+        dns_servers.append(&self.widgets.dns_servers);
+        dns_box.append(&dns_servers);
 
         let ignored_dns_servers = self.form_box("Ignored DNS servers");
-        ignored_dns_servers.pack_start(&self.widgets.ignored_dns_servers, false, true, 0);
-        dns_box.pack_start(&ignored_dns_servers, false, true, 6);
+        ignored_dns_servers.append(&self.widgets.ignored_dns_servers);
+        dns_box.append(&ignored_dns_servers);
 
         let search_domains = self.form_box("Additional search domains");
-        search_domains.pack_start(&self.widgets.search_domains, false, true, 0);
-        dns_box.pack_start(&search_domains, false, true, 6);
+        search_domains.append(&self.widgets.search_domains);
+        dns_box.append(&search_domains);
 
         let ignored_domains = self.form_box("Ignored search domains");
-        ignored_domains.pack_start(&self.widgets.ignored_domains, false, true, 0);
-        dns_box.pack_start(&ignored_domains, false, true, 6);
+        ignored_domains.append(&self.widgets.ignored_domains);
+        dns_box.append(&ignored_domains);
 
         let set_routing_domains = self.form_box("Treat received search domains as routing domains");
-        set_routing_domains.pack_start(&self.widgets.set_routing_domains, false, true, 0);
-        dns_box.pack_start(&set_routing_domains, false, true, 6);
+        set_routing_domains.append(&self.widgets.set_routing_domains);
+        dns_box.append(&set_routing_domains);
 
         dns_box
     }
 
-    fn certs_box(&self) -> gtk::Box {
-        let certs_box = gtk::Box::builder()
+    fn certs_box(&self) -> gtk4::Box {
+        let certs_box = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
-            .margin(6)
-            .margin_start(16)
-            .margin_end(16)
+            .margin_top(6)
+            .margin_bottom(6)
+            .margin_start(12)
+            .margin_end(12)
+            .spacing(12)
             .build();
 
         let ca_cert = self.form_box("Server CA root certificates");
-        ca_cert.pack_start(&self.widgets.ca_cert, false, true, 0);
-        certs_box.pack_start(&ca_cert, false, true, 6);
+        ca_cert.append(&self.widgets.ca_cert);
+        certs_box.append(&ca_cert);
 
         let no_cert_check = self.form_box("Disable all TLS certificate checks (INSECURE!)");
-        no_cert_check.pack_start(&self.widgets.no_cert_check, false, true, 0);
-        certs_box.pack_start(&no_cert_check, false, true, 6);
+        no_cert_check.append(&self.widgets.no_cert_check);
+        certs_box.append(&no_cert_check);
 
         certs_box
     }
 
-    fn misc_box(&self) -> gtk::Box {
-        let misc_box = gtk::Box::builder()
+    fn misc_box(&self) -> gtk4::Box {
+        let misc_box = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
-            .margin(6)
-            .margin_start(16)
-            .margin_end(16)
+            .margin_top(6)
+            .margin_bottom(6)
+            .margin_start(12)
+            .margin_end(12)
+            .spacing(12)
             .build();
 
         let password_factor = self.form_box("Index of password factor, 1..N");
-        password_factor.pack_start(&self.widgets.password_factor, false, true, 0);
-        misc_box.pack_start(&password_factor, false, true, 6);
+        password_factor.append(&self.widgets.password_factor);
+        misc_box.append(&password_factor);
 
         let no_keychain = self.form_box("Do not store passwords in the keychain");
-        no_keychain.pack_start(&self.widgets.no_keychain, false, true, 0);
-        misc_box.pack_start(&no_keychain, false, true, 6);
+        no_keychain.append(&self.widgets.no_keychain);
+        misc_box.append(&no_keychain);
 
         let ike_lifetime = self.form_box("IKE lifetime, seconds");
-        ike_lifetime.pack_start(&self.widgets.ike_lifetime, false, true, 0);
-        misc_box.pack_start(&ike_lifetime, false, true, 6);
+        ike_lifetime.append(&self.widgets.ike_lifetime);
+        misc_box.append(&ike_lifetime);
 
         let ike_persist = self.form_box("Save IKE session and reconnect automatically");
-        ike_persist.pack_start(&self.widgets.ike_persist, false, true, 0);
-        misc_box.pack_start(&ike_persist, false, true, 6);
+        ike_persist.append(&self.widgets.ike_persist);
+        misc_box.append(&ike_persist);
 
         let no_keepalive = self.form_box("Disable keepalive packets");
-        no_keepalive.pack_start(&self.widgets.no_keepalive, false, true, 0);
-        misc_box.pack_start(&no_keepalive, false, true, 6);
+        no_keepalive.append(&self.widgets.no_keepalive);
+        misc_box.append(&no_keepalive);
 
         let icon_theme_box = self.icon_theme_box();
-        misc_box.pack_start(&icon_theme_box, false, true, 6);
+        misc_box.append(&icon_theme_box);
 
         misc_box
     }
 
-    fn routing_box(&self) -> gtk::Box {
-        let routing_box = gtk::Box::builder()
+    fn routing_box(&self) -> gtk4::Box {
+        let routing_box = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
-            .margin(6)
-            .margin_start(16)
-            .margin_end(16)
+            .margin_top(6)
+            .margin_bottom(6)
+            .margin_bottom(6)
+            .margin_start(12)
+            .margin_end(12)
+            .spacing(6)
             .build();
 
         let no_routing = self.form_box("Ignore all acquired routes");
-        no_routing.pack_start(&self.widgets.no_routing, false, true, 0);
-        routing_box.pack_start(&no_routing, false, true, 6);
+        no_routing.append(&self.widgets.no_routing);
+        routing_box.append(&no_routing);
 
         let default_routing = self.form_box("Set default route through the tunnel");
-        default_routing.pack_start(&self.widgets.default_routing, false, true, 0);
-        routing_box.pack_start(&default_routing, false, true, 6);
+        default_routing.append(&self.widgets.default_routing);
+        routing_box.append(&default_routing);
 
         let add_routes = self.form_box("Additional static routes");
-        add_routes.pack_start(&self.widgets.add_routes, false, true, 0);
-        routing_box.pack_start(&add_routes, false, true, 6);
+        add_routes.append(&self.widgets.add_routes);
+        routing_box.append(&add_routes);
 
         let ignored_routes = self.form_box("Routes to ignore");
-        ignored_routes.pack_start(&self.widgets.ignored_routes, false, true, 0);
-        routing_box.pack_start(&ignored_routes, false, true, 6);
+        ignored_routes.append(&self.widgets.ignored_routes);
+        routing_box.append(&ignored_routes);
 
         routing_box
     }
 
-    fn user_auth_box(&self) -> gtk::Box {
-        let user_auth_box = gtk::Box::builder()
+    fn user_auth_box(&self) -> gtk4::Box {
+        let user_auth_box = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
-            .margin(0)
+            .margin_top(0)
+            .margin_bottom(0)
             .margin_start(0)
             .margin_end(0)
+            .spacing(6)
+            .visible(false)
             .build();
-        user_auth_box.pack_start(&self.user_box(), false, true, 6);
-        user_auth_box.pack_start(&self.password_box(), false, true, 6);
+        user_auth_box.append(&self.user_box());
+        user_auth_box.append(&self.password_box());
 
         user_auth_box
     }
 
-    fn cert_auth_box(&self) -> gtk::Box {
-        let certs_box = gtk::Box::builder()
+    fn cert_auth_box(&self) -> gtk4::Box {
+        let certs_box = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
-            .margin(0)
+            .margin_top(0)
+            .margin_bottom(0)
             .margin_start(0)
             .margin_end(0)
+            .spacing(6)
+            .visible(false)
             .build();
 
         let cert_type_box = self.cert_type_box();
-        certs_box.pack_start(&cert_type_box, false, true, 6);
+        certs_box.append(&cert_type_box);
 
         let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx/.p12, .so)");
-        cert_path.pack_start(&self.widgets.cert_path, false, true, 0);
-        certs_box.pack_start(&cert_path, false, true, 6);
+        cert_path.append(&self.widgets.cert_path);
+        certs_box.append(&cert_path);
 
         let cert_password = self.form_box("PFX password or PKCS11 pin");
-        cert_password.pack_start(&self.widgets.cert_password, false, true, 0);
-        certs_box.pack_start(&cert_password, false, true, 6);
+        cert_password.append(&self.widgets.cert_password);
+        certs_box.append(&cert_password);
 
         let cert_id = self.form_box("Hex ID of PKCS11 certificate");
-        cert_id.pack_start(&self.widgets.cert_id, false, true, 0);
-        certs_box.pack_start(&cert_id, false, true, 6);
+        cert_id.append(&self.widgets.cert_id);
+        certs_box.append(&cert_id);
 
         certs_box
     }
 
-    fn general_tab(&self) -> gtk::Box {
-        let tab = gtk::Box::builder().orientation(Orientation::Vertical).margin(6).build();
-        tab.pack_start(&self.server_box(), false, true, 6);
-        tab.pack_start(&self.auth_box(), false, true, 6);
-        tab.pack_start(&self.tunnel_box(), false, true, 6);
-        tab.show_all();
-        tab.pack_start(&self.user_auth_box(), false, true, 6);
-        tab.pack_start(&self.cert_auth_box(), false, true, 6);
+    fn general_tab(&self) -> gtk4::Box {
+        let tab = gtk4::Box::builder()
+            .orientation(Orientation::Vertical)
+            .margin_top(6)
+            .margin_bottom(6)
+            .margin_start(6)
+            .margin_end(6)
+            .spacing(12)
+            .build();
+        tab.append(&self.server_box());
+        tab.append(&self.auth_box());
+        tab.append(&self.tunnel_box());
+        tab.append(&self.user_auth_box());
+        tab.append(&self.cert_auth_box());
         tab
     }
 
-    fn advanced_tab(&self) -> gtk::ScrolledWindow {
-        let inner = gtk::Box::builder().orientation(Orientation::Vertical).build();
+    fn add_expander(&self, label: &str, parent: &gtk4::Box, child: &impl IsA<Widget>) {
+        let arrow = gtk4::Image::from_icon_name("go-next-symbolic");
+        arrow.add_css_class("arrow-icon");
 
-        let dns = gtk::Expander::new(Some("DNS"));
-        dns.add(&self.dns_box());
-        inner.pack_start(&dns, false, true, 6);
+        let b = gtk4::Box::builder().build();
+        b.append(&arrow);
+        b.append(
+            &gtk4::Label::builder()
+                .label(label)
+                .hexpand(true)
+                .halign(Align::Center)
+                .build(),
+        );
 
-        let routing = gtk::Expander::new(Some("Routing"));
-        routing.add(&self.routing_box());
-        inner.pack_start(&routing, false, true, 6);
+        let toggle_button = gtk4::ToggleButton::new();
+        toggle_button.set_child(Some(&b));
 
-        let certs = gtk::Expander::new(Some("Certificates"));
-        certs.add(&self.certs_box());
-        inner.pack_start(&certs, false, true, 6);
+        let revealer = gtk4::Revealer::builder()
+            .transition_type(gtk4::RevealerTransitionType::SlideDown)
+            .reveal_child(false)
+            .build();
 
-        let misc = gtk::Expander::new(Some("Misc settings"));
-        misc.add(&self.misc_box());
-        inner.pack_start(&misc, false, true, 6);
+        // Toggle handler
+        toggle_button.connect_toggled(clone!(
+            #[weak]
+            revealer,
+            #[weak]
+            arrow,
+            move |btn| {
+                let active = btn.is_active();
+                revealer.set_reveal_child(active);
 
-        let viewport = gtk::Viewport::builder().build();
-        viewport.add(&inner);
+                if active {
+                    arrow.add_css_class("rotate-90");
+                } else {
+                    arrow.remove_css_class("rotate-90");
+                }
+            }
+        ));
 
-        let scrolled_win = gtk::ScrolledWindow::builder().build();
-        scrolled_win.add(&viewport);
-        scrolled_win.show_all();
+        parent.append(&toggle_button);
+        parent.append(&revealer);
+
+        revealer.set_child(Some(child));
+    }
+
+    fn advanced_tab(&self) -> gtk4::ScrolledWindow {
+        let inner = gtk4::Box::builder()
+            .orientation(Orientation::Vertical)
+            .margin_top(6)
+            .margin_bottom(6)
+            .margin_start(6)
+            .margin_end(6)
+            .spacing(3)
+            .build();
+
+        self.add_expander("DNS", &inner, &self.dns_box());
+        self.add_expander("Routing", &inner, &self.routing_box());
+        self.add_expander("Certificates", &inner, &self.certs_box());
+        self.add_expander("Misc settings", &inner, &self.misc_box());
+
+        let viewport = gtk4::Viewport::builder().build();
+        viewport.set_child(Some(&inner));
+
+        let scrolled_win = gtk4::ScrolledWindow::builder().build();
+        scrolled_win.set_child(Some(&viewport));
+        scrolled_win.show();
         scrolled_win
     }
 
     fn create_layout(&self) {
         let content_area = self.dialog.content_area();
-        let notebook = gtk::Notebook::new();
-        content_area.pack_start(&notebook, true, true, 6);
-        content_area.pack_end(&self.widgets.error, true, true, 6);
+        content_area.set_margin_top(6);
+        content_area.set_margin_start(6);
+        content_area.set_margin_end(6);
 
-        notebook.append_page(&self.general_tab(), Some(&gtk::Label::new(Some("General"))));
-        notebook.append_page(&self.advanced_tab(), Some(&gtk::Label::new(Some("Advanced"))));
+        let notebook = gtk4::Notebook::new();
+        notebook.set_vexpand(true);
+        content_area.append(&notebook);
+        content_area.append(&self.widgets.error);
+        content_area.append(&self.widgets.button_box);
+
+        notebook.append_page(&self.general_tab(), Some(&gtk4::Label::new(Some("General"))));
+        notebook.append_page(&self.advanced_tab(), Some(&gtk4::Label::new(Some("Advanced"))));
 
         notebook.show();
     }
@@ -839,23 +998,26 @@ impl Drop for SettingsDialog {
 pub fn start_settings_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
     glib::idle_add(move || {
         let dialog = SettingsDialog::new(params.clone());
-        loop {
-            let response = dialog.run();
+        let sender = sender.clone();
+        glib::spawn_future_local(async move {
+            loop {
+                let response = dialog.run().await;
 
-            match response {
-                ResponseType::Ok | ResponseType::Apply => {
-                    if let Err(e) = dialog.save() {
-                        warn!("{}", e);
-                    } else {
-                        let _ = sender.send_blocking(TrayCommand::Update);
+                match response {
+                    ResponseType::Ok | ResponseType::Apply => {
+                        if let Err(e) = dialog.save() {
+                            warn!("{}", e);
+                        } else {
+                            let _ = sender.send(TrayCommand::Update).await;
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
+                if response != ResponseType::Apply {
+                    break;
+                }
             }
-            if response != ResponseType::Apply {
-                break;
-            }
-        }
+        });
         glib::ControlFlow::Break
     });
 }
