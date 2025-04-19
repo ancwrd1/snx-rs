@@ -1,12 +1,12 @@
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
-use async_channel::Sender;
 use gtk4::{
     glib::{self, clone},
     prelude::*,
     Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget,
 };
 use ipnet::Ipv4Net;
+use tokio::sync::mpsc::Sender;
 use tracing::warn;
 
 use snxcore::{
@@ -372,7 +372,7 @@ impl SettingsDialog {
             }
         ));
 
-        let (sender, receiver) = async_channel::bounded(1);
+        let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
         let params2 = params.clone();
 
         fetch_info.connect_clicked(clone!(
@@ -417,7 +417,7 @@ impl SettingsDialog {
             #[weak]
             error,
             async move {
-                while let Ok(result) = receiver.recv().await {
+                while let Some(result) = receiver.recv().await {
                     auth_type.remove_all();
                     match result {
                         Ok(server_info) => {
@@ -552,7 +552,7 @@ impl SettingsDialog {
         self.dialog.run_future().await
     }
 
-    pub fn save(&self) -> anyhow::Result<()> {
+    pub fn save(&self) -> anyhow::Result<TunnelParams> {
         let mut params = (*self.params).clone();
         params.server_name = self.widgets.server_name.text().into();
         params.login_type = self.widgets.auth_type.active_id().unwrap_or_default().into();
@@ -650,7 +650,7 @@ impl SettingsDialog {
 
         params.save()?;
 
-        Ok(())
+        Ok(params)
     }
 
     fn form_box(&self, label: &str) -> gtk4::Box {
@@ -810,15 +810,15 @@ impl SettingsDialog {
         no_keychain.append(&self.widgets.no_keychain);
         misc_box.append(&no_keychain);
 
-        let ike_lifetime = self.form_box("IKE lifetime, seconds");
+        let ike_lifetime = self.form_box("IPSec IKE SA lifetime, seconds");
         ike_lifetime.append(&self.widgets.ike_lifetime);
         misc_box.append(&ike_lifetime);
 
-        let ike_persist = self.form_box("Save IKE session and reconnect automatically");
+        let ike_persist = self.form_box("Save IPSec IKE session and reconnect automatically");
         ike_persist.append(&self.widgets.ike_persist);
         misc_box.append(&ike_persist);
 
-        let no_keepalive = self.form_box("Disable keepalive packets");
+        let no_keepalive = self.form_box("Disable IPSec keepalive packets");
         no_keepalive.append(&self.widgets.no_keepalive);
         misc_box.append(&no_keepalive);
 

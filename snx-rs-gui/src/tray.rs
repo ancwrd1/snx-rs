@@ -1,8 +1,8 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::anyhow;
-use async_channel::{Receiver, Sender};
 use ksni::{menu::StandardItem, Handle, Icon, MenuItem, TrayMethods};
+use tokio::sync::mpsc::{Receiver, Sender};
 
 use snxcore::{
     browser::BrowserController,
@@ -45,7 +45,7 @@ pub struct AppTray {
 
 impl AppTray {
     pub async fn new(params: &CmdlineParams, event_sender: Sender<TrayEvent>) -> anyhow::Result<Self> {
-        let (tx, rx) = async_channel::bounded(256);
+        let (tx, rx) = tokio::sync::mpsc::channel(16);
 
         let tray_icon = KsniTray::new(event_sender);
         let handle = tray_icon.spawn().await?;
@@ -159,9 +159,9 @@ impl AppTray {
         let mut prev_status = String::new();
         let mut prev_theme = None;
 
-        let rx = self.command_receiver.take().unwrap();
+        let mut rx = self.command_receiver.take().unwrap();
 
-        while let Ok(command) = rx.recv().await {
+        while let Some(command) = rx.recv().await {
             let command = match command {
                 TrayCommand::Service(command) => command,
                 TrayCommand::Update => {
@@ -240,6 +240,11 @@ impl KsniTray {
             event_sender,
         }
     }
+
+    fn send_tray_event(&self, event: TrayEvent) {
+        let sender = self.event_sender.clone();
+        tokio::spawn(async move { sender.send(event).await });
+    }
 }
 
 impl ksni::Tray for KsniTray {
@@ -258,45 +263,34 @@ impl ksni::Tray for KsniTray {
             MenuItem::Standard(StandardItem {
                 label: self.status_label.clone(),
                 enabled: false,
-                visible: true,
                 ..Default::default()
             }),
             MenuItem::Separator,
             MenuItem::Standard(StandardItem {
                 label: "Connect".to_string(),
                 enabled: self.connect_enabled,
-                activate: Box::new(|tray: &mut KsniTray| {
-                    let _ = tray.event_sender.send_blocking(TrayEvent::Connect);
-                }),
+                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Connect)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
                 label: "Disconnect".to_string(),
                 enabled: self.disconnect_enabled,
-                activate: Box::new(|tray: &mut KsniTray| {
-                    let _ = tray.event_sender.send_blocking(TrayEvent::Disconnect);
-                }),
+                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Disconnect)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
                 label: "Settings...".to_string(),
-                activate: Box::new(|tray: &mut KsniTray| {
-                    let _ = tray.event_sender.send_blocking(TrayEvent::Settings);
-                }),
+                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Settings)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
                 label: "About...".to_string(),
-                activate: Box::new(|tray: &mut KsniTray| {
-                    let _ = tray.event_sender.send_blocking(TrayEvent::About);
-                }),
+                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::About)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
                 label: "Exit".to_string(),
-                activate: Box::new(|tray: &mut KsniTray| {
-                    let _ = tray.event_sender.send_blocking(TrayEvent::Exit);
-                }),
+                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Exit)),
                 ..Default::default()
             }),
         ]
