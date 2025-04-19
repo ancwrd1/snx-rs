@@ -42,7 +42,7 @@ pub async fn send_notification(summary: &str, message: &str) -> anyhow::Result<(
         .notify(
             "SNX-RS VPN client",
             0,
-            "emblem-error",
+            "network-vpn",
             summary,
             message,
             &[],
