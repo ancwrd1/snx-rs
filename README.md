@@ -119,7 +119,7 @@ Available login types:
 
 There are two ways to use the application:
 
-* **Command Mode**: Selected by the `-m command` parameter. In this mode, the application runs as a service without establishing a connectionand awaits commands from the external client. Use the `snxctl` utility to send commands to the service. This mode is recommended for desktop usage. The following commands are accepted:
+* **Command Mode**: Selected by the `-m command` parameter. In this mode, the application runs as a service without establishing a connection and awaits commands from the external client. Use the `snxctl` utility to send commands to the service. This mode is recommended for desktop usage. The following commands are accepted:
   - `connect`: Establish a connection. Parameters are taken from the `~/.config/snx-rs/snx-rs.conf` file.
   - `disconnect`: Disconnect a tunnel.
   - `reconnect`: Drop the connection and then reconnect.
