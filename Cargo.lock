@@ -2701,7 +2701,6 @@ name = "snx-rs-gui"
 version = "4.0.0"
 dependencies = [
  "anyhow",
- "async-channel",
  "clap",
  "futures",
  "gtk4",

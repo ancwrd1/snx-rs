@@ -1,15 +1,19 @@
 ## Unreleased
-- Refactored internal IPSec certificate validation based on the advertised internal_ca_fingerprint
-- Removed `no-cert-check` option which used to disable hostname verification. Use `ignore-server-cert` instead.
-- Removed `server-prompt` option. Server prompts are always enabled.
+- Refactored internal IPSec certificate validation based on the advertised internal_ca_fingerprint.
+- Removed `no-cert-check` option which was used to disable hostname verification. Use `ignore-server-cert` instead.
+- Removed `server-prompt` option. Server prompts are always enabled now.
+- Added automatic detection of IPSec transport.
+- Removed `ipsec-cert-check`, `ike-transport`, `esp-transport` and `ike-port` options.
+- GUI frontend: refactored into GTK 4.
+- GUI frontend: use `ksni` crate to show tray icon; does not depend on GTK or libappindicator anymore. 
 
 ## v3.1.2 (2025-04-13)
-- Fixed a problem with default IP address detection on some systems
-- Removed invalid "VPN" category from the .desktop file
-- Improved desktop theme detection on Ubuntu
+- Fixed a problem with default IP address detection on some systems.
+- Removed invalid "VPN" category from the .desktop file.
+- Improved desktop theme detection on Ubuntu.
 
 ## v3.1.1 (2025-03-15)
-- Fixed a problem with snx-rs-gui lock file in the multi-user environments
+- Fixed a problem with snx-rs-gui lock file in the multi-user environments.
 
 ## v3.1.0 (2025-02-21)
 - Added `password-factor=N` option to determine which authentication factor is the password. Default is 1 (first).
