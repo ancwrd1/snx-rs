@@ -132,10 +132,11 @@ impl SecurePrompt for GtkPrompt {
     }
 
     fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
-        std::thread::scope(|s| {
-            s.spawn(|| snxcore::util::block_on(send_notification(summary, message)))
-                .join()
-                .unwrap()
-        })
+        let summary = summary.to_owned();
+        let message = message.to_owned();
+
+        tokio::spawn(async move { send_notification(&summary, &message).await });
+
+        Ok(())
     }
 }
