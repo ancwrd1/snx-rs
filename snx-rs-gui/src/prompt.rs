@@ -19,7 +19,10 @@ impl GtkPrompt {
         let prompt = prompt.to_owned();
 
         glib::idle_add(move || {
-            let dialog = gtk4::Dialog::builder().title("Authentication").modal(true).build();
+            let dialog = gtk4::Dialog::builder()
+                .title("VPN Authentication Factor")
+                .modal(true)
+                .build();
 
             let ok = gtk4::Button::builder().label("OK").build();
             ok.connect_clicked(clone!(

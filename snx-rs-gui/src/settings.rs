@@ -157,8 +157,8 @@ impl MyWidgets {
 }
 
 impl SettingsDialog {
-    const DEFAULT_WIDTH: i32 = 700;
-    const DEFAULT_HEIGHT: i32 = 370;
+    const DEFAULT_WIDTH: i32 = 750;
+    const DEFAULT_HEIGHT: i32 = 400;
 
     pub fn new(parent: Option<&gtk4::ApplicationWindow>, params: Arc<TunnelParams>) -> Self {
         let provider = gtk4::CssProvider::new();
