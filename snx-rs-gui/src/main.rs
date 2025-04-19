@@ -26,7 +26,7 @@ mod tray;
 const PING_DURATION: Duration = Duration::from_secs(2);
 
 thread_local! {
-    static MAIN_WINDOW: OnceCell<ApplicationWindow> = const { OnceCell::new() };
+    pub static MAIN_WINDOW: OnceCell<ApplicationWindow> = const { OnceCell::new() };
 }
 
 #[tokio::main]
