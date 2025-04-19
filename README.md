@@ -7,6 +7,16 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ⚠️ Before creating an issue, please check the [FAQ section](#faq).
 
+## Quick Start Guide
+
+Run the service application in command mode, then start the GUI frontend which will display an icon in the taskbar.
+**GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. 
+
+* `sudo ./snx-rs -m command`
+* `./snx-rs-gui`
+
+👇 Keep reading for additional information and command line usage.
+
 ## Advantages Over the Official SNX Client for Linux
 
 * Open source
@@ -41,7 +51,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * D-Bus
 * GTK4 for the GUI frontend
 
-## DNS resolver configuration and privacy
+## DNS Resolver Configuration and Privacy
 
 By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
 to modify the /etc/resolv.conf file directly and DNS servers acquired from the tunnel will be used globally.
@@ -59,50 +69,38 @@ Otherwise follow these steps:
 3. `sudo systemctl restart NetworkManager`
 
 With `systemd-resolved` it is also possible to use **routing domains** (as opposed to **search domains**).
-Routing domains are prefixed with `~` character and when configured only requests for the fully-qualified domains
-will be forwarded through the tunnel. For further explanation please check [this article](https://systemd.io/RESOLVED-VPNS/).
+Routing domains are prefixed with `~` character and when configured only requests for the fully qualified domains
+will be forwarded through the tunnel. For further explanation, please check [this article](https://systemd.io/RESOLVED-VPNS/).
 
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
 ## Tunnel Transport Selection
 
 IPSec is the default transport and is preferred because of it's performance and support for extended authentication types.
-By default, it will use native kernel IPSec infrastructure with UDP-based tunnel over port 4500.
+By default, it will use native kernel IPSec infrastructure with a UDP-based tunnel over port 4500.
 
-In some environments those ports may be blocked by the firewall, in this case the application will fall back to the proprietary Check Point TCPT
+In some environments those ports may be blocked by the firewall; in this case the application will fall back to the proprietary Check Point TCPT
 transport via TCP port 443, which is slower than native UDP.
 
 For older VPN servers or in case IPSec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
-SSL tunnel has a limited support for authentication types: no browser-based SSO, no hardware token support, no MFA in combination with the certificates.  
-
-|                                | SSL                                                                   | IPSec                                                                                                                                                                                  |
-|--------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Implementation                 | User-space TCP-encapsulated tunnel via TUN device                     | Kernel-space UDP-encapsulated tunnel via native OS support or user-space TCPT tunnel.                                                                                                  |
-| Performance                    | Up to 2MB/s                                                           | Close to plain connection for native UDP tunnel, 2-5 MB/s for TCPT transport.                                                                                                          |
-| Ports                          | TCP port 443                                                          | UDP port 4500 for native UDP tunnel, TCP port 443 for TCPT transport.                                                                                                                  |
-| Supported authentication types | <ul><li>Username/password + MFA codes</li><li>Certificate</li></ul>   | <ul><li>Username/password + MFA codes</li><li>Certificate + MFA codes</li><li>Certificate from hardware token + MFA codes</li><li>SAML SSO with browser-based authentication</li></ul> |
-
-
-## GUI Usage
-
-* Run the main application in command mode: `sudo ./snx-rs -m command` or install it as a systemd service
-* Run the `snx-rs-gui` application, which will display a tray icon with a menu
-* GNOME environment: if the tray icon is not displayed, install the [Appindicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension
+SSL tunnel has limited support for authentication types: no browser-based SSO, no hardware token support, no MFA in combination with the certificates.  
 
 ## Command Line Usage
 
 Check the [Configuration Options](https://github.com/ancwrd1/snx-rs/blob/main/options.md) section for a list of all available options. Options can be specified in the configuration file
 and the path of the file given via `-c /path/to/custom.conf` command line parameter.
 
-Alternatively, in standalone mode, they can be specified via the command line of the `snx-rs` executable.
+Alternatively, in standalone mode, they can be specified via the command line of the `snx-rs` executable, prefixed with `--` (double dash).
 
-Before the client can establish a connection, it must know the login (authentication) method to use (`--login-type` or `-o` option). To find the supported login types, run it with the `-m info` parameter:
+Before the client can establish a connection, it must know the login (authentication) method to use (`--login-type` or `-o` option).
+To find the supported login types, run it with the `-m info` parameter:
 
 ```sh
 snx-rs -m info -s remote.acme.com
 ```
 
-This command will display the supported login types. Use the `vpn_XXX` identifier as the login type. If a certificate error is returned, try adding the `-X true` command line parameter to ignore certificate errors.
+This command will display the supported login types. Use the `vpn_XXX` identifier as the login type.
+If a certificate error is returned, try adding the `-X true` command line parameter to ignore certificate errors.
 
 Example output (may differ for your server):
 
@@ -121,7 +119,7 @@ Available login types:
 
 There are two ways to use the application:
 
-* **Command Mode**: Selected by the `-m command` parameter. In this mode, the application runs as a service without establishing a connection and awaits commands from the external client. Use the `snxctl` utility to send commands to the service. This mode is recommended for desktop usage. The following commands are accepted:
+* **Command Mode**: Selected by the `-m command` parameter. In this mode, the application runs as a service without establishing a connectionand awaits commands from the external client. Use the `snxctl` utility to send commands to the service. This mode is recommended for desktop usage. The following commands are accepted:
   - `connect`: Establish a connection. Parameters are taken from the `~/.config/snx-rs/snx-rs.conf` file.
   - `disconnect`: Disconnect a tunnel.
   - `reconnect`: Drop the connection and then reconnect.
@@ -130,7 +128,7 @@ There are two ways to use the application:
   - Run it with the `--help` option to get usage help.
 * **Standalone Service Mode**: Selected by the `-m standalone` parameter. This is the default mode if no parameters are specified. Run `snx-rs --help` to get help with all command line parameters. In this mode, the application takes connection parameters either from the command line or from the specified configuration file. This mode is recommended for headless usage.
 
-## Usage examples
+## Usage Examples
 
 ```bash
 # standalone mode with trace logging and IPSec tunnel
@@ -144,7 +142,7 @@ sudo ./snx-rs -m command -l debug
 
 Check [this repository](https://github.com/leleobhz/snx-rs-docker) for a docker container.
 
-## Certificate validation
+## Certificate Validation
 
 The following parameters control certificate validation during TLS and IKE exchanges:
 
@@ -157,21 +155,18 @@ Note that enabling the insecure option may compromise the channel security.
 
 The following parameters control certificate-based authentication:
 
-* `cert-type`: One of "none", "pkcs12", "pkcs8", or "pkcs11". Choose "pkcs12" to read the certificate from an external PFX file. Choose "pkcs8" to read the certificate from an external PEM file (containing both private key and x509 cert). Choose "pkcs11" to use a hardware token via a PKCS11 driver.
+* `cert-type`: One of `none`, `pkcs12`, `pkcs8` or `pkcs11`. Choose `pkcs12` to read the certificate from an external PFX file. Choose `pkcs8` to read the certificate from an external PEM file (containing both private key and x509 cert). Choose `pkcs11` to use a hardware token via a PKCS11 driver.
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed.
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
 * `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of 'xx:xx:xx' or 'xxxxxx'.
 
-## Persistent IPSec session (experimental)
+## Persistent IPSec Session
 
-A new `ike-persist` option will save IPSec session to disk and restore it after the service or computer restarts,
+The `ike-persist` option will save IPSec session to disk and restore it after the service or computer restarts,
 it will then attempt to automatically reconnect the tunnel without authentication. This parameter works best in combination with the `ike-lifetime` option:
 for example, setting `ike-lifetime` to 604800 will keep the session for 7 days.
 
 Note that most IPSec servers have shorter IKE duration configured, so it may be terminated earlier.
-There is also a corresponding GUI switch under "Misc settings" category in the settings dialog.
-
-Automatic channel reconnection will happen when running in the standalone mode, when GUI application starts or when snxctl sends the "connect" command.
 
 ## Additional Usage Notes
 
@@ -180,7 +175,7 @@ Automatic channel reconnection will happen when running in the standalone mode, 
 
 <a id="faq"></a>
 
-## Troubleshooting common problems
+## Troubleshooting Common Problems
 
 | Problem                                                           | Solution                                                                                                                                                                     |
 |-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -199,9 +194,9 @@ Before opening a PR, make sure to reformat the sources with the `cargo fmt` comm
 ## Building from Sources
 
 * Install the required dependencies:
-  - Debian/Ubuntu: `sudo apt install build-essential pkg-config libssl-dev libgtk-4-dev`
-  - openSUSE: `sudo zypper install pkgconf libopenssl-3-devel gtk4-devel`
-  - Other distros: C compiler, pkg-config, OpenSSL and GTK 4 development packages
+  - Debian/Ubuntu: `sudo apt install build-essential libssl-dev libgtk-4-dev`
+  - openSUSE: `sudo zypper install libopenssl-3-devel gtk4-devel`
+  - Other distros: C compiler, OpenSSL, GTK 4 development packages
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
