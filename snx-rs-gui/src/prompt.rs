@@ -110,7 +110,7 @@ impl GtkPrompt {
                 dlg.close();
             });
 
-            dialog.show();
+            dialog.present();
 
             ControlFlow::Break
         });

@@ -3,7 +3,7 @@ use std::{cell::OnceCell, sync::Arc, time::Duration};
 use clap::Parser;
 use gtk4::{
     glib::{self, clone, ControlFlow},
-    prelude::{ApplicationExt, ApplicationExtManual, WidgetExt},
+    prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt},
     Application, ApplicationWindow, License,
 };
 use tracing::level_filters::LevelFilter;
@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
 
     let _ = init_theme_monitoring().await;
 
-    let (event_sender, event_receiver) = async_channel::bounded(16);
+    let (event_sender, mut event_receiver) = tokio::sync::mpsc::channel(16);
 
     let mut my_tray = tray::AppTray::new(&params, event_sender).await?;
 
@@ -72,7 +72,6 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(async move { my_tray.run().await });
 
     let params = params.clone();
-    let sender2 = sender.clone();
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
@@ -80,38 +79,41 @@ async fn main() -> anyhow::Result<()> {
         #[weak]
         app,
         async move {
-            while let Ok(v) = event_receiver.recv().await {
+            while let Some(v) = event_receiver.recv().await {
                 match v {
                     TrayEvent::Connect => {
-                        let _ = sender2.send(TrayCommand::Service(ServiceCommand::Connect)).await;
+                        let _ = sender.send(TrayCommand::Service(ServiceCommand::Connect)).await;
                     }
                     TrayEvent::Disconnect => {
-                        let _ = sender2.send(TrayCommand::Service(ServiceCommand::Disconnect)).await;
+                        let _ = sender.send(TrayCommand::Service(ServiceCommand::Disconnect)).await;
                     }
                     TrayEvent::Settings => {
                         let params = TunnelParams::load(params.config_file()).unwrap_or_default();
                         MAIN_WINDOW.with(|cell| {
-                            settings::start_settings_dialog(cell.get(), sender2.clone(), Arc::new(params));
+                            settings::start_settings_dialog(cell.get(), sender.clone(), Arc::new(params));
                         });
                     }
                     TrayEvent::Exit => {
-                        let _ = sender2.send(TrayCommand::Exit).await;
+                        let _ = sender.send(TrayCommand::Exit).await;
                         app.quit();
                     }
                     TrayEvent::About => {
                         glib::idle_add(|| {
-                            let dialog = gtk4::AboutDialog::builder()
-                                .version(env!("CARGO_PKG_VERSION"))
-                                .logo_icon_name("network-vpn")
-                                .website("https://github.com/ancwrd1/snx-rs")
-                                .authors(["Dmitry Pankratov"])
-                                .license_type(License::Agpl30)
-                                .program_name("SNX-RS VPN Client for Linux")
-                                .title("SNX-RS VPN Client for Linux")
-                                .build();
+                            MAIN_WINDOW.with(|cell| {
+                                let dialog = gtk4::AboutDialog::builder()
+                                    .modal(true)
+                                    .transient_for(cell.get().unwrap())
+                                    .version(env!("CARGO_PKG_VERSION"))
+                                    .logo_icon_name("network-vpn")
+                                    .website("https://github.com/ancwrd1/snx-rs")
+                                    .authors([env!("CARGO_PKG_AUTHORS")])
+                                    .license_type(License::Agpl30)
+                                    .program_name("SNX-RS VPN Client for Linux")
+                                    .title("SNX-RS VPN Client for Linux")
+                                    .build();
 
-                            dialog.show();
-
+                                dialog.present();
+                            });
                             ControlFlow::Break
                         });
                     }

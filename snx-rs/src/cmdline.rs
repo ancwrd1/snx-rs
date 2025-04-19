@@ -187,7 +187,7 @@ pub struct CmdlineParams {
     )]
     pub client_mode: Option<String>,
 
-    #[clap(long = "no-keepalive", short = 'A', help = "Disable keepalive packets")]
+    #[clap(long = "no-keepalive", short = 'A', help = "Disable IPSec keepalive packets")]
     pub no_keepalive: Option<bool>,
 }
 
