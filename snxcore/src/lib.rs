@@ -7,6 +7,7 @@ pub mod model;
 pub mod platform;
 pub mod prompt;
 pub mod server;
+pub mod server2;
 pub mod server_info;
 pub mod sexpr;
 pub mod tunnel;
