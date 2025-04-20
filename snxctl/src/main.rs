@@ -3,8 +3,8 @@ use std::{path::PathBuf, sync::Arc};
 use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
-use snxcore::browser::SystemBrowser;
 use snxcore::{
+    browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
     model::params::TunnelParams,
     prompt::TtyPrompt,
@@ -61,12 +61,11 @@ async fn main() -> anyhow::Result<()> {
 
     let tunnel_params = Arc::new(TunnelParams::load(config_file).unwrap_or_default());
 
-    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser, tunnel_params);
+    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser);
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(
-            service_controller
-                .params
+            tunnel_params
                 .log_level
                 .parse::<LevelFilter>()
                 .unwrap_or(LevelFilter::OFF),
@@ -76,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
 
     let command = params.command.into();
 
-    let status = service_controller.command(command).await?;
+    let status = service_controller.command(command, tunnel_params.clone()).await?;
 
     if command != ServiceCommand::Info {
         if let Some(since) = status.connected_since {

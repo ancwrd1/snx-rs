@@ -5,7 +5,6 @@ use ksni::{menu::StandardItem, Handle, Icon, MenuItem, TrayMethods};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use snxcore::{
-    browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
     model::params::IconTheme,
     model::{params::TunnelParams, ConnectionStatus},
@@ -13,10 +12,6 @@ use snxcore::{
 };
 
 use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme, theme::SystemColorTheme};
-
-fn browser(_params: Arc<TunnelParams>) -> impl BrowserController {
-    snxcore::browser::SystemBrowser
-}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrayEvent {
@@ -161,6 +156,8 @@ impl AppTray {
 
         let mut rx = self.command_receiver.take().unwrap();
 
+        let mut controller = ServiceController::new(prompt::GtkPrompt, snxcore::browser::SystemBrowser);
+
         while let Some(command) = rx.recv().await {
             let command = match command {
                 TrayCommand::Service(command) => command,
@@ -181,21 +178,12 @@ impl AppTray {
 
             let tunnel_params = Arc::new(TunnelParams::load(&self.config_file).unwrap_or_default());
 
-            let mut controller =
-                ServiceController::new(prompt::GtkPrompt, browser(tunnel_params.clone()), tunnel_params);
-
             if command == ServiceCommand::Connect {
                 self.connecting = true;
                 self.update().await;
             }
 
-            let result = tokio::spawn(async move { controller.command(command).await }).await;
-
-            let status = match result {
-                Ok(result) => result,
-                Err(_) => Err(anyhow!("Internal error")),
-            };
-
+            let status = controller.command(command, tunnel_params).await;
             let status_str = format!("{status:?}");
 
             match status {
