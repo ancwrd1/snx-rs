@@ -83,17 +83,23 @@ async fn main() -> anyhow::Result<()> {
         #[weak]
         app,
         async move {
+            let mut cancel_sender = None;
+
             while let Some(v) = tray_event_receiver.recv().await {
                 let params = Arc::new(TunnelParams::load(cmdline_params.config_file()).unwrap_or_default());
                 match v {
                     TrayEvent::Connect => {
                         let connecting = connecting.clone();
                         let sender = tray_command_sender.clone();
-                        tokio::spawn(async move { do_connect(connecting, sender, params).await });
+                        let (tx, rx) = mpsc::channel(16);
+                        cancel_sender = Some(tx);
+                        tokio::spawn(async move { do_connect(connecting, sender, params, rx).await });
                     }
                     TrayEvent::Disconnect => {
+                        let connecting = connecting.clone();
                         let sender = tray_command_sender.clone();
-                        tokio::spawn(async move { do_disconnect(sender, params).await });
+                        let cancel_sender = cancel_sender.take();
+                        tokio::spawn(async move { do_disconnect(connecting, sender, params, cancel_sender).await });
                     }
                     TrayEvent::Settings => {
                         MAIN_WINDOW.with(|cell| {
@@ -181,7 +187,14 @@ async fn status_poll(connecting: Arc<AtomicBool>, sender: mpsc::Sender<TrayComma
     }
 }
 
-async fn do_disconnect(sender: mpsc::Sender<TrayCommand>, params: Arc<TunnelParams>) {
+async fn do_disconnect(
+    connecting: Arc<AtomicBool>,
+    sender: mpsc::Sender<TrayCommand>,
+    params: Arc<TunnelParams>,
+    cancel_sender: Option<mpsc::Sender<()>>,
+) {
+    connecting.store(false, Ordering::SeqCst);
+
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
     let status = controller.command(ServiceCommand::Disconnect, params).await;
     let _ = sender
@@ -190,9 +203,17 @@ async fn do_disconnect(sender: mpsc::Sender<TrayCommand>, params: Arc<TunnelPara
             status: Some(Arc::new(status)),
         })
         .await;
+    if let Some(cancel_sender) = cancel_sender {
+        let _ = cancel_sender.send(()).await;
+    }
 }
 
-async fn do_connect(connecting: Arc<AtomicBool>, sender: mpsc::Sender<TrayCommand>, params: Arc<TunnelParams>) {
+async fn do_connect(
+    connecting: Arc<AtomicBool>,
+    sender: mpsc::Sender<TrayCommand>,
+    params: Arc<TunnelParams>,
+    mut cancel_receiver: mpsc::Receiver<()>,
+) {
     connecting.store(true, Ordering::SeqCst);
 
     let _ = sender
@@ -203,7 +224,15 @@ async fn do_connect(connecting: Arc<AtomicBool>, sender: mpsc::Sender<TrayComman
         .await;
 
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
-    let mut status = controller.command(ServiceCommand::Connect, params.clone()).await;
+
+    let mut status = tokio::select! {
+        _ = cancel_receiver.recv() => {
+            Err(anyhow::anyhow!("Connection cancelled!"))
+        }
+        status = controller.command(ServiceCommand::Connect, params.clone()) => {
+            status
+        }
+    };
 
     connecting.store(false, Ordering::SeqCst);
 

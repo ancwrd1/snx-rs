@@ -6,9 +6,9 @@ use std::{
 };
 
 use anyhow::anyhow;
-use futures::{pin_mut, SinkExt, StreamExt};
+use futures::{FutureExt, SinkExt, StreamExt};
 use tokio::sync::{mpsc, Mutex};
-use tracing::{debug, trace, warn};
+use tracing::{debug, warn};
 
 use crate::{
     model::{
@@ -22,13 +22,13 @@ pub const DEFAULT_LISTEN_PATH: &str = "/var/run/snx-rs.sock";
 const MAX_PACKET_SIZE: usize = 1_000_000;
 
 #[derive(Default)]
-pub struct ServerState {
+struct ConnectionState {
     connection_status: ConnectionStatus,
     session: Option<Arc<VpnSession>>,
     connector: Option<Box<dyn TunnelConnector + Send>>,
 }
 
-impl ServerState {
+impl ConnectionState {
     fn reset(&mut self) {
         self.session = None;
         self.connector = None;
@@ -36,16 +36,20 @@ impl ServerState {
     }
 }
 
+struct CancelState {
+    sender: Option<mpsc::Sender<()>>,
+}
+
 pub struct CommandServer {
     listen_path: PathBuf,
-    state: Arc<Mutex<ServerState>>,
+    connection_state: Arc<Mutex<ConnectionState>>,
 }
 
 impl Default for CommandServer {
     fn default() -> Self {
         Self {
             listen_path: DEFAULT_LISTEN_PATH.into(),
-            state: Arc::new(Mutex::new(ServerState::default())),
+            connection_state: Arc::new(Mutex::new(ConnectionState::default())),
         }
     }
 }
@@ -54,7 +58,7 @@ impl CommandServer {
     pub fn with_listen_path<P: AsRef<Path>>(listen_path: P) -> Self {
         Self {
             listen_path: listen_path.as_ref().to_owned(),
-            state: Arc::new(Mutex::new(ServerState::default())),
+            connection_state: Arc::new(Mutex::new(ConnectionState::default())),
         }
     }
 
@@ -68,43 +72,45 @@ impl CommandServer {
 
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
-        loop {
-            let accept = socket.accept();
-            pin_mut!(accept);
+        let cancel_state = Arc::new(Mutex::new(CancelState { sender: None }));
 
+        loop {
             let event_fut = event_receiver.recv();
-            pin_mut!(event_fut);
 
             tokio::select! {
                 event = event_fut => {
                     if let Some(event) = event {
-                        let result = if let Some(ref mut connector) = self.state.lock().await.connector {
+                        let result = if let Some(ref mut connector) = self.connection_state.lock().await.connector {
                             connector.handle_tunnel_event(event.clone()).await
                         } else {
                             Ok(())
                         };
 
                         if result.is_err() {
-                            self.state.lock().await.reset();
+                            cancel_state.lock().await.sender = None;
+                            self.connection_state.lock().await.reset();
                         }
 
                         match event {
                             TunnelEvent::Connected => {
-                                self.state.lock().await.connection_status = ConnectionStatus::connected();
+                                self.connection_state.lock().await.connection_status = ConnectionStatus::connected();
                             }
                             TunnelEvent::Disconnected => {
-                                self.state.lock().await.reset();
+                                cancel_state.lock().await.sender = None;
+                                self.connection_state.lock().await.reset();
                             }
                             _ => {}
                         }
                     }
                 }
-                result = accept => {
+                result = socket.accept() => {
                     let (stream, _) = result?;
                     let sender = event_sender.clone();
-                    let state = self.state.clone();
+                    let state = self.connection_state.clone();
+
+                    let cancel_state = cancel_state.clone();
                     tokio::spawn(async move {
-                        let mut handler = ServerHandler::new(state, sender).await;
+                        let mut handler = ServerHandler::new(state, cancel_state, sender).await;
                         handler.handle(stream).await.inspect_err(|e| warn!("Error handling connection: {}", e))
                     });
                 }
@@ -114,13 +120,27 @@ impl CommandServer {
 }
 
 struct ServerHandler {
-    state: Arc<Mutex<ServerState>>,
+    state: Arc<Mutex<ConnectionState>>,
+    cancel_state: Arc<Mutex<CancelState>>,
     event_sender: mpsc::Sender<TunnelEvent>,
+    cancel_sender: mpsc::Sender<()>,
+    cancel_receiver: mpsc::Receiver<()>,
 }
 
 impl ServerHandler {
-    async fn new(state: Arc<Mutex<ServerState>>, event_sender: mpsc::Sender<TunnelEvent>) -> Self {
-        Self { state, event_sender }
+    async fn new(
+        state: Arc<Mutex<ConnectionState>>,
+        cancel_state: Arc<Mutex<CancelState>>,
+        event_sender: mpsc::Sender<TunnelEvent>,
+    ) -> Self {
+        let (cancel_sender, cancel_receiver) = mpsc::channel(16);
+        Self {
+            state,
+            cancel_state,
+            event_sender,
+            cancel_sender,
+            cancel_receiver,
+        }
     }
 
     async fn handle(&mut self, stream: tokio::net::UnixStream) -> anyhow::Result<()> {
@@ -147,36 +167,26 @@ impl ServerHandler {
         };
 
         match req {
-            TunnelServiceRequest::Connect(params) => {
-                trace!("Handling connect command");
-                match self.connect(Arc::new(params)).await {
-                    Ok(()) => TunnelServiceResponse::Ok,
-                    Err(e) => {
-                        self.state.lock().await.reset();
-                        TunnelServiceResponse::Error(e.to_string())
-                    }
+            TunnelServiceRequest::Connect(params) => match self.connect(Arc::new(params)).await {
+                Ok(()) => TunnelServiceResponse::Ok,
+                Err(e) => {
+                    self.state.lock().await.reset();
+                    TunnelServiceResponse::Error(e.to_string())
                 }
-            }
-            TunnelServiceRequest::Disconnect => {
-                debug!("Handling disconnect command");
-
-                match self.disconnect().await {
-                    Ok(()) => TunnelServiceResponse::Ok,
-                    Err(e) => TunnelServiceResponse::Error(e.to_string()),
-                }
-            }
+            },
+            TunnelServiceRequest::Disconnect => match self.disconnect().await {
+                Ok(()) => TunnelServiceResponse::Ok,
+                Err(e) => TunnelServiceResponse::Error(e.to_string()),
+            },
             TunnelServiceRequest::GetStatus => TunnelServiceResponse::ConnectionStatus(self.get_status().await),
-            TunnelServiceRequest::ChallengeCode(code, _) => {
-                debug!("Handling challenge code command");
-                match self.challenge_code(&code).await {
-                    Ok(()) => TunnelServiceResponse::Ok,
-                    Err(e) => {
-                        warn!("Challenge code error: {:#}", e);
-                        self.state.lock().await.reset();
-                        TunnelServiceResponse::Error(e.to_string())
-                    }
+            TunnelServiceRequest::ChallengeCode(code, _) => match self.challenge_code(&code).await {
+                Ok(()) => TunnelServiceResponse::Ok,
+                Err(e) => {
+                    warn!("Challenge code error: {:#}", e);
+                    self.state.lock().await.reset();
+                    TunnelServiceResponse::Error(e.to_string())
                 }
-            }
+            },
         }
     }
 
@@ -220,18 +230,29 @@ impl ServerHandler {
             self.state.lock().await.reset();
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
-            let session = if params.ike_persist {
+            let fut = if params.ike_persist {
                 debug!("Attempting to load IKE session");
                 match connector.restore_session().await {
-                    Ok(session) => session,
+                    Ok(session) => futures::future::ready(Ok(session)).boxed(),
                     Err(_) => {
                         connector = tunnel::new_tunnel_connector(params.clone()).await?;
-                        connector.authenticate().await?
+                        connector.authenticate()
                     }
                 }
             } else {
-                connector.authenticate().await?
+                connector.authenticate()
             };
+
+            self.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
+
+            let session = tokio::select! {
+                _ = self.cancel_receiver.recv() => {
+                    self.cancel_state.lock().await.sender = None;
+                    anyhow::bail!("Connection cancelled!");
+                }
+                res = fut => res?
+            };
+
             self.state.lock().await.connector = Some(connector);
             self.connect_for_session(session).await
         }
@@ -247,7 +268,13 @@ impl ServerHandler {
             .ok_or_else(|| anyhow!("No session"))?;
 
         let new_session = if let Some(ref mut connector) = self.state.lock().await.connector {
-            connector.challenge_code(session, code).await?
+            tokio::select! {
+                _ = self.cancel_receiver.recv() => {
+                    self.cancel_state.lock().await.sender = None;
+                    anyhow::bail!("Connection cancelled!");
+                }
+                res = connector.challenge_code(session, code) => res?
+            }
         } else {
             anyhow::bail!("No connector to send the challenge code to!")
         };
@@ -256,6 +283,11 @@ impl ServerHandler {
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
+        if let Some(sender) = self.cancel_state.lock().await.sender.take() {
+            debug!("Disconnecting pending session");
+            let _ = sender.send(()).await;
+        }
+
         if let Some(ref mut connector) = self.state.lock().await.connector {
             connector.delete_session().await;
             let _ = connector.terminate_tunnel(true).await;

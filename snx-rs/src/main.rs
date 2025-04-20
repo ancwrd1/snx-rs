@@ -2,7 +2,10 @@ use std::{future::Future, sync::Arc};
 
 use clap::Parser;
 use futures::pin_mut;
-use tokio::{signal::unix, sync::mpsc};
+use tokio::{
+    signal::unix,
+    sync::{mpsc, oneshot},
+};
 use tracing::{debug, metadata::LevelFilter, warn};
 
 use snxcore::{
@@ -165,7 +168,8 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             MfaType::SamlSso => {
                 println!("For SAML authentication open the following URL in your browser:");
                 println!("{}", challenge.prompt);
-                let receiver = spawn_otp_listener();
+                let (_tx, rx) = oneshot::channel();
+                let receiver = spawn_otp_listener(rx);
                 let otp = receiver.await??;
                 session = connector.challenge_code(session, &otp).await?;
             }
