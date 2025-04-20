@@ -153,7 +153,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 let input = if !params.password.is_empty() && mfa_index == params.password_factor {
                     Ok(params.password.clone())
                 } else {
-                    TtyPrompt.get_secure_input(&prompt)
+                    TtyPrompt.get_secure_input(prompt).await
                 };
 
                 match input {
@@ -175,7 +175,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             }
             MfaType::UserNameInput => {
                 let prompt = PromptInfo::new("Username is required for authentication", &challenge.prompt);
-                let input = TtyPrompt.get_plain_input(&prompt)?;
+                let input = TtyPrompt.get_plain_input(prompt).await?;
                 session = connector.challenge_code(session, &input).await?;
             }
         }

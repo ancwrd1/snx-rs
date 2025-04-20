@@ -292,7 +292,7 @@ impl IpsecTunnelConnector {
             }
             Some(status) => {
                 warn!("IPSec authentication failed, status: {}", status);
-                Err(anyhow!("IPSec authentication failed, status: {}", status))
+                Err(anyhow!("Authentication failed!"))
             }
             None => {
                 let attr = get_challenge_attribute_type(&id_reply);

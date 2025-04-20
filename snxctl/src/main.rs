@@ -1,6 +1,9 @@
-use std::{path::PathBuf, sync::Arc};
-
 use clap::Parser;
+use futures::pin_mut;
+use std::future::Future;
+use std::{path::PathBuf, sync::Arc};
+use tokio::signal::unix;
+use tracing::debug;
 use tracing::level_filters::LevelFilter;
 
 use snxcore::{
@@ -50,6 +53,31 @@ impl From<SnxCommand> for ServiceCommand {
     }
 }
 
+async fn await_termination<F, R>(f: F) -> Option<anyhow::Result<R>>
+where
+    F: Future<Output = anyhow::Result<R>>,
+{
+    let ctrl_c = tokio::signal::ctrl_c();
+    pin_mut!(ctrl_c);
+
+    let mut sig = unix::signal(unix::SignalKind::terminate()).ok()?;
+    let term = sig.recv();
+    pin_mut!(term);
+
+    let select = futures::future::select(ctrl_c, term);
+
+    tokio::select! {
+        result = f => {
+            Some(result)
+        }
+
+        _ = select => {
+            debug!("Application terminated due to a signal");
+            None
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let params = CmdlineParams::parse();
@@ -75,7 +103,16 @@ async fn main() -> anyhow::Result<()> {
 
     let command = params.command.into();
 
-    let status = service_controller.command(command, tunnel_params.clone()).await?;
+    let status = match await_termination(service_controller.command(command, tunnel_params.clone())).await {
+        Some(status) => status?,
+        None => {
+            let _ = service_controller
+                .command(ServiceCommand::Disconnect, tunnel_params.clone())
+                .await;
+            println!("\nApplication terminated due to a signal");
+            std::process::exit(1);
+        }
+    };
 
     if command != ServiceCommand::Info {
         if let Some(since) = status.connected_since {

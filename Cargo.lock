@@ -2701,6 +2701,7 @@ name = "snx-rs-gui"
 version = "4.0.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "clap",
  "futures",
  "gtk4",
@@ -2768,6 +2769,7 @@ version = "4.0.0"
 dependencies = [
  "anyhow",
  "clap",
+ "futures",
  "snxcore",
  "tokio",
  "tracing",
