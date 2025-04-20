@@ -54,6 +54,7 @@ pub struct ServiceController<B, P> {
     mfa_index: usize,
     browser_controller: B,
     stream: Option<UnixStream>,
+    otp_cancel_sender: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
 impl<B, P> ServiceController<B, P>
@@ -70,6 +71,7 @@ where
             mfa_index: 0,
             browser_controller,
             stream: None,
+            otp_cancel_sender: None,
         }
     }
 
@@ -92,14 +94,8 @@ where
     ) -> anyhow::Result<ConnectionStatus> {
         match command {
             ServiceCommand::Status => self.do_status(params).await,
-            ServiceCommand::Connect => {
-                self.do_status(params.clone()).await?;
-                self.do_connect(params).await
-            }
-            ServiceCommand::Disconnect => {
-                self.do_status(params.clone()).await?;
-                self.do_disconnect(params).await
-            }
+            ServiceCommand::Connect => self.do_connect(params).await,
+            ServiceCommand::Disconnect => self.do_disconnect(params).await,
             ServiceCommand::Reconnect => {
                 let _ = self.do_disconnect(params.clone()).await;
                 self.do_connect(params).await
@@ -170,7 +166,9 @@ where
                 }
             }
             MfaType::SamlSso => {
-                let receiver = spawn_otp_listener();
+                let (tx, rx) = tokio::sync::oneshot::channel();
+                self.otp_cancel_sender = Some(tx);
+                let receiver = spawn_otp_listener(rx);
 
                 self.browser_controller.open(&mfa.prompt)?;
 
@@ -179,8 +177,8 @@ where
                         self.browser_controller.close();
                         Ok(otp)
                     }
-                    other => {
-                        warn!("Unable to acquire OTP from the browser: {:?}", other);
+                    _ => {
+                        warn!("Unable to acquire OTP from the browser");
                         Err(anyhow!("Unable to acquire OTP from the browser!"))
                     }
                 }
@@ -251,6 +249,9 @@ where
     }
 
     async fn do_disconnect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
+        if let Some(cancel_sender) = self.otp_cancel_sender.take() {
+            let _ = cancel_sender.send(());
+        }
         self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
             .await?;
         self.do_status(params).await

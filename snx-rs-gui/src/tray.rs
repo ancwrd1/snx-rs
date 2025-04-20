@@ -139,7 +139,8 @@ impl AppTray {
             .status
             .as_ref()
             .as_ref()
-            .is_ok_and(|status| status.connected_since.is_some());
+            .is_ok_and(|status| status.connected_since.is_some())
+            || self.connecting;
 
         self.tray_icon
             .update(move |tray| {

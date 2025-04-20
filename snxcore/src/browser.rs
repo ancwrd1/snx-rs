@@ -26,7 +26,7 @@ impl BrowserController for SystemBrowser {
     fn close(&self) {}
 }
 
-pub fn spawn_otp_listener() -> oneshot::Receiver<anyhow::Result<String>> {
+pub fn spawn_otp_listener(cancel_receiver: oneshot::Receiver<()>) -> oneshot::Receiver<anyhow::Result<String>> {
     static OTP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^GET /(?<otp>[0-9a-f]{60}|[0-9A-F]{60}).*").unwrap());
 
     let (sender, receiver) = oneshot::channel();
@@ -55,11 +55,12 @@ pub fn spawn_otp_listener() -> oneshot::Receiver<anyhow::Result<String>> {
     };
 
     tokio::spawn(async move {
-        let result = tokio::time::timeout(OTP_TIMEOUT, fut)
-            .await
-            .unwrap_or_else(|e| Err(e.into()));
-
-        let _ = sender.send(result);
+        tokio::select! {
+            _ = cancel_receiver => {},
+            result = tokio::time::timeout(OTP_TIMEOUT, fut) => {
+                let _ = sender.send(result.unwrap_or_else(|e| Err(e.into())));
+            }
+        }
     });
 
     receiver
