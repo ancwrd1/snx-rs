@@ -5,21 +5,20 @@ use futures::pin_mut;
 use tokio::{signal::unix, sync::mpsc};
 use tracing::{debug, metadata::LevelFilter, warn};
 
-use crate::cmdline::CmdlineParams;
-use snxcore::model::params::TunnelType;
-use snxcore::model::PromptInfo;
 use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
     model::{
-        params::{OperationMode, TunnelParams},
-        MfaType, SessionState,
+        params::{OperationMode, TunnelParams, TunnelType},
+        MfaType, PromptInfo, SessionState,
     },
     platform,
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
     server_info, tunnel,
 };
+
+use crate::cmdline::CmdlineParams;
 
 mod cmdline;
 
@@ -105,7 +104,7 @@ async fn main_command() -> anyhow::Result<()> {
     if let Err(e) = platform::start_network_state_monitoring().await {
         warn!("Unable to start network monitoring: {}", e);
     }
-    let server = CommandServer::new(snxcore::server::LISTEN_PORT);
+    let server = CommandServer::default();
 
     await_termination(server.run()).await
 }
