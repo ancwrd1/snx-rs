@@ -5,13 +5,11 @@ use ksni::{menu::StandardItem, Handle, Icon, MenuItem, TrayMethods};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use snxcore::{
-    controller::{ServiceCommand, ServiceController},
     model::params::IconTheme,
     model::{params::TunnelParams, ConnectionStatus},
-    prompt::SecurePrompt,
 };
 
-use crate::{assets, params::CmdlineParams, prompt, theme::system_color_theme, theme::SystemColorTheme};
+use crate::{assets, params::CmdlineParams, theme::system_color_theme, theme::SystemColorTheme};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrayEvent {
@@ -22,17 +20,19 @@ pub enum TrayEvent {
     About,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum TrayCommand {
-    Service(ServiceCommand),
-    Update,
+    Update {
+        connecting: Option<bool>,
+        status: Option<Arc<anyhow::Result<ConnectionStatus>>>,
+    },
     Exit,
 }
 
 pub struct AppTray {
     command_sender: Sender<TrayCommand>,
     command_receiver: Option<Receiver<TrayCommand>>,
-    status: anyhow::Result<ConnectionStatus>,
+    status: Arc<anyhow::Result<ConnectionStatus>>,
     connecting: bool,
     config_file: PathBuf,
     tray_icon: Handle<KsniTray>,
@@ -48,7 +48,7 @@ impl AppTray {
         let app_tray = AppTray {
             command_sender: tx,
             command_receiver: Some(rx),
-            status: Err(anyhow!("No service connection")),
+            status: Arc::new(Err(anyhow!("No service connection"))),
             connecting: false,
             config_file: params.config_file().clone(),
             tray_icon: handle,
@@ -67,7 +67,7 @@ impl AppTray {
         if self.connecting {
             "...".to_owned()
         } else {
-            match self.status {
+            match *self.status {
                 Ok(ref status) => {
                     if let Some(since) = status.connected_since {
                         if status.mfa.is_some() {
@@ -106,7 +106,7 @@ impl AppTray {
         let data = if self.connecting {
             theme.acquiring.clone()
         } else {
-            match self.status {
+            match *self.status {
                 Ok(ref status) => {
                     if status.connected_since.is_some() {
                         theme.connected.clone()
@@ -131,11 +131,13 @@ impl AppTray {
         let connect_enabled = self
             .status
             .as_ref()
+            .as_ref()
             .is_ok_and(|status| status.connected_since.is_none() && status.mfa.is_none())
             && !self.connecting;
 
         let disconnect_enabled = self
             .status
+            .as_ref()
             .as_ref()
             .is_ok_and(|status| status.connected_since.is_some());
 
@@ -150,56 +152,23 @@ impl AppTray {
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
-        let mut prev_command = ServiceCommand::Info;
-        let mut prev_status = String::new();
-        let mut prev_theme = None;
-
         let mut rx = self.command_receiver.take().unwrap();
 
-        let mut controller = ServiceController::new(prompt::GtkPrompt, snxcore::browser::SystemBrowser);
-
         while let Some(command) = rx.recv().await {
-            let command = match command {
-                TrayCommand::Service(command) => command,
-                TrayCommand::Update => {
+            match command {
+                TrayCommand::Update { connecting, status } => {
+                    if let Some(connecting) = connecting {
+                        self.connecting = connecting;
+                    }
+                    if let Some(status) = status {
+                        self.status = status;
+                    }
                     self.update().await;
-                    continue;
                 }
                 TrayCommand::Exit => {
                     break;
                 }
-            };
-
-            let theme = system_color_theme().ok();
-            if theme != prev_theme {
-                prev_theme = theme;
-                self.update().await;
             }
-
-            let tunnel_params = Arc::new(TunnelParams::load(&self.config_file).unwrap_or_default());
-
-            if command == ServiceCommand::Connect {
-                self.connecting = true;
-                self.update().await;
-            }
-
-            let status = controller.command(command, tunnel_params).await;
-            let status_str = format!("{status:?}");
-
-            match status {
-                Err(ref e) if command == ServiceCommand::Connect => {
-                    let _ = prompt::GtkPrompt.show_notification("Connection failed", &e.to_string());
-                }
-                _ => {}
-            }
-
-            if command != prev_command || status_str != prev_status {
-                self.connecting = false;
-                self.status = status;
-                self.update().await;
-            }
-            prev_command = command;
-            prev_status = status_str;
         }
 
         Ok(())
