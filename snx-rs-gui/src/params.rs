@@ -12,7 +12,7 @@ pub struct CmdlineParams {
         global = true,
         help = "Configuration file to use [default: $HOME/.config/snx-rs/snx-rs.conf]"
     )]
-    config_file: Option<PathBuf>,
+    pub config_file: Option<PathBuf>,
 }
 
 impl CmdlineParams {
