@@ -161,7 +161,7 @@ where
                 } else if !self.password_from_keychain.is_empty() && self.mfa_index == params.password_factor {
                     Ok(self.password_from_keychain.clone())
                 } else {
-                    let input = self.prompt.get_secure_input(&prompt)?;
+                    let input = self.prompt.get_secure_input(prompt).await?;
                     Ok(input)
                 }
             }
@@ -185,7 +185,7 @@ where
             }
             MfaType::UserNameInput => {
                 let prompt = PromptInfo::new("Username is required for authentication", &mfa.prompt);
-                let input = self.prompt.get_plain_input(&prompt)?;
+                let input = self.prompt.get_plain_input(prompt).await?;
                 self.username = input.clone();
 
                 if !self.username.is_empty() && !params.no_keychain && params.password.is_empty() {

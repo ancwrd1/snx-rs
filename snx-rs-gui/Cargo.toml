@@ -26,3 +26,4 @@ hex = "0.4"
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 futures = "0.3"
 libc = "0.2"
+async-trait = "0.1"
