@@ -65,26 +65,26 @@ struct MyWidgets {
     user_name: gtk4::Entry,
     password: gtk4::Entry,
     password_factor: gtk4::Entry,
-    no_dns: gtk4::CheckButton,
+    no_dns: gtk4::Switch,
     search_domains: gtk4::Entry,
     ignored_domains: gtk4::Entry,
     dns_servers: gtk4::Entry,
     ignored_dns_servers: gtk4::Entry,
-    set_routing_domains: gtk4::CheckButton,
-    no_routing: gtk4::CheckButton,
-    default_routing: gtk4::CheckButton,
+    set_routing_domains: gtk4::Switch,
+    no_routing: gtk4::Switch,
+    default_routing: gtk4::Switch,
     add_routes: gtk4::Entry,
     ignored_routes: gtk4::Entry,
-    no_keychain: gtk4::CheckButton,
-    no_cert_check: gtk4::CheckButton,
+    no_keychain: gtk4::Switch,
+    no_cert_check: gtk4::Switch,
     cert_type: gtk4::ComboBoxText,
     cert_path: gtk4::Entry,
     cert_password: gtk4::Entry,
     cert_id: gtk4::Entry,
     ca_cert: gtk4::Entry,
     ike_lifetime: gtk4::Entry,
-    ike_persist: gtk4::CheckButton,
-    no_keepalive: gtk4::CheckButton,
+    ike_persist: gtk4::Switch,
+    no_keepalive: gtk4::Switch,
     icon_theme: gtk4::ComboBoxText,
     error: gtk4::Label,
     button_box: gtk4::Box,
@@ -228,8 +228,14 @@ impl SettingsDialog {
         let password = gtk4::Entry::builder().text(&params.password).visibility(false).build();
         let password_factor = gtk4::Entry::builder().text(params.password_factor.to_string()).build();
 
-        let no_dns = gtk4::CheckButton::builder().active(params.no_dns).build();
-        let set_routing_domains = gtk4::CheckButton::builder().active(params.set_routing_domains).build();
+        let no_dns = gtk4::Switch::builder()
+            .active(params.no_dns)
+            .halign(Align::Start)
+            .build();
+        let set_routing_domains = gtk4::Switch::builder()
+            .active(params.set_routing_domains)
+            .halign(Align::Start)
+            .build();
 
         let search_domains = gtk4::Entry::builder()
             .placeholder_text("Comma-separated domains")
@@ -265,8 +271,14 @@ impl SettingsDialog {
             )
             .build();
 
-        let no_routing = gtk4::CheckButton::builder().active(params.no_routing).build();
-        let default_routing = gtk4::CheckButton::builder().active(params.default_route).build();
+        let no_routing = gtk4::Switch::builder()
+            .active(params.no_routing)
+            .halign(Align::Start)
+            .build();
+        let default_routing = gtk4::Switch::builder()
+            .active(params.default_route)
+            .halign(Align::Start)
+            .build();
 
         let add_routes = gtk4::Entry::builder()
             .placeholder_text("Comma-separated x.x.x.x/x")
@@ -292,8 +304,14 @@ impl SettingsDialog {
             )
             .build();
 
-        let no_keychain = gtk4::CheckButton::builder().active(params.no_keychain).build();
-        let no_cert_check = gtk4::CheckButton::builder().active(params.ignore_server_cert).build();
+        let no_keychain = gtk4::Switch::builder()
+            .active(params.no_keychain)
+            .halign(Align::Start)
+            .build();
+        let no_cert_check = gtk4::Switch::builder()
+            .active(params.ignore_server_cert)
+            .halign(Align::Start)
+            .build();
         let cert_type = gtk4::ComboBoxText::builder().build();
         let cert_path = gtk4::Entry::builder()
             .text(
@@ -325,8 +343,14 @@ impl SettingsDialog {
         let ike_lifetime = gtk4::Entry::builder()
             .text(params.ike_lifetime.as_secs().to_string())
             .build();
-        let ike_persist = gtk4::CheckButton::builder().active(params.ike_persist).build();
-        let no_keepalive = gtk4::CheckButton::builder().active(params.no_keepalive).build();
+        let ike_persist = gtk4::Switch::builder()
+            .active(params.ike_persist)
+            .halign(Align::Start)
+            .build();
+        let no_keepalive = gtk4::Switch::builder()
+            .active(params.no_keepalive)
+            .halign(Align::Start)
+            .build();
         let icon_theme = gtk4::ComboBoxText::builder().build();
 
         let provider = gtk4::CssProvider::new();
