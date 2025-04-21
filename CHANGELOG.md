@@ -13,6 +13,7 @@
 - It is now possible to cancel the pending connection, also in the MFA state.
 - Refactored internal IPSec certificate validation to use the advertised internal_ca_fingerprint.
 - Show extended server information with the 'snxctl info` command.
+- Fixed a bug with incomplete SSL tunnel shutdown.
 
 ## v3.1.2 (2025-04-13)
 - Fixed a problem with default IP address detection on some systems.
