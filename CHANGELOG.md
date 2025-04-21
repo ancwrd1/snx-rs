@@ -1,14 +1,18 @@
 ## v4.0.0 (TBD)
+
+**Important note for downstream package maintainers**: this release replaces GTK 3 dependency with GTK 4.
+
 - Added automatic detection of IPSec transport.
 - GUI frontend: refactored into GTK 4.
-- GUI frontend: use `ksni` crate to show tray icon; does not depend on GTK or libappindicator anymore.
+- GUI frontend: use `ksni` crate to show tray icon.
 - Removed `no-cert-check` option which was used to disable hostname verification. Use `ignore-server-cert` instead.
 - Removed `server-prompt` option. Server prompts are always enabled.
-- Removed `ipsec-cert-check`, `ike-transport`, `esp-transport` and `ike-port` options.
-- Changed the internal communication with the command service to use Unix domain sockets.
+- Removed obsolete `ipsec-cert-check`, `ike-transport`, `esp-transport` and `ike-port` options.
+- Changed the internal communication between the frontend and the command service to use Unix domain sockets.
 - Fixed many issues related to a concurrent use of the GUI frontend and the snxctl utility.
-- Added a possibility to cancel the pending connection when MFA is active.
+- It is now possible to cancel the pending connection, also in the MFA state.
 - Refactored internal IPSec certificate validation to use the advertised internal_ca_fingerprint.
+- Show extended server information with the 'snxctl info` command.
 
 ## v3.1.2 (2025-04-13)
 - Fixed a problem with default IP address detection on some systems.
