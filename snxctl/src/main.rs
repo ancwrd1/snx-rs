@@ -88,8 +88,6 @@ async fn main() -> anyhow::Result<()> {
 
     let tunnel_params = Arc::new(TunnelParams::load(config_file).unwrap_or_default());
 
-    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser);
-
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(
             tunnel_params
@@ -101,6 +99,8 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     let command = params.command.into();
+
+    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser);
 
     let status = match await_termination(service_controller.command(command, tunnel_params.clone())).await {
         Some(status) => status?,
