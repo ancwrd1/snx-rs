@@ -97,16 +97,16 @@ pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Ne
 pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
     let info = server_info::get(params).await?;
 
-    println!("Supported tunnel protocols:");
+    println!("Server address: {}", params.server_name);
+    println!("Server IP: {}", info.connectivity_info.server_ip);
+    println!(
+        "Supported tunnel protocols: {}",
+        info.connectivity_info.supported_data_tunnel_protocols.join(", ")
+    );
 
-    for item in info
-        .connectivity_info
-        .supported_data_tunnel_protocols
-        .iter()
-        .filter(|&v| v != "L2TP")
-    {
-        println!("\t{item}");
-    }
+    println!("Connectivity type: {}", info.connectivity_info.connectivity_type);
+    println!("TCPT port: {}", info.connectivity_info.tcpt_port);
+    println!("NATT port: {}", info.connectivity_info.natt_port);
 
     println!(
         "Internal CA fingerprint: {}",
