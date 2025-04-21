@@ -1,10 +1,9 @@
+use std::{future::Future, path::PathBuf, sync::Arc};
+
 use clap::Parser;
 use futures::pin_mut;
-use std::future::Future;
-use std::{path::PathBuf, sync::Arc};
 use tokio::signal::unix;
-use tracing::debug;
-use tracing::level_filters::LevelFilter;
+use tracing::{debug, level_filters::LevelFilter};
 
 use snxcore::{
     browser::SystemBrowser,
@@ -115,13 +114,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     if command != ServiceCommand::Info {
-        if let Some(since) = status.connected_since {
-            println!("Connected since: {}", since);
-        } else if status.mfa.is_some() {
-            println!("MFA pending");
-        } else {
-            println!("Disconnected");
-        }
+        println!("{}", status);
     }
 
     Ok(())

@@ -4,9 +4,9 @@ use anyhow::anyhow;
 use ksni::{menu::StandardItem, Handle, Icon, MenuItem, TrayMethods};
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use snxcore::{
-    model::params::IconTheme,
-    model::{params::TunnelParams, ConnectionStatus},
+use snxcore::model::{
+    params::{IconTheme, TunnelParams},
+    ConnectionStatus,
 };
 
 use crate::{assets, params::CmdlineParams, theme::system_color_theme, theme::SystemColorTheme};
@@ -22,10 +22,7 @@ pub enum TrayEvent {
 
 #[derive(Debug, Clone)]
 pub enum TrayCommand {
-    Update {
-        connecting: Option<bool>,
-        status: Option<Arc<anyhow::Result<ConnectionStatus>>>,
-    },
+    Update(Option<Arc<anyhow::Result<ConnectionStatus>>>),
     Exit,
 }
 
@@ -33,7 +30,6 @@ pub struct AppTray {
     command_sender: Sender<TrayCommand>,
     command_receiver: Option<Receiver<TrayCommand>>,
     status: Arc<anyhow::Result<ConnectionStatus>>,
-    connecting: bool,
     config_file: PathBuf,
     tray_icon: Handle<KsniTray>,
 }
@@ -49,7 +45,6 @@ impl AppTray {
             command_sender: tx,
             command_receiver: Some(rx),
             status: Arc::new(Err(anyhow!("No service connection"))),
-            connecting: false,
             config_file: params.config_file().clone(),
             tray_icon: handle,
         };
@@ -64,23 +59,9 @@ impl AppTray {
     }
 
     fn status_label(&self) -> String {
-        if self.connecting {
-            "...".to_owned()
-        } else {
-            match *self.status {
-                Ok(ref status) => {
-                    if let Some(since) = status.connected_since {
-                        if status.mfa.is_some() {
-                            "Pending MFA prompt".to_owned()
-                        } else {
-                            format!("Connected since: {}", since.to_rfc2822())
-                        }
-                    } else {
-                        "Tunnel disconnected".to_owned()
-                    }
-                }
-                Err(ref e) => e.to_string(),
-            }
+        match &*self.status {
+            Ok(status) => status.to_string(),
+            Err(e) => e.to_string(),
         }
     }
 
@@ -103,19 +84,11 @@ impl AppTray {
     fn icon(&self) -> Icon {
         let theme = self.icon_theme();
 
-        let data = if self.connecting {
-            theme.acquiring.clone()
-        } else {
-            match *self.status {
-                Ok(ref status) => {
-                    if status.connected_since.is_some() {
-                        theme.connected.clone()
-                    } else {
-                        theme.disconnected.clone()
-                    }
-                }
-                Err(_) => theme.error.clone(),
-            }
+        let data = match &*self.status {
+            Ok(ConnectionStatus::Connected(_)) => theme.connected.clone(),
+            Ok(ConnectionStatus::Disconnected) => theme.disconnected.clone(),
+            Ok(ConnectionStatus::Mfa(_) | ConnectionStatus::Connecting) => theme.acquiring.clone(),
+            _ => theme.error.clone(),
         };
 
         Icon {
@@ -132,15 +105,13 @@ impl AppTray {
             .status
             .as_ref()
             .as_ref()
-            .is_ok_and(|status| status.connected_since.is_none() && status.mfa.is_none())
-            && !self.connecting;
+            .is_ok_and(|status| *status == ConnectionStatus::Disconnected);
 
         let disconnect_enabled = self
             .status
             .as_ref()
             .as_ref()
-            .is_ok_and(|status| status.connected_since.is_some())
-            || self.connecting;
+            .is_ok_and(|status| *status != ConnectionStatus::Disconnected);
 
         self.tray_icon
             .update(move |tray| {
@@ -157,10 +128,7 @@ impl AppTray {
 
         while let Some(command) = rx.recv().await {
             match command {
-                TrayCommand::Update { connecting, status } => {
-                    if let Some(connecting) = connecting {
-                        self.connecting = connecting;
-                    }
+                TrayCommand::Update(status) => {
                     if let Some(status) = status {
                         self.status = status;
                     }

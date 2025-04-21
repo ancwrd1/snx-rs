@@ -1,11 +1,4 @@
-use std::{
-    cell::OnceCell,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
+use std::{cell::OnceCell, sync::Arc, time::Duration};
 
 use clap::Parser;
 use gtk4::{
@@ -69,13 +62,10 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(async move { my_tray.run().await });
 
-    let connecting = Arc::new(AtomicBool::new(false));
-
-    let connecting2 = connecting.clone();
     let tray_command_sender2 = tray_command_sender.clone();
     let cmdline_params2 = cmdline_params.clone();
 
-    tokio::spawn(async move { status_poll(connecting2, tray_command_sender2, cmdline_params2).await });
+    tokio::spawn(async move { status_poll(tray_command_sender2, cmdline_params2).await });
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
@@ -89,17 +79,15 @@ async fn main() -> anyhow::Result<()> {
                 let params = Arc::new(TunnelParams::load(cmdline_params.config_file()).unwrap_or_default());
                 match v {
                     TrayEvent::Connect => {
-                        let connecting = connecting.clone();
                         let sender = tray_command_sender.clone();
                         let (tx, rx) = mpsc::channel(16);
                         cancel_sender = Some(tx);
-                        tokio::spawn(async move { do_connect(connecting, sender, params, rx).await });
+                        tokio::spawn(async move { do_connect(sender, params, rx).await });
                     }
                     TrayEvent::Disconnect => {
-                        let connecting = connecting.clone();
                         let sender = tray_command_sender.clone();
                         let cancel_sender = cancel_sender.take();
-                        tokio::spawn(async move { do_disconnect(connecting, sender, params, cancel_sender).await });
+                        tokio::spawn(async move { do_disconnect(sender, params, cancel_sender).await });
                     }
                     TrayEvent::Settings => {
                         MAIN_WINDOW.with(|cell| {
@@ -160,27 +148,20 @@ fn init_logging(params: &TunnelParams) {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 }
 
-async fn status_poll(connecting: Arc<AtomicBool>, sender: mpsc::Sender<TrayCommand>, params: CmdlineParams) {
+async fn status_poll(sender: mpsc::Sender<TrayCommand>, params: CmdlineParams) {
     let mut prev_status = Arc::new(Err(anyhow::anyhow!("No service connection!")));
 
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
     loop {
-        if !connecting.load(Ordering::SeqCst) {
-            let tunnel_params =
-                Arc::new(TunnelParams::load(params.config_file.clone().unwrap_or_default()).unwrap_or_default());
-            let status = controller.command(ServiceCommand::Status, tunnel_params.clone()).await;
-            let status_str = format!("{status:?}");
+        let tunnel_params =
+            Arc::new(TunnelParams::load(params.config_file.clone().unwrap_or_default()).unwrap_or_default());
+        let status = controller.command(ServiceCommand::Status, tunnel_params.clone()).await;
+        let status_str = format!("{status:?}");
 
-            if status_str != format!("{:?}", *prev_status) {
-                prev_status = Arc::new(status);
-                let _ = sender
-                    .send(TrayCommand::Update {
-                        connecting: None,
-                        status: Some(prev_status.clone()),
-                    })
-                    .await;
-            }
+        if status_str != format!("{:?}", *prev_status) {
+            prev_status = Arc::new(status);
+            let _ = sender.send(TrayCommand::Update(Some(prev_status.clone()))).await;
         }
 
         tokio::time::sleep(PING_DURATION).await;
@@ -188,40 +169,24 @@ async fn status_poll(connecting: Arc<AtomicBool>, sender: mpsc::Sender<TrayComma
 }
 
 async fn do_disconnect(
-    connecting: Arc<AtomicBool>,
     sender: mpsc::Sender<TrayCommand>,
     params: Arc<TunnelParams>,
     cancel_sender: Option<mpsc::Sender<()>>,
 ) {
-    connecting.store(false, Ordering::SeqCst);
-
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
     let status = controller.command(ServiceCommand::Disconnect, params).await;
-    let _ = sender
-        .send(TrayCommand::Update {
-            connecting: None,
-            status: Some(Arc::new(status)),
-        })
-        .await;
+    let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
     if let Some(cancel_sender) = cancel_sender {
         let _ = cancel_sender.send(()).await;
     }
 }
 
 async fn do_connect(
-    connecting: Arc<AtomicBool>,
     sender: mpsc::Sender<TrayCommand>,
     params: Arc<TunnelParams>,
     mut cancel_receiver: mpsc::Receiver<()>,
 ) {
-    connecting.store(true, Ordering::SeqCst);
-
-    let _ = sender
-        .send(TrayCommand::Update {
-            connecting: Some(true),
-            status: None,
-        })
-        .await;
+    let _ = sender.send(TrayCommand::Update(None)).await;
 
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
@@ -234,17 +199,10 @@ async fn do_connect(
         }
     };
 
-    connecting.store(false, Ordering::SeqCst);
-
     if let Err(ref e) = status {
         let _ = GtkPrompt.show_notification("Connection error", &e.to_string()).await;
         status = controller.command(ServiceCommand::Status, params).await;
     }
 
-    let _ = sender
-        .send(TrayCommand::Update {
-            connecting: Some(false),
-            status: Some(Arc::new(status)),
-        })
-        .await;
+    let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
 }
