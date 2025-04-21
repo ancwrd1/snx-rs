@@ -15,7 +15,7 @@ use snxcore::{
         params::{OperationMode, TunnelParams, TunnelType},
         MfaType, PromptInfo, SessionState,
     },
-    platform,
+    platform::{self, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
     server_info, tunnel,
@@ -104,6 +104,12 @@ async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
 }
 
 async fn main_command() -> anyhow::Result<()> {
+    let instance = SingleInstance::new("/var/run/snx-rs.lock")?;
+    if !instance.is_single() {
+        eprintln!("Another instance of snx-rs is already running");
+        return Ok(());
+    }
+
     if let Err(e) = platform::start_network_state_monitoring().await {
         warn!("Unable to start network monitoring: {}", e);
     }
