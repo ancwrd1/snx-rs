@@ -10,7 +10,7 @@ use tracing::debug;
 
 use crate::{platform::UdpSocketExt, tunnel::TunnelEvent};
 
-const MAX_NATT_PROBES: usize = 3;
+const MAX_NATT_PROBES: usize = 2;
 
 // Both packets are IKE SA requests which do some magic of unblocking port 4500 for some users.
 const NMAP_KNOCK: &[&[u8]] = &[
@@ -43,20 +43,25 @@ const NMAP_KNOCK: &[&[u8]] = &[
 
 pub struct NattProber {
     address: SocketAddr,
+    port_knock: bool,
 }
 
 impl NattProber {
-    pub fn new(address: SocketAddr) -> Self {
-        Self { address }
+    pub fn new(address: SocketAddr, port_knock: bool) -> Self {
+        Self { address, port_knock }
     }
 
     pub async fn probe(&self) -> anyhow::Result<()> {
         if self.send_probe().await.is_err() {
-            // attempt to unblock port 4500 by sending some magic packets to port 500
-            self.send_nmap_knock().await?;
+            if self.port_knock {
+                // attempt to unblock port 4500 by sending some magic packets to port 500
+                self.send_nmap_knock().await?;
+            }
 
             for _ in 0..MAX_NATT_PROBES {
-                self.send_nmap_knock().await?;
+                if self.port_knock {
+                    self.send_nmap_knock().await?;
+                }
                 if self.send_probe().await.is_ok() {
                     return Ok(());
                 }

@@ -144,7 +144,7 @@ impl IpsecTunnelConnector {
             anyhow::bail!("No IPv4 address for {}", params.server_name);
         };
 
-        let prober = NattProber::new(socket.peer_addr()?);
+        let prober = NattProber::new(socket.peer_addr()?, params.port_knock);
 
         let esp_transport = if prober.probe().await.is_ok() {
             TransportType::Native
