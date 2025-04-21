@@ -189,6 +189,13 @@ pub struct CmdlineParams {
 
     #[clap(long = "no-keepalive", short = 'A', help = "Disable IPSec keepalive packets")]
     pub no_keepalive: Option<bool>,
+
+    #[clap(
+        long = "port-knock",
+        short = 'R',
+        help = "Enable port knock workaround for NAT-T probing"
+    )]
+    pub port_knock: Option<bool>,
 }
 
 impl CmdlineParams {
@@ -308,6 +315,10 @@ impl CmdlineParams {
 
         if let Some(no_keepalive) = self.no_keepalive {
             other.no_keepalive = no_keepalive;
+        }
+
+        if let Some(port_knock) = self.port_knock {
+            other.port_knock = port_knock;
         }
     }
 }

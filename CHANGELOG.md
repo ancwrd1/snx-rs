@@ -8,6 +8,7 @@
 - Removed `no-cert-check` option which was used to disable hostname verification. Use `ignore-server-cert` instead.
 - Removed `server-prompt` option. Server prompts are always enabled.
 - Removed obsolete `ipsec-cert-check`, `ike-transport`, `esp-transport` and `ike-port` options.
+- Added `port-knock` option to try port knocking workaround for NAT-T port 4500 availability detection.
 - Changed the internal communication between the frontend and the command service to use Unix domain sockets.
 - Fixed many issues related to a concurrent use of the GUI frontend and the snxctl utility.
 - It is now possible to cancel the pending connection, also in the MFA state.

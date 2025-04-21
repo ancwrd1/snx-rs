@@ -85,6 +85,7 @@ struct MyWidgets {
     ike_lifetime: gtk4::Entry,
     ike_persist: gtk4::Switch,
     no_keepalive: gtk4::Switch,
+    port_knock: gtk4::Switch,
     icon_theme: gtk4::ComboBoxText,
     error: gtk4::Label,
     button_box: gtk4::Box,
@@ -351,6 +352,10 @@ impl SettingsDialog {
             .active(params.no_keepalive)
             .halign(Align::Start)
             .build();
+        let port_knock = gtk4::Switch::builder()
+            .active(params.port_knock)
+            .halign(Align::Start)
+            .build();
         let icon_theme = gtk4::ComboBoxText::builder().build();
 
         let provider = gtk4::CssProvider::new();
@@ -529,6 +534,7 @@ impl SettingsDialog {
             ike_lifetime,
             ike_persist,
             no_keepalive,
+            port_knock,
             icon_theme,
             error,
             button_box,
@@ -670,6 +676,7 @@ impl SettingsDialog {
         params.ike_lifetime = Duration::from_secs(self.widgets.ike_lifetime.text().parse()?);
         params.ike_persist = self.widgets.ike_persist.is_active();
         params.no_keepalive = self.widgets.no_keepalive.is_active();
+        params.port_knock = self.widgets.port_knock.is_active();
         params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
 
         params.save()?;
@@ -845,6 +852,10 @@ impl SettingsDialog {
         let no_keepalive = self.form_box("Disable IPSec keepalive packets");
         no_keepalive.append(&self.widgets.no_keepalive);
         misc_box.append(&no_keepalive);
+
+        let port_knock = self.form_box("Enable NAT-T port knocking");
+        port_knock.append(&self.widgets.port_knock);
+        misc_box.append(&port_knock);
 
         let icon_theme_box = self.icon_theme_box();
         misc_box.append(&icon_theme_box);
