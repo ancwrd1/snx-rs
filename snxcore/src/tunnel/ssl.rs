@@ -77,6 +77,7 @@ pub(crate) struct SslTunnel {
     keepalive_counter: Arc<AtomicI64>,
     tun_device: Option<TunDevice>,
     hello_reply: HelloReplyData,
+    terminate_sender: Option<Sender<()>>,
 }
 
 impl SslTunnel {
@@ -114,6 +115,7 @@ impl SslTunnel {
             keepalive_counter: Arc::new(AtomicI64::default()),
             tun_device: None,
             hello_reply: HelloReplyData::default(),
+            terminate_sender: None,
         })
     }
 
@@ -172,6 +174,10 @@ impl SslTunnel {
     }
 
     async fn cleanup(&mut self) {
+        if let Some(mut sender) = self.terminate_sender.take() {
+            let _ = sender.send(()).await;
+        }
+
         if let Some(device) = self.tun_device.take() {
             if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
                 let _ = platform::remove_default_route(dest_ip).await;
@@ -312,7 +318,10 @@ impl VpnTunnel for SslTunnel {
 
         let keepalive_counter = self.keepalive_counter.clone();
 
-        tokio::spawn(async move {
+        let (terminate_sender, mut terminate_receiver) = mpsc::channel(1);
+        self.terminate_sender = Some(terminate_sender);
+
+        let fut = async move {
             while let Some(item) = snx_receiver.next().await {
                 match item {
                     SslPacketType::Control(expr) => {
@@ -332,6 +341,13 @@ impl VpnTunnel for SslTunnel {
                 }
             }
             Ok::<_, anyhow::Error>(())
+        };
+
+        tokio::spawn(async move {
+            tokio::select! {
+                _ = terminate_receiver.next() => Ok::<_, anyhow::Error>(()),
+                res = fut => res,
+            }
         });
 
         let _ = event_sender.send(TunnelEvent::Connected).await;
