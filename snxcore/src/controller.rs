@@ -93,7 +93,7 @@ where
         params: Arc<TunnelParams>,
     ) -> anyhow::Result<ConnectionStatus> {
         match command {
-            ServiceCommand::Status => self.do_status(params).await,
+            ServiceCommand::Status => self.do_status(params, false).await,
             ServiceCommand::Connect => self.do_connect(params).await,
             ServiceCommand::Disconnect => self.do_disconnect(params).await,
             ServiceCommand::Reconnect => {
@@ -105,11 +105,11 @@ where
     }
 
     #[async_recursion::async_recursion]
-    pub async fn do_status(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
+    pub async fn do_status(&mut self, params: Arc<TunnelParams>, with_mfa: bool) -> anyhow::Result<ConnectionStatus> {
         let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await?;
         match response {
             TunnelServiceResponse::ConnectionStatus(status) => {
-                if let (None, Some(mfa)) = (status.connected_since, &status.mfa) {
+                if let (true, ConnectionStatus::Mfa(mfa)) = (with_mfa, &status) {
                     self.process_mfa_request(mfa, params).await
                 } else {
                     Ok(status)
@@ -222,9 +222,9 @@ where
             .send_receive(TunnelServiceRequest::Connect((*params).clone()), CONNECT_TIMEOUT)
             .await;
         match response {
-            Ok(TunnelServiceResponse::Ok) => self.do_status(params).await,
+            Ok(TunnelServiceResponse::Ok) => self.do_status(params, true).await,
             Ok(TunnelServiceResponse::Error(error)) => Err(anyhow!(error)),
-            Ok(_) => Err(anyhow!("Invalid response!")),
+            Ok(TunnelServiceResponse::ConnectionStatus(status)) => Ok(status),
             Err(e) => Err(e),
         }
     }
@@ -237,7 +237,7 @@ where
             )
             .await;
         match response {
-            Ok(TunnelServiceResponse::Ok) => self.do_status(params).await,
+            Ok(TunnelServiceResponse::Ok) => self.do_status(params, true).await,
             Ok(TunnelServiceResponse::Error(e)) => {
                 self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
                     .await?;
@@ -254,7 +254,7 @@ where
         }
         self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
             .await?;
-        self.do_status(params).await
+        self.do_status(params, false).await
     }
 
     async fn send_receive(

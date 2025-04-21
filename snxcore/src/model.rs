@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use std::{net::Ipv4Addr, time::Duration};
+use std::{fmt, net::Ipv4Addr, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Local};
 use isakmp::model::EspCryptMaterial;
@@ -93,27 +92,31 @@ pub struct MfaChallenge {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
-pub struct ConnectionStatus {
-    pub connected_since: Option<DateTime<Local>>,
-    pub mfa: Option<MfaChallenge>,
+pub enum ConnectionStatus {
+    #[default]
+    Disconnected,
+    Connecting,
+    Connected(DateTime<Local>),
+    Mfa(MfaChallenge),
 }
 
 impl ConnectionStatus {
     pub fn connected() -> Self {
-        Self {
-            connected_since: Some(Local::now()),
-            ..Default::default()
-        }
-    }
-
-    pub fn disconnected() -> Self {
-        Self::default()
+        Self::Connected(Local::now())
     }
 
     pub fn mfa(challenge: MfaChallenge) -> Self {
-        Self {
-            mfa: Some(challenge),
-            ..Default::default()
+        Self::Mfa(challenge)
+    }
+}
+
+impl fmt::Display for ConnectionStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConnectionStatus::Disconnected => write!(f, "Disconnected"),
+            ConnectionStatus::Connecting => write!(f, "Connecting in progress"),
+            ConnectionStatus::Connected(since) => write!(f, "Connected since {}", since),
+            ConnectionStatus::Mfa(mfa) => write!(f, "MFA pending: {:?}", mfa.mfa_type),
         }
     }
 }

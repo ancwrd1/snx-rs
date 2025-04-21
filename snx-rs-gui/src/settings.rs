@@ -1052,12 +1052,7 @@ pub fn start_settings_dialog(
                     if let Err(e) = dialog.save() {
                         warn!("{}", e);
                     } else {
-                        let _ = sender
-                            .send(TrayCommand::Update {
-                                connecting: None,
-                                status: None,
-                            })
-                            .await;
+                        let _ = sender.send(TrayCommand::Update(None)).await;
                     }
                 }
                 _ => {}
