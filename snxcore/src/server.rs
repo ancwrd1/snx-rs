@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use futures::{SinkExt, StreamExt};
+use futures::{FutureExt, SinkExt, StreamExt};
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, warn};
 
@@ -228,22 +228,31 @@ impl ServerHandler {
         } else {
             self.state.reset().await;
             *self.state.connection_status.lock().await = ConnectionStatus::Connecting;
+            self.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
-            let session = if params.ike_persist {
+            let fut = if params.ike_persist {
                 debug!("Attempting to load IKE session");
                 match connector.restore_session().await {
-                    Ok(session) => session,
+                    Ok(session) => futures::future::ready(Ok(session)).boxed(),
                     Err(_) => {
                         connector = tunnel::new_tunnel_connector(params.clone()).await?;
-                        connector.authenticate().await?
+                        connector.authenticate()
                     }
                 }
             } else {
-                connector.authenticate().await?
+                connector.authenticate()
             };
 
-            self.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
+            let session = tokio::select! {
+                _ = self.cancel_receiver.recv() => {
+                    *self.state.connection_status.lock().await = ConnectionStatus::Disconnected;
+                    self.cancel_state.lock().await.sender = None;
+                    anyhow::bail!("Connection cancelled!");
+                }
+                res = fut => res?
+            };
+
             *self.state.connector.lock().await = Some(connector);
 
             Ok(self
@@ -278,7 +287,7 @@ impl ServerHandler {
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
         if let Some(sender) = self.cancel_state.lock().await.sender.take() {
-            debug!("Disconnecting pending session");
+            debug!("Disconnecting current session");
             let _ = sender.send(()).await;
         }
 
