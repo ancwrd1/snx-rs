@@ -116,15 +116,9 @@ async fn main() -> anyhow::Result<()> {
 
     if command != ServiceCommand::Info {
         if let Some(since) = status.connected_since {
-            println!(
-                "{} since: {}",
-                if status.mfa.is_some() {
-                    "MFA pending"
-                } else {
-                    "Connected"
-                },
-                since
-            );
+            println!("Connected since: {}", since);
+        } else if status.mfa.is_some() {
+            println!("MFA pending");
         } else {
             println!("Disconnected");
         }

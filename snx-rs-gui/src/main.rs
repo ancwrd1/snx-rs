@@ -237,7 +237,7 @@ async fn do_connect(
     connecting.store(false, Ordering::SeqCst);
 
     if let Err(ref e) = status {
-        let _ = GtkPrompt.show_notification("Connection error", &e.to_string());
+        let _ = GtkPrompt.show_notification("Connection error", &e.to_string()).await;
         status = controller.command(ServiceCommand::Status, params).await;
     }
 
