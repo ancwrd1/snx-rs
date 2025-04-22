@@ -71,14 +71,14 @@ impl VpnSession {
 pub enum MfaType {
     #[default]
     PasswordInput,
-    SamlSso,
+    IdentityProvider,
     UserNameInput,
 }
 
 impl MfaType {
     pub fn from_id(id: &str) -> Self {
         if id == "CPSC_SP_URL" {
-            Self::SamlSso
+            Self::IdentityProvider
         } else {
             Self::PasswordInput
         }

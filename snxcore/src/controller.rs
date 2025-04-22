@@ -165,7 +165,7 @@ where
                     Ok(input)
                 }
             }
-            MfaType::SamlSso => {
+            MfaType::IdentityProvider => {
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 self.otp_cancel_sender = Some(tx);
                 let receiver = spawn_otp_listener(rx);
