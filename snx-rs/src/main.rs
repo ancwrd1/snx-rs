@@ -171,8 +171,8 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     }
                 }
             }
-            MfaType::SamlSso => {
-                println!("For SAML authentication open the following URL in your browser:");
+            MfaType::IdentityProvider => {
+                println!("For identity provider authentication, open the following URL in your browser:");
                 println!("{}", challenge.prompt);
                 let (_tx, rx) = oneshot::channel();
                 let receiver = spawn_otp_listener(rx);

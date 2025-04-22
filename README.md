@@ -29,7 +29,7 @@ Run the service application in command mode, then start the GUI frontend which w
 
 ## Implemented Features
 
-* Browser-based SSO authentication
+* Browser-based identity provider authentication
 * Username/password authentication with MFA support
 * Certificate authentication via provided client certificate (PFX, PEM, or HW token)
 * HW token support via PKCS11
@@ -170,7 +170,7 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 
 ## Additional Usage Notes
 
-* If SAML SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
+* If identity provider SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
 * If the password is not provided in the configuration file, the first entered MFA challenge code will be stored in the OS keychain unless the `no-keychain` parameter is specified. Keychain integration is provided only in command mode. The `password-factor` option controls which MFA factor to consider a password.
 
 <a id="faq"></a>
