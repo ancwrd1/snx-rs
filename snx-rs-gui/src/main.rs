@@ -15,6 +15,7 @@ use crate::{
     theme::init_theme_monitoring,
     tray::{TrayCommand, TrayEvent},
 };
+use snxcore::model::ConnectionStatus;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
@@ -154,14 +155,22 @@ async fn status_poll(sender: mpsc::Sender<TrayCommand>, params: CmdlineParams) {
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
     loop {
-        let tunnel_params =
-            Arc::new(TunnelParams::load(params.config_file.clone().unwrap_or_default()).unwrap_or_default());
+        let tunnel_params = Arc::new(TunnelParams::load(params.config_file()).unwrap_or_default());
+
         let status = controller.command(ServiceCommand::Status, tunnel_params.clone()).await;
         let status_str = format!("{status:?}");
 
         if status_str != format!("{:?}", *prev_status) {
             prev_status = Arc::new(status);
             let _ = sender.send(TrayCommand::Update(Some(prev_status.clone()))).await;
+            if let Ok(ConnectionStatus::Connected(_)) = prev_status.as_ref().as_ref() {
+                let _ = GtkPrompt
+                    .show_notification(
+                        "Connection succeeded",
+                        &format!("Connected to {}", tunnel_params.server_name),
+                    )
+                    .await;
+            }
         }
 
         tokio::time::sleep(PING_DURATION).await;
