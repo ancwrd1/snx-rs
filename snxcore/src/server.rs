@@ -64,18 +64,15 @@ impl CommandServer {
         let _ = std::fs::remove_file(&self.listen_path);
 
         let socket = tokio::net::UnixListener::bind(&self.listen_path)?;
-
-        let _ = std::fs::set_permissions(&self.listen_path, Permissions::from_mode(0o777));
+        std::fs::set_permissions(&self.listen_path, Permissions::from_mode(0o777))?;
 
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
         let cancel_state = Arc::new(Mutex::new(CancelState { sender: None }));
 
         loop {
-            let event_fut = event_receiver.recv();
-
             tokio::select! {
-                event = event_fut => {
+                event = event_receiver.recv() => {
                     if let Some(event) = event {
                         let result = if let Some(connector) = self.connection_state.connector.lock().await.as_mut() {
                             connector.handle_tunnel_event(event.clone()).await

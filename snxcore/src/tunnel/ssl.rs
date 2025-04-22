@@ -362,14 +362,12 @@ impl VpnTunnel for SslTunnel {
 
         let result = loop {
             tokio::select! {
-                event = &mut command_fut => {
-                    match event {
-                        Some(TunnelCommand::Terminate(_)) | None => {
-                            break Ok(());
-                        }
-                        _ => {}
+                event = &mut command_fut => match event {
+                    Some(TunnelCommand::Terminate(_)) | None => {
+                        break Ok(());
                     }
-                }
+                    _ => {}
+                },
                 () = &mut ka_run => {
                     warn!("Keepalive failed, exiting");
                     break Err(anyhow!("Keepalive failed"));

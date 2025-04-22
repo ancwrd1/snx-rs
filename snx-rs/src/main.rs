@@ -198,11 +198,10 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         params.server_name, params.tunnel_type
     );
 
-    let (event_sender, event_receiver) = mpsc::channel(16);
+    let (event_sender, mut event_receiver) = mpsc::channel(16);
     let tunnel_fut = await_termination(tunnel.run(command_receiver, event_sender));
 
     pin_mut!(tunnel_fut);
-    pin_mut!(event_receiver);
 
     loop {
         tokio::select! {
