@@ -22,7 +22,12 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
     async fn configure(&self, config: &ResolverConfig) -> anyhow::Result<()> {
         let mut args = vec!["domain", &self.device];
 
-        let search_domains = config.search_domains.iter().map(|s| s.trim()).collect::<Vec<_>>();
+        let search_domains = config
+            .search_domains
+            .iter()
+            .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '.'))
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>();
 
         args.extend(search_domains);
 
@@ -141,7 +146,12 @@ impl ResolvConfConfigurator {
             .collect::<Vec<_>>();
 
         // resolv.conf has no concept of routing domains
-        let search_domains = config.search_domains.join(" ").replace('~', "");
+        let search_domains = config
+            .search_domains
+            .iter()
+            .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '.' || c == '~'))
+            .filter(|s| !s.is_empty())
+            .collect::<String>();
 
         if configure {
             if search.is_empty() {
