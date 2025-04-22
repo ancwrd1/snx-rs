@@ -188,8 +188,7 @@ impl ServerHandler {
     }
 
     async fn is_connected(&self) -> bool {
-        self.cancel_state.lock().await.sender.is_some()
-            || *self.state.connection_status.lock().await != ConnectionStatus::Disconnected
+        *self.state.connection_status.lock().await != ConnectionStatus::Disconnected
     }
 
     async fn connect_for_session(&mut self, session: Arc<VpnSession>) -> anyhow::Result<()> {
@@ -245,11 +244,7 @@ impl ServerHandler {
             };
 
             let session = tokio::select! {
-                _ = self.cancel_receiver.recv() => {
-                    *self.state.connection_status.lock().await = ConnectionStatus::Disconnected;
-                    self.cancel_state.lock().await.sender = None;
-                    anyhow::bail!("Connection cancelled!");
-                }
+                _ = self.cancel_receiver.recv() => anyhow::bail!("Connection cancelled!"),
                 res = fut => res?
             };
 
@@ -273,9 +268,7 @@ impl ServerHandler {
 
         let new_session = if let Some(connector) = self.state.connector.lock().await.as_mut() {
             tokio::select! {
-                _ = self.cancel_receiver.recv() => {
-                    anyhow::bail!("Connection cancelled!");
-                }
+                _ = self.cancel_receiver.recv() => anyhow::bail!("Connection cancelled!"),
                 res = connector.challenge_code(session, code) => res?
             }
         } else {
