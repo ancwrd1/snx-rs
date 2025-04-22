@@ -115,7 +115,7 @@ impl fmt::Display for ConnectionStatus {
         match self {
             ConnectionStatus::Disconnected => write!(f, "Disconnected"),
             ConnectionStatus::Connecting => write!(f, "Connecting in progress"),
-            ConnectionStatus::Connected(since) => write!(f, "Connected since {}", since),
+            ConnectionStatus::Connected(since) => write!(f, "Connected since {}", since.format("%Y-%m-%d %H:%M:%S")),
             ConnectionStatus::Mfa(mfa) => write!(f, "MFA pending: {:?}", mfa.mfa_type),
         }
     }
