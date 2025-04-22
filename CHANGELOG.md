@@ -1,4 +1,4 @@
-## v4.0.0 (TBD)
+## v4.0.0 (2025-04-22)
 
 **Important note for downstream package maintainers**: this release replaces GTK 3 dependency with GTK 4.
 
