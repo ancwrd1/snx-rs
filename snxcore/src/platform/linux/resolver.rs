@@ -151,7 +151,8 @@ impl ResolvConfConfigurator {
             .iter()
             .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '.' || c == '~'))
             .filter(|s| !s.is_empty())
-            .collect::<String>();
+            .collect::<Vec<_>>()
+            .join(" ");
 
         if configure {
             if search.is_empty() {
