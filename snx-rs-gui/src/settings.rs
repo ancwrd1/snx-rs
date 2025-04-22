@@ -704,7 +704,7 @@ impl SettingsDialog {
         entry_box.append(&self.widgets.server_name);
         entry_box.append(&self.widgets.fetch_info);
 
-        let server_box = self.form_box("Check Point VPN server");
+        let server_box = self.form_box("VPN server address");
         server_box.append(&entry_box);
         server_box
     }
@@ -718,7 +718,7 @@ impl SettingsDialog {
     fn tunnel_box(&self) -> gtk4::Box {
         let tunnel_box = self.form_box("Tunnel type");
         self.widgets.tunnel_type.insert_text(0, "IPSec");
-        self.widgets.tunnel_type.insert_text(1, "SSL");
+        self.widgets.tunnel_type.insert_text(1, "SSL (deprecated)");
         self.widgets
             .tunnel_type
             .set_active(if self.params.tunnel_type == TunnelType::Ipsec {
