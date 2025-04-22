@@ -3,7 +3,7 @@ use std::{future::Future, path::PathBuf, sync::Arc};
 use clap::Parser;
 use futures::pin_mut;
 use tokio::signal::unix;
-use tracing::{debug, level_filters::LevelFilter};
+use tracing::level_filters::LevelFilter;
 
 use snxcore::{
     browser::SystemBrowser,
@@ -66,14 +66,8 @@ where
     let select = futures::future::select(ctrl_c, term);
 
     tokio::select! {
-        result = f => {
-            Some(result)
-        }
-
-        _ = select => {
-            debug!("Application terminated due to a signal");
-            None
-        }
+        result = f => Some(result),
+        _ = select => None,
     }
 }
 
