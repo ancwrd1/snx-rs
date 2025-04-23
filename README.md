@@ -177,13 +177,13 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 
 ## Troubleshooting Common Problems
 
-| Problem                                                           | Solution                                                                                                                                                                           |
-|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `deadline has elapsed`                                            | Try connecting again. Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                           |
-| `Unknown device type`                                             | Make sure IPv6 protocol is enabled in the Linux kernel and 'xfrm' module can be loaded with `sudo modprobe xfrm`.                                                                  |
-| `error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server certificate is self-signed or untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks.                                                    |
-| `No CCC session in reply!`                                        | Usually happens when Check Point server runs out of client licenses. Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect` | 
-| A specific feature is missing or connection does not work         | Use the [cp-ikev1-proxy](https://github.com/ancwrd1/cp-ikev1-proxy) MITM proxy tool to capture the packets from the working Windows VPN client, then create an issue for it.       | 
+| Problem                                                           | Solution                                                                                                                                                                                |
+|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Timeout while waiting for identity response`                     | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                      |
+| `Unknown device type`                                             | Make sure IPv6 protocol is enabled in the Linux kernel and 'xfrm' module can be loaded with `sudo modprobe xfrm`.                                                                       |
+| `Error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server host is not reachable or certificate is untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks (not recommended).                             |
+| `No session in reply`                                             | Usually happens when Check Point server runs out of Office Mode licenses. Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect` | 
+| A specific feature is missing or connection does not work         | Use the [cp-ikev1-proxy](https://github.com/ancwrd1/cp-ikev1-proxy) MITM proxy tool to capture the packets from the working Windows VPN client, then create an issue for it.            | 
 
 ## Contributing
 
