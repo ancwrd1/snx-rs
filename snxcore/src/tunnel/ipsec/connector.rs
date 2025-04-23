@@ -234,7 +234,7 @@ impl IpsecTunnelConnector {
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
-            .context("No CCC session in reply!")?;
+            .context("No session in reply, VPN server may be running out of OM licenses!")?;
 
         self.ipsec_session.address = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
             .context("No IPv4 in reply!")?
@@ -537,7 +537,19 @@ impl TunnelConnector for IpsecTunnelConnector {
             internal_ca_fingerprints,
         };
 
-        if let (Some(attrs_reply), message_id) = self.service.do_identity_protection(identity_request).await? {
+        let reply = self
+            .service
+            .do_identity_protection(identity_request)
+            .await
+            .map_err(|e| {
+                if e.downcast_ref::<tokio::time::error::Elapsed>().is_some() {
+                    anyhow::anyhow!("Timeout while waiting for identity response, is the login type correct?")
+                } else {
+                    e
+                }
+            })?;
+
+        if let (Some(attrs_reply), message_id) = reply {
             self.last_message_id = message_id;
 
             self.process_auth_attributes(attrs_reply).await
