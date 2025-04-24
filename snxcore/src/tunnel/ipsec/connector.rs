@@ -105,33 +105,6 @@ impl IpsecTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
         let server_info = server_info::get(&params).await?;
 
-        let identity = match params.cert_type {
-            CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
-                (Some(path), Some(password)) => Identity::Pkcs12 {
-                    data: std::fs::read(path)?,
-                    password: password.clone(),
-                },
-                _ => anyhow::bail!("No PKCS12 path and password provided!"),
-            },
-            CertType::Pkcs8 => match params.cert_path {
-                Some(ref path) => Identity::Pkcs8 { path: path.clone() },
-                None => anyhow::bail!("No PKCS8 PEM path provided!"),
-            },
-            CertType::Pkcs11 => match params.cert_password {
-                Some(ref pin) => Identity::Pkcs11 {
-                    driver_path: params.cert_path.clone().unwrap_or_else(|| "opensc-pkcs11.so".into()),
-                    pin: pin.clone(),
-                    key_id: params
-                        .cert_id
-                        .as_ref()
-                        .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
-                },
-                None => anyhow::bail!("No PKCS11 pin provided!"),
-            },
-
-            CertType::None => Identity::None,
-        };
-
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         socket
             .connect(format!(
@@ -154,26 +127,9 @@ impl IpsecTunnelConnector {
 
         debug!("Using ESP transport: {}", esp_transport);
 
-        let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
-
-        let tcpt_address = format!("{}:{}", params.server_name, server_info.connectivity_info.tcpt_port)
-            .to_socket_addrs()?
-            .next()
-            .context("No address!")?;
-
-        let transport = Box::new(TcptTransport::new(
-            TcptDataType::Ike,
-            tcpt_address,
-            ikev1_session.new_codec(),
-        ));
-
-        debug!("Using IKE transport: {:?}", TransportType::Tcpt);
-
-        let service = Ikev1Service::new(transport, ikev1_session)?;
-
         Ok(Self {
-            params,
-            service,
+            params: params.clone(),
+            service: Self::new_service(&params).await?,
             gateway_address,
             last_message_id: 0,
             last_identifier: 0,
@@ -266,6 +222,8 @@ impl IpsecTunnelConnector {
                 }
             })
             .collect();
+
+        self.ipsec_session.transport_type = self.esp_transport;
 
         self.do_esp_proposal().await?;
 
@@ -492,6 +450,57 @@ impl IpsecTunnelConnector {
             state: SessionState::Authenticated(String::new()),
         })
     }
+
+    async fn new_service(params: &TunnelParams) -> anyhow::Result<Ikev1Service> {
+        let server_info = server_info::get(params).await?;
+
+        let identity = Self::new_identity(params)?;
+
+        let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
+
+        let tcpt_address = format!("{}:{}", params.server_name, server_info.connectivity_info.tcpt_port)
+            .to_socket_addrs()?
+            .next()
+            .context("No address!")?;
+
+        let transport = Box::new(TcptTransport::new(
+            TcptDataType::Ike,
+            tcpt_address,
+            ikev1_session.new_codec(),
+        ));
+
+        Ikev1Service::new(transport, ikev1_session)
+    }
+
+    fn new_identity(params: &TunnelParams) -> anyhow::Result<Identity> {
+        let identity = match params.cert_type {
+            CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
+                (Some(path), Some(password)) => Identity::Pkcs12 {
+                    data: std::fs::read(path)?,
+                    password: password.clone(),
+                },
+                _ => anyhow::bail!("No PKCS12 path and password provided!"),
+            },
+            CertType::Pkcs8 => match params.cert_path {
+                Some(ref path) => Identity::Pkcs8 { path: path.clone() },
+                None => anyhow::bail!("No PKCS8 PEM path provided!"),
+            },
+            CertType::Pkcs11 => match params.cert_password {
+                Some(ref pin) => Identity::Pkcs11 {
+                    driver_path: params.cert_path.clone().unwrap_or_else(|| "opensc-pkcs11.so".into()),
+                    pin: pin.clone(),
+                    key_id: params
+                        .cert_id
+                        .as_ref()
+                        .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
+                },
+                None => anyhow::bail!("No PKCS11 pin provided!"),
+            },
+
+            CertType::None => Identity::None,
+        };
+        Ok(identity)
+    }
 }
 
 #[async_trait]
@@ -569,6 +578,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             Ok(result) => Ok(result),
             Err(e) => {
                 self.delete_session().await;
+                self.service = Self::new_service(&self.params).await?;
                 Err(e)
             }
         }

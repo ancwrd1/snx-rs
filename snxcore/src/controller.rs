@@ -221,11 +221,17 @@ where
         let response = self
             .send_receive(TunnelServiceRequest::Connect((*params).clone()), CONNECT_TIMEOUT)
             .await;
-        match response {
-            Ok(TunnelServiceResponse::Ok) => self.do_status(params, true).await,
-            Ok(TunnelServiceResponse::Error(error)) => Err(anyhow!(error)),
-            Ok(TunnelServiceResponse::ConnectionStatus(status)) => Ok(status),
-            Err(e) => Err(e),
+
+        loop {
+            match response {
+                Ok(TunnelServiceResponse::Ok) => match self.do_status(params.clone(), true).await {
+                    Ok(ConnectionStatus::Connecting) => continue,
+                    other => break other,
+                },
+                Ok(TunnelServiceResponse::Error(error)) => break Err(anyhow!(error)),
+                Ok(TunnelServiceResponse::ConnectionStatus(status)) => break Ok(status),
+                Err(e) => break Err(e),
+            }
         }
     }
 

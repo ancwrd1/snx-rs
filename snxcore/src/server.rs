@@ -189,12 +189,14 @@ impl ServerHandler {
     }
 
     async fn connect_for_session(&mut self, session: Arc<VpnSession>) -> anyhow::Result<()> {
+        *self.state.session.lock().await = Some(session.clone());
         if let SessionState::PendingChallenge(ref challenge) = session.state {
             debug!("Pending multi-factor, awaiting for it");
-            *self.state.session.lock().await = Some(session.clone());
             *self.state.connection_status.lock().await = ConnectionStatus::mfa(challenge.clone());
             return Ok(());
         }
+
+        *self.state.connection_status.lock().await = ConnectionStatus::Connecting;
 
         let (command_sender, command_receiver) = mpsc::channel(16);
 
@@ -229,10 +231,7 @@ impl ServerHandler {
                 debug!("Attempting to load IKE session");
                 match connector.restore_session().await {
                     Ok(session) => futures::future::ready(Ok(session)).boxed(),
-                    Err(_) => {
-                        connector = tunnel::new_tunnel_connector(params.clone()).await?;
-                        connector.authenticate()
-                    }
+                    Err(_) => connector.authenticate(),
                 }
             } else {
                 connector.authenticate()
