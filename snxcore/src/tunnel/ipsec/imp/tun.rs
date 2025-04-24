@@ -9,14 +9,17 @@ use std::{
 
 use anyhow::{anyhow, Context};
 use bytes::Bytes;
+use chrono::Local;
 use futures::{
     channel::mpsc::{Receiver, Sender},
     pin_mut, SinkExt, StreamExt,
 };
+use ipnet::Ipv4Net;
 use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error};
 
+use crate::model::ConnectionInfo;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -280,7 +283,22 @@ impl VpnTunnel for TunIpsecTunnel {
             Ok::<_, anyhow::Error>(())
         });
 
-        let _ = event_sender.send(TunnelEvent::Connected).await;
+        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
+
+        let info = ConnectionInfo {
+            since: Local::now(),
+            server_name: self.params.server_name.clone(),
+            tunnel_type: self.params.tunnel_type,
+            transport_type: session.transport_type,
+            ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,
+            dns_servers: session.dns.clone(),
+            search_domains: session.domains.clone(),
+            interface_name: tun_name.to_string(),
+            dns_configured: !self.params.no_dns,
+            routing_configured: !self.params.no_routing,
+            default_route: self.params.default_route,
+        };
+        let _ = event_sender.send(TunnelEvent::Connected(info)).await;
         let ready = self.ready.clone();
 
         let esp_codec_in = esp_codec_in.clone();

@@ -618,7 +618,7 @@ impl TunnelConnector for IpsecTunnelConnector {
 
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()> {
         match event {
-            TunnelEvent::Connected => {
+            TunnelEvent::Connected(_) => {
                 debug!("Tunnel connected");
             }
             TunnelEvent::Disconnected => {

@@ -415,6 +415,10 @@ impl XfrmConfigurator {
 
 #[async_trait::async_trait]
 impl IpsecConfigurator for XfrmConfigurator {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
     async fn configure(&mut self) -> anyhow::Result<()> {
         self.source_ip = platform::get_default_ip().await?.parse()?;
         debug!("Source IP: {}", self.source_ip);

@@ -86,8 +86,8 @@ impl CommandServer {
                         }
 
                         match event {
-                            TunnelEvent::Connected => {
-                                *self.connection_state.connection_status.lock().await = ConnectionStatus::connected();
+                            TunnelEvent::Connected(info) => {
+                                *self.connection_state.connection_status.lock().await = ConnectionStatus::connected(info);
                             }
                             TunnelEvent::Disconnected => {
                                 cancel_state.lock().await.sender = None;
@@ -207,8 +207,6 @@ impl ServerHandler {
                     warn!("Tunnel error: {}", e);
                 }
             });
-
-            *self.state.connection_status.lock().await = ConnectionStatus::connected();
 
             Ok(())
         } else {

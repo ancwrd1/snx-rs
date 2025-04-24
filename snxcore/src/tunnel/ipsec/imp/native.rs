@@ -7,9 +7,12 @@ use std::{
 };
 
 use anyhow::Context;
+use chrono::Local;
+use ipnet::Ipv4Net;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::debug;
 
+use crate::model::ConnectionInfo;
 use crate::{
     ccc::CccHttpClient,
     model::{params::TunnelParams, VpnSession},
@@ -101,7 +104,22 @@ impl VpnTunnel for NativeIpsecTunnel {
 
         let natt_stopper = start_natt_listener(self.natt_socket.clone(), event_sender.clone()).await?;
 
-        let _ = event_sender.send(TunnelEvent::Connected).await;
+        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
+
+        let info = ConnectionInfo {
+            since: Local::now(),
+            server_name: self.params.server_name.clone(),
+            tunnel_type: self.params.tunnel_type,
+            transport_type: session.transport_type,
+            ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,
+            dns_servers: session.dns.clone(),
+            search_domains: session.domains.clone(),
+            interface_name: self.configurator.name().to_owned(),
+            dns_configured: !self.params.no_dns,
+            routing_configured: !self.params.no_routing,
+            default_route: self.params.default_route,
+        };
+        let _ = event_sender.send(TunnelEvent::Connected(info)).await;
 
         let sender = event_sender.clone();
 

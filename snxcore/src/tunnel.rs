@@ -24,7 +24,7 @@ pub enum TunnelCommand {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TunnelEvent {
-    Connected,
+    Connected(ConnectionInfo),
     Disconnected,
     RekeyCheck,
     RemoteControlData(Bytes),

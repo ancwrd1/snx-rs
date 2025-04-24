@@ -1,15 +1,17 @@
+use anyhow::{anyhow, Context};
+use chrono::Local;
+use futures::{
+    channel::mpsc::{self, Receiver, Sender},
+    pin_mut, SinkExt, StreamExt, TryStreamExt,
+};
+use ipnet::Ipv4Net;
+use std::net::Ipv4Addr;
 use std::{
     sync::{
         atomic::{AtomicI64, Ordering},
         Arc,
     },
     time::Duration,
-};
-
-use anyhow::{anyhow, Context};
-use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    pin_mut, SinkExt, StreamExt, TryStreamExt,
 };
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
@@ -18,6 +20,7 @@ use tracing::{debug, trace, warn};
 use codec::{SslPacketCodec, SslPacketType};
 
 use crate::ccc::CccHttpClient;
+use crate::model::params::TransportType;
 use crate::platform::{new_resolver_configurator, ResolverConfig};
 use crate::tunnel::device;
 use crate::tunnel::device::TunDevice;
@@ -183,7 +186,8 @@ impl SslTunnel {
                 let _ = platform::remove_default_route(dest_ip).await;
             }
             if !self.params.no_dns {
-                let _ = self.setup_dns(device.name(), true).await;
+                let config = self.make_resolver_config();
+                let _ = self.setup_dns(config, device.name(), true).await;
             }
             platform::delete_device(device.name()).await;
             debug!("Signing out");
@@ -216,7 +220,7 @@ impl SslTunnel {
         Ok(())
     }
 
-    pub async fn setup_dns(&self, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
+    fn make_resolver_config(&self) -> ResolverConfig {
         let acquired_domains = self
             .hello_reply
             .office_mode
@@ -260,11 +264,13 @@ impl SslTunnel {
             .cloned()
             .collect::<Vec<_>>();
 
-        let config = ResolverConfig {
+        ResolverConfig {
             search_domains,
             dns_servers,
-        };
+        }
+    }
 
+    pub async fn setup_dns(&self, config: ResolverConfig, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
         let resolver = new_resolver_configurator(dev_name)?;
 
         if cleanup {
@@ -304,8 +310,10 @@ impl VpnTunnel for SslTunnel {
 
         self.setup_routing(tun_name).await?;
 
+        let resolver_config = self.make_resolver_config();
+
         if !self.params.no_dns {
-            self.setup_dns(tun_name, false).await?;
+            self.setup_dns(resolver_config.clone(), tun_name, false).await?;
         }
 
         let _ = platform::configure_device(tun_name).await;
@@ -350,7 +358,21 @@ impl VpnTunnel for SslTunnel {
             }
         });
 
-        let _ = event_sender.send(TunnelEvent::Connected).await;
+        let info = ConnectionInfo {
+            since: Local::now(),
+            server_name: self.params.server_name.clone(),
+            tunnel_type: self.params.tunnel_type,
+            transport_type: TransportType::Tcpt,
+            ip_address: Ipv4Net::with_netmask(ip_address, netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)))?,
+            dns_servers: resolver_config.dns_servers,
+            search_domains: resolver_config.search_domains,
+            interface_name: tun_name.to_string(),
+            dns_configured: !self.params.no_dns,
+            routing_configured: !self.params.no_routing,
+            default_route: self.params.default_route,
+        };
+
+        let _ = event_sender.send(TunnelEvent::Connected(info)).await;
 
         let command_fut = command_receiver.recv();
         pin_mut!(command_fut);

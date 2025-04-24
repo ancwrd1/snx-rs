@@ -23,6 +23,7 @@ mod linux;
 
 #[async_trait]
 pub trait IpsecConfigurator {
+    fn name(&self) -> &str;
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
