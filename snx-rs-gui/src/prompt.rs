@@ -1,7 +1,6 @@
-use anyhow::anyhow;
-use gtk4::glib::ControlFlow;
+use anyhow::{anyhow, Context};
 use gtk4::{
-    glib::{self, clone},
+    glib::{self, clone, ControlFlow},
     prelude::*,
     Align, Orientation, ResponseType,
 };
@@ -118,7 +117,7 @@ impl GtkPrompt {
             ControlFlow::Break
         });
 
-        rx.recv().await.ok_or_else(|| anyhow!("User input canceled"))?
+        rx.recv().await.context("User input canceled")?
     }
 }
 

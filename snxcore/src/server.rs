@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use futures::{FutureExt, SinkExt, StreamExt};
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, warn};
@@ -255,13 +255,7 @@ impl ServerHandler {
     }
 
     async fn challenge_code(&mut self, code: &str) -> anyhow::Result<()> {
-        let session = self
-            .state
-            .session
-            .lock()
-            .await
-            .clone()
-            .ok_or_else(|| anyhow!("No session"))?;
+        let session = self.state.session.lock().await.clone().context("No session")?;
 
         let new_session = if let Some(connector) = self.state.connector.lock().await.as_mut() {
             tokio::select! {
