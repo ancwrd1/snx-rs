@@ -193,14 +193,6 @@ async fn status_poll(sender: mpsc::Sender<TrayCommand>, params: CmdlineParams) {
         if status_str != format!("{:?}", *prev_status) {
             prev_status = Arc::new(status);
             let _ = sender.send(TrayCommand::Update(Some(prev_status.clone()))).await;
-            if let Ok(ConnectionStatus::Connected(_)) = prev_status.as_ref().as_ref() {
-                let _ = GtkPrompt
-                    .show_notification(
-                        "Connection succeeded",
-                        &format!("Connected to {}", tunnel_params.server_name),
-                    )
-                    .await;
-            }
         }
 
         tokio::time::sleep(PING_DURATION).await;
@@ -237,7 +229,11 @@ async fn do_connect(
     if let Err(ref e) = status {
         let _ = GtkPrompt.show_notification("Connection error", &e.to_string()).await;
         status = controller.command(ServiceCommand::Status, params).await;
-    }
+    } else if let Ok(ConnectionStatus::Connected(_)) = status {
+        let _ = GtkPrompt
+            .show_notification("Connection succeeded", &format!("Connected to {}", params.server_name))
+            .await;
+    };
 
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
 }

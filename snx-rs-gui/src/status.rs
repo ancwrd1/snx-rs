@@ -14,8 +14,14 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
         .spacing(6)
         .build();
 
-    form.append(&gtk4::Label::builder().label(label).halign(Align::Start).build());
-    form.append(&gtk4::Label::builder().label(value).halign(Align::End).build());
+    form.append(
+        &gtk4::Label::builder()
+            .label(label)
+            .halign(Align::End)
+            .css_classes(vec!["darkened"])
+            .build(),
+    );
+    form.append(&gtk4::Label::builder().label(value).halign(Align::Start).build());
     form
 }
 
@@ -83,7 +89,7 @@ pub async fn show_status_dialog(info: ConnectionInfo) {
     inner.add_css_class("bordered");
 
     for (key, value) in info.to_values() {
-        inner.append(&status_entry(key, &value));
+        inner.append(&status_entry(&format!("{}:", key), &value));
     }
     content.append(&inner);
     content.append(&button_box);

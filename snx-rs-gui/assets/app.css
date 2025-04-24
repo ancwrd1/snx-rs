@@ -12,3 +12,6 @@
 entry text placeholder {
     color: @insensitive_fg_color;
 }
+.darkened {
+    color: @insensitive_fg_color;
+}
