@@ -27,18 +27,6 @@ const CSS_ERROR: &str = r"label {
 }
 ";
 
-const CSS_APP: &str = r"
-.arrow-icon {
-    transition: transform 200ms ease-in-out;
-}
-.rotate-90 {
-    transform: rotate(90deg);
-}
-entry text placeholder {
-    color: @insensitive_fg_color;
-}
-";
-
 fn set_container_visible(widget: &Widget, flag: bool) {
     if let Some(parent) = widget.parent() {
         if let Some(parent) = parent.parent() {
@@ -162,15 +150,6 @@ impl SettingsDialog {
     const DEFAULT_HEIGHT: i32 = 400;
 
     pub fn new(parent: Option<&gtk4::ApplicationWindow>, params: Arc<TunnelParams>) -> Self {
-        let provider = gtk4::CssProvider::new();
-        provider.load_from_data(CSS_APP);
-
-        gtk4::style_context_add_provider_for_display(
-            &gtk4::gdk::Display::default().expect("Could not connect to display"),
-            &provider,
-            gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
-        );
-
         let mut builder = gtk4::Dialog::builder().title("VPN settings").modal(true);
 
         if let Some(parent) = parent {

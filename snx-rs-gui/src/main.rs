@@ -12,14 +12,14 @@ use tracing::level_filters::LevelFilter;
 use crate::{
     params::CmdlineParams,
     prompt::GtkPrompt,
+    status::show_status_dialog,
     theme::init_theme_monitoring,
     tray::{TrayCommand, TrayEvent},
 };
-use snxcore::model::ConnectionStatus;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::params::TunnelParams,
+    model::{params::TunnelParams, ConnectionInfo, ConnectionStatus},
     platform::SingleInstance,
     prompt::SecurePrompt,
 };
@@ -29,6 +29,7 @@ mod dbus;
 mod params;
 mod prompt;
 mod settings;
+mod status;
 mod theme;
 mod tray;
 
@@ -37,6 +38,23 @@ const PING_DURATION: Duration = Duration::from_secs(2);
 thread_local! {
     pub static MAIN_WINDOW: OnceCell<ApplicationWindow> = const { OnceCell::new() };
 }
+
+const CSS_APP: &str = r"
+.arrow-icon {
+    transition: transform 200ms ease-in-out;
+}
+.rotate-90 {
+    transform: rotate(90deg);
+}
+.bordered {
+    border: 1px solid @insensitive_fg_color;
+    border-radius: 4px;
+    padding: 6px;
+}
+entry text placeholder {
+    color: @insensitive_fg_color;
+}
+";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -99,8 +117,19 @@ async fn main() -> anyhow::Result<()> {
                         let _ = tray_command_sender.send(TrayCommand::Exit).await;
                         app.quit();
                     }
-                    TrayEvent::About => {
-                        do_about();
+                    TrayEvent::About => do_about(),
+
+                    TrayEvent::Status => {
+                        let status = ServiceController::new(GtkPrompt, SystemBrowser)
+                            .command(ServiceCommand::Status, params.clone())
+                            .await;
+                        if let Ok(ConnectionStatus::Connected(info)) = status {
+                            do_status(info);
+                        } else {
+                            let _ = GtkPrompt
+                                .show_notification("Status error", "Unable to get a connection information")
+                                .await;
+                        }
                     }
                 }
             }
@@ -113,6 +142,15 @@ async fn main() -> anyhow::Result<()> {
         MAIN_WINDOW.with(move |cell| {
             let _ = cell.set(app_window);
         });
+
+        let provider = gtk4::CssProvider::new();
+        provider.load_from_data(CSS_APP);
+
+        gtk4::style_context_add_provider_for_display(
+            &gtk4::gdk::Display::default().expect("Could not connect to display"),
+            &provider,
+            gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
     });
 
     app.run_with_args::<&str>(&[]);
@@ -137,6 +175,14 @@ fn do_about() {
 
             dialog.present();
         });
+        ControlFlow::Break
+    });
+}
+
+fn do_status(info: ConnectionInfo) {
+    glib::idle_add(move || {
+        let info = info.clone();
+        glib::spawn_future_local(async move { show_status_dialog(info).await });
         ControlFlow::Break
     });
 }
