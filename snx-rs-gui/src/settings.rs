@@ -9,6 +9,8 @@ use ipnet::Ipv4Net;
 use tokio::sync::mpsc::Sender;
 use tracing::warn;
 
+use crate::main_window;
+use crate::tray::TrayCommand;
 use snxcore::{
     model::{
         params::{TunnelParams, TunnelType},
@@ -16,8 +18,6 @@ use snxcore::{
     },
     server_info,
 };
-
-use crate::tray::TrayCommand;
 
 const CSS_ERROR: &str = r"label {
     padding: 6px;
@@ -149,14 +149,12 @@ impl SettingsDialog {
     const DEFAULT_WIDTH: i32 = 750;
     const DEFAULT_HEIGHT: i32 = 400;
 
-    pub fn new(parent: Option<&gtk4::ApplicationWindow>, params: Arc<TunnelParams>) -> Self {
-        let mut builder = gtk4::Dialog::builder().title("VPN settings").modal(true);
-
-        if let Some(parent) = parent {
-            builder = builder.transient_for(parent);
-        }
-
-        let dialog = builder.build();
+    pub fn new(params: Arc<TunnelParams>) -> Self {
+        let dialog = gtk4::Dialog::builder()
+            .title("VPN settings")
+            .modal(true)
+            .transient_for(&main_window())
+            .build();
 
         let button_box = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
@@ -1026,12 +1024,8 @@ impl Drop for SettingsDialog {
     }
 }
 
-pub fn start_settings_dialog(
-    parent: Option<&gtk4::ApplicationWindow>,
-    sender: Sender<TrayCommand>,
-    params: Arc<TunnelParams>,
-) {
-    let dialog = SettingsDialog::new(parent, params.clone());
+pub fn start_settings_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
+    let dialog = SettingsDialog::new(params.clone());
     let sender = sender.clone();
     glib::spawn_future_local(async move {
         loop {

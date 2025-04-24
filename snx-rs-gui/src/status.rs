@@ -3,10 +3,9 @@ use gtk4::{
     prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
     Align, Orientation, ResponseType,
 };
-
 use snxcore::model::ConnectionInfo;
 
-use crate::MAIN_WINDOW;
+use crate::main_window;
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
     let form = gtk4::Box::builder()
@@ -21,10 +20,9 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
 }
 
 pub async fn show_status_dialog(info: ConnectionInfo) {
-    let parent = MAIN_WINDOW.with(|cell| cell.get().unwrap().clone());
     let dialog = gtk4::Dialog::builder()
         .title("Connection information")
-        .transient_for(&parent)
+        .transient_for(&main_window())
         .modal(true)
         .build();
 
@@ -84,6 +82,7 @@ pub async fn show_status_dialog(info: ConnectionInfo) {
     content.append(&inner);
     content.append(&button_box);
 
+    GtkWindowExt::set_focus(&dialog, Some(&ok));
     dialog.run_future().await;
     dialog.close();
 }

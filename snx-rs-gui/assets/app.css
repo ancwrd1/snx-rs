@@ -1,0 +1,14 @@
+.arrow-icon {
+    transition: transform 200ms ease-in-out;
+}
+.rotate-90 {
+    transform: rotate(90deg);
+}
+.bordered {
+    border: 1px solid @insensitive_fg_color;
+    border-radius: 4px;
+    padding: 6px;
+}
+entry text placeholder {
+    color: @insensitive_fg_color;
+}

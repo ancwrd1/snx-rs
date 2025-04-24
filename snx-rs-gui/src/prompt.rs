@@ -7,7 +7,7 @@ use gtk4::{
 use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 use tokio::sync::mpsc;
 
-use crate::{dbus::send_notification, MAIN_WINDOW};
+use crate::{dbus::send_notification, main_window};
 
 pub struct GtkPrompt;
 
@@ -19,11 +19,9 @@ impl GtkPrompt {
             let prompt = prompt.clone();
             let tx = tx.clone();
             glib::spawn_future_local(async move {
-                let parent = MAIN_WINDOW.with(|cell| cell.get().unwrap().clone());
-
                 let dialog = gtk4::Dialog::builder()
                     .title("VPN Authentication Factor")
-                    .transient_for(&parent)
+                    .transient_for(&main_window())
                     .modal(true)
                     .build();
 

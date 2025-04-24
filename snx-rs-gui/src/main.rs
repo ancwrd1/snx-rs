@@ -1,6 +1,7 @@
 use std::{cell::OnceCell, sync::Arc, time::Duration};
 
 use clap::Parser;
+use gtk4::prelude::WidgetExt;
 use gtk4::{
     glib::{self, clone, ControlFlow},
     prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt},
@@ -36,25 +37,14 @@ mod tray;
 const PING_DURATION: Duration = Duration::from_secs(2);
 
 thread_local! {
-    pub static MAIN_WINDOW: OnceCell<ApplicationWindow> = const { OnceCell::new() };
+    static MAIN_WINDOW: OnceCell<ApplicationWindow> = const { OnceCell::new() };
 }
 
-const CSS_APP: &str = r"
-.arrow-icon {
-    transition: transform 200ms ease-in-out;
+pub fn main_window() -> ApplicationWindow {
+    MAIN_WINDOW.with(|cell| cell.get().cloned()).unwrap()
 }
-.rotate-90 {
-    transform: rotate(90deg);
-}
-.bordered {
-    border: 1px solid @insensitive_fg_color;
-    border-radius: 4px;
-    padding: 6px;
-}
-entry text placeholder {
-    color: @insensitive_fg_color;
-}
-";
+
+const APP_CSS: &str = include_str!("../assets/app.css");
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -108,11 +98,7 @@ async fn main() -> anyhow::Result<()> {
                         let cancel_sender = cancel_sender.take();
                         tokio::spawn(async move { do_disconnect(sender, params, cancel_sender).await });
                     }
-                    TrayEvent::Settings => {
-                        MAIN_WINDOW.with(|cell| {
-                            settings::start_settings_dialog(cell.get(), tray_command_sender.clone(), params);
-                        });
-                    }
+                    TrayEvent::Settings => settings::start_settings_dialog(tray_command_sender.clone(), params),
                     TrayEvent::Exit => {
                         let _ = tray_command_sender.send(TrayCommand::Exit).await;
                         app.quit();
@@ -139,18 +125,18 @@ async fn main() -> anyhow::Result<()> {
     app.connect_activate(move |app| {
         let app_window = ApplicationWindow::builder().application(app).visible(false).build();
 
-        MAIN_WINDOW.with(move |cell| {
-            let _ = cell.set(app_window);
-        });
-
         let provider = gtk4::CssProvider::new();
-        provider.load_from_data(CSS_APP);
+        provider.load_from_data(APP_CSS);
 
         gtk4::style_context_add_provider_for_display(
-            &gtk4::gdk::Display::default().expect("Could not connect to display"),
+            &app_window.display(),
             &provider,
             gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
+
+        MAIN_WINDOW.with(move |cell| {
+            let _ = cell.set(app_window);
+        });
     });
 
     app.run_with_args::<&str>(&[]);
@@ -160,21 +146,19 @@ async fn main() -> anyhow::Result<()> {
 
 fn do_about() {
     glib::idle_add(|| {
-        MAIN_WINDOW.with(|cell| {
-            let dialog = gtk4::AboutDialog::builder()
-                .modal(true)
-                .transient_for(cell.get().unwrap())
-                .version(env!("CARGO_PKG_VERSION"))
-                .logo_icon_name("network-vpn")
-                .website("https://github.com/ancwrd1/snx-rs")
-                .authors([env!("CARGO_PKG_AUTHORS")])
-                .license_type(License::Agpl30)
-                .program_name("SNX-RS VPN Client for Linux")
-                .title("SNX-RS VPN Client for Linux")
-                .build();
+        let dialog = gtk4::AboutDialog::builder()
+            .modal(true)
+            .transient_for(&main_window())
+            .version(env!("CARGO_PKG_VERSION"))
+            .logo_icon_name("network-vpn")
+            .website("https://github.com/ancwrd1/snx-rs")
+            .authors([env!("CARGO_PKG_AUTHORS")])
+            .license_type(License::Agpl30)
+            .program_name("SNX-RS VPN Client for Linux")
+            .title("SNX-RS VPN Client for Linux")
+            .build();
 
-            dialog.present();
-        });
+        dialog.present();
         ControlFlow::Break
     });
 }
