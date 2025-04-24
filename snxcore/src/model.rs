@@ -152,7 +152,7 @@ impl ConnectionStatus {
                 let label_width = values.iter().map(|(label, _)| label.len()).max().unwrap_or_default();
                 let mut result = String::new();
                 for (index, (key, value)) in values.iter().enumerate() {
-                    result.push_str(&format!("{:<label_width$}: {}", key, value));
+                    result.push_str(&format!("{:>label_width$}: {}", key, value));
                     if index < values.len() - 1 {
                         result.push('\n');
                     }
