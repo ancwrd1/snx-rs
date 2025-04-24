@@ -43,7 +43,15 @@ pub async fn show_status_dialog(info: ConnectionInfo) {
         gtk4::gdk::Display::default()
             .unwrap()
             .clipboard()
-            .set_text(&info_copy.print().replace("\t\t", " ").replace("\t", " "));
+            .set_text(
+                &info_copy
+                    .to_values()
+                    .into_iter()
+                    .fold(String::new(), |mut acc, (k, v)| {
+                        acc.push_str(&format!("{}: {}\n", k, v));
+                        acc
+                    }),
+            );
     }));
 
     let button_box = gtk4::Box::builder()
@@ -74,10 +82,8 @@ pub async fn show_status_dialog(info: ConnectionInfo) {
         .build();
     inner.add_css_class("bordered");
 
-    for line in info.print().lines() {
-        if let Some((label, value)) = line.split_once(':') {
-            inner.append(&status_entry(label.trim(), value.trim()));
-        }
+    for (key, value) in info.to_values() {
+        inner.append(&status_entry(key, &value));
     }
     content.append(&inner);
     content.append(&button_box);

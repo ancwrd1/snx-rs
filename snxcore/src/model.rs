@@ -110,31 +110,20 @@ pub struct ConnectionInfo {
 }
 
 impl ConnectionInfo {
-    pub fn print(&self) -> String {
-        format!(
-            "Connected since:\t{}
-Server name:\t\t{}
-Tunnel type:\t\t{}
-Transport type:\t\t{}
-IP address:\t\t{}
-DNS servers:\t\t{:?}
-Search domains:\t\t{:?}
-Interface:\t\t{}
-DNS configured:\t\t{}
-Routing configured:\t{}
-Default route:\t\t{}",
-            self.since.format("%Y-%m-%d %H:%M:%S"),
-            self.server_name,
-            self.tunnel_type,
-            self.transport_type,
-            self.ip_address,
-            self.dns_servers,
-            self.search_domains,
-            self.interface_name,
-            self.dns_configured,
-            self.routing_configured,
-            self.default_route,
-        )
+    pub fn to_values(&self) -> Vec<(&'static str, String)> {
+        vec![
+            ("Connected since", self.since.format("%Y-%m-%d %H:%M:%S").to_string()),
+            ("Server name", self.server_name.clone()),
+            ("Tunnel type", self.tunnel_type.to_string()),
+            ("Transport type", self.transport_type.to_string()),
+            ("IP address", self.ip_address.to_string()),
+            ("DNS servers", format!("{:?}", self.dns_servers)),
+            ("Search domains", format!("[{}]", self.search_domains.join(", "))),
+            ("Interface", self.interface_name.clone()),
+            ("DNS configured", self.dns_configured.to_string()),
+            ("Routing configured", self.routing_configured.to_string()),
+            ("Default route", self.default_route.to_string()),
+        ]
     }
 }
 
@@ -158,7 +147,18 @@ impl ConnectionStatus {
 
     pub fn print(&self) -> String {
         match self {
-            Self::Connected(info) => info.print(),
+            Self::Connected(info) => {
+                let values = info.to_values();
+                let label_width = values.iter().map(|(label, _)| label.len()).max().unwrap_or_default();
+                let mut result = String::new();
+                for (index, (key, value)) in values.iter().enumerate() {
+                    result.push_str(&format!("{:<label_width$}: {}", key, value));
+                    if index < values.len() - 1 {
+                        result.push('\n');
+                    }
+                }
+                result
+            }
             other => other.to_string(),
         }
     }
