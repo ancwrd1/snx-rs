@@ -174,7 +174,7 @@ impl ServerHandler {
             },
             TunnelServiceRequest::GetStatus => TunnelServiceResponse::ConnectionStatus(self.get_status().await),
             TunnelServiceRequest::ChallengeCode(code, _) => match self.challenge_code(&code).await {
-                Ok(()) => TunnelServiceResponse::Ok,
+                Ok(response) => response,
                 Err(e) => {
                     warn!("Challenge code error: {:#}", e);
                     self.state.reset().await;
@@ -188,12 +188,12 @@ impl ServerHandler {
         *self.state.connection_status.lock().await != ConnectionStatus::Disconnected
     }
 
-    async fn connect_for_session(&mut self, session: Arc<VpnSession>) -> anyhow::Result<()> {
+    async fn connect_for_session(&mut self, session: Arc<VpnSession>) -> anyhow::Result<TunnelServiceResponse> {
         *self.state.session.lock().await = Some(session.clone());
         if let SessionState::PendingChallenge(ref challenge) = session.state {
             debug!("Pending multi-factor, awaiting for it");
             *self.state.connection_status.lock().await = ConnectionStatus::mfa(challenge.clone());
-            return Ok(());
+            return Ok(TunnelServiceResponse::Ok);
         }
 
         *self.state.connection_status.lock().await = ConnectionStatus::Connecting;
@@ -210,7 +210,7 @@ impl ServerHandler {
                 }
             });
 
-            Ok(())
+            Ok(TunnelServiceResponse::Ok)
         } else {
             Err(anyhow!("No tunnel connector!"))
         }
@@ -244,14 +244,11 @@ impl ServerHandler {
 
             *self.state.connector.lock().await = Some(connector);
 
-            Ok(self
-                .connect_for_session(session)
-                .await
-                .map(|_| TunnelServiceResponse::Ok)?)
+            Ok(self.connect_for_session(session).await?)
         }
     }
 
-    async fn challenge_code(&mut self, code: &str) -> anyhow::Result<()> {
+    async fn challenge_code(&mut self, code: &str) -> anyhow::Result<TunnelServiceResponse> {
         let session = self.state.session.lock().await.clone().context("No session")?;
 
         let new_session = if let Some(connector) = self.state.connector.lock().await.as_mut() {

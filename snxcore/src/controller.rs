@@ -116,7 +116,7 @@ where
                 }
             }
             TunnelServiceResponse::Error(e) => Err(anyhow!(e)),
-            TunnelServiceResponse::Ok => Err(anyhow!("Unexpected response")),
+            TunnelServiceResponse::Ok => Err(anyhow!("Invalid response!")),
         }
     }
 
@@ -222,15 +222,23 @@ where
             .send_receive(TunnelServiceRequest::Connect((*params).clone()), CONNECT_TIMEOUT)
             .await;
 
+        let now = std::time::Instant::now();
         loop {
             match response {
                 Ok(TunnelServiceResponse::Ok) => match self.do_status(params.clone(), true).await {
-                    Ok(ConnectionStatus::Connecting) => continue,
-                    other => break other,
+                    Ok(ConnectionStatus::Connecting) => {
+                        if now.elapsed() < CONNECT_TIMEOUT {
+                            tokio::time::sleep(Duration::from_millis(50)).await;
+                            continue;
+                        } else {
+                            anyhow::bail!("Connection timeout!")
+                        }
+                    }
+                    other => return other,
                 },
-                Ok(TunnelServiceResponse::Error(error)) => break Err(anyhow!(error)),
-                Ok(TunnelServiceResponse::ConnectionStatus(status)) => break Ok(status),
-                Err(e) => break Err(e),
+                Ok(TunnelServiceResponse::Error(error)) => anyhow::bail!(error),
+                Ok(_) => anyhow::bail!("Invalid response!"),
+                Err(e) => return Err(e),
             }
         }
     }
@@ -249,7 +257,7 @@ where
                     .await?;
                 Err(anyhow!(e))
             }
-            Ok(_) => Err(anyhow!("Invalid response!")),
+            Ok(_) => anyhow::bail!("Invalid response!"),
             Err(e) => Err(e),
         }
     }
