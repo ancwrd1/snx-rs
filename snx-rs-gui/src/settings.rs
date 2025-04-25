@@ -19,14 +19,6 @@ use snxcore::{
     server_info,
 };
 
-const CSS_ERROR: &str = r"label {
-    padding: 6px;
-    border: 1px solid #f44336;
-    color: #ffffff;
-    background-color: #AF0606;
-}
-";
-
 fn set_container_visible(widget: &Widget, flag: bool) {
     if let Some(parent) = widget.parent() {
         if let Some(parent) = parent.parent() {
@@ -335,12 +327,9 @@ impl SettingsDialog {
             .build();
         let icon_theme = gtk4::ComboBoxText::builder().build();
 
-        let provider = gtk4::CssProvider::new();
-        provider.load_from_data(CSS_ERROR);
-
         let error = gtk4::Label::new(None);
         error.set_visible(false);
-        error.style_context().add_provider(&provider, 100);
+        error.style_context().add_class("error");
 
         auth_type.connect_active_notify(clone!(
             #[weak]

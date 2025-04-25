@@ -15,3 +15,9 @@ entry text placeholder {
 .darkened {
     color: @insensitive_fg_color;
 }
+.error {
+    padding: 6px;
+    border: 1px solid #f44336;
+    color: #ffffff;
+    background-color: #AF0606;
+}
