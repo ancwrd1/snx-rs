@@ -27,6 +27,11 @@ pub enum TrayCommand {
     Exit,
 }
 
+enum PixmapOrName {
+    Pixmap(Icon),
+    Name(&'static str),
+}
+
 pub struct AppTray {
     command_sender: Sender<TrayCommand>,
     command_receiver: Option<Receiver<TrayCommand>>,
@@ -99,9 +104,26 @@ impl AppTray {
         }
     }
 
+    fn icon_name(&self) -> &'static str {
+        match &*self.status {
+            Ok(ConnectionStatus::Connected(_)) => "network-vpn-symbolic",
+            Ok(ConnectionStatus::Disconnected) => "network-vpn-disconnected-symbolic",
+            Ok(ConnectionStatus::Mfa(_) | ConnectionStatus::Connecting) => "network-vpn-acquiring-symbolic",
+            _ => "network-vpn-disabled-symbolic",
+        }
+    }
+
     async fn update(&self) {
         let status_label = self.status_label();
-        let icon = self.icon();
+
+        // Custom pixmaps are supported under GNOME or KDE.
+        // See https://github.com/AyatanaIndicators/libayatana-appindicator-glib/issues/47
+        let icon = if self.pixmap_icons_supported() {
+            PixmapOrName::Pixmap(self.icon())
+        } else {
+            PixmapOrName::Name(self.icon_name())
+        };
+
         let connect_enabled = self
             .status
             .as_ref()
@@ -149,6 +171,12 @@ impl AppTray {
 
         Ok(())
     }
+
+    fn pixmap_icons_supported(&self) -> bool {
+        std::env::var("XDG_CURRENT_DESKTOP")
+            .map(|s| s.to_lowercase())
+            .is_ok_and(|s| s.contains("gnome") || s.contains("kde"))
+    }
 }
 
 struct KsniTray {
@@ -156,7 +184,7 @@ struct KsniTray {
     connect_enabled: bool,
     disconnect_enabled: bool,
     status_enabled: bool,
-    icon: Icon,
+    icon: PixmapOrName,
     event_sender: Sender<TrayEvent>,
 }
 
@@ -167,11 +195,7 @@ impl KsniTray {
             connect_enabled: false,
             disconnect_enabled: false,
             status_enabled: false,
-            icon: Icon {
-                width: 0,
-                height: 0,
-                data: Vec::new(),
-            },
+            icon: PixmapOrName::Name(""),
             event_sender,
         }
     }
@@ -190,7 +214,19 @@ impl ksni::Tray for KsniTray {
     }
 
     fn icon_pixmap(&self) -> Vec<Icon> {
-        vec![self.icon.clone()]
+        if let PixmapOrName::Pixmap(icon) = &self.icon {
+            vec![icon.clone()]
+        } else {
+            vec![]
+        }
+    }
+
+    fn icon_name(&self) -> String {
+        if let PixmapOrName::Name(name) = &self.icon {
+            name.to_string()
+        } else {
+            String::new()
+        }
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
