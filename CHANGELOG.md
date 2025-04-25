@@ -1,3 +1,9 @@
+## v4.1.0 (2025-04-25)
+- Fixed a problem with invalid search domains sent by some VPN servers.
+- Fixed a bug with the same MFA being triggered multiple times under certain conditions.
+- Added a graphical connection status window, activated via "Connection status..." popup menu.
+- Added an extended connection information in the "snxctl status" command output.
+
 ## v4.0.0 (2025-04-22)
 
 **Important note for downstream package maintainers**: this release replaces GTK 3 dependency with GTK 4.
