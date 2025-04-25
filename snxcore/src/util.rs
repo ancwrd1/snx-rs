@@ -124,7 +124,11 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
     if let Some(login_options_data) = info.login_options_data {
         println!("Available login types:");
 
-        for opt in login_options_data.login_options_list.values() {
+        for opt in login_options_data
+            .login_options_list
+            .values()
+            .filter(|opt| opt.show_realm != 0)
+        {
             println!("\t{} ({})", opt.id, opt.display_name);
 
             for (index, factor) in opt.factors.values().enumerate() {

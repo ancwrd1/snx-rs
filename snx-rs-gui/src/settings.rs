@@ -436,7 +436,8 @@ impl SettingsDialog {
                             if options_list.is_empty() {
                                 options_list.insert(String::new(), LoginOption::unspecified());
                             }
-                            for (i, (_, option)) in options_list.into_iter().enumerate() {
+                            for (i, option) in options_list.into_values().filter(|opt| opt.show_realm != 0).enumerate()
+                            {
                                 let factors = option
                                     .factors
                                     .values()
