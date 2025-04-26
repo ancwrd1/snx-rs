@@ -10,6 +10,7 @@ use std::{
 
 use anyhow::{anyhow, Context};
 use ipnet::{Ipv4Net, Ipv4Subnets};
+use itertools::Itertools;
 use tokio::process::Command;
 use tracing::trace;
 use uuid::Uuid;
@@ -137,12 +138,8 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
             .into_values()
             .filter(|opt| opt.show_realm != 0)
         {
-            let mut value = opt.id;
-
-            if let Some(factor) = opt.factors.into_values().next() {
-                value.push_str(&format!(" [{}]", factor.factor_type));
-            }
-            values.push((opt.display_name, value));
+            let factors = opt.factors.into_values().map(|factor| factor.factor_type).join(", ");
+            values.push((opt.display_name, format!("{} [{}]", opt.id, factors)));
         }
     }
 

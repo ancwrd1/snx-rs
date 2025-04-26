@@ -50,6 +50,7 @@ opener = { version = "0.7"}
 cached = {  version = "0.55",  features = ["async"] }
 openssl-sys = "0.9"
 openssl = "0.10"
+itertools = "0.14"
 
 [dev-dependencies]
 tempfile = "3"
