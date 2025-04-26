@@ -1,7 +1,5 @@
-use anyhow::{anyhow, Context};
-use ipnet::{Ipv4Net, Ipv4Subnets};
-use std::collections::HashMap;
 use std::{
+    collections::HashMap,
     ffi::OsStr,
     fmt,
     future::Future,
@@ -9,13 +7,17 @@ use std::{
     path::Path,
     process::Output,
 };
+
+use anyhow::{anyhow, Context};
+use ipnet::{Ipv4Net, Ipv4Subnets};
 use tokio::process::Command;
 use tracing::trace;
 use uuid::Uuid;
 
-use crate::model::params::TunnelParams;
-use crate::model::proto::LoginDisplayLabelSelect;
-use crate::{model::proto::NetworkRange, server_info};
+use crate::{
+    model::{params::TunnelParams, proto::NetworkRange},
+    server_info,
+};
 
 // reverse engineered from vendor snx utility
 const XOR_TABLE: &[u8] = b"-ODIFIED&W0ROPERTY3HEET7ITH/+4HE3HEET)$3?,$!0?!5?02/0%24)%3.5,,\x10&7?70?/\"*%#43";
@@ -97,55 +99,59 @@ pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Ne
 pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
     let info = server_info::get(params).await?;
 
-    println!("Server address: {}", params.server_name);
-    println!("Server IP: {}", info.connectivity_info.server_ip);
-    println!(
-        "Supported tunnel protocols: {}",
-        info.connectivity_info.supported_data_tunnel_protocols.join(", ")
-    );
-
-    println!("Connectivity type: {}", info.connectivity_info.connectivity_type);
-    println!("TCPT port: {}", info.connectivity_info.tcpt_port);
-    println!("NATT port: {}", info.connectivity_info.natt_port);
-
-    println!(
-        "Internal CA fingerprint: {}",
-        String::from_utf8_lossy(&snx_decrypt(
-            info.connectivity_info
-                .internal_ca_fingerprint
-                .values()
-                .cloned()
-                .collect::<Vec<String>>()
-                .join(" ")
-                .as_bytes()
-        )?)
-    );
+    let mut values = vec![
+        ("Server address".to_owned(), params.server_name.clone()),
+        ("Server IP".to_owned(), info.connectivity_info.server_ip.to_string()),
+        (
+            "Supported protocols".to_owned(),
+            info.connectivity_info.supported_data_tunnel_protocols.join(", "),
+        ),
+        (
+            "Preferred protocol".to_owned(),
+            info.connectivity_info.connectivity_type,
+        ),
+        ("TCPT port".to_owned(), info.connectivity_info.tcpt_port.to_string()),
+        ("NATT port".to_owned(), info.connectivity_info.natt_port.to_string()),
+        (
+            "Internal CA fingerprint".to_owned(),
+            String::from_utf8_lossy(&snx_decrypt(
+                info.connectivity_info
+                    .internal_ca_fingerprint
+                    .values()
+                    .cloned()
+                    .collect::<Vec<String>>()
+                    .join(" ")
+                    .as_bytes(),
+            )?)
+            .into_owned(),
+        ),
+    ];
 
     if let Some(login_options_data) = info.login_options_data {
-        println!("Available login types:");
-
         for opt in login_options_data
             .login_options_list
-            .values()
+            .into_values()
             .filter(|opt| opt.show_realm != 0)
         {
-            println!("\t{} ({})", opt.id, opt.display_name);
+            let mut value = opt.id;
 
-            for (index, factor) in opt.factors.values().enumerate() {
-                if let LoginDisplayLabelSelect::LoginDisplayLabel(ref labels) = factor.custom_display_labels {
-                    let prompt = labels
-                        .get("password")
-                        .map(|p| format!(", prompt = \"{}\"", p))
-                        .unwrap_or_default();
-
-                    println!("\t\tfactor {}: type = {}{}", index + 1, factor.factor_type, prompt);
-                } else {
-                    println!("\t\tfactor {}: type = {}", index + 1, factor.factor_type);
-                }
+            if let Some(factor) = opt.factors.into_values().next() {
+                value.push_str(&format!(" [{}]", factor.factor_type));
             }
+            values.push((opt.display_name, value));
         }
     }
 
+    let label_width = values.iter().map(|(label, _)| label.len()).max().unwrap_or_default();
+    let mut result = String::new();
+    for (index, (key, value)) in values.iter().enumerate() {
+        result.push_str(&format!("{:>label_width$}: {}", key, value));
+        if index < values.len() - 1 {
+            result.push('\n');
+        }
+    }
+
+    println!("{}", result);
     Ok(())
 }
 
