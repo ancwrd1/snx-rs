@@ -96,7 +96,10 @@ Before the client can establish a connection, it must know the login (authentica
 To find the supported login types, run it with the `-m info` parameter:
 
 ```sh
+# in standalone mode
 snx-rs -m info -s remote.acme.com
+# in command mode
+snxctl info
 ```
 
 This command will display the supported login types. Use the `vpn_XXX` identifier as the login type.
