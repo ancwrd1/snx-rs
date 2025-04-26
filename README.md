@@ -105,16 +105,17 @@ If a certificate error is returned, try adding the `-X true` command line parame
 Example output (may differ for your server):
 
 ```text
-Supported tunnel protocols:
-        IPSec
-        SSL
-        L2TP
-Available login types:
-        vpn_Microsoft_Authenticator (Microsoft Authenticator)
-        vpn_Emergency_Access (Emergency Access)
-        vpn_Username_Password (Username Password)
-        vpn_Azure_Authentication (Azure Authentication)
-        vpn (Standard)
+         Server address: remote.company.com
+              Server IP: 1.2.3.4
+    Supported protocols: IPSec, SSL, L2TP
+     Preferred protocol: IPSec
+              TCPT port: 443
+              NATT port: 4500
+Internal CA fingerprint: MATE FRED PEN RANK LIP HUGH BEAD WET CAGE DEW FULL EDIT
+Microsoft Authenticator: vpn_Microsoft_Authenticator [password]
+       Emergency Access: vpn_Emergency_Access [password]
+      Username Password: vpn_Username_Password [password]
+   Azure Authentication: vpn_Azure_Authentication [identity_provider]
 ```
 
 There are two ways to use the application:
