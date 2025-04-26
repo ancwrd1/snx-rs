@@ -103,6 +103,10 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
         ("Server address".to_owned(), params.server_name.clone()),
         ("Server IP".to_owned(), info.connectivity_info.server_ip.to_string()),
         (
+            "Client enabled".to_owned(),
+            info.connectivity_info.client_enabled.to_string(),
+        ),
+        (
             "Supported protocols".to_owned(),
             info.connectivity_info.supported_data_tunnel_protocols.join(", "),
         ),
