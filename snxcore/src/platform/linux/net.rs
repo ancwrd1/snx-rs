@@ -85,22 +85,6 @@ impl NetworkInterface for LinuxNetworkInterface {
         Ok(())
     }
 
-    fn is_online(&self) -> bool {
-        ONLINE_STATE.load(Ordering::SeqCst)
-    }
-
-    fn poll_online(&self) {
-        tokio::spawn(async move {
-            let connection = Connection::system().await?;
-            let proxy = NetworkManagerProxy::new(&connection).await?;
-            let state = proxy.state().await?;
-            let state: NetworkManagerState = state.into();
-            debug!("Acquired network state via polling: {:?}", state);
-            ONLINE_STATE.store(state.is_online(), Ordering::SeqCst);
-            Ok::<_, anyhow::Error>(())
-        });
-    }
-
     async fn get_default_ip(&self) -> anyhow::Result<Ipv4Addr> {
         let default_route = crate::util::run_command("ip", ["-4", "route", "show", "default"]).await?;
         let mut parts = default_route.split_whitespace();
@@ -134,6 +118,22 @@ impl NetworkInterface for LinuxNetworkInterface {
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
         crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
         Ok(())
+    }
+
+    fn is_online(&self) -> bool {
+        ONLINE_STATE.load(Ordering::SeqCst)
+    }
+
+    fn poll_online(&self) {
+        tokio::spawn(async move {
+            let connection = Connection::system().await?;
+            let proxy = NetworkManagerProxy::new(&connection).await?;
+            let state = proxy.state().await?;
+            let state: NetworkManagerState = state.into();
+            debug!("Acquired network state via polling: {:?}", state);
+            ONLINE_STATE.store(state.is_online(), Ordering::SeqCst);
+            Ok::<_, anyhow::Error>(())
+        });
     }
 }
 
