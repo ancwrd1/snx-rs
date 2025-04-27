@@ -310,23 +310,24 @@ impl VpnTunnel for SslTunnel {
         let ip_address = self.hello_reply.office_mode.ipaddr.parse()?;
         let netmask = self.hello_reply.optional.as_ref().and_then(|o| o.subnet.parse().ok());
 
-        let tun_name = self
+        let name_hint = self
             .params
             .if_name
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let mut tun = device::TunDevice::new(tun_name, ip_address, netmask)?;
+        let mut tun = device::TunDevice::new(name_hint, ip_address, netmask)?;
+        let tun_name = tun.name().to_owned();
 
-        self.setup_routing(tun_name).await?;
+        self.setup_routing(&tun_name).await?;
 
         let resolver_config = self.make_resolver_config();
 
         if !self.params.no_dns {
-            self.setup_dns(resolver_config.clone(), tun_name, false).await?;
+            self.setup_dns(resolver_config.clone(), &tun_name, false).await?;
         }
 
-        let _ = platform::new_network_interface().configure_device(tun_name).await;
+        let _ = platform::new_network_interface().configure_device(&tun_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 
@@ -376,7 +377,7 @@ impl VpnTunnel for SslTunnel {
             ip_address: Ipv4Net::with_netmask(ip_address, netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)))?,
             dns_servers: resolver_config.dns_servers,
             search_domains: resolver_config.search_domains,
-            interface_name: tun_name.to_string(),
+            interface_name: tun_name,
             dns_configured: !self.params.no_dns,
             routing_configured: !self.params.no_routing,
             default_route: self.params.default_route,

@@ -207,7 +207,7 @@ impl VpnTunnel for TunIpsecTunnel {
             self.esp_transport, self.session.ccc_session_id,
         );
 
-        let tun_name = self
+        let name_hint = self
             .params
             .if_name
             .as_deref()
@@ -217,15 +217,16 @@ impl VpnTunnel for TunIpsecTunnel {
             anyhow::bail!("No IPSEC session!");
         };
 
-        let mut tun = TunDevice::new(tun_name, ipsec_session.address, Some(ipsec_session.netmask))?;
+        let mut tun = TunDevice::new(name_hint, ipsec_session.address, Some(ipsec_session.netmask))?;
+        let tun_name = tun.name().to_owned();
 
-        self.setup_routing(tun_name).await?;
+        self.setup_routing(&tun_name).await?;
 
         if !self.params.no_dns {
-            self.setup_dns(tun_name, false).await?;
+            self.setup_dns(&tun_name, false).await?;
         }
 
-        let _ = platform::new_network_interface().configure_device(tun_name).await;
+        let _ = platform::new_network_interface().configure_device(&tun_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 
@@ -296,7 +297,7 @@ impl VpnTunnel for TunIpsecTunnel {
             ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,
             dns_servers: session.dns.clone(),
             search_domains: session.domains.clone(),
-            interface_name: tun_name.to_string(),
+            interface_name: tun_name,
             dns_configured: !self.params.no_dns,
             routing_configured: !self.params.no_routing,
             default_route: self.params.default_route,
