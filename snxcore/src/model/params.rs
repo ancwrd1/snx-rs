@@ -194,10 +194,11 @@ impl FromStr for IconTheme {
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TransportType {
-    #[default]
+    #[cfg_attr(target_os = "linux", default)]
     Native,
+    #[cfg_attr(not(target_os = "linux"), default)]
+    Udp,
     Tcpt,
-    Udp, // for future support of other platforms like *BSD or Mac
 }
 
 impl fmt::Display for TransportType {

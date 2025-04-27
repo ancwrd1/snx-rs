@@ -13,8 +13,12 @@ impl TunDevice {
         let mut config = tun::Configuration::default();
 
         config.address(ip_address).up();
-        #[cfg(not(target_os = "macos"))]
-        config.tun_name(name);
+
+        if cfg!(target_os = "macos") {
+            debug!("Ignoring tun device name on macOS: {name}");
+        } else {
+            config.tun_name(name);
+        }
 
         if let Some(netmask) = netmask {
             config.netmask(netmask);
