@@ -1,35 +1,35 @@
 use std::{
     net::Ipv4Addr,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, RwLock,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use bytes::Bytes;
 use chrono::Local;
 use futures::{
+    SinkExt, StreamExt,
     channel::mpsc::{Receiver, Sender},
-    pin_mut, SinkExt, StreamExt,
+    pin_mut,
 };
 use ipnet::Ipv4Net;
 use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error};
 
-use crate::model::ConnectionInfo;
 use crate::{
     ccc::CccHttpClient,
     model::{
+        ConnectionInfo, VpnSession,
         params::{TransportType, TunnelParams},
         proto::ClientSettingsResponse,
-        VpnSession,
     },
-    platform::{self, new_resolver_configurator, ResolverConfig},
+    platform::{self, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
     server_info,
-    tunnel::{device::TunDevice, ipsec::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
+    tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ipsec::keepalive::KeepaliveRunner},
     util,
 };
 
@@ -103,9 +103,10 @@ impl TunIpsecTunnel {
 
     async fn cleanup(&mut self) {
         if let Some(device) = self.tun_device.take() {
+            let configurator = platform::new_routing_configurator(device.name(), self.ip_address);
             if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
-                let _ = platform::remove_default_route(dest_ip).await;
-                let _ = platform::remove_keepalive_route(dest_ip).await;
+                let _ = configurator.remove_default_route(dest_ip).await;
+                let _ = configurator.remove_keepalive_route(dest_ip).await;
             }
             if !self.params.no_dns {
                 let _ = self.setup_dns(device.name(), true).await;
@@ -115,6 +116,8 @@ impl TunIpsecTunnel {
     }
 
     pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
+        let configurator = platform::new_routing_configurator(dev_name, self.ip_address);
+
         let dest_ip = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name))?;
 
         let mut subnets = self.params.add_routes.clone();
@@ -123,7 +126,7 @@ impl TunIpsecTunnel {
 
         if !self.params.no_routing {
             if self.params.default_route {
-                platform::setup_default_route(dev_name, dest_ip).await?;
+                configurator.setup_default_route(dest_ip).await?;
                 default_route_set = true;
             } else {
                 subnets.extend(util::ranges_to_subnets(
@@ -132,12 +135,12 @@ impl TunIpsecTunnel {
             }
         }
 
-        platform::setup_keepalive_route(dev_name, dest_ip, !default_route_set).await?;
+        configurator.setup_keepalive_route(dest_ip, !default_route_set).await?;
 
         subnets.retain(|s| !s.contains(&dest_ip));
 
         if !subnets.is_empty() {
-            let _ = platform::add_routes(&subnets, dev_name, self.ip_address, &self.params.ignore_routes).await;
+            let _ = configurator.add_routes(&subnets, &self.params.ignore_routes).await;
         }
 
         Ok(())

@@ -5,10 +5,9 @@ use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
 use rand::random;
 use tracing::{debug, trace};
 
-use crate::platform::ResolverConfig;
 use crate::{
-    model::{params::TunnelParams, IpsecSession},
-    platform::{self, new_resolver_configurator, IpsecConfigurator},
+    model::{IpsecSession, params::TunnelParams},
+    platform::{self, IpsecConfigurator, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
     util,
 };
 
@@ -339,31 +338,31 @@ impl XfrmConfigurator {
     }
 
     async fn setup_routing(&self) -> anyhow::Result<()> {
+        let configurator = platform::new_routing_configurator(&self.name, self.ipsec_session.address);
+
         let mut subnets = self.tunnel_params.add_routes.clone();
 
         let mut default_route_set = false;
 
         if !self.tunnel_params.no_routing {
             if self.tunnel_params.default_route {
-                platform::setup_default_route(&self.name, self.dest_ip).await?;
+                configurator.setup_default_route(self.dest_ip).await?;
                 default_route_set = true;
             } else {
                 subnets.extend(&self.subnets);
             }
         }
 
-        platform::setup_keepalive_route(&self.name, self.dest_ip, !default_route_set).await?;
+        configurator
+            .setup_keepalive_route(self.dest_ip, !default_route_set)
+            .await?;
 
         subnets.retain(|s| !s.contains(&self.dest_ip));
 
         if !subnets.is_empty() {
-            let _ = platform::add_routes(
-                &subnets,
-                &self.name,
-                self.ipsec_session.address,
-                &self.tunnel_params.ignore_routes,
-            )
-            .await;
+            let _ = configurator
+                .add_routes(&subnets, &self.tunnel_params.ignore_routes)
+                .await;
         }
 
         Ok(())
@@ -439,8 +438,7 @@ impl IpsecConfigurator for XfrmConfigurator {
     async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()> {
         trace!(
             "Rekeying XFRM state with new session: IN: {:?}, OUT: {:?}",
-            session.esp_in,
-            session.esp_out
+            session.esp_in, session.esp_out
         );
         let _ = self
             .configure_xfrm_state(
@@ -481,6 +479,8 @@ impl IpsecConfigurator for XfrmConfigurator {
     }
 
     async fn cleanup(&mut self) {
+        let configurator = platform::new_routing_configurator(&self.name, self.ipsec_session.address);
+
         let _ = self
             .configure_xfrm_state(
                 CommandType::Delete,
@@ -513,7 +513,7 @@ impl IpsecConfigurator for XfrmConfigurator {
 
         let _ = self.new_xfrm_link().delete().await;
 
-        let _ = platform::remove_keepalive_route(self.dest_ip).await;
-        let _ = platform::remove_default_route(self.dest_ip).await;
+        let _ = configurator.remove_keepalive_route(self.dest_ip).await;
+        let _ = configurator.remove_default_route(self.dest_ip).await;
     }
 }

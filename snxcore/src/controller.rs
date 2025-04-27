@@ -7,12 +7,12 @@ use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::warn;
 
 use crate::{
-    browser::{spawn_otp_listener, BrowserController},
+    browser::{BrowserController, spawn_otp_listener},
     model::{
-        params::TunnelParams, ConnectionStatus, MfaChallenge, MfaType, PromptInfo, TunnelServiceRequest,
-        TunnelServiceResponse,
+        ConnectionStatus, MfaChallenge, MfaType, PromptInfo, TunnelServiceRequest, TunnelServiceResponse,
+        params::TunnelParams,
     },
-    platform::{self},
+    platform::{self, Keychain},
     prompt::SecurePrompt,
     server::DEFAULT_LISTEN_PATH,
     server_info,
@@ -134,7 +134,7 @@ where
                     && !params.no_keychain
                     && !input.is_empty()
                 {
-                    let _ = platform::store_password(&self.username, &input).await;
+                    let _ = platform::new_keychain().store_password(&self.username, &input).await;
                 }
                 result
             }
@@ -189,7 +189,7 @@ where
                 self.username = input.clone();
 
                 if !self.username.is_empty() && !params.no_keychain && params.password.is_empty() {
-                    if let Ok(password) = platform::acquire_password(&self.username).await {
+                    if let Ok(password) = platform::new_keychain().acquire_password(&self.username).await {
                         self.password_from_keychain = password;
                     }
                 }
@@ -209,7 +209,7 @@ where
         }
 
         if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {
-            if let Ok(password) = platform::acquire_password(&params.user_name).await {
+            if let Ok(password) = platform::new_keychain().acquire_password(&params.user_name).await {
                 self.password_from_keychain = password;
             }
         }

@@ -1,34 +1,38 @@
-use anyhow::{anyhow, Context};
-use chrono::Local;
-use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    pin_mut, SinkExt, StreamExt, TryStreamExt,
-};
-use ipnet::Ipv4Net;
-use std::net::Ipv4Addr;
 use std::{
+    net::Ipv4Addr,
     sync::{
-        atomic::{AtomicI64, Ordering},
         Arc,
+        atomic::{AtomicI64, Ordering},
     },
     time::Duration,
 };
+
+use anyhow::{Context, anyhow};
+use chrono::Local;
+use futures::{
+    SinkExt, StreamExt, TryStreamExt,
+    channel::mpsc::{self, Receiver, Sender},
+    pin_mut,
+};
+use ipnet::Ipv4Net;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 
 use codec::{SslPacketCodec, SslPacketType};
 
-use crate::ccc::CccHttpClient;
-use crate::model::params::TransportType;
-use crate::platform::{new_resolver_configurator, ResolverConfig};
-use crate::tunnel::device;
-use crate::tunnel::device::TunDevice;
+use crate::model::proto::{ClientHelloData, HelloReply, HelloReplyData, OfficeMode, OptionalRequest};
+use crate::model::{ConnectionInfo, VpnSession};
 use crate::{
-    model::{params::TunnelParams, proto::*, *},
-    platform,
+    ccc::CccHttpClient,
+    model::params::{TransportType, TunnelParams},
+    platform::{self, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
     sexpr::SExpression,
-    tunnel::{ssl::keepalive::KeepaliveRunner, TunnelCommand, TunnelEvent, VpnTunnel},
+    tunnel::{
+        TunnelCommand, TunnelEvent, VpnTunnel,
+        device::{self, TunDevice},
+        ssl::keepalive::KeepaliveRunner,
+    },
     util,
 };
 
@@ -182,8 +186,11 @@ impl SslTunnel {
         }
 
         if let Some(device) = self.tun_device.take() {
+            let ipaddr = self.hello_reply.office_mode.ipaddr.parse().unwrap();
+            let configurator = platform::new_routing_configurator(device.name(), ipaddr);
+
             if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
-                let _ = platform::remove_default_route(dest_ip).await;
+                let _ = configurator.remove_default_route(dest_ip).await;
             }
             if !self.params.no_dns {
                 let config = self.make_resolver_config();
@@ -198,6 +205,7 @@ impl SslTunnel {
 
     pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
         let ipaddr = self.hello_reply.office_mode.ipaddr.parse()?;
+        let configurator = platform::new_routing_configurator(dev_name, ipaddr);
 
         let dest_ip = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name))?;
 
@@ -205,7 +213,7 @@ impl SslTunnel {
 
         if !self.params.no_routing {
             if self.params.default_route {
-                platform::setup_default_route(dev_name, dest_ip).await?;
+                configurator.setup_default_route(dest_ip).await?;
             } else {
                 subnets.extend(util::ranges_to_subnets(&self.hello_reply.range));
             }
@@ -214,7 +222,7 @@ impl SslTunnel {
         subnets.retain(|s| !s.contains(&dest_ip));
 
         if !subnets.is_empty() {
-            let _ = platform::add_routes(&subnets, dev_name, ipaddr, &self.params.ignore_routes).await;
+            let _ = configurator.add_routes(&subnets, &self.params.ignore_routes).await;
         }
 
         Ok(())

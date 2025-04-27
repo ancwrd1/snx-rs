@@ -8,15 +8,12 @@ use tokio::net::UdpSocket;
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
 pub use platform_impl::{
-    acquire_password, configure_device, delete_device, get_machine_uuid, init,
-    net::{
-        add_routes, get_default_ip, is_online, poll_online, remove_default_route, remove_keepalive_route,
-        setup_default_route, setup_keepalive_route, start_network_state_monitoring,
-    },
-    new_resolver_configurator, store_password, IpsecImpl, SingleInstance,
+    IpsecImpl, KeychainImpl, RoutingImpl, SingleInstance, configure_device, delete_device, get_machine_uuid, init,
+    net::{get_default_ip, is_online, poll_online, start_network_state_monitoring},
+    new_resolver_configurator,
 };
 
-use crate::model::{params::TunnelParams, IpsecSession};
+use crate::model::{IpsecSession, params::TunnelParams};
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -27,16 +24,6 @@ pub trait IpsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
-}
-
-pub fn new_ipsec_configurator(
-    tunnel_params: Arc<TunnelParams>,
-    ipsec_session: IpsecSession,
-    src_port: u16,
-    dest_ip: Ipv4Addr,
-    subnets: Vec<Ipv4Net>,
-) -> anyhow::Result<impl IpsecConfigurator> {
-    IpsecImpl::new(tunnel_params, ipsec_session, src_port, dest_ip, subnets)
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
@@ -76,4 +63,37 @@ pub struct ResolverConfig {
 pub trait ResolverConfigurator {
     async fn configure(&self, config: &ResolverConfig) -> anyhow::Result<()>;
     async fn cleanup(&self, config: &ResolverConfig) -> anyhow::Result<()>;
+}
+
+#[async_trait]
+pub trait Keychain {
+    async fn acquire_password(&self, username: &str) -> anyhow::Result<String>;
+    async fn store_password(&self, username: &str, password: &str) -> anyhow::Result<()>;
+}
+
+#[async_trait]
+pub trait RoutingConfigurator {
+    async fn add_routes(&self, routes: &[Ipv4Net], ignore_routes: &[Ipv4Net]) -> anyhow::Result<()>;
+    async fn setup_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
+    async fn setup_keepalive_route(&self, destination: Ipv4Addr, with_table: bool) -> anyhow::Result<()>;
+    async fn remove_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
+    async fn remove_keepalive_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
+}
+
+pub fn new_ipsec_configurator(
+    tunnel_params: Arc<TunnelParams>,
+    ipsec_session: IpsecSession,
+    src_port: u16,
+    dest_ip: Ipv4Addr,
+    subnets: Vec<Ipv4Net>,
+) -> anyhow::Result<impl IpsecConfigurator> {
+    IpsecImpl::new(tunnel_params, ipsec_session, src_port, dest_ip, subnets)
+}
+
+pub fn new_keychain() -> impl Keychain {
+    KeychainImpl::new()
+}
+
+pub fn new_routing_configurator<S: AsRef<str>>(device: S, address: Ipv4Addr) -> impl RoutingConfigurator {
+    RoutingImpl::new(device, address)
 }

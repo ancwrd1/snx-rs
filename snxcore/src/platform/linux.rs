@@ -1,24 +1,26 @@
-use std::{collections::HashMap, fs, os::fd::AsRawFd, time::Duration};
+use std::{fs, os::fd::AsRawFd, time::Duration};
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use cached::proc_macro::cached;
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
     sys::stat::Mode,
     unistd,
 };
-use secret_service::{EncryptionType, SecretService};
 use tokio::net::UdpSocket;
-use tracing::debug;
 use uuid::Uuid;
 
+pub use keychain::SecretServiceKeychain as KeychainImpl;
 pub use resolver::new_resolver_configurator;
+pub use routing::LinuxRoutingConfigurator as RoutingImpl;
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
 use crate::platform::{UdpEncap, UdpSocketExt};
 
+mod keychain;
 pub mod net;
 pub mod resolver;
+mod routing;
 pub mod xfrm;
 
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
@@ -81,55 +83,6 @@ impl UdpSocketExt for UdpSocket {
     async fn send_receive(&self, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>> {
         super::udp_send_receive(self, data, timeout).await
     }
-}
-
-pub async fn acquire_password(user_name: &str) -> anyhow::Result<String> {
-    let props = HashMap::from([("snx-rs.username", user_name)]);
-
-    debug!("Attempting to acquire password from the keychain");
-
-    let ss = SecretService::connect(EncryptionType::Dh).await?;
-    let collection = ss.get_default_collection().await?;
-    if let Ok(true) = collection.is_locked().await {
-        debug!("Unlocking secret collection");
-        let _ = collection.unlock().await;
-    }
-
-    let search_items = ss.search_items(props.clone()).await?;
-
-    let item = search_items.unlocked.first().context("No item in collection")?;
-
-    let secret = item.get_secret().await?;
-
-    debug!("Password acquired successfully");
-
-    Ok(String::from_utf8_lossy(&secret).into_owned())
-}
-
-pub async fn store_password(user_name: &str, password: &str) -> anyhow::Result<()> {
-    let props = HashMap::from([("snx-rs.username", user_name)]);
-
-    let ss = SecretService::connect(EncryptionType::Dh).await?;
-    let collection = ss.get_default_collection().await?;
-
-    if let Ok(true) = collection.is_locked().await {
-        debug!("Unlocking secret collection");
-        let _ = collection.unlock().await;
-    }
-
-    debug!("Attempting to store user password in the keychain");
-
-    collection
-        .create_item(
-            &format!("snx-rs - {user_name}"),
-            props,
-            password.as_bytes(),
-            true,
-            "text/plain",
-        )
-        .await?;
-
-    Ok(())
 }
 
 pub struct SingleInstance {
