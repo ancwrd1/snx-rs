@@ -1,3 +1,7 @@
+## Unreleased
+- On deskop environments other than GNOME or KDE use standard icons instead of pixmaps.
+- Better server information output with "snxctl info" command.
+
 ## v4.1.0 (2025-04-25)
 - Fixed a problem with invalid search domains sent by some VPN servers.
 - Fixed a bug with the same MFA being triggered multiple times under certain conditions.
