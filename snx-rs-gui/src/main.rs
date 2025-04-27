@@ -3,9 +3,9 @@ use std::{cell::OnceCell, sync::Arc, time::Duration};
 use clap::Parser;
 use gtk4::prelude::WidgetExt;
 use gtk4::{
-    glib::{self, clone, ControlFlow},
-    prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt},
     Application, ApplicationWindow, License,
+    glib::{self, ControlFlow, clone},
+    prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt},
 };
 use tokio::sync::mpsc;
 use tracing::level_filters::LevelFilter;
@@ -20,7 +20,7 @@ use crate::{
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{params::TunnelParams, ConnectionInfo, ConnectionStatus},
+    model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
     platform::SingleInstance,
     prompt::SecurePrompt,
 };

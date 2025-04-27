@@ -1,7 +1,7 @@
 use gtk4::{
+    Align, Orientation, ResponseType,
     glib::{self, clone},
     prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
-    Align, Orientation, ResponseType,
 };
 use snxcore::model::ConnectionInfo;
 

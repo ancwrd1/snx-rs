@@ -1,9 +1,9 @@
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
+    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget,
     glib::{self, clone},
     prelude::*,
-    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget,
 };
 use ipnet::Ipv4Net;
 use tokio::sync::mpsc::Sender;
@@ -611,27 +611,15 @@ impl SettingsDialog {
         params.cert_type = self.widgets.cert_type.active().unwrap_or_default().into();
         params.cert_path = {
             let text = self.widgets.cert_path.text();
-            if text.is_empty() {
-                None
-            } else {
-                Some(text.into())
-            }
+            if text.is_empty() { None } else { Some(text.into()) }
         };
         params.cert_password = {
             let text = self.widgets.cert_password.text();
-            if text.is_empty() {
-                None
-            } else {
-                Some(text.into())
-            }
+            if text.is_empty() { None } else { Some(text.into()) }
         };
         params.cert_id = {
             let text = self.widgets.cert_id.text();
-            if text.is_empty() {
-                None
-            } else {
-                Some(text.into())
-            }
+            if text.is_empty() { None } else { Some(text.into()) }
         };
         params.ca_cert = self
             .widgets

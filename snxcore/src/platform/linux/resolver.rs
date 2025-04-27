@@ -358,7 +358,10 @@ mod tests {
         cut.configure(&config).await.unwrap();
 
         let new_conf = fs::read_to_string(&conf).unwrap();
-        assert_eq!(new_conf, "# comment\nsearch acme.com dom1.com dom2.net\nnameserver 192.168.1.1\nnameserver 192.168.1.2\nnameserver 10.0.0.1\n");
+        assert_eq!(
+            new_conf,
+            "# comment\nsearch acme.com dom1.com dom2.net\nnameserver 192.168.1.1\nnameserver 192.168.1.2\nnameserver 10.0.0.1\n"
+        );
     }
 
     #[tokio::test]

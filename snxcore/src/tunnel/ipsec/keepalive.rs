@@ -1,8 +1,8 @@
 use std::{
     net::Ipv4Addr,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -12,7 +12,7 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::params::TunnelParams,
-    platform::{self, UdpSocketExt},
+    platform::{self, NetworkInterface, UdpSocketExt},
 };
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
@@ -63,7 +63,7 @@ impl KeepaliveRunner {
         let mut num_failures = 0;
 
         loop {
-            if platform::is_online() && self.ready.load(Ordering::SeqCst) {
+            if platform::new_network_interface().is_online() && self.ready.load(Ordering::SeqCst) {
                 trace!("Sending keepalive to {}", self.dst);
 
                 let data = make_keepalive_packet();
@@ -85,7 +85,7 @@ impl KeepaliveRunner {
                 }
             } else {
                 num_failures = 0;
-                platform::poll_online();
+                platform::new_network_interface().poll_online();
             }
 
             let interval = if num_failures == 0 {

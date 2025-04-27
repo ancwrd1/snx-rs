@@ -27,7 +27,7 @@ use crate::{
         params::{TransportType, TunnelParams},
         proto::ClientSettingsResponse,
     },
-    platform::{self, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
+    platform::{self, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
     server_info,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ipsec::keepalive::KeepaliveRunner},
     util,
@@ -111,7 +111,7 @@ impl TunIpsecTunnel {
             if !self.params.no_dns {
                 let _ = self.setup_dns(device.name(), true).await;
             }
-            platform::delete_device(device.name()).await;
+            let _ = platform::new_network_interface().delete_device(device.name()).await;
         }
     }
 
@@ -225,7 +225,7 @@ impl VpnTunnel for TunIpsecTunnel {
             self.setup_dns(tun_name, false).await?;
         }
 
-        let _ = platform::configure_device(tun_name).await;
+        let _ = platform::new_network_interface().configure_device(tun_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 

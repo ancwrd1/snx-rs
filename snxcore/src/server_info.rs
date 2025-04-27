@@ -3,9 +3,9 @@ use std::{collections::VecDeque, sync::Arc};
 use crate::{
     ccc::CccHttpClient,
     model::{
+        PromptInfo,
         params::TunnelParams,
         proto::{LoginDisplayLabelSelect, LoginOption, ServerInfoResponse},
-        PromptInfo,
     },
     sexpr::SExpression,
 };

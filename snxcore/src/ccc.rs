@@ -1,7 +1,7 @@
 use std::{
     sync::{
-        atomic::{AtomicU32, Ordering},
         Arc,
+        atomic::{AtomicU32, Ordering},
     },
     time::Duration,
 };
@@ -12,9 +12,9 @@ use tracing::{trace, warn};
 
 use crate::{
     model::{
+        VpnSession,
         params::{CertType, TunnelParams},
         proto::*,
-        VpnSession,
     },
     sexpr::SExpression,
 };

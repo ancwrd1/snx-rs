@@ -11,6 +11,7 @@ use tokio::net::UdpSocket;
 use uuid::Uuid;
 
 pub use keychain::SecretServiceKeychain as KeychainImpl;
+pub use net::LinuxNetworkInterface as NetworkInterfaceImpl;
 pub use resolver::new_resolver_configurator;
 pub use routing::LinuxRoutingConfigurator as RoutingImpl;
 pub use xfrm::XfrmConfigurator as IpsecImpl;
@@ -136,15 +137,6 @@ impl Drop for SingleInstance {
             let _ = std::fs::remove_file(&self.name);
         }
     }
-}
-
-pub async fn delete_device(device_name: &str) {
-    let _ = crate::util::run_command("ip", ["link", "del", "name", device_name]).await;
-}
-
-pub async fn configure_device(device_name: &str) -> anyhow::Result<()> {
-    crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
-    Ok(())
 }
 
 #[cached(result = true)]

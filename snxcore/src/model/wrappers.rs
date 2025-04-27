@@ -1,8 +1,8 @@
 use std::{fmt, marker::PhantomData};
 
 use serde::{
-    de::{Error, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{Error, Visitor},
 };
 
 /// String separated with commas or semicolons

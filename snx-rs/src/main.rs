@@ -12,10 +12,10 @@ use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
     model::{
-        params::{OperationMode, TunnelParams, TunnelType},
         MfaType, PromptInfo, SessionState,
+        params::{OperationMode, TunnelParams, TunnelType},
     },
-    platform::{self, SingleInstance},
+    platform::{self, NetworkInterface, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
     server_info, tunnel,
@@ -110,7 +110,7 @@ async fn main_command() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Err(e) = platform::start_network_state_monitoring().await {
+    if let Err(e) = platform::new_network_interface().start_network_state_monitoring().await {
         warn!("Unable to start network monitoring: {}", e);
     }
     let server = CommandServer::default();
@@ -189,7 +189,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
     let tunnel = connector.create_tunnel(session.clone(), command_sender).await?;
 
-    if let Err(e) = platform::start_network_state_monitoring().await {
+    if let Err(e) = platform::new_network_interface().start_network_state_monitoring().await {
         warn!("Unable to start network monitoring: {}", e);
     }
 

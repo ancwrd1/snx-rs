@@ -7,7 +7,9 @@ use tracing::{debug, trace};
 
 use crate::{
     model::{IpsecSession, params::TunnelParams},
-    platform::{self, IpsecConfigurator, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
+    platform::{
+        self, IpsecConfigurator, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator,
+    },
     util,
 };
 
@@ -36,7 +38,7 @@ impl XfrmLink<'_> {
         ])
         .await?;
 
-        let _ = platform::configure_device(self.name).await;
+        let _ = platform::new_network_interface().configure_device(self.name).await;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
@@ -419,7 +421,7 @@ impl IpsecConfigurator for XfrmConfigurator {
     }
 
     async fn configure(&mut self) -> anyhow::Result<()> {
-        self.source_ip = platform::get_default_ip().await?.parse()?;
+        self.source_ip = platform::new_network_interface().get_default_ip().await?;
         debug!("Source IP: {}", self.source_ip);
         debug!("Target IP: {}", self.dest_ip);
 

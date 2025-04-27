@@ -3,17 +3,17 @@ use std::sync::Arc;
 
 use crate::{
     model::{
-        params::{TransportType, TunnelParams},
         VpnSession,
+        params::{TransportType, TunnelParams},
     },
     tunnel::{
-        ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
         TunnelCommand, TunnelEvent, VpnTunnel,
+        ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
     },
 };
 use futures::{
-    channel::mpsc::{self},
     SinkExt, StreamExt, TryStreamExt,
+    channel::mpsc::{self},
 };
 use tokio::net::UdpSocket;
 

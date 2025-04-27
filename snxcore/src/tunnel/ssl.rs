@@ -21,12 +21,14 @@ use tracing::{debug, trace, warn};
 
 use codec::{SslPacketCodec, SslPacketType};
 
-use crate::model::proto::{ClientHelloData, HelloReply, HelloReplyData, OfficeMode, OptionalRequest};
-use crate::model::{ConnectionInfo, VpnSession};
 use crate::{
     ccc::CccHttpClient,
-    model::params::{TransportType, TunnelParams},
-    platform::{self, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
+    model::{
+        ConnectionInfo, VpnSession,
+        params::{TransportType, TunnelParams},
+        proto::{ClientHelloData, HelloReply, HelloReplyData, OfficeMode, OptionalRequest},
+    },
+    platform::{self, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
     sexpr::SExpression,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
@@ -196,7 +198,7 @@ impl SslTunnel {
                 let config = self.make_resolver_config();
                 let _ = self.setup_dns(config, device.name(), true).await;
             }
-            platform::delete_device(device.name()).await;
+            let _ = platform::new_network_interface().delete_device(device.name()).await;
             debug!("Signing out");
             let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
             let _ = client.signout().await;
@@ -324,7 +326,7 @@ impl VpnTunnel for SslTunnel {
             self.setup_dns(resolver_config.clone(), tun_name, false).await?;
         }
 
-        let _ = platform::configure_device(tun_name).await;
+        let _ = platform::new_network_interface().configure_device(tun_name).await;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 

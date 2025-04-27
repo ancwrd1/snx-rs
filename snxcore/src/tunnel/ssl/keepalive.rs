@@ -1,17 +1,17 @@
 use std::{
     sync::{
-        atomic::{AtomicI64, Ordering},
         Arc,
+        atomic::{AtomicI64, Ordering},
     },
     time::Duration,
 };
 
-use futures::{channel::oneshot, SinkExt};
+use futures::{SinkExt, channel::oneshot};
 use tracing::{trace, warn};
 
 use crate::{
     model::proto::KeepaliveRequestData,
-    platform::{self},
+    platform::{self, NetworkInterface},
     tunnel::ssl::PacketSender,
 };
 
@@ -42,7 +42,7 @@ impl KeepaliveRunner {
 
         tokio::spawn(async move {
             loop {
-                if platform::is_online() {
+                if platform::new_network_interface().is_online() {
                     if keepalive_counter.load(Ordering::SeqCst) >= KEEPALIVE_MAX_RETRIES {
                         let msg = "No response for keepalive packets, tunnel appears stuck";
                         warn!(msg);

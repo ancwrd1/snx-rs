@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use zbus::{zvariant, Connection};
+use zbus::{Connection, zvariant};
 
 #[zbus::proxy(
     interface = "org.freedesktop.portal.Settings",

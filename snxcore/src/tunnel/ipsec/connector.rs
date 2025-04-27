@@ -5,7 +5,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
@@ -21,18 +21,19 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
+        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TransportType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData},
-        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
     },
-    platform, server_info,
+    platform::{self, NetworkInterface},
+    server_info,
     sexpr::SExpression,
     tunnel::{
+        TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
         ipsec::{
             imp::{native::NativeIpsecTunnel, tcpt::TcptIpsecTunnel, udp::UdpIpsecTunnel},
             natt::NattProber,
         },
-        TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
     },
     util,
 };
@@ -348,7 +349,7 @@ impl IpsecTunnelConnector {
             self.ipsec_session.lifetime - MIN_ESP_LIFETIME
         };
 
-        if platform::is_online()
+        if platform::new_network_interface().is_online()
             && self
                 .last_rekey
                 .is_some_and(|last_rekey| SystemTime::now().duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
@@ -506,7 +507,7 @@ impl IpsecTunnelConnector {
 #[async_trait]
 impl TunnelConnector for IpsecTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
-        let my_address = platform::get_default_ip().await?.parse::<Ipv4Addr>()?;
+        let my_address = platform::new_network_interface().get_default_ip().await?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
 

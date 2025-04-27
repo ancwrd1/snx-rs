@@ -8,7 +8,7 @@ use std::{
     process::Output,
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use itertools::Itertools;
 use tokio::process::Command;

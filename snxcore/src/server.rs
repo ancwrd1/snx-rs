@@ -5,14 +5,14 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use futures::{FutureExt, SinkExt, StreamExt};
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{Mutex, mpsc};
 use tracing::{debug, warn};
 
 use crate::{
     model::{
-        params::TunnelParams, ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession,
+        ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession, params::TunnelParams,
     },
     tunnel::{self, TunnelConnector, TunnelEvent},
 };

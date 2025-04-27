@@ -8,11 +8,11 @@ use tracing::{debug, warn};
 use crate::{
     ccc::CccHttpClient,
     model::{
+        MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TunnelParams},
         proto::AuthResponse,
-        MfaChallenge, MfaType, SessionState, VpnSession,
     },
-    tunnel::{ssl::SslTunnel, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel},
+    tunnel::{TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel, ssl::SslTunnel},
 };
 
 pub struct CccTunnelConnector {
@@ -40,7 +40,7 @@ impl CccTunnelConnector {
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
                     }),
                     ipsec_session: None,
-                }))
+                }));
             }
             "done" => {}
             other => {

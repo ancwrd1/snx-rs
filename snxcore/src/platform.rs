@@ -8,8 +8,7 @@ use tokio::net::UdpSocket;
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
 pub use platform_impl::{
-    IpsecImpl, KeychainImpl, RoutingImpl, SingleInstance, configure_device, delete_device, get_machine_uuid, init,
-    net::{get_default_ip, is_online, poll_online, start_network_state_monitoring},
+    IpsecImpl, KeychainImpl, NetworkInterfaceImpl, RoutingImpl, SingleInstance, get_machine_uuid, init,
     new_resolver_configurator,
 };
 
@@ -80,6 +79,17 @@ pub trait RoutingConfigurator {
     async fn remove_keepalive_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
 }
 
+#[async_trait]
+pub trait NetworkInterface {
+    async fn start_network_state_monitoring(&self) -> anyhow::Result<()>;
+    async fn get_default_ip(&self) -> anyhow::Result<Ipv4Addr>;
+    async fn delete_device(&self, device_name: &str) -> anyhow::Result<()>;
+    async fn configure_device(&self, device_name: &str) -> anyhow::Result<()>;
+
+    fn is_online(&self) -> bool;
+    fn poll_online(&self);
+}
+
 pub fn new_ipsec_configurator(
     tunnel_params: Arc<TunnelParams>,
     ipsec_session: IpsecSession,
@@ -96,4 +106,8 @@ pub fn new_keychain() -> impl Keychain {
 
 pub fn new_routing_configurator<S: AsRef<str>>(device: S, address: Ipv4Addr) -> impl RoutingConfigurator {
     RoutingImpl::new(device, address)
+}
+
+pub fn new_network_interface() -> impl NetworkInterface {
+    NetworkInterfaceImpl::new()
 }

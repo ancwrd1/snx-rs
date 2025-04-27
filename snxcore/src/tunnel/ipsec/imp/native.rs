@@ -1,7 +1,7 @@
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };
@@ -15,12 +15,12 @@ use tracing::debug;
 use crate::model::ConnectionInfo;
 use crate::{
     ccc::CccHttpClient,
-    model::{params::TunnelParams, VpnSession},
+    model::{VpnSession, params::TunnelParams},
     platform::{self, IpsecConfigurator, UdpEncap, UdpSocketExt},
     server_info,
     tunnel::{
-        ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener},
         TunnelCommand, TunnelEvent, VpnTunnel,
+        ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener},
     },
     util,
 };

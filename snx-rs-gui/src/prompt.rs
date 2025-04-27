@@ -1,8 +1,8 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use gtk4::{
-    glib::{self, clone, ControlFlow},
-    prelude::*,
     Align, Orientation, ResponseType,
+    glib::{self, ControlFlow, clone},
+    prelude::*,
 };
 use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 use tokio::sync::mpsc;
