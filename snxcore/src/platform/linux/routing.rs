@@ -45,7 +45,6 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
 
     async fn setup_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
         debug!("Setting up default route through {}", self.device);
-        let device = self.device.clone();
         crate::util::run_command(
             "ip",
             [
@@ -55,7 +54,7 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 "via",
                 &self.address.to_string(),
                 "dev",
-                &device,
+                &self.device,
             ],
         )
         .await?;
