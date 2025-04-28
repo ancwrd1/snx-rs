@@ -121,7 +121,11 @@ impl IpsecTunnelConnector {
         let prober = NattProber::new(socket.peer_addr()?, params.port_knock);
 
         let esp_transport = if prober.probe().await.is_ok() {
-            TransportType::default()
+            if platform::get_features().ipsec_native {
+                TransportType::Native
+            } else {
+                TransportType::Udp
+            }
         } else {
             TransportType::Tcpt
         };

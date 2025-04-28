@@ -51,6 +51,11 @@ impl KeepaliveRunner {
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
+        if !platform::get_features().ipsec_keepalive {
+            futures::future::pending::<()>().await;
+            return Ok(());
+        }
+
         let src = self.src.to_string();
 
         let udp = tokio::net::UdpSocket::bind((src, TunnelParams::IPSEC_KEEPALIVE_PORT)).await?;

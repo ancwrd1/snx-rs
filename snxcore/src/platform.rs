@@ -8,7 +8,7 @@ use tokio::net::UdpSocket;
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
 pub use platform_impl::{
-    IpsecImpl, KeychainImpl, NetworkInterfaceImpl, RoutingImpl, SingleInstance, get_machine_uuid, init,
+    IpsecImpl, KeychainImpl, NetworkInterfaceImpl, RoutingImpl, SingleInstance, get_features, get_machine_uuid, init,
     new_resolver_configurator,
 };
 
@@ -16,6 +16,13 @@ use crate::model::{IpsecSession, params::TunnelParams};
 
 #[cfg(target_os = "linux")]
 mod linux;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlatformFeatures {
+    pub ipsec_native: bool,
+    pub ipsec_keepalive: bool,
+    pub split_dns: bool,
+}
 
 #[async_trait]
 pub trait IpsecConfigurator {

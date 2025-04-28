@@ -16,7 +16,7 @@ pub use resolver::new_resolver_configurator;
 pub use routing::LinuxRoutingConfigurator as RoutingImpl;
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
-use crate::platform::{UdpEncap, UdpSocketExt};
+use crate::platform::{PlatformFeatures, UdpEncap, UdpSocketExt};
 
 mod keychain;
 pub mod net;
@@ -143,4 +143,12 @@ impl Drop for SingleInstance {
 pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
     let data = fs::read_to_string("/etc/machine-id")?;
     Ok(Uuid::try_parse(data.trim())?)
+}
+
+pub fn get_features() -> PlatformFeatures {
+    PlatformFeatures {
+        ipsec_native: true,
+        ipsec_keepalive: true,
+        split_dns: true,
+    }
 }

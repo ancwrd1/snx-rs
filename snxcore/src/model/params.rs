@@ -194,9 +194,8 @@ impl FromStr for IconTheme {
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TransportType {
-    #[cfg_attr(target_os = "linux", default)]
+    #[default]
     Native,
-    #[cfg_attr(not(target_os = "linux"), default)]
     Udp,
     Tcpt,
 }
