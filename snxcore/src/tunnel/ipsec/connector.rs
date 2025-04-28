@@ -220,7 +220,7 @@ impl IpsecTunnelConnector {
             .unwrap_or_default()
             .split([',', ';'])
             .map(|s| {
-                if self.params.set_routing_domains {
+                if self.params.set_routing_domains && platform::get_features().split_dns {
                     format!("~{}", s)
                 } else {
                     s.to_owned()

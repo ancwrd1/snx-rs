@@ -240,7 +240,7 @@ impl SslTunnel {
             .unwrap_or_default()
             .iter()
             .map(|s| {
-                if self.params.set_routing_domains {
+                if self.params.set_routing_domains && platform::get_features().split_dns {
                     format!("~{}", s)
                 } else {
                     s.clone()
