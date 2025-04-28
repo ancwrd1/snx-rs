@@ -57,7 +57,7 @@ impl NativeIpsecTunnel {
         let keepalive_runner = KeepaliveRunner::new(
             ipsec_session.address,
             gateway_address,
-            if params.no_keepalive {
+            if params.no_keepalive || !platform::get_features().ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
                 ready.clone()
