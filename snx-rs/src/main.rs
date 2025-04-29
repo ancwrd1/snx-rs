@@ -19,6 +19,7 @@ use snxcore::{
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
     server_info, tunnel,
+    tunnel::TunnelEvent,
 };
 
 use crate::cmdline::CmdlineParams;
@@ -193,11 +194,6 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         warn!("Unable to start network monitoring: {}", e);
     }
 
-    println!(
-        "Connected to {} via {}, press Ctrl-C to exit.",
-        params.server_name, params.tunnel_type
-    );
-
     let (event_sender, mut event_receiver) = mpsc::channel(16);
     let tunnel_fut = await_termination(tunnel.run(command_receiver, event_sender));
 
@@ -207,7 +203,12 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         tokio::select! {
             event = event_receiver.recv() => {
                 if let Some(event) = event {
-                    let _ = connector.handle_tunnel_event(event).await;
+                    let _ = connector.handle_tunnel_event(event.clone()).await;
+
+                    if let TunnelEvent::Connected(info) = event {
+                        println!("{}", info.print());
+                        println!("Tunnel connected, press Ctrl-C to exit.");
+                    }
                 }
             }
             result = &mut tunnel_fut => {
@@ -216,6 +217,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     let client = CccHttpClient::new(params.clone(), Some(session));
                     let _ = client.signout().await;
                 }
+                println!("\nTunnel disconnected");
                 break result;
             }
         }
