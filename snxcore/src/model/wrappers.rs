@@ -146,7 +146,7 @@ impl<T: TryFrom<u64>> Visitor<'_> for MaybeVisitor<T> {
     {
         Ok(Maybe(Some(
             v.try_into()
-                .map_err(|_| serde::de::Error::custom("Cannot convert from u64"))?,
+                .map_err(|_| Error::custom("Cannot convert from u64"))?,
         )))
     }
 

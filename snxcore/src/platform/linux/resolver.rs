@@ -64,7 +64,7 @@ where
 
 // In some distros (NixOS, for example), /etc/resolv.conf is doubly linked.
 // So, we must follow symbolic links until we find a real file.
-// But we'll stop following after 10 hoops, because we don't want to fall into
+// But we'll stop following after 10 hoops because we don't want to fall into
 // a circular reference loop.
 fn read_symlinks(path: PathBuf, depth: u8) -> anyhow::Result<PathBuf> {
     if depth == 0 {

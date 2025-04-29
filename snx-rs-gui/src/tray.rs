@@ -213,19 +213,19 @@ impl ksni::Tray for KsniTray {
         "SNX-RS".to_string()
     }
 
-    fn icon_pixmap(&self) -> Vec<Icon> {
-        if let PixmapOrName::Pixmap(icon) = &self.icon {
-            vec![icon.clone()]
-        } else {
-            vec![]
-        }
-    }
-
     fn icon_name(&self) -> String {
         if let PixmapOrName::Name(name) = &self.icon {
             name.to_string()
         } else {
             String::new()
+        }
+    }
+
+    fn icon_pixmap(&self) -> Vec<Icon> {
+        if let PixmapOrName::Pixmap(icon) = &self.icon {
+            vec![icon.clone()]
+        } else {
+            vec![]
         }
     }
 

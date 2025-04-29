@@ -30,11 +30,7 @@ use crate::{
     },
     platform::{self, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
     sexpr::SExpression,
-    tunnel::{
-        TunnelCommand, TunnelEvent, VpnTunnel,
-        device::{self, TunDevice},
-        ssl::keepalive::KeepaliveRunner,
-    },
+    tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
     util,
 };
 
@@ -316,7 +312,7 @@ impl VpnTunnel for SslTunnel {
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let mut tun = device::TunDevice::new(name_hint, ip_address, netmask)?;
+        let mut tun = TunDevice::new(name_hint, ip_address, netmask)?;
         let tun_name = tun.name().to_owned();
 
         self.setup_routing(&tun_name).await?;

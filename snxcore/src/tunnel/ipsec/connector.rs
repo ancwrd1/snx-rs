@@ -526,7 +526,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             secondary_realm_hash: login_option.map(|o| o.secondary_realm_hash),
             client_logging_data: Some(ClientLoggingData {
                 os_name: Some("Windows".to_owned()),
-                device_id: Some(crate::util::get_device_id()),
+                device_id: Some(util::get_device_id()),
                 ..Default::default()
             }),
         };
@@ -655,7 +655,7 @@ impl Drop for IpsecTunnelConnector {
     fn drop(&mut self) {
         std::thread::scope(|s| {
             s.spawn(|| {
-                crate::util::block_on(async {
+                util::block_on(async {
                     self.delete_sa().await?;
                     self.terminate_tunnel(false).await
                 })

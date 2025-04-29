@@ -452,7 +452,7 @@ impl SettingsDialog {
             }
         ));
 
-        // Workaround for GTK4 quirks. Without this hackery the cursor for text entries is not rendered.
+        // Workaround for GTK4 quirks. Without this hack, the cursor for text entries is not rendered.
         dialog.connect_show(clone!(
             #[weak]
             fetch_info,

@@ -12,7 +12,7 @@ use crate::{platform::UdpSocketExt, tunnel::TunnelEvent};
 
 const MAX_NATT_PROBES: usize = 2;
 
-// Both packets are IKE SA requests which do some magic of unblocking port 4500 for some users.
+// Both packets are IKE SA requests that do some magic of unblocking port 4500 for some users.
 const NMAP_KNOCK: &[&[u8]] = &[
     &[
         0x0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x10, 0x2, 0x0,
@@ -84,13 +84,13 @@ impl NattProber {
 
         match result {
             Ok(reply) if reply.len() == 32 => {
-                let srcport: [u8; 4] = reply[8..12].try_into().unwrap();
-                let dstport: [u8; 4] = reply[12..16].try_into().unwrap();
+                let source_port: [u8; 4] = reply[8..12].try_into()?;
+                let dest_port: [u8; 4] = reply[12..16].try_into()?;
                 debug!(
-                    "Received NAT-T reply from {}: srcport: {}, dstport: {}, hash: {}",
+                    "Received NAT-T reply from {}: source port: {}, dest port: {}, hash: {}",
                     self.address,
-                    u32::from_be_bytes(srcport),
-                    u32::from_be_bytes(dstport),
+                    u32::from_be_bytes(source_port),
+                    u32::from_be_bytes(dest_port),
                     hex::encode(&reply[reply.len() - 16..reply.len()])
                 );
                 Ok(())
@@ -114,8 +114,8 @@ impl NattProber {
     }
 }
 
-// start a dummy UDP listener with UDP_ENCAP option.
-// this is necessary in order to perform automatic decapsulation of incoming ESP packets
+// start a fake UDP listener with the UDP_ENCAP option.
+// this is necessary to perform automatic decapsulation of incoming ESP packets
 pub async fn start_natt_listener(
     socket: Arc<UdpSocket>,
     sender: mpsc::Sender<TunnelEvent>,

@@ -178,7 +178,7 @@ impl Drop for NativeIpsecTunnel {
     fn drop(&mut self) {
         debug!("Cleaning up IPSec tunnel");
         std::thread::scope(|s| {
-            s.spawn(|| crate::util::block_on(self.cleanup()));
+            s.spawn(|| util::block_on(self.cleanup()));
         });
     }
 }

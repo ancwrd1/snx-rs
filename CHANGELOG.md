@@ -1,5 +1,5 @@
 ## Unreleased
-- On deskop environments other than GNOME or KDE use standard icons instead of pixmaps.
+- On desktop environments other than GNOME or KDE use standard icons instead of pixmaps.
 - Better server information output with "snxctl info" command.
 
 ## v4.1.0 (2025-04-25)
@@ -37,7 +37,7 @@
 ## v3.1.0 (2025-02-21)
 - Added `password-factor=N` option to determine which authentication factor is the password. Default is 1 (first).
 - Added `set-routing-domains=true|false` option to treat the received search domains as [routing domains](https://systemd.io/RESOLVED-VPNS/).
-- Return non-zero exit code from snxctl when an error is euncountered.
+- Return non-zero exit code from snxctl when an error is encountered.
 - Extended "-m info" to show list of factors per login type
 
 ## v3.0.6 (2025-02-16)
@@ -117,5 +117,5 @@
 
 ## v2.4.1 (2024-08-26)
 - Don't hard-fail the connection if there is IP address mismatch in the IPSec ID payload. This seems to cause issues with some users. The warning will be logged instead.
-- Don't require user name to be specified for password logins. The user will be prompted for it if needed.
+- Don't require username to be specified for password logins. The user will be prompted for it if needed.
 - Improved MFA prompts retrieval from the server.

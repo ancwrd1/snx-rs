@@ -37,11 +37,7 @@ Run the service application in command mode, then start the GUI frontend which w
 * IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
 * Automatic IPSec tunnel reconnection without authentication, via optional parameter
 * SSL tunnel via Linux TUN device (deprecated)
-* Store password factor in the OS keychain using Secret Service API
-
-## Limitations
-
-* Certificate enrollment and renewal is not supported
+* Store a password factor in the OS keychain using Secret Service API
 
 ## System Requirements
 
@@ -61,8 +57,8 @@ To find out whether it is already enabled, check the /etc/resolv.conf file:
 
 `readlink /etc/resolv.conf`
 
-If it is a symlink pointing to `/run/systemd/resolve/stub-resolv.conf` then it is already configured on your system.
-Otherwise follow these steps:
+If it is a symlink pointing to `/run/systemd/resolve/stub-resolv.conf` then it is already configured on your system,
+otherwise follow these steps:
 
 1. `sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf`
 2. `sudo systemctl enable --now systemd-resolved`
@@ -76,8 +72,7 @@ The `set-routing-domains=true|false` option controls whether to treat all acquir
 
 ## Tunnel Transport Selection
 
-IPSec is the default transport and is preferred because of it's performance and support for extended authentication types.
-By default, it will use native kernel IPSec infrastructure with a UDP-based tunnel over port 4500.
+IPSec is the preferred transport. By default, it will use native kernel IPSec infrastructure with a UDP-based tunnel over port 4500.
 
 In some environments those ports may be blocked by the firewall; in this case the application will fall back to the proprietary Check Point TCPT
 transport via TCP port 443, which is slower than native UDP.
@@ -162,7 +157,7 @@ The following parameters control certificate-based authentication:
 * `cert-type`: One of `none`, `pkcs12`, `pkcs8` or `pkcs11`. Choose `pkcs12` to read the certificate from an external PFX file. Choose `pkcs8` to read the certificate from an external PEM file (containing both private key and x509 cert). Choose `pkcs11` to use a hardware token via a PKCS11 driver.
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed.
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
-* `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of 'xx:xx:xx' or 'xxxxxx'.
+* `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of `xx:xx:xx` or `xxxxxx`.
 
 ## Persistent IPSec Session
 

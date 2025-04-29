@@ -56,7 +56,7 @@ impl KeepaliveRunner {
         let udp = tokio::net::UdpSocket::bind((src, TunnelParams::IPSEC_KEEPALIVE_PORT)).await?;
         udp.connect((self.dst, TunnelParams::IPSEC_KEEPALIVE_PORT)).await?;
 
-        // disable UDP checksum validation for incoming packets.
+        // Disable UDP checksum validation for incoming packets.
         // Checkpoint gateway doesn't set it correctly.
         udp.set_no_check(true)?;
 

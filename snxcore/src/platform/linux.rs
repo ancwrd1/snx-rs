@@ -53,7 +53,7 @@ impl UdpSocketExt for UdpSocket {
                 libc::SOL_UDP,
                 libc::UDP_ENCAP,
                 &stype as *const libc::c_int as _,
-                std::mem::size_of::<libc::c_int>() as _,
+                size_of::<libc::c_int>() as _,
             );
             if rc != 0 {
                 Err(anyhow!("Cannot set UDP_ENCAP socket option, error code: {}", rc))
@@ -71,7 +71,7 @@ impl UdpSocketExt for UdpSocket {
                 libc::SOL_SOCKET,
                 libc::SO_NO_CHECK,
                 &disable as *const libc::c_int as _,
-                std::mem::size_of::<libc::c_int>() as _,
+                size_of::<libc::c_int>() as _,
             );
             if rc != 0 {
                 Err(anyhow!("Cannot set SO_NO_CHECK socket option, error code: {}", rc))
@@ -88,7 +88,7 @@ impl UdpSocketExt for UdpSocket {
 
 pub struct SingleInstance {
     name: String,
-    handle: Option<nix::libc::c_int>,
+    handle: Option<libc::c_int>,
 }
 
 unsafe impl Send for SingleInstance {}
@@ -102,9 +102,9 @@ impl SingleInstance {
             Mode::from_bits_truncate(0o600),
         )?;
 
-        let fl = nix::libc::flock {
-            l_type: nix::libc::F_WRLCK as _,
-            l_whence: nix::libc::SEEK_SET as _,
+        let fl = libc::flock {
+            l_type: libc::F_WRLCK as _,
+            l_whence: libc::SEEK_SET as _,
             l_start: 0,
             l_len: 0,
             l_pid: 0,
@@ -134,7 +134,7 @@ impl Drop for SingleInstance {
     fn drop(&mut self) {
         if let Some(handle) = self.handle.take() {
             let _ = unistd::close(handle);
-            let _ = std::fs::remove_file(&self.name);
+            let _ = fs::remove_file(&self.name);
         }
     }
 }
