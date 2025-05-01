@@ -49,7 +49,15 @@ impl XfrmLink<'_> {
         let opt = format!("net.ipv4.conf.{}.forwarding=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
 
-        iproute2(&["link", "set", self.name, "up"]).await?;
+        iproute2(&[
+            "link",
+            "set",
+            self.name,
+            "mtu",
+            &TunnelParams::DEFAULT_MTU.to_string(),
+            "up",
+        ])
+        .await?;
 
         iproute2(&["addr", "add", &self.address.to_string(), "dev", self.name]).await?;
 
