@@ -63,25 +63,27 @@ impl KeepaliveRunner {
         let mut num_failures = 0;
 
         loop {
-            if platform::new_network_interface().is_online() && self.ready.load(Ordering::SeqCst) {
-                trace!("Sending keepalive to {}", self.dst);
+            if platform::new_network_interface().is_online() {
+                if self.ready.load(Ordering::SeqCst) {
+                    trace!("Sending keepalive to {}", self.dst);
 
-                let data = make_keepalive_packet();
-                let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT).await;
+                    let data = make_keepalive_packet();
+                    let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT).await;
 
-                if let Ok(reply) = result {
-                    trace!("Received keepalive response from {}, size: {}", self.dst, reply.len());
-                    num_failures = 0;
-                } else {
-                    num_failures += 1;
-                    if num_failures >= KEEPALIVE_MAX_RETRIES {
-                        warn!("Maximum number of keepalive retries reached, exiting");
-                        break;
+                    if let Ok(reply) = result {
+                        trace!("Received keepalive response from {}, size: {}", self.dst, reply.len());
+                        num_failures = 0;
+                    } else {
+                        num_failures += 1;
+                        if num_failures >= KEEPALIVE_MAX_RETRIES {
+                            warn!("Maximum number of keepalive retries reached, exiting");
+                            break;
+                        }
+                        warn!(
+                            "Keepalive failed, retrying in {} secs",
+                            KEEPALIVE_RETRY_INTERVAL.as_secs()
+                        );
                     }
-                    warn!(
-                        "Keepalive failed, retrying in {} secs",
-                        KEEPALIVE_RETRY_INTERVAL.as_secs()
-                    );
                 }
             } else {
                 num_failures = 0;
