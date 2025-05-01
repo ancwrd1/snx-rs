@@ -290,7 +290,7 @@ impl TunnelParams {
     pub const IPSEC_KEEPALIVE_PORT: u16 = 18234;
     pub const DEFAULT_IPSEC_IF_NAME: &'static str = "snx-xfrm";
     pub const DEFAULT_SSL_IF_NAME: &'static str = "snx-tun";
-    pub const DEFAULT_MTU: u16 = 1336;
+    pub const DEFAULT_MTU: u16 = 1350;
 
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut params = Self::default();
