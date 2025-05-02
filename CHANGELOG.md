@@ -1,4 +1,4 @@
-## Unreleased
+## v4.2.0 (2025-05-02)
 - On desktop environments other than GNOME or KDE use standard icons instead of pixmaps.
 - Better server information output with "snxctl info" command.
 - Show connection information in standalone mode.
