@@ -3,7 +3,7 @@
 - Better server information output with "snxctl info" command.
 - Show connection information in standalone mode.
 - Added a logic to allow invalid ICMP state packets on the tunnel interface when firewalld/nftables is active, to avoid DNS query delays.
-- Ste MTU size to 1350 on the tunnel interface.
+- Set MTU size to 1350 on the tunnel interface.
 - Fixed a bug with unnecessary network state polling when keepalive is disabled.
 
 
