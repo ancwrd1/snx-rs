@@ -6,10 +6,12 @@ use std::{
 use anyhow::anyhow;
 use async_trait::async_trait;
 use futures::StreamExt;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use tracing::debug;
 use zbus::Connection;
 
-use crate::platform::NetworkInterface;
+use crate::{platform::NetworkInterface, util};
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
@@ -62,6 +64,52 @@ pub struct LinuxNetworkInterface;
 impl LinuxNetworkInterface {
     pub fn new() -> Self {
         Self
+    }
+
+    async fn set_allow_firewalld_icmp_invalid_state(&self, device_name: &str) -> anyhow::Result<()> {
+        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"ct state invalid drop # handle ([0-9]+)").unwrap());
+
+        debug!("Checking if firewalld/nftables is active");
+
+        let output = util::run_command("nft", ["-a", "list", "chain", "inet", "firewalld", "filter_INPUT"])
+            .await
+            .inspect_err(|_| debug!("firewalld/nftables not active"))?;
+
+        if !output.contains(device_name) {
+            for line in output.lines() {
+                if let Some(captures) = REGEX.captures(line) {
+                    let handle = &captures[1];
+                    debug!("Found handle: {}, adding rule to allow invalid ICMP state", handle);
+                    util::run_command(
+                        "nft",
+                        [
+                            "insert",
+                            "rule",
+                            "inet",
+                            "firewalld",
+                            "filter_INPUT",
+                            "position",
+                            handle,
+                            "iifname",
+                            device_name,
+                            "ip",
+                            "protocol",
+                            "icmp",
+                            "icmp",
+                            "type",
+                            "destination-unreachable",
+                            "ct",
+                            "state",
+                            "invalid accept",
+                        ],
+                    )
+                    .await?;
+                }
+            }
+        } else {
+            debug!("nftables rule already exists, skipping");
+        }
+        Ok(())
     }
 }
 
@@ -117,6 +165,7 @@ impl NetworkInterface for LinuxNetworkInterface {
 
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
         crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
+        let _ = self.set_allow_firewalld_icmp_invalid_state(device_name).await;
         Ok(())
     }
 

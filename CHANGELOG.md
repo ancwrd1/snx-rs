@@ -1,6 +1,11 @@
 ## Unreleased
 - On desktop environments other than GNOME or KDE use standard icons instead of pixmaps.
 - Better server information output with "snxctl info" command.
+- Show connection information in standalone mode.
+- Added a logic to allow invalid ICMP state packets on the tunnel interface when firewalld/nftables is active, to avoid DNS query delays.
+- Ste MTU size to 1350 on the tunnel interface.
+- Fixed a bug with unnecessary network state polling when keepalive is disabled.
+
 
 ## v4.1.0 (2025-04-25)
 - Fixed a problem with invalid search domains sent by some VPN servers.
