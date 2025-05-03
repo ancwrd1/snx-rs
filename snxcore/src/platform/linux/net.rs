@@ -6,14 +6,16 @@ use std::{
 use anyhow::anyhow;
 use async_trait::async_trait;
 use futures::StreamExt;
-use once_cell::sync::Lazy;
-use regex::Regex;
 use tracing::debug;
 use zbus::Connection;
 
 use crate::{platform::NetworkInterface, util};
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
+
+const SNX_RS_CHAIN_NAME: &str = "filter_SNXRS_ICMP";
+
+const FIREWALLD_CHAIN_NAME: &str = "filter_INPUT";
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum NetworkManagerState {
@@ -66,49 +68,69 @@ impl LinuxNetworkInterface {
         Self
     }
 
-    async fn set_allow_firewalld_icmp_invalid_state(&self, device_name: &str) -> anyhow::Result<()> {
-        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"ct state invalid drop # handle ([0-9]+)").unwrap());
+    async fn is_firewalld_active(&self) -> bool {
+        util::run_command("firewall-cmd", ["--state"]).await.is_ok() && self.chain_exists(FIREWALLD_CHAIN_NAME).await
+    }
 
-        debug!("Checking if firewalld/nftables is active");
-
-        let output = util::run_command("nft", ["-a", "list", "chain", "inet", "firewalld", "filter_INPUT"])
+    async fn chain_exists(&self, chain: &str) -> bool {
+        util::run_command("nft", ["list", "chain", "inet", "firewalld", chain])
             .await
-            .inspect_err(|_| debug!("firewalld/nftables not active"))?;
+            .is_ok()
+    }
 
-        if !output.contains(device_name) {
-            for line in output.lines() {
-                if let Some(captures) = REGEX.captures(line) {
-                    let handle = &captures[1];
-                    debug!("Found handle: {}, adding rule to allow invalid ICMP state", handle);
-                    util::run_command(
-                        "nft",
-                        [
-                            "insert",
-                            "rule",
-                            "inet",
-                            "firewalld",
-                            "filter_INPUT",
-                            "position",
-                            handle,
-                            "iifname",
-                            device_name,
-                            "ip",
-                            "protocol",
-                            "icmp",
-                            "icmp",
-                            "type",
-                            "destination-unreachable",
-                            "ct",
-                            "state",
-                            "invalid accept",
-                        ],
-                    )
-                    .await?;
-                }
-            }
-        } else {
-            debug!("nftables rule already exists, skipping");
+    async fn set_allow_firewalld_icmp_invalid_state(&self, device_name: &str) -> anyhow::Result<()> {
+        if !self.is_firewalld_active().await {
+            debug!("firewalld/nftables not active");
+            return Ok(());
         }
+
+        if !self.chain_exists(SNX_RS_CHAIN_NAME).await {
+            debug!("Creating {SNX_RS_CHAIN_NAME} chain");
+            util::run_command("nft", ["add", "chain", "inet", "firewalld", SNX_RS_CHAIN_NAME]).await?;
+
+            util::run_command(
+                "nft",
+                [
+                    "add",
+                    "rule",
+                    "inet",
+                    "firewalld",
+                    SNX_RS_CHAIN_NAME,
+                    "iifname",
+                    device_name,
+                    "icmp",
+                    "type",
+                    "destination-unreachable",
+                    "icmp",
+                    "code",
+                    "port-unreachable",
+                    "accept",
+                ],
+            )
+            .await?;
+        } else {
+            debug!("Chain {SNX_RS_CHAIN_NAME} already exists");
+        }
+
+        let output = util::run_command("nft", ["list", "chain", "inet", "firewalld", FIREWALLD_CHAIN_NAME]).await?;
+
+        if !output.contains(SNX_RS_CHAIN_NAME) {
+            debug!("Modifying {FIREWALLD_CHAIN_NAME} chain");
+            util::run_command(
+                "nft",
+                [
+                    "insert",
+                    "rule",
+                    "inet",
+                    "firewalld",
+                    "filter_INPUT",
+                    "jump",
+                    SNX_RS_CHAIN_NAME,
+                ],
+            )
+            .await?;
+        }
+
         Ok(())
     }
 }
