@@ -1,5 +1,8 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use cached::proc_macro::cached;
+use tracing::trace;
+
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -9,8 +12,6 @@ use crate::{
     },
     sexpr::SExpression,
 };
-use cached::proc_macro::cached;
-use tracing::trace;
 
 #[cached(
     result = true,

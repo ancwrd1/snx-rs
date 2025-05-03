@@ -2,15 +2,14 @@ use std::{future::Future, path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use futures::pin_mut;
-use tokio::signal::unix;
-use tracing::level_filters::LevelFilter;
-
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
     model::params::TunnelParams,
     prompt::TtyPrompt,
 };
+use tokio::signal::unix;
+use tracing::level_filters::LevelFilter;
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Check Point security gateway", name = "snxctl", version = env!("CARGO_PKG_VERSION"))]

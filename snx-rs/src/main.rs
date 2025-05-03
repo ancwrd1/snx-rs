@@ -2,12 +2,6 @@ use std::{future::Future, sync::Arc};
 
 use clap::Parser;
 use futures::pin_mut;
-use tokio::{
-    signal::unix,
-    sync::{mpsc, oneshot},
-};
-use tracing::{debug, metadata::LevelFilter, warn};
-
 use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
@@ -21,6 +15,11 @@ use snxcore::{
     server_info, tunnel,
     tunnel::TunnelEvent,
 };
+use tokio::{
+    signal::unix,
+    sync::{mpsc, oneshot},
+};
+use tracing::{debug, metadata::LevelFilter, warn};
 
 use crate::cmdline::CmdlineParams;
 

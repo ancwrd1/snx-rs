@@ -1,6 +1,7 @@
-use crate::model::IpsecSession;
-use crate::model::params::TunnelParams;
-use crate::platform::ResolverConfig;
+use crate::{
+    model::{IpsecSession, params::TunnelParams},
+    platform::ResolverConfig,
+};
 
 pub mod connector;
 pub mod imp;

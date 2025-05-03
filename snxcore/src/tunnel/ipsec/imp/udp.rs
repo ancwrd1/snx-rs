@@ -1,5 +1,10 @@
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
+
+use futures::{
+    SinkExt, StreamExt, TryStreamExt,
+    channel::mpsc::{self},
+};
+use tokio::net::UdpSocket;
 
 use crate::{
     model::{
@@ -11,11 +16,6 @@ use crate::{
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
     },
 };
-use futures::{
-    SinkExt, StreamExt, TryStreamExt,
-    channel::mpsc::{self},
-};
-use tokio::net::UdpSocket;
 
 const CHANNEL_SIZE: usize = 1024;
 

@@ -1,6 +1,6 @@
 use std::{
     net::Ipv4Addr,
-    sync::{atomic::AtomicBool, atomic::Ordering},
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use anyhow::anyhow;

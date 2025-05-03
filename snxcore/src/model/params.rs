@@ -1,16 +1,17 @@
+use std::{
+    fmt, fs,
+    io::{Cursor, Write},
+    net::Ipv4Addr,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::Duration,
+};
+
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
-use std::net::Ipv4Addr;
-use std::{
-    fmt, fs,
-    io::{Cursor, Write},
-    path::{Path, PathBuf},
-    str::FromStr,
-    time::Duration,
-};
 use tracing::warn;
 
 use crate::util;

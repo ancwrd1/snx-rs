@@ -9,6 +9,7 @@ use std::{
 
 use anyhow::{Context, anyhow};
 use chrono::Local;
+use codec::{SslPacketCodec, SslPacketType};
 use futures::{
     SinkExt, StreamExt, TryStreamExt,
     channel::mpsc::{self, Receiver, Sender},
@@ -18,8 +19,6 @@ use ipnet::Ipv4Net;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
-
-use codec::{SslPacketCodec, SslPacketType};
 
 use crate::{
     ccc::CccHttpClient,

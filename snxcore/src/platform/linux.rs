@@ -1,20 +1,23 @@
-use std::{fs, os::fd::AsRawFd, os::fd::RawFd, time::Duration};
+use std::{
+    fs,
+    os::fd::{AsRawFd, RawFd},
+    time::Duration,
+};
 
 use anyhow::anyhow;
 use cached::proc_macro::cached;
+pub use keychain::SecretServiceKeychain as KeychainImpl;
+pub use net::LinuxNetworkInterface as NetworkInterfaceImpl;
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
     sys::stat::Mode,
     unistd,
 };
+pub use resolver::new_resolver_configurator;
+pub use routing::LinuxRoutingConfigurator as RoutingImpl;
 use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
-
-pub use keychain::SecretServiceKeychain as KeychainImpl;
-pub use net::LinuxNetworkInterface as NetworkInterfaceImpl;
-pub use resolver::new_resolver_configurator;
-pub use routing::LinuxRoutingConfigurator as RoutingImpl;
 pub use xfrm::XfrmConfigurator as IpsecImpl;
 
 use crate::platform::{PlatformFeatures, UdpEncap, UdpSocketExt};
@@ -30,8 +33,9 @@ const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
 pub fn init() {
     #[cfg(openssl3)]
     {
-        use openssl::provider::Provider;
         use std::sync::OnceLock;
+
+        use openssl::provider::Provider;
 
         static LEGACY_PROVIDER: OnceLock<Provider> = OnceLock::new();
 

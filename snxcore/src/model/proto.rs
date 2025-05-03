@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-use std::net::Ipv4Addr;
+use std::{collections::BTreeMap, net::Ipv4Addr};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};

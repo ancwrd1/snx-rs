@@ -1,11 +1,17 @@
 use std::{cell::OnceCell, sync::Arc, time::Duration};
 
 use clap::Parser;
-use gtk4::prelude::WidgetExt;
 use gtk4::{
     Application, ApplicationWindow, License,
     glib::{self, ControlFlow, clone},
-    prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt},
+    prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt, WidgetExt},
+};
+use snxcore::{
+    browser::SystemBrowser,
+    controller::{ServiceCommand, ServiceController},
+    model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
+    platform::SingleInstance,
+    prompt::SecurePrompt,
 };
 use tokio::sync::mpsc;
 use tracing::level_filters::LevelFilter;
@@ -16,13 +22,6 @@ use crate::{
     status::show_status_dialog,
     theme::init_theme_monitoring,
     tray::{TrayCommand, TrayEvent},
-};
-use snxcore::{
-    browser::SystemBrowser,
-    controller::{ServiceCommand, ServiceController},
-    model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
-    platform::SingleInstance,
-    prompt::SecurePrompt,
 };
 
 mod assets;

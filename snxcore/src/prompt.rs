@@ -1,7 +1,8 @@
-use crate::model::PromptInfo;
+use std::io::{IsTerminal, Write, stderr, stdin};
+
 use anyhow::anyhow;
-use std::io::Write;
-use std::io::{IsTerminal, stderr, stdin};
+
+use crate::model::PromptInfo;
 
 #[async_trait::async_trait]
 pub trait SecurePrompt {

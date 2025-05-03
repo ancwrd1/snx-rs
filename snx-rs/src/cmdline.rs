@@ -1,10 +1,9 @@
+use std::{net::Ipv4Addr, path::PathBuf, time::Duration};
+
 use clap::Parser;
 use ipnet::Ipv4Net;
-use std::net::Ipv4Addr;
-use std::{path::PathBuf, time::Duration};
-use tracing::level_filters::LevelFilter;
-
 use snxcore::model::params::{CertType, OperationMode, TunnelParams, TunnelType};
+use tracing::level_filters::LevelFilter;
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Check Point security gateway", name = "snx-rs", version = env!("CARGO_PKG_VERSION"))]

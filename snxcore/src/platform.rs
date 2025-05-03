@@ -3,14 +3,13 @@ use std::{net::Ipv4Addr, time::Duration};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use ipnet::Ipv4Net;
-use tokio::net::UdpSocket;
-
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
 pub use platform_impl::{
     IpsecImpl, KeychainImpl, NetworkInterfaceImpl, RoutingImpl, SingleInstance, get_features, get_machine_uuid, init,
     new_resolver_configurator,
 };
+use tokio::net::UdpSocket;
 
 use crate::model::IpsecSession;
 

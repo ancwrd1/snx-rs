@@ -6,11 +6,6 @@ use gtk4::{
     prelude::*,
 };
 use ipnet::Ipv4Net;
-use tokio::sync::mpsc::Sender;
-use tracing::warn;
-
-use crate::main_window;
-use crate::tray::TrayCommand;
 use snxcore::{
     model::{
         params::{TunnelParams, TunnelType},
@@ -18,6 +13,10 @@ use snxcore::{
     },
     server_info,
 };
+use tokio::sync::mpsc::Sender;
+use tracing::warn;
+
+use crate::{main_window, tray::TrayCommand};
 
 fn set_container_visible(widget: &Widget, flag: bool) {
     if let Some(parent) = widget.parent() {

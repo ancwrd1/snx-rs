@@ -1,6 +1,11 @@
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
+
 use anyhow::Context;
 use async_trait::async_trait;
-use std::{fs, io::Write, path::Path, path::PathBuf};
 use tracing::debug;
 
 use crate::platform::{ResolverConfig, ResolverConfigurator};
@@ -194,8 +199,9 @@ impl ResolverConfigurator for ResolvConfConfigurator {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::{Error, ErrorKind};
+
+    use super::*;
 
     #[test]
     fn test_detect_resolver_systemd() {
