@@ -14,8 +14,8 @@ use crate::{platform::NetworkInterface, util};
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
 const SNX_RS_CHAIN_NAME: &str = "filter_SNXRS_ICMP";
-
 const FIREWALLD_CHAIN_NAME: &str = "filter_INPUT";
+const FIREWALLD_TABLE_NAME: &str = "firewalld";
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum NetworkManagerState {
@@ -73,49 +73,53 @@ impl LinuxNetworkInterface {
     }
 
     async fn get_chain_rules(&self, chain: &str) -> anyhow::Result<String> {
-        util::run_command("nft", ["list", "chain", "inet", "firewalld", chain]).await
+        util::run_command("nft", ["list", "chain", "inet", FIREWALLD_TABLE_NAME, chain]).await
     }
 
     async fn chain_exists(&self, chain: &str) -> bool {
         self.get_chain_rules(chain).await.is_ok()
     }
 
+    async fn add_chain(&self, chain: &str) -> anyhow::Result<()> {
+        util::run_command("nft", ["add", "chain", "inet", FIREWALLD_TABLE_NAME, chain]).await?;
+        Ok(())
+    }
+
+    async fn add_icmp_rule(&self, chain: &str, device_name: &str) -> anyhow::Result<()> {
+        util::run_command(
+            "nft",
+            [
+                "add",
+                "rule",
+                "inet",
+                FIREWALLD_TABLE_NAME,
+                chain,
+                "iifname",
+                device_name,
+                "icmp",
+                "type",
+                "destination-unreachable",
+                "icmp",
+                "code",
+                "port-unreachable",
+                "accept",
+            ],
+        )
+        .await?;
+        Ok(())
+    }
     async fn set_allow_firewalld_icmp_invalid_state(&self, device_name: &str) -> anyhow::Result<()> {
         if !self.is_firewalld_active().await {
             debug!("firewalld/nftables not active");
             return Ok(());
         }
 
-        if !self.chain_exists(SNX_RS_CHAIN_NAME).await {
-            debug!("Creating {SNX_RS_CHAIN_NAME} chain");
-            util::run_command("nft", ["add", "chain", "inet", "firewalld", SNX_RS_CHAIN_NAME]).await?;
-        } else {
-            debug!("Chain {SNX_RS_CHAIN_NAME} already exists");
-        }
+        self.add_chain(SNX_RS_CHAIN_NAME).await?;
 
         let output = self.get_chain_rules(SNX_RS_CHAIN_NAME).await?;
         if !output.contains(device_name) {
             debug!("Adding rule for {device_name} to {SNX_RS_CHAIN_NAME} chain");
-            util::run_command(
-                "nft",
-                [
-                    "add",
-                    "rule",
-                    "inet",
-                    "firewalld",
-                    SNX_RS_CHAIN_NAME,
-                    "iifname",
-                    device_name,
-                    "icmp",
-                    "type",
-                    "destination-unreachable",
-                    "icmp",
-                    "code",
-                    "port-unreachable",
-                    "accept",
-                ],
-            )
-            .await?;
+            self.add_icmp_rule(SNX_RS_CHAIN_NAME, device_name).await?;
         } else {
             debug!("Rule for {device_name} already exists");
         }
@@ -124,14 +128,15 @@ impl LinuxNetworkInterface {
 
         if !output.contains(SNX_RS_CHAIN_NAME) {
             debug!("Modifying {FIREWALLD_CHAIN_NAME} chain");
+
             util::run_command(
                 "nft",
                 [
                     "insert",
                     "rule",
                     "inet",
-                    "firewalld",
-                    "filter_INPUT",
+                    FIREWALLD_TABLE_NAME,
+                    FIREWALLD_CHAIN_NAME,
                     "jump",
                     SNX_RS_CHAIN_NAME,
                 ],
