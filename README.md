@@ -77,6 +77,9 @@ IPSec is the preferred transport. By default, it will use native kernel IPSec in
 In some environments those ports may be blocked by the firewall; in this case the application will fall back to the proprietary Check Point TCPT
 transport via TCP port 443, which is slower than native UDP.
 
+For older kernels or if IPv6 is disabled in the kernel configuration, the native IPSec support via XFRM interface cannot be used.
+In this case the application will automatically fall back to a TUN device and userspace ESP over UDP tunneling.
+
 For older VPN servers or in case IPSec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
 SSL tunnel has limited support for authentication types: no browser-based SSO, no hardware token support, no MFA in combination with the certificates.  
 
@@ -179,7 +182,6 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 | Problem                                                           | Solution                                                                                                                                                                                |
 |-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Timeout while waiting for identity response`                     | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                      |
-| `Unknown device type`                                             | Make sure IPv6 protocol is enabled in the Linux kernel and 'xfrm' module can be loaded with `sudo modprobe xfrm`.                                                                       |
 | `Error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server host is not reachable or certificate is untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks (not recommended).                             |
 | `No session in reply`                                             | Usually happens when Check Point server runs out of Office Mode licenses. Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect` | 
 | A specific feature is missing or connection does not work         | Use the [cp-ikev1-proxy](https://github.com/ancwrd1/cp-ikev1-proxy) MITM proxy tool to capture the packets from the working Windows VPN client, then create an issue for it.            | 

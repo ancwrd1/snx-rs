@@ -8,6 +8,7 @@ use nix::{
     unistd,
 };
 use tokio::net::UdpSocket;
+use tracing::debug;
 use uuid::Uuid;
 
 pub use keychain::SecretServiceKeychain as KeychainImpl;
@@ -145,9 +146,19 @@ pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
     Ok(Uuid::try_parse(data.trim())?)
 }
 
-pub fn get_features() -> PlatformFeatures {
+#[cached]
+async fn is_xfrm_available() -> bool {
+    let output = crate::util::run_command::<_, _, &str>("lsmod", [])
+        .await
+        .unwrap_or_default();
+    let result = output.contains("xfrm");
+    debug!("XFRM available: {}", result);
+    result
+}
+
+pub async fn get_features() -> PlatformFeatures {
     PlatformFeatures {
-        ipsec_native: true,
+        ipsec_native: is_xfrm_available().await,
         ipsec_keepalive: true,
         split_dns: true,
     }

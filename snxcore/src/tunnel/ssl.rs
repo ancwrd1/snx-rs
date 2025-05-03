@@ -191,7 +191,7 @@ impl SslTunnel {
                 let _ = configurator.remove_default_route(dest_ip).await;
             }
             if !self.params.no_dns {
-                let config = self.make_resolver_config();
+                let config = self.make_resolver_config().await;
                 let _ = self.setup_dns(config, device.name(), true).await;
             }
             let _ = platform::new_network_interface().delete_device(device.name()).await;
@@ -226,7 +226,9 @@ impl SslTunnel {
         Ok(())
     }
 
-    fn make_resolver_config(&self) -> ResolverConfig {
+    async fn make_resolver_config(&self) -> ResolverConfig {
+        let features = platform::get_features().await;
+
         let acquired_domains = self
             .hello_reply
             .office_mode
@@ -236,7 +238,7 @@ impl SslTunnel {
             .unwrap_or_default()
             .iter()
             .map(|s| {
-                if self.params.set_routing_domains && platform::get_features().split_dns {
+                if self.params.set_routing_domains && features.split_dns {
                     format!("~{}", s)
                 } else {
                     s.clone()
@@ -317,7 +319,7 @@ impl VpnTunnel for SslTunnel {
 
         self.setup_routing(&tun_name).await?;
 
-        let resolver_config = self.make_resolver_config();
+        let resolver_config = self.make_resolver_config().await;
 
         if !self.params.no_dns {
             self.setup_dns(resolver_config.clone(), &tun_name, false).await?;
