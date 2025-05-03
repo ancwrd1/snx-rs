@@ -1,5 +1,3 @@
-use std::{fs, os::fd::AsRawFd, time::Duration};
-
 use anyhow::anyhow;
 use cached::proc_macro::cached;
 use nix::{
@@ -7,6 +5,8 @@ use nix::{
     sys::stat::Mode,
     unistd,
 };
+use std::os::fd::RawFd;
+use std::{fs, os::fd::AsRawFd, time::Duration};
 use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
@@ -89,7 +89,7 @@ impl UdpSocketExt for UdpSocket {
 
 pub struct SingleInstance {
     name: String,
-    handle: Option<libc::c_int>,
+    handle: Option<RawFd>,
 }
 
 unsafe impl Send for SingleInstance {}
