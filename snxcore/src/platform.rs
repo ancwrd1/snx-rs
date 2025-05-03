@@ -1,4 +1,4 @@
-use std::{net::Ipv4Addr, sync::Arc, time::Duration};
+use std::{net::Ipv4Addr, time::Duration};
 
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -12,7 +12,7 @@ pub use platform_impl::{
     new_resolver_configurator,
 };
 
-use crate::model::{IpsecSession, params::TunnelParams};
+use crate::model::IpsecSession;
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -26,7 +26,6 @@ pub struct PlatformFeatures {
 
 #[async_trait]
 pub trait IpsecConfigurator {
-    fn name(&self) -> &str;
     async fn configure(&mut self) -> anyhow::Result<()>;
     async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
@@ -98,13 +97,12 @@ pub trait NetworkInterface {
 }
 
 pub fn new_ipsec_configurator(
-    tunnel_params: Arc<TunnelParams>,
+    name: &str,
     ipsec_session: IpsecSession,
     src_port: u16,
     dest_ip: Ipv4Addr,
-    subnets: Vec<Ipv4Net>,
-) -> anyhow::Result<impl IpsecConfigurator> {
-    IpsecImpl::new(tunnel_params, ipsec_session, src_port, dest_ip, subnets)
+) -> anyhow::Result<impl IpsecConfigurator + use<>> {
+    IpsecImpl::new(name, ipsec_session, src_port, dest_ip)
 }
 
 pub fn new_keychain() -> impl Keychain {

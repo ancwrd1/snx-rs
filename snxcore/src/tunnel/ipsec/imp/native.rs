@@ -1,4 +1,5 @@
 use std::{
+    net::Ipv4Addr,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -12,11 +13,10 @@ use ipnet::Ipv4Net;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::debug;
 
-use crate::model::ConnectionInfo;
 use crate::{
     ccc::CccHttpClient,
-    model::{VpnSession, params::TunnelParams},
-    platform::{self, IpsecConfigurator, UdpEncap, UdpSocketExt},
+    model::{ConnectionInfo, VpnSession, params::TunnelParams},
+    platform::{self, IpsecConfigurator, ResolverConfig, RoutingConfigurator, UdpEncap, UdpSocketExt},
     server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
@@ -32,6 +32,9 @@ pub(crate) struct NativeIpsecTunnel {
     ready: Arc<AtomicBool>,
     params: Arc<TunnelParams>,
     session: Arc<VpnSession>,
+    device_name: String,
+    gateway_address: Ipv4Addr,
+    subnets: Vec<Ipv4Net>,
 }
 
 impl NativeIpsecTunnel {
@@ -42,6 +45,8 @@ impl NativeIpsecTunnel {
 
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
+
+        let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
         let gateway_address = util::resolve_ipv4_host(&format!(
             "{}:{}",
@@ -67,12 +72,17 @@ impl NativeIpsecTunnel {
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
 
+        let device_name = params
+            .if_name
+            .as_deref()
+            .unwrap_or(TunnelParams::DEFAULT_IPSEC_IF_NAME)
+            .to_owned();
+
         let mut configurator = platform::new_ipsec_configurator(
-            params.clone(),
+            &device_name,
             ipsec_session.clone(),
             natt_socket.local_addr()?.port(),
             gateway_address,
-            util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect(),
         )?;
 
         configurator.configure().await?;
@@ -85,10 +95,64 @@ impl NativeIpsecTunnel {
             ready,
             params,
             session,
+            device_name,
+            gateway_address,
+            subnets,
         })
     }
 
+    async fn setup_dns(&self, resolver_config: &ResolverConfig, cleanup: bool) -> anyhow::Result<()> {
+        debug!("Configuring resolver: {:?}", resolver_config);
+
+        let resolver = platform::new_resolver_configurator(&self.device_name)?;
+
+        if cleanup {
+            resolver.cleanup(resolver_config).await?;
+        } else {
+            resolver.configure(resolver_config).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn setup_routing(&self) -> anyhow::Result<()> {
+        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
+
+        let configurator = platform::new_routing_configurator(&self.device_name, session.address);
+
+        let mut subnets = self.params.add_routes.clone();
+
+        let mut default_route_set = false;
+
+        if !self.params.no_routing {
+            if self.params.default_route {
+                configurator.setup_default_route(self.gateway_address).await?;
+                default_route_set = true;
+            } else {
+                subnets.extend(&self.subnets);
+            }
+        }
+
+        configurator
+            .setup_keepalive_route(self.gateway_address, !default_route_set)
+            .await?;
+
+        subnets.retain(|s| !s.contains(&self.gateway_address));
+
+        if !subnets.is_empty() {
+            let _ = configurator.add_routes(&subnets, &self.params.ignore_routes).await;
+        }
+
+        Ok(())
+    }
+
     async fn cleanup(&mut self) {
+        if !self.params.no_dns {
+            if let Some(session) = self.session.ipsec_session.as_ref() {
+                let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+                let _ = self.setup_dns(&config, true).await;
+            }
+        }
         self.configurator.cleanup().await;
     }
 }
@@ -106,15 +170,23 @@ impl VpnTunnel for NativeIpsecTunnel {
 
         let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
 
+        self.setup_routing().await?;
+
+        let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+
+        if !self.params.no_dns {
+            self.setup_dns(&resolver_config, false).await?;
+        }
+
         let info = ConnectionInfo {
             since: Local::now(),
             server_name: self.params.server_name.clone(),
             tunnel_type: self.params.tunnel_type,
             transport_type: session.transport_type,
             ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,
-            dns_servers: session.dns.clone(),
-            search_domains: session.domains.clone(),
-            interface_name: self.configurator.name().to_owned(),
+            dns_servers: resolver_config.dns_servers,
+            search_domains: resolver_config.search_domains,
+            interface_name: self.device_name.clone(),
             dns_configured: !self.params.no_dns,
             routing_configured: !self.params.no_routing,
             default_route: self.params.default_route,

@@ -25,7 +25,6 @@ use crate::{
     model::{
         ConnectionInfo, VpnSession,
         params::{TransportType, TunnelParams},
-        proto::ClientSettingsResponse,
     },
     platform::{self, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
     server_info,
@@ -41,15 +40,14 @@ pub type PacketReceiver = Receiver<Bytes>;
 pub(crate) struct TunIpsecTunnel {
     params: Arc<TunnelParams>,
     session: Arc<VpnSession>,
-    ip_address: Ipv4Addr,
     sender: PacketSender,
     receiver: Option<PacketReceiver>,
     tun_device: Option<TunDevice>,
     ready: Arc<AtomicBool>,
-    client_settings: ClientSettingsResponse,
     gateway_address: Ipv4Addr,
     encap_type: EspEncapType,
     esp_transport: TransportType,
+    subnets: Vec<Ipv4Net>,
 }
 
 impl TunIpsecTunnel {
@@ -63,6 +61,8 @@ impl TunIpsecTunnel {
         let server_info = server_info::get(&params).await?;
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
+
+        let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
         let (port, encap_type) = match esp_transport {
             TransportType::Tcpt => (server_info.connectivity_info.tcpt_port, EspEncapType::Udp),
@@ -83,15 +83,14 @@ impl TunIpsecTunnel {
         Ok(Self {
             params,
             session,
-            ip_address: Ipv4Addr::new(0, 0, 0, 0),
             sender,
             receiver: Some(receiver),
             tun_device: None,
             ready,
-            client_settings,
             gateway_address,
             encap_type,
             esp_transport,
+            subnets,
         })
     }
 
@@ -103,22 +102,23 @@ impl TunIpsecTunnel {
 
     async fn cleanup(&mut self) {
         if let Some(device) = self.tun_device.take() {
-            let configurator = platform::new_routing_configurator(device.name(), self.ip_address);
-            if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
-                let _ = configurator.remove_default_route(dest_ip).await;
-                let _ = configurator.remove_keepalive_route(dest_ip).await;
+            if let Some(session) = self.session.ipsec_session.as_ref() {
+                let configurator = platform::new_routing_configurator(device.name(), session.address);
+                let _ = configurator.remove_default_route(self.gateway_address).await;
+                let _ = configurator.remove_keepalive_route(self.gateway_address).await;
+                if !self.params.no_dns {
+                    let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+                    let _ = self.setup_dns(&config, device.name(), true).await;
+                }
+                let _ = platform::new_network_interface().delete_device(device.name()).await;
             }
-            if !self.params.no_dns {
-                let _ = self.setup_dns(device.name(), true).await;
-            }
-            let _ = platform::new_network_interface().delete_device(device.name()).await;
         }
     }
 
     pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
-        let configurator = platform::new_routing_configurator(dev_name, self.ip_address);
+        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
 
-        let dest_ip = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name))?;
+        let configurator = platform::new_routing_configurator(dev_name, session.address);
 
         let mut subnets = self.params.add_routes.clone();
 
@@ -126,18 +126,18 @@ impl TunIpsecTunnel {
 
         if !self.params.no_routing {
             if self.params.default_route {
-                configurator.setup_default_route(dest_ip).await?;
+                configurator.setup_default_route(self.gateway_address).await?;
                 default_route_set = true;
             } else {
-                subnets.extend(util::ranges_to_subnets(
-                    &self.client_settings.updated_policies.range.settings,
-                ));
+                subnets.extend(&self.subnets);
             }
         }
 
-        configurator.setup_keepalive_route(dest_ip, !default_route_set).await?;
+        configurator
+            .setup_keepalive_route(self.gateway_address, !default_route_set)
+            .await?;
 
-        subnets.retain(|s| !s.contains(&dest_ip));
+        subnets.retain(|s| !s.contains(&self.gateway_address));
 
         if !subnets.is_empty() {
             let _ = configurator.add_routes(&subnets, &self.params.ignore_routes).await;
@@ -146,49 +146,18 @@ impl TunIpsecTunnel {
         Ok(())
     }
 
-    pub async fn setup_dns(&self, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
-        let search_domains = if let Some(ref session) = self.session.ipsec_session {
-            session
-                .domains
-                .iter()
-                .chain(self.params.search_domains.iter())
-                .filter(|s| {
-                    !s.is_empty()
-                        && !self
-                            .params
-                            .ignore_search_domains
-                            .iter()
-                            .any(|d| d.to_lowercase() == s.trim_matches('~').to_lowercase())
-                })
-                .cloned()
-                .collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
-
-        let dns_servers = if let Some(ref session) = self.session.ipsec_session {
-            session
-                .dns
-                .iter()
-                .chain(self.params.dns_servers.iter())
-                .filter(|s| !self.params.ignore_dns_servers.iter().any(|d| *d == **s))
-                .cloned()
-                .collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
-
-        let config = ResolverConfig {
-            search_domains,
-            dns_servers,
-        };
-
+    pub async fn setup_dns(
+        &self,
+        resolver_config: &ResolverConfig,
+        dev_name: &str,
+        cleanup: bool,
+    ) -> anyhow::Result<()> {
         let resolver = new_resolver_configurator(dev_name)?;
 
         if cleanup {
-            resolver.cleanup(&config).await?;
+            resolver.cleanup(resolver_config).await?;
         } else {
-            resolver.configure(&config).await?;
+            resolver.configure(resolver_config).await?;
         }
 
         Ok(())
@@ -222,8 +191,12 @@ impl VpnTunnel for TunIpsecTunnel {
 
         self.setup_routing(&tun_name).await?;
 
+        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
+
+        let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+
         if !self.params.no_dns {
-            self.setup_dns(&tun_name, false).await?;
+            self.setup_dns(&resolver_config, &tun_name, false).await?;
         }
 
         let _ = platform::new_network_interface().configure_device(&tun_name).await;
@@ -236,7 +209,7 @@ impl VpnTunnel for TunIpsecTunnel {
 
         let esp_codec_in = Arc::new(RwLock::new(EspCodec::new(
             self.gateway_address,
-            self.ip_address,
+            session.address,
             self.encap_type,
         )));
         esp_codec_in
@@ -245,7 +218,7 @@ impl VpnTunnel for TunIpsecTunnel {
             .set_params(ipsec_session.esp_in.spi, ipsec_session.esp_in.clone());
 
         let esp_codec_out = Arc::new(RwLock::new(EspCodec::new(
-            self.ip_address,
+            session.address,
             self.gateway_address,
             self.encap_type,
         )));
@@ -295,8 +268,8 @@ impl VpnTunnel for TunIpsecTunnel {
             tunnel_type: self.params.tunnel_type,
             transport_type: session.transport_type,
             ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,
-            dns_servers: session.dns.clone(),
-            search_domains: session.domains.clone(),
+            dns_servers: resolver_config.dns_servers,
+            search_domains: resolver_config.search_domains,
             interface_name: tun_name,
             dns_configured: !self.params.no_dns,
             routing_configured: !self.params.no_routing,

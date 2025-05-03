@@ -72,10 +72,12 @@ impl LinuxNetworkInterface {
         util::run_command("firewall-cmd", ["--state"]).await.is_ok() && self.chain_exists(FIREWALLD_CHAIN_NAME).await
     }
 
+    async fn get_chain_rules(&self, chain: &str) -> anyhow::Result<String> {
+        util::run_command("nft", ["list", "chain", "inet", "firewalld", chain]).await
+    }
+
     async fn chain_exists(&self, chain: &str) -> bool {
-        util::run_command("nft", ["list", "chain", "inet", "firewalld", chain])
-            .await
-            .is_ok()
+        self.get_chain_rules(chain).await.is_ok()
     }
 
     async fn set_allow_firewalld_icmp_invalid_state(&self, device_name: &str) -> anyhow::Result<()> {
@@ -87,7 +89,13 @@ impl LinuxNetworkInterface {
         if !self.chain_exists(SNX_RS_CHAIN_NAME).await {
             debug!("Creating {SNX_RS_CHAIN_NAME} chain");
             util::run_command("nft", ["add", "chain", "inet", "firewalld", SNX_RS_CHAIN_NAME]).await?;
+        } else {
+            debug!("Chain {SNX_RS_CHAIN_NAME} already exists");
+        }
 
+        let output = self.get_chain_rules(SNX_RS_CHAIN_NAME).await?;
+        if !output.contains(device_name) {
+            debug!("Adding rule for {device_name} to {SNX_RS_CHAIN_NAME} chain");
             util::run_command(
                 "nft",
                 [
@@ -109,10 +117,10 @@ impl LinuxNetworkInterface {
             )
             .await?;
         } else {
-            debug!("Chain {SNX_RS_CHAIN_NAME} already exists");
+            debug!("Rule for {device_name} already exists");
         }
 
-        let output = util::run_command("nft", ["list", "chain", "inet", "firewalld", FIREWALLD_CHAIN_NAME]).await?;
+        let output = self.get_chain_rules(FIREWALLD_CHAIN_NAME).await?;
 
         if !output.contains(SNX_RS_CHAIN_NAME) {
             debug!("Modifying {FIREWALLD_CHAIN_NAME} chain");
@@ -156,12 +164,12 @@ impl NetworkInterface for LinuxNetworkInterface {
     }
 
     async fn get_default_ip(&self) -> anyhow::Result<Ipv4Addr> {
-        let default_route = crate::util::run_command("ip", ["-4", "route", "show", "default"]).await?;
+        let default_route = util::run_command("ip", ["-4", "route", "show", "default"]).await?;
         let mut parts = default_route.split_whitespace();
         while let Some(part) = parts.next() {
             if part == "dev" {
                 if let Some(dev) = parts.next() {
-                    let addr = crate::util::run_command("ip", ["-4", "-o", "addr", "show", "dev", dev]).await?;
+                    let addr = util::run_command("ip", ["-4", "-o", "addr", "show", "dev", dev]).await?;
                     let mut parts = addr.split_whitespace();
                     while let Some(part) = parts.next() {
                         if part == "inet" {
@@ -181,12 +189,12 @@ impl NetworkInterface for LinuxNetworkInterface {
     }
 
     async fn delete_device(&self, device_name: &str) -> anyhow::Result<()> {
-        crate::util::run_command("ip", ["link", "del", "name", device_name]).await?;
+        util::run_command("ip", ["link", "del", "name", device_name]).await?;
         Ok(())
     }
 
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
-        crate::util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
+        util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
         let _ = self.set_allow_firewalld_icmp_invalid_state(device_name).await;
         Ok(())
     }

@@ -1,4 +1,4 @@
-use std::{net::Ipv4Addr, sync::Arc};
+use std::net::Ipv4Addr;
 
 use ipnet::Ipv4Net;
 use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
@@ -7,9 +7,7 @@ use tracing::{debug, trace};
 
 use crate::{
     model::{IpsecSession, params::TunnelParams},
-    platform::{
-        self, IpsecConfigurator, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator,
-    },
+    platform::{self, IpsecConfigurator, NetworkInterface, RoutingConfigurator},
     util,
 };
 
@@ -230,39 +228,24 @@ impl PolicyDir {
 
 pub struct XfrmConfigurator {
     name: String,
-    tunnel_params: Arc<TunnelParams>,
     ipsec_session: IpsecSession,
     source_ip: Ipv4Addr,
     if_id: u32,
     src_port: u16,
     dest_ip: Ipv4Addr,
-    subnets: Vec<Ipv4Net>,
 }
 
 impl XfrmConfigurator {
-    pub fn new(
-        tunnel_params: Arc<TunnelParams>,
-        ipsec_session: IpsecSession,
-        src_port: u16,
-        dest_ip: Ipv4Addr,
-        subnets: Vec<Ipv4Net>,
-    ) -> anyhow::Result<Self> {
+    pub fn new(name: &str, ipsec_session: IpsecSession, src_port: u16, dest_ip: Ipv4Addr) -> anyhow::Result<Self> {
         let if_id = random();
 
-        let name = tunnel_params
-            .if_name
-            .clone()
-            .unwrap_or_else(|| TunnelParams::DEFAULT_IPSEC_IF_NAME.to_owned());
-
         Ok(Self {
-            name,
-            tunnel_params,
+            name: name.to_owned(),
             ipsec_session,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip,
             if_id,
             src_port,
-            subnets,
         })
     }
 
@@ -346,88 +329,10 @@ impl XfrmConfigurator {
 
         Ok(())
     }
-
-    async fn setup_routing(&self) -> anyhow::Result<()> {
-        let configurator = platform::new_routing_configurator(&self.name, self.ipsec_session.address);
-
-        let mut subnets = self.tunnel_params.add_routes.clone();
-
-        let mut default_route_set = false;
-
-        if !self.tunnel_params.no_routing {
-            if self.tunnel_params.default_route {
-                configurator.setup_default_route(self.dest_ip).await?;
-                default_route_set = true;
-            } else {
-                subnets.extend(&self.subnets);
-            }
-        }
-
-        configurator
-            .setup_keepalive_route(self.dest_ip, !default_route_set)
-            .await?;
-
-        subnets.retain(|s| !s.contains(&self.dest_ip));
-
-        if !subnets.is_empty() {
-            let _ = configurator
-                .add_routes(&subnets, &self.tunnel_params.ignore_routes)
-                .await;
-        }
-
-        Ok(())
-    }
-
-    async fn setup_dns(&self, cleanup: bool) -> anyhow::Result<()> {
-        let suffixes = self
-            .ipsec_session
-            .domains
-            .iter()
-            .chain(&self.tunnel_params.search_domains)
-            .filter(|s| {
-                !self
-                    .tunnel_params
-                    .ignore_search_domains
-                    .iter()
-                    .any(|d| d.to_lowercase() == s.trim_matches('~').to_lowercase())
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let servers = self
-            .ipsec_session
-            .dns
-            .iter()
-            .chain(self.tunnel_params.dns_servers.iter())
-            .filter(|s| !self.tunnel_params.ignore_dns_servers.iter().any(|d| *d == **s))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let resolver = new_resolver_configurator(&self.name)?;
-
-        let config = ResolverConfig {
-            search_domains: suffixes,
-            dns_servers: servers,
-        };
-
-        debug!("Configuring resolver: {:?}", config);
-
-        if cleanup {
-            resolver.cleanup(&config).await?;
-        } else {
-            resolver.configure(&config).await?;
-        }
-
-        Ok(())
-    }
 }
 
 #[async_trait::async_trait]
 impl IpsecConfigurator for XfrmConfigurator {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
     async fn configure(&mut self) -> anyhow::Result<()> {
         self.source_ip = platform::new_network_interface().get_default_ip().await?;
         debug!("Source IP: {}", self.source_ip);
@@ -436,11 +341,6 @@ impl IpsecConfigurator for XfrmConfigurator {
         self.cleanup().await;
         self.setup_xfrm_link().await?;
         self.setup_xfrm_state_and_policies().await?;
-        self.setup_routing().await?;
-
-        if !self.tunnel_params.no_dns {
-            self.setup_dns(false).await?;
-        }
 
         Ok(())
     }
@@ -516,10 +416,6 @@ impl IpsecConfigurator for XfrmConfigurator {
         let _ = self
             .configure_xfrm_policy(CommandType::Delete, PolicyDir::In, self.dest_ip, self.source_ip)
             .await;
-
-        if !self.tunnel_params.no_dns {
-            let _ = self.setup_dns(true).await;
-        }
 
         let _ = self.new_xfrm_link().delete().await;
 
