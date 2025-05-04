@@ -74,7 +74,7 @@ The `set-routing-domains=true|false` option controls whether to treat all acquir
 
 IPSec is the preferred transport. By default, it will use native kernel IPSec infrastructure with a UDP-based tunnel over port 4500.
 
-In some environments those ports may be blocked by the firewall; in this case the application will fall back to the proprietary Check Point TCPT
+In some environments this port may be blocked by the firewall; in this case the application will fall back to the proprietary Check Point TCPT
 transport via TCP port 443, which is slower than native UDP.
 
 For older kernels or if IPv6 is disabled in the kernel configuration, the native IPSec support via XFRM interface cannot be used.
