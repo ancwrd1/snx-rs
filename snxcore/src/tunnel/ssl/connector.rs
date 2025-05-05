@@ -40,6 +40,7 @@ impl CccTunnelConnector {
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
                     }),
                     ipsec_session: None,
+                    username: None,
                 }));
             }
             "done" => {}
@@ -67,6 +68,7 @@ impl CccTunnelConnector {
             ccc_session_id: session_id,
             state: SessionState::Authenticated(active_key.0),
             ipsec_session: None,
+            username: data.username,
         });
         Ok(session)
     }
@@ -85,6 +87,7 @@ impl TunnelConnector for CccTunnelConnector {
                     prompt: "User name: ".to_owned(),
                 }),
                 ipsec_session: None,
+                username: None,
             }))
         } else {
             let client = CccHttpClient::new(self.params.clone(), None);

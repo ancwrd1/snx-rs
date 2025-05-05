@@ -51,6 +51,7 @@ pub struct VpnSession {
     pub ccc_session_id: String,
     pub ipsec_session: Option<IpsecSession>,
     pub state: SessionState,
+    pub username: Option<String>,
 }
 
 impl VpnSession {
@@ -59,6 +60,7 @@ impl VpnSession {
             ccc_session_id: String::new(),
             ipsec_session: None,
             state: SessionState::default(),
+            username: None,
         }
     }
 
@@ -98,6 +100,8 @@ pub struct MfaChallenge {
 pub struct ConnectionInfo {
     pub since: DateTime<Local>,
     pub server_name: String,
+    pub username: String,
+    pub login_type: String,
     pub tunnel_type: TunnelType,
     pub transport_type: TransportType,
     pub ip_address: Ipv4Net,
@@ -114,6 +118,8 @@ impl ConnectionInfo {
         vec![
             ("Connected since", self.since.format("%Y-%m-%d %H:%M:%S").to_string()),
             ("Server name", self.server_name.clone()),
+            ("User name", self.username.clone()),
+            ("Login type", self.login_type.clone()),
             ("Tunnel type", self.tunnel_type.to_string()),
             ("Transport type", self.transport_type.to_string()),
             ("IP address", self.ip_address.to_string()),

@@ -181,6 +181,8 @@ impl VpnTunnel for NativeIpsecTunnel {
         let info = ConnectionInfo {
             since: Local::now(),
             server_name: self.params.server_name.clone(),
+            username: self.session.username.clone().unwrap_or_default(),
+            login_type: self.params.login_type.clone(),
             tunnel_type: self.params.tunnel_type,
             transport_type: session.transport_type,
             ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,

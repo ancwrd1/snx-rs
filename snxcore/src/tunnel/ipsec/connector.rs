@@ -96,6 +96,7 @@ pub struct IpsecTunnelConnector {
     last_identifier: u16,
     last_challenge_type: ConfigAttributeType,
     ccc_session: String,
+    username: String,
     ipsec_session: IpsecSession,
     last_rekey: Option<SystemTime>,
     command_sender: Option<Sender<TunnelCommand>>,
@@ -140,6 +141,7 @@ impl IpsecTunnelConnector {
             last_identifier: 0,
             last_challenge_type: ConfigAttributeType::Other(0),
             ccc_session: String::new(),
+            username: String::new(),
             ipsec_session: IpsecSession::default(),
             last_rekey: None,
             command_sender: None,
@@ -187,10 +189,11 @@ impl IpsecTunnelConnector {
                 mfa_type: MfaType::from_id(&id),
                 prompt,
             }),
+            username: None,
         }))
     }
 
-    async fn do_session_exchange(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+    async fn do_session_exchange(&mut self, username: String) -> anyhow::Result<Arc<VpnSession>> {
         let om_reply = self.service.send_om_request().await?;
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
@@ -231,6 +234,7 @@ impl IpsecTunnelConnector {
             .collect();
 
         self.ipsec_session.transport_type = self.esp_transport;
+        self.username = username;
 
         self.do_esp_proposal().await?;
 
@@ -253,7 +257,20 @@ impl IpsecTunnelConnector {
                     .send_ack_response(id_reply.identifier, self.last_message_id)
                     .await?;
 
-                self.do_session_exchange().await
+                let message = get_long_attribute(&id_reply, ConfigAttributeType::Message)
+                    .and_then(|m| String::from_utf8_lossy(&m).split_once('\0').map(|(_, m)| m.to_owned()))
+                    .and_then(|m| m.parse::<SExpression>().ok());
+
+                let username = if let Some(message) = message {
+                    message
+                        .get_value::<String>("msg_obj:arguments:0:val:msg_obj:arguments:0:val")
+                        .unwrap_or_else(|| self.params.user_name.clone())
+                } else {
+                    self.params.user_name.clone()
+                };
+                debug!("Authenticated username: {}", username);
+
+                self.do_session_exchange(username).await
             }
             Some(status) => {
                 warn!("IPSec authentication failed, status: {}", status);
@@ -273,6 +290,7 @@ impl IpsecTunnelConnector {
                             mfa_type: MfaType::UserNameInput,
                             prompt: "User name: ".to_owned(),
                         }),
+                        username: None,
                     })
                 } else {
                     anyhow::bail!("No challenge in payload!");
@@ -396,6 +414,7 @@ impl IpsecTunnelConnector {
     fn save_ike_session(&mut self) -> anyhow::Result<()> {
         let office_mode = OfficeMode {
             ccc_session: self.ccc_session.clone(),
+            username: self.username.clone(),
             ip_address: self.ipsec_session.address,
             netmask: self.ipsec_session.netmask,
             dns: self.ipsec_session.dns.clone(),
@@ -432,12 +451,13 @@ impl IpsecTunnelConnector {
     async fn do_restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         let office_mode = self.load_ike_session()?;
 
-        match self.do_session_exchange().await {
+        match self.do_session_exchange(office_mode.username.clone()).await {
             Ok(session) => Ok(session),
             Err(e) => {
                 warn!("OM session exchange failed: {}, reusing previous settings", e);
 
                 self.ccc_session = office_mode.ccc_session;
+                self.username = office_mode.username;
                 self.ipsec_session.address = office_mode.ip_address;
                 self.ipsec_session.netmask = office_mode.netmask;
                 self.ipsec_session.dns = office_mode.dns;
@@ -455,6 +475,7 @@ impl IpsecTunnelConnector {
             ccc_session_id: self.ccc_session.clone(),
             ipsec_session: Some(self.ipsec_session.clone()),
             state: SessionState::Authenticated(String::new()),
+            username: Some(self.username.clone()),
         })
     }
 
@@ -570,7 +591,7 @@ impl TunnelConnector for IpsecTunnelConnector {
 
             self.process_auth_attributes(attrs_reply).await
         } else {
-            let result = self.do_session_exchange().await?;
+            let result = self.do_session_exchange(self.params.user_name.clone()).await?;
 
             Ok(result)
         }

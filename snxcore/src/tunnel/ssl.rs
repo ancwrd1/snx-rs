@@ -369,6 +369,8 @@ impl VpnTunnel for SslTunnel {
         let info = ConnectionInfo {
             since: Local::now(),
             server_name: self.params.server_name.clone(),
+            username: self.session.username.clone().unwrap_or_default(),
+            login_type: self.params.login_type.clone(),
             tunnel_type: self.params.tunnel_type,
             transport_type: TransportType::Tcpt,
             ip_address: Ipv4Net::with_netmask(ip_address, netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)))?,
