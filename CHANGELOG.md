@@ -4,7 +4,7 @@
 - Added custom actions in the .desktop file, to control the GUI frontend via context menu.
 - When showing username prompt, fill it with session username by default.
 - Show authenticated username and login type in the status information output.
-- Added "Settings" button in the status dialog.
+- Added "Connect", "Disconnect" and "Settings" buttons in the status dialog.
 - Always allow status dialog to be shown, and update it dynamically.
 
 ## v4.2.0 (2025-05-02)
