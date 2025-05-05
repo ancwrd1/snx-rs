@@ -1,19 +1,21 @@
-use crate::main_window;
-use crate::prompt::GtkPrompt;
-use crate::tray::TrayEvent;
+use std::{
+    sync::{Arc, RwLock},
+    time::Duration,
+};
+
 use gtk4::{
     Align, Orientation, ResponseType,
     glib::{self, clone},
     prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
 };
-use snxcore::browser::SystemBrowser;
-use snxcore::controller::{ServiceCommand, ServiceController};
-use snxcore::model::params::TunnelParams;
-use snxcore::model::{ConnectionInfo, ConnectionStatus};
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::Arc;
+use snxcore::{
+    browser::SystemBrowser,
+    controller::{ServiceCommand, ServiceController},
+    model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
+};
 use tokio::sync::mpsc::Sender;
+
+use crate::{main_window, prompt::GtkPrompt, tray::TrayEvent};
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
     let form = gtk4::Box::builder()
@@ -44,7 +46,7 @@ fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
 pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelParams>) {
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
-    let status = Rc::new(RefCell::new(
+    let status = Arc::new(RwLock::new(
         controller.command(ServiceCommand::Status, params.clone()).await,
     ));
 
@@ -67,7 +69,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
 
     let status_copy = status.clone();
     copy.connect_clicked(clone!(move |_| {
-        let info = get_info(&status_copy.borrow());
+        let info = get_info(&status_copy.read().unwrap());
         gtk4::gdk::Display::default()
             .unwrap()
             .clipboard()
@@ -87,7 +89,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
 
     let connect = gtk4::Button::builder()
         .label("Connect")
-        .sensitive(matches!(*status.borrow(), Ok(ConnectionStatus::Disconnected)))
+        .sensitive(matches!(*status.read().unwrap(), Ok(ConnectionStatus::Disconnected)))
         .build();
 
     let sender2 = sender.clone();
@@ -100,7 +102,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
     let disconnect = gtk4::Button::builder()
         .label("Disconnect")
         .sensitive(matches!(
-            *status.borrow(),
+            *status.read().unwrap(),
             Ok(ConnectionStatus::Connected(_) | ConnectionStatus::Connecting | ConnectionStatus::Mfa(_))
         ))
         .build();
@@ -143,53 +145,61 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         .build();
     inner.add_css_class("bordered");
 
-    let params = params.clone();
-
-    glib::spawn_future_local(clone!(
+    let update_ui = clone!(
         #[weak]
         inner,
-        #[weak]
-        dialog,
         #[weak]
         connect,
         #[weak]
         disconnect,
-        async move {
-            let mut first_run = true;
+        move |status: &anyhow::Result<ConnectionStatus>| {
+            connect.set_sensitive(matches!(*status, Ok(ConnectionStatus::Disconnected)));
+            disconnect.set_sensitive(matches!(
+                *status,
+                Ok(ConnectionStatus::Connected(_) | ConnectionStatus::Connecting | ConnectionStatus::Mfa(_))
+            ));
 
-            while dialog.is_visible() {
-                let params = params.clone();
-                let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
+            let mut child = inner.first_child();
 
-                if format!("{:?}", new_status) != format!("{:?}", *status.borrow()) || first_run {
-                    *status.borrow_mut() = new_status;
+            while let Some(widget) = child {
+                child = widget.next_sibling();
+                inner.remove(&widget);
+            }
 
-                    let status = status.borrow();
-
-                    connect.set_sensitive(matches!(*status, Ok(ConnectionStatus::Disconnected)));
-                    disconnect.set_sensitive(matches!(
-                        *status,
-                        Ok(ConnectionStatus::Connected(_) | ConnectionStatus::Connecting | ConnectionStatus::Mfa(_))
-                    ));
-
-                    let mut child = inner.first_child();
-
-                    while let Some(widget) = child {
-                        child = widget.next_sibling();
-                        inner.remove(&widget);
-                    }
-
-                    let info = get_info(&status);
-                    for (key, value) in info.to_values() {
-                        inner.append(&status_entry(&format!("{}:", key), &value));
-                    }
-                }
-                first_run = false;
-
-                glib::timeout_future_seconds(2).await;
+            let info = get_info(&status);
+            for (key, value) in info.to_values() {
+                inner.append(&status_entry(&format!("{}:", key), &value));
             }
         }
-    ));
+    );
+
+    update_ui(&status.read().unwrap());
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+    let status2 = status.clone();
+
+    glib::spawn_future_local(async move {
+        while rx.recv().await.is_some() {
+            let status = status2.read().unwrap();
+            update_ui(&status);
+        }
+    });
+
+    tokio::spawn(async move {
+        let mut old_status = String::new();
+        loop {
+            let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
+            let status_str = format!("{:?}", new_status);
+            if old_status != status_str {
+                old_status = status_str;
+                *status.write().unwrap() = new_status;
+                if tx.send(()).await.is_err() {
+                    break;
+                }
+            }
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        }
+    });
 
     content.append(&inner);
     content.append(&button_box);
