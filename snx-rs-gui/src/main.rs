@@ -111,7 +111,9 @@ async fn main() -> anyhow::Result<()> {
                         let cancel_sender = cancel_sender.take();
                         tokio::spawn(async move { do_disconnect(sender, params, cancel_sender).await });
                     }
-                    TrayEvent::Settings => settings::start_settings_dialog(tray_command_sender.clone(), params),
+                    TrayEvent::Settings => {
+                        settings::start_settings_dialog(main_window(), tray_command_sender.clone(), params)
+                    }
                     TrayEvent::Exit => {
                         let _ = tray_command_sender.send(TrayCommand::Exit).await;
                         app.quit();
@@ -123,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
                             .command(ServiceCommand::Status, params.clone())
                             .await;
                         if let Ok(ConnectionStatus::Connected(info)) = status {
-                            do_status(info);
+                            do_status(info, tray_command_sender.clone(), params.clone());
                         } else {
                             let _ = GtkPrompt
                                 .show_notification("Status error", "Unable to get a connection information")
@@ -186,10 +188,12 @@ fn do_about() {
     });
 }
 
-fn do_status(info: ConnectionInfo) {
+fn do_status(info: ConnectionInfo, sender: mpsc::Sender<TrayCommand>, params: Arc<TunnelParams>) {
     glib::idle_add(move || {
         let info = info.clone();
-        glib::spawn_future_local(async move { show_status_dialog(info).await });
+        let sender = sender.clone();
+        let params = params.clone();
+        glib::spawn_future_local(async move { show_status_dialog(info, sender, params).await });
         ControlFlow::Break
     });
 }

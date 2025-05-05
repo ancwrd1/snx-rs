@@ -1,11 +1,14 @@
+use crate::main_window;
+use crate::tray::TrayCommand;
 use gtk4::{
     Align, Orientation, ResponseType,
     glib::{self, clone},
     prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
 };
 use snxcore::model::ConnectionInfo;
-
-use crate::main_window;
+use snxcore::model::params::TunnelParams;
+use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
     let form = gtk4::Box::builder()
@@ -25,7 +28,7 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
     form
 }
 
-pub async fn show_status_dialog(info: ConnectionInfo) {
+pub async fn show_status_dialog(info: ConnectionInfo, sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
     let dialog = gtk4::Dialog::builder()
         .title("Connection information")
         .transient_for(&main_window())
@@ -60,6 +63,14 @@ pub async fn show_status_dialog(info: ConnectionInfo) {
             );
     }));
 
+    let settings = gtk4::Button::builder().label("Settings").build();
+
+    settings.connect_clicked(clone!(
+        #[weak]
+        dialog,
+        move |_| crate::settings::start_settings_dialog(dialog, sender.clone(), params.clone())
+    ));
+
     let button_box = gtk4::Box::builder()
         .orientation(Orientation::Horizontal)
         .spacing(6)
@@ -70,6 +81,7 @@ pub async fn show_status_dialog(info: ConnectionInfo) {
         .halign(Align::End)
         .build();
 
+    button_box.append(&settings);
     button_box.append(&copy);
     button_box.append(&ok);
 

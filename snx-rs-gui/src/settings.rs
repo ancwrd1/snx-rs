@@ -1,7 +1,7 @@
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
-    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget,
+    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget, Window,
     glib::{self, clone},
     prelude::*,
 };
@@ -16,7 +16,7 @@ use snxcore::{
 use tokio::sync::mpsc::Sender;
 use tracing::warn;
 
-use crate::{main_window, tray::TrayCommand};
+use crate::tray::TrayCommand;
 
 fn set_container_visible(widget: &Widget, flag: bool) {
     if let Some(parent) = widget.parent() {
@@ -140,11 +140,11 @@ impl SettingsDialog {
     const DEFAULT_WIDTH: i32 = 750;
     const DEFAULT_HEIGHT: i32 = 400;
 
-    pub fn new(params: Arc<TunnelParams>) -> Self {
+    pub fn new<W: IsA<Window>>(parent: W, params: Arc<TunnelParams>) -> Self {
         let dialog = gtk4::Dialog::builder()
             .title("VPN settings")
             .modal(true)
-            .transient_for(&main_window())
+            .transient_for(&parent)
             .build();
 
         let button_box = gtk4::Box::builder()
@@ -1001,8 +1001,8 @@ impl Drop for SettingsDialog {
     }
 }
 
-pub fn start_settings_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
-    let dialog = SettingsDialog::new(params.clone());
+pub fn start_settings_dialog<W: IsA<Window>>(parent: W, sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
+    let dialog = SettingsDialog::new(parent, params.clone());
     let sender = sender.clone();
     glib::spawn_future_local(async move {
         loop {
