@@ -88,6 +88,7 @@ impl GtkPrompt {
                     .name("entry")
                     .visibility(!secure)
                     .activates_default(true)
+                    .text(prompt.default_entry.unwrap_or_default())
                     .build();
 
                 entry.connect_activate(clone!(

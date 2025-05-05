@@ -198,6 +198,7 @@ pub enum TunnelServiceResponse {
 pub struct PromptInfo {
     pub header: String,
     pub prompt: String,
+    pub default_entry: Option<String>,
 }
 
 impl PromptInfo {
@@ -209,6 +210,7 @@ impl PromptInfo {
         Self {
             header: header.as_ref().to_owned(),
             prompt: prompt.as_ref().to_owned(),
+            default_entry: None,
         }
     }
 }
