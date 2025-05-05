@@ -147,6 +147,8 @@ impl SettingsDialog {
             .transient_for(&parent)
             .build();
 
+        dialog.connect_close(move |dialog| dialog.response(ResponseType::Cancel));
+
         let button_box = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .spacing(6)

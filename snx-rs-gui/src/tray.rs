@@ -168,18 +168,12 @@ impl AppTray {
             .as_ref()
             .is_ok_and(|status| *status != ConnectionStatus::Disconnected);
 
-        let status_enabled = matches!(
-            self.status.as_ref().as_ref(),
-            Ok(ConnectionStatus::Connected(_)) | Err(_)
-        );
-
         self.tray_icon
             .update(move |tray| {
                 tray.status_label = status_label;
                 tray.icon = icon;
                 tray.connect_enabled = connect_enabled;
                 tray.disconnect_enabled = disconnect_enabled;
-                tray.status_enabled = status_enabled;
             })
             .await;
     }
@@ -215,7 +209,6 @@ struct KsniTray {
     status_label: String,
     connect_enabled: bool,
     disconnect_enabled: bool,
-    status_enabled: bool,
     icon: PixmapOrName,
     event_sender: Sender<TrayEvent>,
 }
@@ -226,7 +219,6 @@ impl KsniTray {
             status_label: String::new(),
             connect_enabled: false,
             disconnect_enabled: false,
-            status_enabled: false,
             icon: PixmapOrName::Name(""),
             event_sender,
         }
@@ -283,7 +275,6 @@ impl ksni::Tray for KsniTray {
             }),
             MenuItem::Standard(StandardItem {
                 label: "Connection status...".to_string(),
-                enabled: self.status_enabled,
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Status)),
                 ..Default::default()
             }),

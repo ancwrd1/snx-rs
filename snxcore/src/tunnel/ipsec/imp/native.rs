@@ -179,7 +179,7 @@ impl VpnTunnel for NativeIpsecTunnel {
         }
 
         let info = ConnectionInfo {
-            since: Local::now(),
+            since: Some(Local::now()),
             server_name: self.params.server_name.clone(),
             username: self.session.username.clone().unwrap_or_default(),
             login_type: self.params.login_type.clone(),

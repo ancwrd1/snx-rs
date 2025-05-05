@@ -1,13 +1,16 @@
 use crate::main_window;
+use crate::prompt::GtkPrompt;
 use crate::tray::TrayCommand;
 use gtk4::{
     Align, Orientation, ResponseType,
     glib::{self, clone},
     prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
 };
-use snxcore::model::ConnectionInfo;
+use snxcore::browser::SystemBrowser;
+use snxcore::controller::{ServiceCommand, ServiceController};
 use snxcore::model::params::TunnelParams;
-use std::sync::Arc;
+use snxcore::model::{ConnectionInfo, ConnectionStatus};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
@@ -28,12 +31,16 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
     form
 }
 
-pub async fn show_status_dialog(info: ConnectionInfo, sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
+pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
+    let info = Arc::new(Mutex::new(ConnectionInfo::default()));
+
     let dialog = gtk4::Dialog::builder()
         .title("Connection information")
         .transient_for(&main_window())
         .modal(true)
         .build();
+
+    dialog.connect_close(move |dialog| dialog.response(ResponseType::Cancel));
 
     let ok = gtk4::Button::builder().label("OK").build();
 
@@ -49,26 +56,26 @@ pub async fn show_status_dialog(info: ConnectionInfo, sender: Sender<TrayCommand
 
     let info_copy = info.clone();
     copy.connect_clicked(clone!(move |_| {
-        gtk4::gdk::Display::default()
-            .unwrap()
-            .clipboard()
-            .set_text(
-                &info_copy
-                    .to_values()
-                    .into_iter()
-                    .fold(String::new(), |mut acc, (k, v)| {
-                        acc.push_str(&format!("{}: {}\n", k, v));
-                        acc
-                    }),
-            );
+        gtk4::gdk::Display::default().unwrap().clipboard().set_text(
+            &info_copy
+                .lock()
+                .unwrap()
+                .to_values()
+                .into_iter()
+                .fold(String::new(), |mut acc, (k, v)| {
+                    acc.push_str(&format!("{}: {}\n", k, v));
+                    acc
+                }),
+        );
     }));
 
     let settings = gtk4::Button::builder().label("Settings").build();
 
+    let params2 = params.clone();
     settings.connect_clicked(clone!(
         #[weak]
         dialog,
-        move |_| crate::settings::start_settings_dialog(dialog, sender.clone(), params.clone())
+        move |_| crate::settings::start_settings_dialog(dialog, sender.clone(), params2.clone())
     ));
 
     let button_box = gtk4::Box::builder()
@@ -100,9 +107,39 @@ pub async fn show_status_dialog(info: ConnectionInfo, sender: Sender<TrayCommand
         .build();
     inner.add_css_class("bordered");
 
-    for (key, value) in info.to_values() {
-        inner.append(&status_entry(&format!("{}:", key), &value));
-    }
+    let params = params.clone();
+
+    glib::spawn_future_local(clone!(
+        #[weak]
+        inner,
+        async move {
+            loop {
+                let status = ServiceController::new(GtkPrompt, SystemBrowser)
+                    .command(ServiceCommand::Status, params.clone())
+                    .await;
+
+                let info = if let Ok(ConnectionStatus::Connected(info)) = status {
+                    info
+                } else {
+                    ConnectionInfo::default()
+                };
+
+                let mut child = inner.first_child();
+
+                while let Some(widget) = child {
+                    child = widget.next_sibling();
+                    inner.remove(&widget);
+                }
+
+                for (key, value) in info.to_values() {
+                    inner.append(&status_entry(&format!("{}:", key), &value));
+                }
+
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            }
+        }
+    ));
+
     content.append(&inner);
     content.append(&button_box);
 

@@ -25,6 +25,8 @@ impl GtkPrompt {
                     .modal(true)
                     .build();
 
+                dialog.connect_close(move |dialog| dialog.response(ResponseType::Cancel));
+
                 let ok = gtk4::Button::builder().label("OK").build();
                 ok.connect_clicked(clone!(
                     #[weak]

@@ -1,12 +1,5 @@
 use std::{cell::OnceCell, sync::Arc, time::Duration};
 
-use crate::{
-    params::CmdlineParams,
-    prompt::GtkPrompt,
-    status::show_status_dialog,
-    theme::init_theme_monitoring,
-    tray::{TrayCommand, TrayEvent},
-};
 use clap::Parser;
 use gtk4::{
     Application, ApplicationWindow, License,
@@ -16,13 +9,21 @@ use gtk4::{
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
+    model::{ConnectionStatus, params::TunnelParams},
     platform::SingleInstance,
     prompt::SecurePrompt,
 };
 use tokio::sync::mpsc;
 use tracing::level_filters::LevelFilter;
 use tracing::warn;
+
+use crate::{
+    params::CmdlineParams,
+    prompt::GtkPrompt,
+    status::show_status_dialog,
+    theme::init_theme_monitoring,
+    tray::{TrayCommand, TrayEvent},
+};
 
 mod assets;
 mod dbus;
@@ -121,16 +122,7 @@ async fn main() -> anyhow::Result<()> {
                     TrayEvent::About => do_about(),
 
                     TrayEvent::Status => {
-                        let status = ServiceController::new(GtkPrompt, SystemBrowser)
-                            .command(ServiceCommand::Status, params.clone())
-                            .await;
-                        if let Ok(ConnectionStatus::Connected(info)) = status {
-                            do_status(info, tray_command_sender.clone(), params.clone());
-                        } else {
-                            let _ = GtkPrompt
-                                .show_notification("Status error", "Unable to get a connection information")
-                                .await;
-                        }
+                        do_status(tray_command_sender.clone(), params.clone());
                     }
                 }
             }
@@ -188,12 +180,11 @@ fn do_about() {
     });
 }
 
-fn do_status(info: ConnectionInfo, sender: mpsc::Sender<TrayCommand>, params: Arc<TunnelParams>) {
+fn do_status(sender: mpsc::Sender<TrayCommand>, params: Arc<TunnelParams>) {
     glib::idle_add(move || {
-        let info = info.clone();
         let sender = sender.clone();
         let params = params.clone();
-        glib::spawn_future_local(async move { show_status_dialog(info, sender, params).await });
+        glib::spawn_future_local(async move { show_status_dialog(sender, params).await });
         ControlFlow::Break
     });
 }

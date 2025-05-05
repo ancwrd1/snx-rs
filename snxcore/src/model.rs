@@ -98,7 +98,7 @@ pub struct MfaChallenge {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ConnectionInfo {
-    pub since: DateTime<Local>,
+    pub since: Option<DateTime<Local>>,
     pub server_name: String,
     pub username: String,
     pub login_type: String,
@@ -114,21 +114,45 @@ pub struct ConnectionInfo {
 }
 
 impl ConnectionInfo {
+    fn is_connected(&self) -> bool {
+        self.since.is_some()
+    }
+
+    fn or_empty<F>(&self, f: F) -> String
+    where
+        F: Fn() -> String,
+    {
+        if self.is_connected() { f() } else { String::new() }
+    }
+
     pub fn to_values(&self) -> Vec<(&'static str, String)> {
         vec![
-            ("Connected since", self.since.format("%Y-%m-%d %H:%M:%S").to_string()),
-            ("Server name", self.server_name.clone()),
-            ("User name", self.username.clone()),
-            ("Login type", self.login_type.clone()),
-            ("Tunnel type", self.tunnel_type.to_string()),
-            ("Transport type", self.transport_type.to_string()),
-            ("IP address", self.ip_address.to_string()),
-            ("DNS servers", format!("{:?}", self.dns_servers)),
-            ("Search domains", format!("[{}]", self.search_domains.join(", "))),
-            ("Interface", self.interface_name.clone()),
-            ("DNS configured", self.dns_configured.to_string()),
-            ("Routing configured", self.routing_configured.to_string()),
-            ("Default route", self.default_route.to_string()),
+            (
+                "Connected since",
+                if let Some(ref since) = self.since {
+                    since.format("%Y-%m-%d %H:%M:%S").to_string()
+                } else {
+                    String::new()
+                },
+            ),
+            ("Server name", self.or_empty(|| self.server_name.clone())),
+            ("User name", self.or_empty(|| self.username.clone())),
+            ("Login type", self.or_empty(|| self.login_type.clone())),
+            ("Tunnel type", self.or_empty(|| self.tunnel_type.to_string())),
+            ("Transport type", self.or_empty(|| self.transport_type.to_string())),
+            ("IP address", self.or_empty(|| self.ip_address.to_string())),
+            ("DNS servers", self.or_empty(|| format!("{:?}", self.dns_servers))),
+            (
+                "Search domains",
+                self.or_empty(|| format!("[{}]", self.search_domains.join(", "))),
+            ),
+            ("Interface", self.or_empty(|| self.interface_name.clone())),
+            ("DNS configured", self.or_empty(|| self.dns_configured.to_string())),
+            (
+                "Routing configured",
+                self.or_empty(|| self.routing_configured.to_string()),
+            ),
+            ("Default route", self.or_empty(|| self.default_route.to_string())),
         ]
     }
 
@@ -178,7 +202,11 @@ impl fmt::Display for ConnectionStatus {
             ConnectionStatus::Disconnected => write!(f, "Disconnected"),
             ConnectionStatus::Connecting => write!(f, "Connecting in progress"),
             ConnectionStatus::Connected(info) => {
-                write!(f, "Connected since: {}", info.since.format("%Y-%m-%d %H:%M:%S"))
+                write!(
+                    f,
+                    "Connected since: {}",
+                    info.since.unwrap_or_default().format("%Y-%m-%d %H:%M:%S")
+                )
             }
             ConnectionStatus::Mfa(mfa) => write!(f, "MFA pending: {:?}", mfa.mfa_type),
         }
