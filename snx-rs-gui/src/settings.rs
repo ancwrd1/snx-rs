@@ -143,11 +143,8 @@ impl SettingsDialog {
     pub fn new<W: IsA<Window>>(parent: W, params: Arc<TunnelParams>) -> Self {
         let dialog = gtk4::Dialog::builder()
             .title("VPN settings")
-            .modal(true)
             .transient_for(&parent)
             .build();
-
-        dialog.connect_close(move |dialog| dialog.response(ResponseType::Cancel));
 
         let button_box = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)

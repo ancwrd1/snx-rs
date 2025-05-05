@@ -164,7 +164,6 @@ async fn main() -> anyhow::Result<()> {
 fn do_about() {
     glib::idle_add(|| {
         let dialog = gtk4::AboutDialog::builder()
-            .modal(true)
             .transient_for(&main_window())
             .version(env!("CARGO_PKG_VERSION"))
             .logo_icon_name("network-vpn")

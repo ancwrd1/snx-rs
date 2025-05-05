@@ -37,10 +37,7 @@ pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelP
     let dialog = gtk4::Dialog::builder()
         .title("Connection information")
         .transient_for(&main_window())
-        .modal(true)
         .build();
-
-    dialog.connect_close(move |dialog| dialog.response(ResponseType::Cancel));
 
     let ok = gtk4::Button::builder().label("OK").build();
 
@@ -72,11 +69,11 @@ pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelP
     let settings = gtk4::Button::builder().label("Settings").build();
 
     let params2 = params.clone();
-    settings.connect_clicked(clone!(
-        #[weak]
-        dialog,
-        move |_| crate::settings::start_settings_dialog(dialog, sender.clone(), params2.clone())
-    ));
+    settings.connect_clicked(clone!(move |_| crate::settings::start_settings_dialog(
+        main_window(),
+        sender.clone(),
+        params2.clone()
+    )));
 
     let button_box = gtk4::Box::builder()
         .orientation(Orientation::Horizontal)
@@ -112,17 +109,21 @@ pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelP
     glib::spawn_future_local(clone!(
         #[weak]
         inner,
+        #[weak]
+        dialog,
         async move {
-            loop {
+            while dialog.is_visible() {
                 let status = ServiceController::new(GtkPrompt, SystemBrowser)
                     .command(ServiceCommand::Status, params.clone())
                     .await;
 
-                let info = if let Ok(ConnectionStatus::Connected(info)) = status {
+                let new_info = if let Ok(ConnectionStatus::Connected(info)) = status {
                     info
                 } else {
                     ConnectionInfo::default()
                 };
+
+                *info.lock().unwrap() = new_info.clone();
 
                 let mut child = inner.first_child();
 
@@ -131,7 +132,7 @@ pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelP
                     inner.remove(&widget);
                 }
 
-                for (key, value) in info.to_values() {
+                for (key, value) in new_info.to_values() {
                     inner.append(&status_entry(&format!("{}:", key), &value));
                 }
 

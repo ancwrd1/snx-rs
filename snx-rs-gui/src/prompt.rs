@@ -22,10 +22,7 @@ impl GtkPrompt {
                 let dialog = gtk4::Dialog::builder()
                     .title("VPN Authentication Factor")
                     .transient_for(&main_window())
-                    .modal(true)
                     .build();
-
-                dialog.connect_close(move |dialog| dialog.response(ResponseType::Cancel));
 
                 let ok = gtk4::Button::builder().label("OK").build();
                 ok.connect_clicked(clone!(
