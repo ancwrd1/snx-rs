@@ -22,6 +22,7 @@ use crate::{
 static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const INFO_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn new_request_id() -> u32 {
     REQUEST_ID.fetch_add(1, Ordering::SeqCst)
@@ -132,7 +133,7 @@ impl CccHttpClient {
         }
     }
 
-    async fn send_request(&self, request: CccClientRequestData) -> anyhow::Result<SExpression> {
+    async fn send_request(&self, request: CccClientRequestData, timeout: Duration) -> anyhow::Result<SExpression> {
         let with_cert = matches!(request.data, RequestData::Auth(_));
         let expr = SExpression::from(CccClientRequest { data: request });
 
@@ -176,7 +177,7 @@ impl CccHttpClient {
             .body(expr.to_string())
             .build()?;
 
-        let reply = tokio::time::timeout(REQUEST_TIMEOUT, client.execute(req))
+        let reply = tokio::time::timeout(timeout, client.execute(req))
             .await??
             .error_for_status()?
             .text()
@@ -188,7 +189,7 @@ impl CccHttpClient {
     }
 
     async fn send_ccc_request(&self, req: CccClientRequestData) -> anyhow::Result<ResponseData> {
-        self.send_request(req)
+        self.send_request(req, REQUEST_TIMEOUT)
             .await?
             .try_into::<CccServerResponse>()?
             .data
@@ -223,7 +224,7 @@ impl CccHttpClient {
     }
 
     pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
-        self.send_request(self.new_client_hello_request()).await
+        self.send_request(self.new_client_hello_request(), INFO_TIMEOUT).await
     }
 
     pub async fn signout(&self) -> anyhow::Result<()> {

@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{Context, anyhow};
 use futures::{FutureExt, SinkExt, StreamExt};
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{Mutex, RwLock, mpsc};
 use tracing::{debug, warn};
 
 use crate::{
@@ -23,7 +23,7 @@ const MAX_PACKET_SIZE: usize = 1_000_000;
 
 #[derive(Default)]
 struct ConnectionState {
-    connection_status: Mutex<ConnectionStatus>,
+    connection_status: RwLock<ConnectionStatus>,
     session: Mutex<Option<Arc<VpnSession>>>,
     connector: Mutex<Option<Box<dyn TunnelConnector + Send>>>,
 }
@@ -32,7 +32,7 @@ impl ConnectionState {
     async fn reset(&self) {
         *self.session.lock().await = None;
         *self.connector.lock().await = None;
-        *self.connection_status.lock().await = ConnectionStatus::Disconnected
+        *self.connection_status.write().await = ConnectionStatus::Disconnected
     }
 }
 
@@ -87,7 +87,7 @@ impl CommandServer {
 
                         match event {
                             TunnelEvent::Connected(info) => {
-                                *self.connection_state.connection_status.lock().await = ConnectionStatus::connected(info);
+                                *self.connection_state.connection_status.write().await = ConnectionStatus::connected(info);
                             }
                             TunnelEvent::Disconnected => {
                                 cancel_state.lock().await.sender = None;
@@ -185,18 +185,18 @@ impl ServerHandler {
     }
 
     async fn is_connected(&self) -> bool {
-        *self.state.connection_status.lock().await != ConnectionStatus::Disconnected
+        *self.state.connection_status.read().await != ConnectionStatus::Disconnected
     }
 
     async fn connect_for_session(&mut self, session: Arc<VpnSession>) -> anyhow::Result<TunnelServiceResponse> {
         *self.state.session.lock().await = Some(session.clone());
         if let SessionState::PendingChallenge(ref challenge) = session.state {
             debug!("Pending multi-factor, awaiting for it");
-            *self.state.connection_status.lock().await = ConnectionStatus::mfa(challenge.clone());
+            *self.state.connection_status.write().await = ConnectionStatus::mfa(challenge.clone());
             return Ok(TunnelServiceResponse::Ok);
         }
 
-        *self.state.connection_status.lock().await = ConnectionStatus::Connecting;
+        *self.state.connection_status.write().await = ConnectionStatus::Connecting;
 
         let (command_sender, command_receiver) = mpsc::channel(16);
 
@@ -223,7 +223,7 @@ impl ServerHandler {
             ))
         } else {
             self.state.reset().await;
-            *self.state.connection_status.lock().await = ConnectionStatus::Connecting;
+            *self.state.connection_status.write().await = ConnectionStatus::Connecting;
             self.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
@@ -279,6 +279,6 @@ impl ServerHandler {
     }
 
     async fn get_status(&self) -> ConnectionStatus {
-        self.state.connection_status.lock().await.clone()
+        self.state.connection_status.read().await.clone()
     }
 }

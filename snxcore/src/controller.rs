@@ -19,6 +19,7 @@ use crate::{
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
+const SEND_TIMEOUT: Duration = Duration::from_secs(2);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(120);
 const SERVICE_CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -77,10 +78,7 @@ where
 
     async fn get_stream(&mut self) -> anyhow::Result<&mut UnixStream> {
         match self.stream.take() {
-            Some(stream) => {
-                self.stream = Some(stream);
-                Ok(self.stream.as_mut().unwrap())
-            }
+            Some(stream) => Ok(self.stream.insert(stream)),
             None => Ok(self.stream.insert(
                 tokio::time::timeout(SERVICE_CONNECT_TIMEOUT, UnixStream::connect(DEFAULT_LISTEN_PATH)).await??,
             )),
@@ -290,7 +288,7 @@ where
 
         let data = serde_json::to_vec(&request)?;
 
-        let Ok(_) = codec.send(data.into()).await else {
+        let Ok(Ok(_)) = tokio::time::timeout(SEND_TIMEOUT, codec.send(data.into())).await else {
             self.stream = None;
             anyhow::bail!("Cannot send request to the service!")
         };

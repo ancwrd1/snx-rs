@@ -54,7 +54,7 @@ pub trait TunnelConnector {
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }
 
-pub async fn new_tunnel_connector(params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send>> {
+pub async fn new_tunnel_connector(params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
     match params.tunnel_type {
         TunnelType::Ssl => Ok(Box::new(CccTunnelConnector::new(params).await?)),
         TunnelType::Ipsec => Ok(Box::new(IpsecTunnelConnector::new(params).await?)),

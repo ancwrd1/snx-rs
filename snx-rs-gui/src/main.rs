@@ -92,6 +92,8 @@ async fn main() -> anyhow::Result<()> {
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
     let config_file = cmdline_params.config_file();
+    let tray_event_sender2 = tray_event_sender.clone();
+
     glib::spawn_future_local(clone!(
         #[weak]
         app,
@@ -122,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
                     TrayEvent::About => do_about(),
 
                     TrayEvent::Status => {
-                        do_status(tray_command_sender.clone(), params.clone());
+                        do_status(tray_event_sender2.clone(), params.clone());
                     }
                 }
             }
@@ -179,7 +181,7 @@ fn do_about() {
     });
 }
 
-fn do_status(sender: mpsc::Sender<TrayCommand>, params: Arc<TunnelParams>) {
+fn do_status(sender: mpsc::Sender<TrayEvent>, params: Arc<TunnelParams>) {
     glib::idle_add(move || {
         let sender = sender.clone();
         let params = params.clone();

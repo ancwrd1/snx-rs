@@ -1,6 +1,6 @@
 use crate::main_window;
 use crate::prompt::GtkPrompt;
-use crate::tray::TrayCommand;
+use crate::tray::TrayEvent;
 use gtk4::{
     Align, Orientation, ResponseType,
     glib::{self, clone},
@@ -10,7 +10,9 @@ use snxcore::browser::SystemBrowser;
 use snxcore::controller::{ServiceCommand, ServiceController};
 use snxcore::model::params::TunnelParams;
 use snxcore::model::{ConnectionInfo, ConnectionStatus};
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
@@ -31,8 +33,20 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
     form
 }
 
-pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
-    let info = Arc::new(Mutex::new(ConnectionInfo::default()));
+fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
+    if let Ok(ConnectionStatus::Connected(info)) = status {
+        info.clone()
+    } else {
+        ConnectionInfo::default()
+    }
+}
+
+pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelParams>) {
+    let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
+
+    let status = Rc::new(RefCell::new(
+        controller.command(ServiceCommand::Status, params.clone()).await,
+    ));
 
     let dialog = gtk4::Dialog::builder()
         .title("Connection information")
@@ -51,29 +65,52 @@ pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelP
 
     let copy = gtk4::Button::builder().label("Copy").build();
 
-    let info_copy = info.clone();
+    let status_copy = status.clone();
     copy.connect_clicked(clone!(move |_| {
-        gtk4::gdk::Display::default().unwrap().clipboard().set_text(
-            &info_copy
-                .lock()
-                .unwrap()
-                .to_values()
-                .into_iter()
-                .fold(String::new(), |mut acc, (k, v)| {
-                    acc.push_str(&format!("{}: {}\n", k, v));
-                    acc
-                }),
-        );
+        let info = get_info(&status_copy.borrow());
+        gtk4::gdk::Display::default()
+            .unwrap()
+            .clipboard()
+            .set_text(&info.to_values().into_iter().fold(String::new(), |mut acc, (k, v)| {
+                acc.push_str(&format!("{}: {}\n", k, v));
+                acc
+            }));
     }));
 
     let settings = gtk4::Button::builder().label("Settings").build();
 
-    let params2 = params.clone();
-    settings.connect_clicked(clone!(move |_| crate::settings::start_settings_dialog(
-        main_window(),
-        sender.clone(),
-        params2.clone()
-    )));
+    let sender2 = sender.clone();
+    settings.connect_clicked(move |_| {
+        let sender = sender2.clone();
+        tokio::spawn(async move { sender.send(TrayEvent::Settings).await });
+    });
+
+    let connect = gtk4::Button::builder()
+        .label("Connect")
+        .sensitive(matches!(*status.borrow(), Ok(ConnectionStatus::Disconnected)))
+        .build();
+
+    let sender2 = sender.clone();
+    connect.connect_clicked(move |btn| {
+        let sender = sender2.clone();
+        tokio::spawn(async move { sender.send(TrayEvent::Connect).await });
+        btn.set_sensitive(false);
+    });
+
+    let disconnect = gtk4::Button::builder()
+        .label("Disconnect")
+        .sensitive(matches!(
+            *status.borrow(),
+            Ok(ConnectionStatus::Connected(_) | ConnectionStatus::Connecting | ConnectionStatus::Mfa(_))
+        ))
+        .build();
+
+    let sender2 = sender.clone();
+    disconnect.connect_clicked(move |btn| {
+        let sender = sender2.clone();
+        tokio::spawn(async move { sender.send(TrayEvent::Disconnect).await });
+        btn.set_sensitive(false);
+    });
 
     let button_box = gtk4::Box::builder()
         .orientation(Orientation::Horizontal)
@@ -85,6 +122,8 @@ pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelP
         .halign(Align::End)
         .build();
 
+    button_box.append(&connect);
+    button_box.append(&disconnect);
     button_box.append(&settings);
     button_box.append(&copy);
     button_box.append(&ok);
@@ -111,32 +150,43 @@ pub async fn show_status_dialog(sender: Sender<TrayCommand>, params: Arc<TunnelP
         inner,
         #[weak]
         dialog,
+        #[weak]
+        connect,
+        #[weak]
+        disconnect,
         async move {
+            let mut first_run = true;
+
             while dialog.is_visible() {
-                let status = ServiceController::new(GtkPrompt, SystemBrowser)
-                    .command(ServiceCommand::Status, params.clone())
-                    .await;
+                let params = params.clone();
+                let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
 
-                let new_info = if let Ok(ConnectionStatus::Connected(info)) = status {
-                    info
-                } else {
-                    ConnectionInfo::default()
-                };
+                if format!("{:?}", new_status) != format!("{:?}", *status.borrow()) || first_run {
+                    *status.borrow_mut() = new_status;
 
-                *info.lock().unwrap() = new_info.clone();
+                    let status = status.borrow();
 
-                let mut child = inner.first_child();
+                    connect.set_sensitive(matches!(*status, Ok(ConnectionStatus::Disconnected)));
+                    disconnect.set_sensitive(matches!(
+                        *status,
+                        Ok(ConnectionStatus::Connected(_) | ConnectionStatus::Connecting | ConnectionStatus::Mfa(_))
+                    ));
 
-                while let Some(widget) = child {
-                    child = widget.next_sibling();
-                    inner.remove(&widget);
+                    let mut child = inner.first_child();
+
+                    while let Some(widget) = child {
+                        child = widget.next_sibling();
+                        inner.remove(&widget);
+                    }
+
+                    let info = get_info(&status);
+                    for (key, value) in info.to_values() {
+                        inner.append(&status_entry(&format!("{}:", key), &value));
+                    }
                 }
+                first_run = false;
 
-                for (key, value) in new_info.to_values() {
-                    inner.append(&status_entry(&format!("{}:", key), &value));
-                }
-
-                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                glib::timeout_future_seconds(2).await;
             }
         }
     ));
