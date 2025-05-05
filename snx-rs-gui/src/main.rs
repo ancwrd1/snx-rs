@@ -1,5 +1,12 @@
 use std::{cell::OnceCell, sync::Arc, time::Duration};
 
+use crate::{
+    params::CmdlineParams,
+    prompt::GtkPrompt,
+    status::show_status_dialog,
+    theme::init_theme_monitoring,
+    tray::{TrayCommand, TrayEvent},
+};
 use clap::Parser;
 use gtk4::{
     Application, ApplicationWindow, License,
@@ -15,17 +22,11 @@ use snxcore::{
 };
 use tokio::sync::mpsc;
 use tracing::level_filters::LevelFilter;
-
-use crate::{
-    params::CmdlineParams,
-    prompt::GtkPrompt,
-    status::show_status_dialog,
-    theme::init_theme_monitoring,
-    tray::{TrayCommand, TrayEvent},
-};
+use tracing::warn;
 
 mod assets;
 mod dbus;
+mod ipc;
 mod params;
 mod prompt;
 mod settings;
@@ -51,20 +52,32 @@ async fn main() -> anyhow::Result<()> {
 
     let tunnel_params = Arc::new(TunnelParams::load(cmdline_params.config_file()).unwrap_or_default());
 
+    init_logging(&tunnel_params);
+
     let uid = unsafe { libc::getuid() };
 
     let instance = SingleInstance::new(format!("/tmp/snx-rs-gui-{}.lock", uid))?;
     if !instance.is_single() {
+        if let Some(mut command) = cmdline_params.command {
+            if command == TrayEvent::Connect && tunnel_params.server_name.is_empty() {
+                command = TrayEvent::Settings;
+            }
+            if let Err(e) = ipc::send_event(command).await {
+                warn!("Failed to send event: {}", e);
+            }
+        }
         return Ok(());
     }
-
-    init_logging(&tunnel_params);
 
     let _ = init_theme_monitoring().await;
 
     let (tray_event_sender, mut tray_event_receiver) = mpsc::channel(16);
 
-    let mut my_tray = tray::AppTray::new(&cmdline_params, tray_event_sender).await?;
+    if let Err(e) = ipc::start_ipc_listener(tray_event_sender.clone()) {
+        warn!("Failed to start IPC listener: {}", e);
+    }
+
+    let mut my_tray = tray::AppTray::new(&cmdline_params, tray_event_sender.clone()).await?;
 
     let tray_command_sender = my_tray.sender();
 
@@ -77,6 +90,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
+    let config_file = cmdline_params.config_file();
     glib::spawn_future_local(clone!(
         #[weak]
         app,
@@ -84,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
             let mut cancel_sender = None;
 
             while let Some(v) = tray_event_receiver.recv().await {
-                let params = Arc::new(TunnelParams::load(cmdline_params.config_file()).unwrap_or_default());
+                let params = Arc::new(TunnelParams::load(&config_file).unwrap_or_default());
                 match v {
                     TrayEvent::Connect => {
                         let sender = tray_command_sender.clone();
@@ -137,6 +151,16 @@ async fn main() -> anyhow::Result<()> {
             let _ = cell.set(app_window);
         });
     });
+
+    if let Some(mut command) = cmdline_params.command {
+        tokio::spawn(async move {
+            if command == TrayEvent::Connect && tunnel_params.server_name.is_empty() {
+                command = TrayEvent::Settings;
+            }
+
+            tray_event_sender.send(command).await
+        });
+    }
 
     app.run_with_args::<&str>(&[]);
 

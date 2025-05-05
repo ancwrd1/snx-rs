@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::anyhow;
 use ksni::{Handle, Icon, MenuItem, TrayMethods, menu::StandardItem};
@@ -22,6 +22,35 @@ pub enum TrayEvent {
     Status,
     Exit,
     About,
+}
+
+impl TrayEvent {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            TrayEvent::Connect => "connect",
+            TrayEvent::Disconnect => "disconnect",
+            TrayEvent::Settings => "settings",
+            TrayEvent::Status => "status",
+            TrayEvent::Exit => "exit",
+            TrayEvent::About => "about",
+        }
+    }
+}
+
+impl FromStr for TrayEvent {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "connect" => Ok(TrayEvent::Connect),
+            "disconnect" => Ok(TrayEvent::Disconnect),
+            "settings" => Ok(TrayEvent::Settings),
+            "status" => Ok(TrayEvent::Status),
+            "exit" => Ok(TrayEvent::Exit),
+            "about" => Ok(TrayEvent::About),
+            _ => Err(anyhow!("Unknown event: {}", s)),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -3,16 +3,23 @@ use std::path::PathBuf;
 use clap::Parser;
 use snxcore::model::params::TunnelParams;
 
+use crate::tray::TrayEvent;
+
 #[derive(Parser, Clone)]
 #[clap(about = "VPN client for Check Point security gateway", name = "snx-rs-gui", version = env!("CARGO_PKG_VERSION"))]
 pub struct CmdlineParams {
     #[clap(
         long = "config-file",
         short = 'c',
-        global = true,
         help = "Configuration file to use [default: $HOME/.config/snx-rs/snx-rs.conf]"
     )]
     pub config_file: Option<PathBuf>,
+    #[clap(
+        long = "command",
+        short = 'm',
+        help = "Send command to the application [connect, disconnect, settings, status, exit, about]"
+    )]
+    pub command: Option<TrayEvent>,
 }
 
 impl CmdlineParams {

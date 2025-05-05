@@ -8,3 +8,28 @@ Icon=network-vpn
 Keywords=network;vpn;
 TryExec=/opt/snx-rs/snx-rs-gui
 Type=Application
+Actions=connect;disconnect;settings;status;exit;about
+
+[Desktop Action connect]
+Name=Connect
+Exec=/opt/snx-rs/snx-rs-gui -m connect
+
+[Desktop Action disconnect]
+Name=Disconnect
+Exec=/opt/snx-rs/snx-rs-gui -m disconnect
+
+[Desktop Action settings]
+Name=Settings
+Exec=/opt/snx-rs/snx-rs-gui -m settings
+
+[Desktop Action status]
+Name=Connection information
+Exec=/opt/snx-rs/snx-rs-gui -m status
+
+[Desktop Action exit]
+Name=Exit
+Exec=/opt/snx-rs/snx-rs-gui -m exit
+
+[Desktop Action about]
+Name=About
+Exec=/opt/snx-rs/snx-rs-gui -m about
