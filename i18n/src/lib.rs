@@ -32,10 +32,7 @@ pub fn translate(key: &str) -> String {
 
 #[cached]
 pub fn get_user_locale() -> LanguageIdentifier {
-    let lang = std::env::var("SNXRS_LOCALE")
-        .ok()
-        .or_else(sys_locale::get_locale)
-        .unwrap_or_else(|| "en-US".to_string());
+    let lang = sys_locale::get_locale().unwrap_or_else(|| "en-US".to_string());
     LanguageIdentifier::from_bytes(lang.as_bytes())
         .or_else(|_| LanguageIdentifier::from_bytes("en-US".as_bytes()))
         .unwrap()
