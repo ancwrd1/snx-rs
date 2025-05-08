@@ -137,3 +137,13 @@ tray-menu-status = Verbindingsstatus...
 tray-menu-settings = Instellingen...
 tray-menu-about = Over...
 tray-menu-exit = Afsluiten
+
+# CLI Messages
+cli-identity-provider-auth = Voor authenticatie via de identiteitsprovider, open de volgende URL in uw browser:
+cli-tunnel-connected = Tunnel verbonden, druk op Ctrl+C om af te sluiten.
+cli-tunnel-disconnected = Tunnel verbroken
+cli-another-instance-running = Er draait al een andere instantie van snx-rs
+cli-app-terminated = Applicatie beëindigd door signaal
+
+# Connection Messages
+connection-connected-to = Verbonden met {$server}

@@ -137,3 +137,13 @@ tray-menu-status = Status połączenia...
 tray-menu-settings = Ustawienia...
 tray-menu-about = O programie...
 tray-menu-exit = Zakończ
+
+# CLI Messages
+cli-identity-provider-auth = Aby uwierzytelnić się przez dostawcę tożsamości, otwórz następujący adres URL w przeglądarce:
+cli-tunnel-connected = Tunel połączony, naciśnij Ctrl+C aby zakończyć.
+cli-tunnel-disconnected = Tunel rozłączony
+cli-another-instance-running = Inna instancja snx-rs jest już uruchomiona
+cli-app-terminated = Aplikacja zakończona przez sygnał
+
+# Connection Messages
+connection-connected-to = Połączono z {$server}

@@ -137,3 +137,13 @@ tray-menu-status = Estado de conexión...
 tray-menu-settings = Configuración...
 tray-menu-about = Acerca de...
 tray-menu-exit = Salir
+
+# CLI Messages
+cli-identity-provider-auth = Para la autenticación a través del proveedor de identidad, abra la siguiente URL en su navegador:
+cli-tunnel-connected = Túnel conectado, presione Ctrl+C para salir.
+cli-tunnel-disconnected = Túnel desconectado
+cli-another-instance-running = Ya hay otra instancia de snx-rs en ejecución
+cli-app-terminated = Aplicación terminada por señal
+
+# Connection Messages
+connection-connected-to = Conectado a {$server}

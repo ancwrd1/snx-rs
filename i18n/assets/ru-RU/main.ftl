@@ -137,3 +137,13 @@ info-interface = Интерфейс
 info-dns-configured = DNS настроен
 info-routing-configured = Маршрутизация настроена
 info-default-route = Маршрут по умолчанию
+
+# CLI Messages
+cli-identity-provider-auth = Для аутентификации через провайдера идентификации откройте следующий URL в браузере:
+cli-tunnel-connected = Туннель подключен, нажмите Ctrl-C для выхода.
+cli-tunnel-disconnected = Туннель отключен
+cli-another-instance-running = Другая копия snx-rs уже запущена
+cli-app-terminated = Приложение завершено по сигналу
+
+# Connection Messages
+connection-connected-to = Подключено к {$server}

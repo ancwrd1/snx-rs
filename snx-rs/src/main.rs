@@ -106,7 +106,7 @@ async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
 async fn main_command() -> anyhow::Result<()> {
     let instance = SingleInstance::new("/var/run/snx-rs.lock")?;
     if !instance.is_single() {
-        eprintln!("Another instance of snx-rs is already running");
+        eprintln!("{}", i18n::translate("cli-another-instance-running"));
         return Ok(());
     }
 
@@ -172,7 +172,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 }
             }
             MfaType::IdentityProvider => {
-                println!("For identity provider authentication, open the following URL in your browser:");
+                println!("{}", i18n::translate("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
                 let (_tx, rx) = oneshot::channel();
                 let receiver = spawn_otp_listener(rx);
@@ -206,7 +206,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
                     if let TunnelEvent::Connected(info) = event {
                         println!("{}", info.print(i18n::translate));
-                        println!("Tunnel connected, press Ctrl-C to exit.");
+                        println!("{}", i18n::translate("cli-tunnel-connected"));
                     }
                 }
             }
@@ -216,7 +216,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     let client = CccHttpClient::new(params.clone(), Some(session));
                     let _ = client.signout().await;
                 }
-                println!("\nTunnel disconnected");
+                println!("\n{}", i18n::translate("cli-tunnel-disconnected"));
                 break result;
             }
         }

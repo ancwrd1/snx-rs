@@ -137,3 +137,13 @@ tray-menu-status = Stav připojení...
 tray-menu-settings = Nastavení...
 tray-menu-about = O aplikaci...
 tray-menu-exit = Ukončit
+
+# CLI Messages
+cli-identity-provider-auth = Pro ověření přes poskytovatele identity otevřete následující URL ve vašem prohlížeči:
+cli-tunnel-connected = Tunel připojen, stiskněte Ctrl+C pro ukončení.
+cli-tunnel-disconnected = Tunel odpojen
+cli-another-instance-running = Jiná instance snx-rs již běží
+cli-app-terminated = Aplikace ukončena signálem
+
+# Connection Messages
+connection-connected-to = Připojeno k {$server}

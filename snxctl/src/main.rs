@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
             let _ = service_controller
                 .command(ServiceCommand::Disconnect, tunnel_params.clone())
                 .await;
-            println!("\nApplication terminated due to a signal");
+            println!("\n{}", i18n::translate("cli-app-terminated"));
             std::process::exit(1);
         }
     };

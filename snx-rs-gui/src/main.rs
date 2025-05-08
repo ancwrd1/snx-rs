@@ -253,7 +253,7 @@ async fn do_connect(
     } else if let Ok(ConnectionStatus::Connected(_)) = status {
         let message = tr!("app-connection-success");
         let _ = GtkPrompt
-            .show_notification(&message, &format!("Connected to {}", params.server_name))
+            .show_notification(&message, &tr!("connection-connected-to", server = params.server_name))
             .await;
     };
 

@@ -137,3 +137,13 @@ tray-menu-status = Forbindelsesstatus...
 tray-menu-settings = Indstillinger...
 tray-menu-about = Om...
 tray-menu-exit = Afslut
+
+# CLI Messages
+cli-identity-provider-auth = For godkendelse via identitetsudbyder, åbn følgende URL i din browser:
+cli-tunnel-connected = Tunnel forbundet, tryk Ctrl+C for at afslutte.
+cli-tunnel-disconnected = Tunnel forbindelse afbrudt
+cli-another-instance-running = En anden forekomst af snx-rs kører allerede
+cli-app-terminated = Applikation afsluttet af signal
+
+# Connection Messages
+connection-connected-to = Forbundet til {$server}

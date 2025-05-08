@@ -137,3 +137,13 @@ info-interface = Schnittstelle
 info-dns-configured = DNS konfiguriert
 info-routing-configured = Routing konfiguriert
 info-default-route = Standardroute
+
+# CLI Messages
+cli-identity-provider-auth = Für die Authentifizierung über den Identitätsanbieter öffnen Sie die folgende URL in Ihrem Browser:
+cli-tunnel-connected = Tunnel verbunden, drücken Sie Strg+C zum Beenden.
+cli-tunnel-disconnected = Tunnel getrennt
+cli-another-instance-running = Eine andere Instanz von snx-rs läuft bereits
+cli-app-terminated = Anwendung durch Signal beendet
+
+# Connection Messages
+connection-connected-to = Verbunden mit {$server}

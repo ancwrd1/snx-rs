@@ -137,3 +137,13 @@ tray-menu-status = Yhteyden tila...
 tray-menu-settings = Asetukset...
 tray-menu-about = Tietoja...
 tray-menu-exit = Lopeta
+
+# CLI Messages
+cli-identity-provider-auth = Tunnistautumista varten tunnistepalvelun kautta, avaa seuraava URL-selaimessasi:
+cli-tunnel-connected = Tunneli yhdistetty, paina Ctrl+C lopettaaksesi.
+cli-tunnel-disconnected = Tunneli katkaistu
+cli-another-instance-running = Toinen snx-rs-esiintymä on jo käynnissä
+cli-app-terminated = Sovellus päättyi signaalin vuoksi
+
+# Connection Messages
+connection-connected-to = Yhdistetty palvelimeen {$server}

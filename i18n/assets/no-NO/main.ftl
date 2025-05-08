@@ -137,3 +137,13 @@ tray-menu-status = Tilkoblingsstatus...
 tray-menu-settings = Innstillinger...
 tray-menu-about = Om...
 tray-menu-exit = Avslutt
+
+# CLI Messages
+cli-identity-provider-auth = For autentisering via identitetsleverandør, åpne følgende URL i nettleseren:
+cli-tunnel-connected = Tunnel tilkoblet, trykk Ctrl+C for å avslutte.
+cli-tunnel-disconnected = Tunnel frakoblet
+cli-another-instance-running = En annen forekomst av snx-rs kjører allerede
+cli-app-terminated = Applikasjon avsluttet av signal
+
+# Connection Messages
+connection-connected-to = Tilkoblet {$server}
