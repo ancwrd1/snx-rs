@@ -172,25 +172,6 @@ impl ConnectionInfo {
         }
         result
     }
-
-    pub fn english_text(key: &str) -> String {
-        match key {
-            "info-connected-since" => "Connected since".to_owned(),
-            "info-server-name" => "Server name".to_owned(),
-            "info-user-name" => "User name".to_owned(),
-            "info-login-type" => "Login type".to_owned(),
-            "info-tunnel-type" => "Tunnel type".to_owned(),
-            "info-transport-type" => "Transport type".to_owned(),
-            "info-ip-address" => "IP address".to_owned(),
-            "info-dns-servers" => "DNS servers".to_owned(),
-            "info-search-domains" => "Search domains".to_owned(),
-            "info-interface" => "Interface".to_owned(),
-            "info-dns-configured" => "DNS configured".to_owned(),
-            "info-routing-configured" => "Routing configured".to_owned(),
-            "info-default-route" => "Default route".to_owned(),
-            _ => key.to_owned(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]

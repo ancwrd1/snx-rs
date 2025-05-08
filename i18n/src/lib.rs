@@ -1,9 +1,11 @@
 use cached::proc_macro::cached;
-use fluent_templates::{static_loader, LanguageIdentifier, Loader};
+use fluent_templates::{LanguageIdentifier, Loader, static_loader};
+
+pub use fluent_templates;
 
 static_loader! {
     pub static LOCALES = {
-        locales: "./assets/i18n",
+        locales: "./assets",
         fallback_language: "en-US",
         customise: |bundle| bundle.set_use_isolating(false),
     };
@@ -12,14 +14,14 @@ static_loader! {
 #[macro_export]
 macro_rules! tr {
     ($message_id:literal) => {
-        fluent_templates::Loader::lookup(&*$crate::i18n::LOCALES, &$crate::i18n::get_user_locale(), $message_id)
+        i18n::fluent_templates::Loader::lookup(&*i18n::LOCALES, &i18n::get_user_locale(), $message_id)
     };
 
     ($message_id:literal, $($key:ident = $value:expr),*) => {
         {
             let mut args = std::collections::HashMap::new();
             $(args.insert(std::borrow::Cow::Borrowed(stringify!($key)), $value.to_string().into());)*
-            fluent_templates::Loader::lookup_with_args(&*$crate::i18n::LOCALES, &$crate::i18n::get_user_locale(), $message_id, &args)
+            i18n::fluent_templates::Loader::lookup_with_args(&*i18n::LOCALES, &i18n::get_user_locale(), $message_id, &args)
         }
     };
 }
@@ -34,5 +36,7 @@ pub fn get_user_locale() -> LanguageIdentifier {
         .ok()
         .or_else(sys_locale::get_locale)
         .unwrap_or_else(|| "en-US".to_string());
-    LanguageIdentifier::from_bytes(lang.as_bytes()).unwrap()
+    LanguageIdentifier::from_bytes(lang.as_bytes())
+        .or_else(|_| LanguageIdentifier::from_bytes("en-US".as_bytes()))
+        .unwrap()
 }

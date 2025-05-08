@@ -1,5 +1,5 @@
 [workspace]
-members = ["snxcore", "snxctl", "snx-rs", "snx-rs-gui"]
+members = ["snxcore", "snxctl", "snx-rs", "snx-rs-gui", "i18n"]
 resolver = "2"
 
 [workspace.package]

@@ -1,0 +1,16 @@
+[package]
+name = "i18n"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+readme.workspace = true
+repository.workspace = true
+keywords.workspace = true
+publish.workspace = true
+
+[dependencies]
+fluent-templates = { version = "0.13", features = ["fluent-template-macros"] }
+sys-locale = "0.3"
+cached = "0.55"

@@ -1,9 +1,7 @@
 use std::{future::Future, sync::Arc};
 
-use crate::cmdline::CmdlineParams;
 use clap::Parser;
 use futures::pin_mut;
-use snxcore::model::ConnectionInfo;
 use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
@@ -22,6 +20,8 @@ use tokio::{
     sync::{mpsc, oneshot},
 };
 use tracing::{debug, metadata::LevelFilter, warn};
+
+use crate::cmdline::CmdlineParams;
 
 mod cmdline;
 
@@ -205,7 +205,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     let _ = connector.handle_tunnel_event(event.clone()).await;
 
                     if let TunnelEvent::Connected(info) = event {
-                        println!("{}", info.print(ConnectionInfo::english_text));
+                        println!("{}", info.print(i18n::translate));
                         println!("Tunnel connected, press Ctrl-C to exit.");
                     }
                 }

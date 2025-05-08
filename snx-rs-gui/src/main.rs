@@ -6,6 +6,7 @@ use gtk4::{
     glib::{self, ControlFlow, clone},
     prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt, WidgetExt},
 };
+use i18n::tr;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
@@ -27,7 +28,6 @@ use crate::{
 
 mod assets;
 mod dbus;
-mod i18n;
 mod ipc;
 mod params;
 mod prompt;

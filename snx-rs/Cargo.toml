@@ -12,6 +12,7 @@ publish.workspace = true
 
 [dependencies]
 snxcore = { path = "../snxcore" }
+i18n = { path = "../i18n" }
 anyhow = "1"
 futures = "0.3"
 tracing = "0.1"

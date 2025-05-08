@@ -74,7 +74,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
             .unwrap()
             .clipboard()
             .set_text(&info.to_values().into_iter().fold(String::new(), |mut acc, (k, v)| {
-                acc.push_str(&format!("{}: {}\n", crate::i18n::translate(k), v));
+                acc.push_str(&format!("{}: {}\n", i18n::translate(k), v));
                 acc
             }));
     }));
@@ -168,7 +168,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
 
             let info = get_info(status);
             for (key, value) in info.to_values() {
-                inner.append(&status_entry(&format!("{}:", crate::i18n::translate(key)), &value));
+                inner.append(&status_entry(&format!("{}:", i18n::translate(key)), &value));
             }
         }
     );

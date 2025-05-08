@@ -1490,6 +1490,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "i18n"
+version = "4.2.0"
+dependencies = [
+ "cached",
+ "fluent-templates",
+ "sys-locale",
+]
+
+[[package]]
 name = "iana-time-zone"
 version = "0.1.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2905,6 +2914,7 @@ dependencies = [
  "anyhow",
  "clap",
  "futures",
+ "i18n",
  "ipnet",
  "libc",
  "snxcore",
@@ -2920,12 +2930,11 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bytes",
- "cached",
  "clap",
- "fluent-templates",
  "futures",
  "gtk4",
  "hex",
+ "i18n",
  "interprocess",
  "ipnet",
  "ksni",
@@ -2933,7 +2942,6 @@ dependencies = [
  "once_cell",
  "png",
  "snxcore",
- "sys-locale",
  "tokio",
  "tokio-util",
  "tracing",
@@ -2994,6 +3002,7 @@ dependencies = [
  "anyhow",
  "clap",
  "futures",
+ "i18n",
  "snxcore",
  "tokio",
  "tracing",

@@ -12,6 +12,7 @@ publish.workspace = true
 
 [dependencies]
 snxcore = { path = "../snxcore" }
+i18n = { path = "../i18n" }
 ksni = "0.3"
 gtk4 = "0.9"
 png = "0.17"
@@ -30,6 +31,3 @@ libc = "0.2"
 async-trait = "0.1"
 interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
-fluent-templates = { version = "0.13", features = ["fluent-template-macros"] }
-sys-locale = "0.3"
-cached = "0.55"
