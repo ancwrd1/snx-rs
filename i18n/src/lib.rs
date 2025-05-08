@@ -1,5 +1,7 @@
-use std::borrow::Cow;
-use std::sync::{LazyLock, RwLock};
+use std::{
+    borrow::Cow,
+    sync::{LazyLock, RwLock},
+};
 
 use cached::proc_macro::cached;
 use fluent_templates::{LanguageIdentifier, Loader, static_loader};
