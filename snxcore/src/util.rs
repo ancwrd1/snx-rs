@@ -117,20 +117,14 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
         ),
         ("TCPT port".to_owned(), info.connectivity_info.tcpt_port.to_string()),
         ("NATT port".to_owned(), info.connectivity_info.natt_port.to_string()),
-        (
-            "Internal CA fingerprint".to_owned(),
-            String::from_utf8_lossy(&snx_decrypt(
-                info.connectivity_info
-                    .internal_ca_fingerprint
-                    .values()
-                    .cloned()
-                    .collect::<Vec<String>>()
-                    .join(" ")
-                    .as_bytes(),
-            )?)
-            .into_owned(),
-        ),
     ];
+
+    for fingerprint in info.connectivity_info.internal_ca_fingerprint.values() {
+        values.push((
+            "Internal CA fingerprint".to_owned(),
+            String::from_utf8_lossy(&snx_decrypt(fingerprint.as_bytes())?).into_owned(),
+        ));
+    }
 
     if let Some(login_options_data) = info.login_options_data {
         for opt in login_options_data
