@@ -1,9 +1,11 @@
+use std::borrow::Cow;
 use std::sync::{LazyLock, RwLock};
 
 use cached::proc_macro::cached;
 use fluent_templates::{LanguageIdentifier, Loader, static_loader};
 
 pub use fluent_templates;
+use fluent_templates::fluent_bundle::FluentValue;
 
 static_loader! {
     pub static LOCALES = {
@@ -18,20 +20,28 @@ static APP_LOCALE: LazyLock<RwLock<Option<LanguageIdentifier>>> = LazyLock::new(
 #[macro_export]
 macro_rules! tr {
     ($message_id:literal) => {
-        i18n::fluent_templates::Loader::lookup(&*i18n::LOCALES, &i18n::get_locale(), $message_id)
+        i18n::translate($message_id)
     };
 
     ($message_id:literal, $($key:ident = $value:expr),*) => {
         {
-            let mut args = std::collections::HashMap::new();
-            $(args.insert(std::borrow::Cow::Borrowed(stringify!($key)), $value.to_string().into());)*
-            i18n::fluent_templates::Loader::lookup_with_args(&*i18n::LOCALES, &i18n::get_locale(), $message_id, &args)
+                i18n::translate_with_args(
+                    stringify!($message_id),
+                    [$((std::borrow::Cow::Borrowed(stringify!($key)), $value.to_string().into()))*])
         }
     };
 }
 
 pub fn translate(key: &str) -> String {
     LOCALES.lookup(&get_locale(), key)
+}
+
+pub fn translate_with_args<I>(key: &str, args: I) -> String
+where
+    I: IntoIterator<Item = (Cow<'static, str>, FluentValue<'static>)>,
+{
+    let args = args.into_iter().collect::<std::collections::HashMap<_, _>>();
+    LOCALES.lookup_with_args(&get_locale(), key, &args)
 }
 
 #[cached]
