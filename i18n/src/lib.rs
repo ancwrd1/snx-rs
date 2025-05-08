@@ -28,7 +28,7 @@ macro_rules! tr {
     ($message_id:literal, $($key:ident = $value:expr),*) => {
         {
                 i18n::translate_with_args(
-                    stringify!($message_id),
+                    $message_id,
                     [$((std::borrow::Cow::Borrowed(stringify!($key)), $value.to_string().into()))*])
         }
     };
