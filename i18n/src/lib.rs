@@ -31,7 +31,7 @@ macro_rules! tr {
 }
 
 pub fn translate(key: &str) -> String {
-    LOCALES.lookup(&get_user_locale(), key)
+    LOCALES.lookup(&get_locale(), key)
 }
 
 #[cached]
@@ -40,8 +40,8 @@ pub fn get_user_locale() -> LanguageIdentifier {
     lang.parse().or_else(|_| "en-US".parse()).unwrap()
 }
 
-pub fn set_locale(lang: LanguageIdentifier) {
-    APP_LOCALE.write().unwrap().replace(lang);
+pub fn set_locale(lang: Option<LanguageIdentifier>) {
+    *APP_LOCALE.write().unwrap() = lang;
 }
 
 pub fn get_locale() -> LanguageIdentifier {

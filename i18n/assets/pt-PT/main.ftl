@@ -148,4 +148,27 @@ cli-another-instance-running = Outra instância do snx-rs já está em execuçã
 cli-app-terminated = Aplicação terminada por sinal
 
 # Connection Messages
-connection-connected-to = Conectado a {$server}
+connection-connected-to = Ligado a {$server}
+
+# Languages
+language-cs-CZ = Checo
+language-da-DK = Dinamarquês
+language-de-DE = Alemão
+language-en-US = Inglês
+language-es-ES = Espanhol
+language-fi-FI = Finlandês
+language-fr-FR = Francês
+language-it-IT = Italiano
+language-nl-NL = Holandês
+language-no-NO = Norueguês
+language-pl-PL = Polaco
+language-pt-PT = Português
+language-ru-RU = Russo
+language-sk-SK = Eslovaco
+language-sv-SE = Sueco
+
+# Connection status messages
+connection-status-disconnected = Desligado
+connection-status-connecting = A ligar
+connection-status-connected-since = Ligado desde: {$since}
+connection-status-mfa-pending = À espera de MFA: {$mfa_type}

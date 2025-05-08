@@ -57,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
     init_logging(&tunnel_params);
 
     if let Some(locale) = tunnel_params.locale.as_ref().and_then(|v| v.parse().ok()) {
-        i18n::set_locale(locale);
+        i18n::set_locale(Some(locale));
     }
 
     let uid = unsafe { libc::getuid() };

@@ -149,3 +149,26 @@ cli-app-terminated = Application terminated due to a signal
 
 # Connection Messages
 connection-connected-to = Connected to {$server}
+
+# Languages
+language-cs-CZ = Czech
+language-da-DK = Danish
+language-de-DE = German
+language-en-US = English
+language-es-ES = Spanish
+language-fi-FI = Finnish
+language-fr-FR = French
+language-it-IT = Italian
+language-nl-NL = Dutch
+language-no-NO = Norwegian
+language-pl-PL = Polish
+language-pt-PT = Portuguese
+language-ru-RU = Russian
+language-sk-SK = Slovak
+language-sv-SE = Swedish
+
+# Connection status messages
+connection-status-disconnected = Disconnected
+connection-status-connecting = Connecting in progress
+connection-status-connected-since = Connected since: {$since}
+connection-status-mfa-pending = MFA pending: {$mfa_type}

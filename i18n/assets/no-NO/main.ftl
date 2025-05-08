@@ -148,4 +148,27 @@ cli-another-instance-running = En annen forekomst av snx-rs kjører allerede
 cli-app-terminated = Applikasjon avsluttet av signal
 
 # Connection Messages
-connection-connected-to = Tilkoblet {$server}
+connection-connected-to = Koblet til {$server}
+
+# Languages
+language-cs-CZ = Tsjekkisk
+language-da-DK = Dansk
+language-de-DE = Tysk
+language-en-US = Engelsk
+language-es-ES = Spansk
+language-fi-FI = Finsk
+language-fr-FR = Fransk
+language-it-IT = Italiensk
+language-nl-NL = Nederlandsk
+language-no-NO = Norsk
+language-pl-PL = Polsk
+language-pt-PT = Portugisisk
+language-ru-RU = Russisk
+language-sk-SK = Slovakisk
+language-sv-SE = Svensk
+
+# Connection status messages
+connection-status-disconnected = Koplet fra
+connection-status-connecting = Kobler til
+connection-status-connected-since = Koblet til siden: {$since}
+connection-status-mfa-pending = Venter på MFA: {$mfa_type}

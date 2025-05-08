@@ -149,3 +149,26 @@ cli-app-terminated = Applikation afsluttet af signal
 
 # Connection Messages
 connection-connected-to = Forbundet til {$server}
+
+# Languages
+language-cs-CZ = Tjekkisk
+language-da-DK = Dansk
+language-de-DE = Tysk
+language-en-US = Engelsk
+language-es-ES = Spansk
+language-fi-FI = Finsk
+language-fr-FR = Fransk
+language-it-IT = Italiensk
+language-nl-NL = Hollandsk
+language-no-NO = Norsk
+language-pl-PL = Polsk
+language-pt-PT = Portugisisk
+language-ru-RU = Russisk
+language-sk-SK = Slovakisk
+language-sv-SE = Svensk
+
+# Connection status messages
+connection-status-disconnected = Afbrudt
+connection-status-connecting = Forbinder
+connection-status-connected-since = Forbundet siden: {$since}
+connection-status-mfa-pending = Afventer MFA: {$mfa_type}

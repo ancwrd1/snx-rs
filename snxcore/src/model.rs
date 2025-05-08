@@ -203,16 +203,26 @@ impl ConnectionStatus {
 impl fmt::Display for ConnectionStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConnectionStatus::Disconnected => write!(f, "Disconnected"),
-            ConnectionStatus::Connecting => write!(f, "Connecting in progress"),
+            ConnectionStatus::Disconnected => write!(f, "{}", i18n::tr!("connection-status-disconnected")),
+            ConnectionStatus::Connecting => write!(f, "{}", i18n::tr!("connection-status-connecting")),
             ConnectionStatus::Connected(info) => {
                 write!(
                     f,
-                    "Connected since: {}",
-                    info.since.unwrap_or_default().format("%Y-%m-%d %H:%M:%S")
+                    "{}",
+                    i18n::tr!(
+                        "connection-status-connected-since",
+                        since = info.since.unwrap_or_default().format("%Y-%m-%d %H:%M:%S").to_string()
+                    )
                 )
             }
-            ConnectionStatus::Mfa(mfa) => write!(f, "MFA pending: {:?}", mfa.mfa_type),
+            ConnectionStatus::Mfa(mfa) => write!(
+                f,
+                "{}",
+                i18n::tr!(
+                    "connection-status-mfa-pending",
+                    mfa_type = format!("{:?}", mfa.mfa_type)
+                )
+            ),
         }
     }
 }

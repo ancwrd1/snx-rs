@@ -633,10 +633,13 @@ impl SettingsDialog {
         params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
 
         let active = self.widgets.locale.active();
-        match active {
-            None | Some(0) => params.locale = None,
-            Some(_) => params.locale = self.widgets.locale.active_text().and_then(|v| v.parse().ok()),
-        }
+        let new_locale = match active {
+            None | Some(0) => None,
+            Some(index) => i18n::get_locales().get(index as usize - 1).map(|l| l.to_string()),
+        };
+        params.locale = new_locale.clone();
+
+        i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
 
         params.save()?;
 
@@ -717,11 +720,14 @@ impl SettingsDialog {
 
         self.widgets.locale.append_text(&tr!("label-system-language"));
         for locale in i18n::get_locales() {
-            self.widgets.locale.append_text(&locale.to_string());
+            self.widgets
+                .locale
+                .append_text(&i18n::translate(&format!("language-{}", locale)));
         }
 
         if let Some(ref locale) = self.params.locale {
-            self.select_combo_box_item(&self.widgets.locale, locale);
+            let translated = i18n::translate(&format!("language-{}", locale));
+            self.select_combo_box_item(&self.widgets.locale, &translated);
         } else {
             self.widgets.locale.set_active(Some(0));
         }

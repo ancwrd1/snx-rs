@@ -149,3 +149,26 @@ cli-app-terminated = Applikation avslutad av signal
 
 # Connection Messages
 connection-connected-to = Ansluten till {$server}
+
+# Languages
+language-cs-CZ = Tjeckiska
+language-da-DK = Danska
+language-de-DE = Tyska
+language-en-US = Engelska
+language-es-ES = Spanska
+language-fi-FI = Finska
+language-fr-FR = Franska
+language-it-IT = Italienska
+language-nl-NL = Nederländska
+language-no-NO = Norska
+language-pl-PL = Polska
+language-pt-PT = Portugisiska
+language-ru-RU = Ryska
+language-sk-SK = Slovakiska
+language-sv-SE = Svenska
+
+# Connection status messages
+connection-status-disconnected = Frånkopplad
+connection-status-connecting = Ansluter
+connection-status-connected-since = Ansluten sedan: {$since}
+connection-status-mfa-pending = Väntar på MFA: {$mfa_type}

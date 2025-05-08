@@ -149,3 +149,26 @@ cli-app-terminated = Sovellus päättyi signaalin vuoksi
 
 # Connection Messages
 connection-connected-to = Yhdistetty palvelimeen {$server}
+
+# Languages
+language-cs-CZ = Tšekki
+language-da-DK = Tanska
+language-de-DE = Saksa
+language-en-US = Englanti
+language-es-ES = Espanja
+language-fi-FI = Suomi
+language-fr-FR = Ranska
+language-it-IT = Italia
+language-nl-NL = Hollanti
+language-no-NO = Norja
+language-pl-PL = Puola
+language-pt-PT = Portugali
+language-ru-RU = Venäjä
+language-sk-SK = Slovakia
+language-sv-SE = Ruotsi
+
+# Connection status messages
+connection-status-disconnected = Yhteys katkaistu
+connection-status-connecting = Yhdistetään
+connection-status-connected-since = Yhdistetty: {$since}
+connection-status-mfa-pending = Odotetaan MFA: {$mfa_type}

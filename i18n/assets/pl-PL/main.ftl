@@ -149,3 +149,26 @@ cli-app-terminated = Aplikacja zakończona przez sygnał
 
 # Connection Messages
 connection-connected-to = Połączono z {$server}
+
+# Languages
+language-cs-CZ = Czeski
+language-da-DK = Duński
+language-de-DE = Niemiecki
+language-en-US = Angielski
+language-es-ES = Hiszpański
+language-fi-FI = Fiński
+language-fr-FR = Francuski
+language-it-IT = Włoski
+language-nl-NL = Holenderski
+language-no-NO = Norweski
+language-pl-PL = Polski
+language-pt-PT = Portugalski
+language-ru-RU = Rosyjski
+language-sk-SK = Słowacki
+language-sv-SE = Szwedzki
+
+# Connection status messages
+connection-status-disconnected = Rozłączono
+connection-status-connecting = Łączenie
+connection-status-connected-since = Połączono od: {$since}
+connection-status-mfa-pending = Oczekiwanie na MFA: {$mfa_type}

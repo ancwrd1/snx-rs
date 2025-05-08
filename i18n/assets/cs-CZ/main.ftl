@@ -149,3 +149,20 @@ cli-app-terminated = Aplikace ukončena signálem
 
 # Connection Messages
 connection-connected-to = Připojeno k {$server}
+
+# Languages
+language-cs-CZ = Čeština
+language-da-DK = Dánština
+language-de-DE = Němčina
+language-en-US = Angličtina
+language-es-ES = Španělština
+language-fi-FI = Finština
+language-fr-FR = Francouzština
+language-it-IT = Italština
+language-nl-NL = Nizozemština
+language-no-NO = Norština
+language-pl-PL = Polština
+language-pt-PT = Portugalština
+language-ru-RU = Ruština
+language-sk-SK = Slovenština
+language-sv-SE = Švédština

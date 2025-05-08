@@ -149,3 +149,26 @@ cli-app-terminated = Applicatie beëindigd door signaal
 
 # Connection Messages
 connection-connected-to = Verbonden met {$server}
+
+# Languages
+language-cs-CZ = Tsjechisch
+language-da-DK = Deens
+language-de-DE = Duits
+language-en-US = Engels
+language-es-ES = Spaans
+language-fi-FI = Fins
+language-fr-FR = Frans
+language-it-IT = Italiaans
+language-nl-NL = Nederlands
+language-no-NO = Noors
+language-pl-PL = Pools
+language-pt-PT = Portugees
+language-ru-RU = Russisch
+language-sk-SK = Slowaaks
+language-sv-SE = Zweeds
+
+# Connection status messages
+connection-status-disconnected = Verbinding verbroken
+connection-status-connecting = Verbinding maken
+connection-status-connected-since = Verbonden sinds: {$since}
+connection-status-mfa-pending = Wachten op MFA: {$mfa_type}

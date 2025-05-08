@@ -149,3 +149,26 @@ cli-app-terminated = Aplikácia ukončená signálom
 
 # Connection Messages
 connection-connected-to = Pripojené k {$server}
+
+# Languages
+language-cs-CZ = Čeština
+language-da-DK = Dánčina
+language-de-DE = Nemčina
+language-en-US = Angličtina
+language-es-ES = Španielčina
+language-fi-FI = Fínčina
+language-fr-FR = Francúzština
+language-it-IT = Taliančina
+language-nl-NL = Holandčina
+language-no-NO = Nórčina
+language-pl-PL = Poľština
+language-pt-PT = Portugalčina
+language-ru-RU = Ruština
+language-sk-SK = Slovenčina
+language-sv-SE = Švédčina
+
+# Connection status messages
+connection-status-disconnected = Odpojené
+connection-status-connecting = Prebieha pripájanie
+connection-status-connected-since = Pripojené od: {$since}
+connection-status-mfa-pending = Čakanie na MFA: {$mfa_type}
