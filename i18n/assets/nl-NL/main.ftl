@@ -172,3 +172,13 @@ connection-status-disconnected = Verbinding verbroken
 connection-status-connecting = Verbinding maken
 connection-status-connected-since = Verbonden sinds: {$since}
 connection-status-mfa-pending = Wachten op MFA: {$mfa_type}
+
+# Login options
+login-options-server-address = Serveradres
+login-options-server-ip = Server-IP
+login-options-client-enabled = Client ingeschakeld
+login-options-supported-protocols = Ondersteunde protocollen
+login-options-preferred-protocol = Voorkeursprotocol
+login-options-tcpt-port = TCPT-poort
+login-options-natt-port = NATT-poort
+login-options-internal-ca-fingerprint = Interne CA-vingerafdruk

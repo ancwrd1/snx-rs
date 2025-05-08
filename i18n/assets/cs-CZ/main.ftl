@@ -166,3 +166,13 @@ language-pt-PT = Portugalština
 language-ru-RU = Ruština
 language-sk-SK = Slovenština
 language-sv-SE = Švédština
+
+# Login options
+login-options-server-address = Adresa serveru
+login-options-server-ip = IP serveru
+login-options-client-enabled = Klient povolen
+login-options-supported-protocols = Podporované protokoly
+login-options-preferred-protocol = Preferovaný protokol
+login-options-tcpt-port = Port TCPT
+login-options-natt-port = Port NATT
+login-options-internal-ca-fingerprint = Otisk interního CA

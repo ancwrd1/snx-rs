@@ -172,3 +172,13 @@ connection-status-disconnected = Koplet fra
 connection-status-connecting = Kobler til
 connection-status-connected-since = Koblet til siden: {$since}
 connection-status-mfa-pending = Venter på MFA: {$mfa_type}
+
+# Login options
+login-options-server-address = Serveradresse
+login-options-server-ip = Server-IP
+login-options-client-enabled = Klient aktivert
+login-options-supported-protocols = Støttede protokoller
+login-options-preferred-protocol = Foretrukket protokoll
+login-options-tcpt-port = TCPT-port
+login-options-natt-port = NATT-port
+login-options-internal-ca-fingerprint = Intern CA-fingeravtrykk

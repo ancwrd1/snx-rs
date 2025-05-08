@@ -172,3 +172,13 @@ connection-status-disconnected = Отключено
 connection-status-connecting = Выполняется подключение
 connection-status-connected-since = Подключено с: {$since}
 connection-status-mfa-pending = Ожидание MFA: {$mfa_type}
+
+# Login options
+login-options-server-address = Адрес сервера
+login-options-server-ip = IP сервера
+login-options-client-enabled = Клиент включен
+login-options-supported-protocols = Поддерживаемые протоколы
+login-options-preferred-protocol = Предпочтительный протокол
+login-options-tcpt-port = Порт TCPT
+login-options-natt-port = Порт NATT
+login-options-internal-ca-fingerprint = Отпечаток внутреннего CA

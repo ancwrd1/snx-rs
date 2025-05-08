@@ -172,3 +172,13 @@ connection-status-disconnected = Déconnecté
 connection-status-connecting = Connexion en cours
 connection-status-connected-since = Connecté depuis: {$since}
 connection-status-mfa-pending = En attente de MFA: {$mfa_type}
+
+# Login options
+login-options-server-address = Adresse du serveur
+login-options-server-ip = IP du serveur
+login-options-client-enabled = Client activé
+login-options-supported-protocols = Protocoles pris en charge
+login-options-preferred-protocol = Protocole préféré
+login-options-tcpt-port = Port TCPT
+login-options-natt-port = Port NATT
+login-options-internal-ca-fingerprint = Empreinte CA interne

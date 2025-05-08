@@ -172,3 +172,13 @@ connection-status-disconnected = Yhteys katkaistu
 connection-status-connecting = Yhdistetään
 connection-status-connected-since = Yhdistetty: {$since}
 connection-status-mfa-pending = Odotetaan MFA: {$mfa_type}
+
+# Login options
+login-options-server-address = Palvelimen osoite
+login-options-server-ip = Palvelimen IP
+login-options-client-enabled = Asiakasohjelma käytössä
+login-options-supported-protocols = Tuetut protokollat
+login-options-preferred-protocol = Suositeltu protokolla
+login-options-tcpt-port = TCPT-portti
+login-options-natt-port = NATT-portti
+login-options-internal-ca-fingerprint = Sisäisen CA:n sormenjälki

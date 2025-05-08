@@ -172,3 +172,13 @@ connection-status-disconnected = Odpojené
 connection-status-connecting = Prebieha pripájanie
 connection-status-connected-since = Pripojené od: {$since}
 connection-status-mfa-pending = Čakanie na MFA: {$mfa_type}
+
+# Login options
+login-options-server-address = Adresa servera
+login-options-server-ip = IP servera
+login-options-client-enabled = Klient povolený
+login-options-supported-protocols = Podporované protokoly
+login-options-preferred-protocol = Preferovaný protokol
+login-options-tcpt-port = Port TCPT
+login-options-natt-port = Port NATT
+login-options-internal-ca-fingerprint = Odtlačok interného CA
