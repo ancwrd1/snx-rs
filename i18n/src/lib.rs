@@ -60,6 +60,9 @@ pub fn get_locale() -> LanguageIdentifier {
     APP_LOCALE.read().unwrap().clone().unwrap_or_else(get_user_locale)
 }
 
+#[cached]
 pub fn get_locales() -> Vec<LanguageIdentifier> {
-    LOCALES.locales().cloned().collect()
+    let mut locales = LOCALES.locales().cloned().collect::<Vec<_>>();
+    locales.sort();
+    locales
 }
