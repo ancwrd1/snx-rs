@@ -1,8 +1,8 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use gtk4::{
-    glib::{self, clone, ControlFlow}, prelude::*, Align,
-    Orientation,
-    ResponseType,
+    Align, Orientation, ResponseType,
+    glib::{self, ControlFlow, clone},
+    prelude::*,
 };
 use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 use tokio::sync::mpsc;
@@ -50,13 +50,13 @@ impl GtkPrompt {
                     .margin_end(6)
                     .homogeneous(true)
                     .halign(Align::End)
+                    .valign(Align::End)
                     .build();
 
                 button_box.append(&ok);
                 button_box.append(&cancel);
 
                 dialog.set_default_response(ResponseType::Ok);
-                dialog.set_default_size(320, 120);
 
                 let content = dialog.content_area();
                 let inner = gtk4::Box::builder()
@@ -102,6 +102,11 @@ impl GtkPrompt {
 
                 content.append(&inner);
                 content.append(&button_box);
+
+                dialog.show();
+                let current_size = dialog.default_size();
+                let new_width = current_size.0.max(400);
+                dialog.set_default_size(new_width, current_size.1);
 
                 let response = dialog.run_future().await;
                 dialog.close();

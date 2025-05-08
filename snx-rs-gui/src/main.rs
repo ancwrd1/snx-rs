@@ -108,12 +108,12 @@ async fn main() -> anyhow::Result<()> {
                         let sender = tray_command_sender.clone();
                         let (tx, rx) = mpsc::channel(16);
                         cancel_sender = Some(tx);
-                        tokio::task::spawn_local(async move { do_connect(sender, params, rx).await });
+                        tokio::spawn(async move { do_connect(sender, params, rx).await });
                     }
                     TrayEvent::Disconnect => {
                         let sender = tray_command_sender.clone();
                         let cancel_sender = cancel_sender.take();
-                        tokio::task::spawn_local(async move { do_disconnect(sender, params, cancel_sender).await });
+                        tokio::spawn(async move { do_disconnect(sender, params, cancel_sender).await });
                     }
                     TrayEvent::Settings => {
                         settings::start_settings_dialog(main_window(), tray_command_sender.clone(), params)
@@ -247,16 +247,13 @@ async fn do_connect(
     };
 
     if let Err(ref e) = status {
-        let _ = GtkPrompt
-            .show_notification(&tr!("app-connection-error"), &e.to_string())
-            .await;
+        let message = tr!("app-connection-error");
+        let _ = GtkPrompt.show_notification(&message, &e.to_string()).await;
         status = controller.command(ServiceCommand::Status, params).await;
     } else if let Ok(ConnectionStatus::Connected(_)) = status {
+        let message = tr!("app-connection-success");
         let _ = GtkPrompt
-            .show_notification(
-                &tr!("app-connection-success"),
-                &format!("Connected to {}", params.server_name),
-            )
+            .show_notification(&message, &format!("Connected to {}", params.server_name))
             .await;
     };
 

@@ -1,4 +1,3 @@
-
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
@@ -35,6 +34,7 @@ struct SettingsDialog {
     params: Arc<TunnelParams>,
     dialog: gtk4::Dialog,
     widgets: Rc<MyWidgets>,
+    revealers: Vec<gtk4::Revealer>,
 }
 
 struct MyWidgets {
@@ -138,9 +138,6 @@ impl MyWidgets {
 }
 
 impl SettingsDialog {
-    const DEFAULT_WIDTH: i32 = 750;
-    const DEFAULT_HEIGHT: i32 = 400;
-
     pub fn new<W: IsA<Window>>(parent: W, params: Arc<TunnelParams>) -> Self {
         let dialog = gtk4::Dialog::builder()
             .title(tr!("dialog-title"))
@@ -186,11 +183,12 @@ impl SettingsDialog {
         button_box.append(&apply_button);
         button_box.append(&cancel_button);
 
-        dialog.set_default_size(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
-
         let server_name = gtk4::Entry::builder().text(&params.server_name).hexpand(true).build();
 
-        let fetch_info = gtk4::Button::builder().label(tr!("button-fetch-info")).halign(Align::End).build();
+        let fetch_info = gtk4::Button::builder()
+            .label(tr!("button-fetch-info"))
+            .halign(Align::End)
+            .build();
         let auth_type = gtk4::ComboBoxText::builder().build();
         let tunnel_type = gtk4::ComboBoxText::builder().build();
         let user_name = gtk4::Entry::builder().text(&params.user_name).build();
@@ -332,8 +330,6 @@ impl SettingsDialog {
 
         auth_type.connect_active_notify(clone!(
             #[weak]
-            dialog,
-            #[weak]
             auth_type,
             #[weak]
             user_name,
@@ -351,7 +347,6 @@ impl SettingsDialog {
                         let is_cert = factors.iter().any(|f| f == "certificate");
                         set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
                         set_container_visible(cert_path.as_ref(), is_cert);
-                        dialog.set_default_size(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
                         if !is_cert {
                             cert_type.set_active(Some(0));
                         }
@@ -532,10 +527,11 @@ impl SettingsDialog {
             }
         });
 
-        let result = Self {
+        let mut result = Self {
             params,
             dialog,
             widgets,
+            revealers: vec![],
         };
 
         result.create_layout();
@@ -909,7 +905,7 @@ impl SettingsDialog {
         tab
     }
 
-    fn add_expander(&self, label: &str, parent: &gtk4::Box, child: &impl IsA<Widget>) {
+    fn add_expander(&mut self, label: &str, parent: &gtk4::Box, child: &impl IsA<Widget>) {
         let arrow = gtk4::Image::from_icon_name("go-next-symbolic");
         arrow.add_css_class("arrow-icon");
 
@@ -928,8 +924,10 @@ impl SettingsDialog {
 
         let revealer = gtk4::Revealer::builder()
             .transition_type(gtk4::RevealerTransitionType::SlideDown)
-            .reveal_child(false)
+            .reveal_child(true)
             .build();
+
+        self.revealers.push(revealer.clone());
 
         // Toggle handler
         toggle_button.connect_toggled(clone!(
@@ -955,7 +953,7 @@ impl SettingsDialog {
         revealer.set_child(Some(child));
     }
 
-    fn advanced_tab(&self) -> gtk4::ScrolledWindow {
+    fn advanced_tab(&mut self) -> gtk4::ScrolledWindow {
         let inner = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
             .margin_top(6)
@@ -978,7 +976,7 @@ impl SettingsDialog {
         scrolled_win
     }
 
-    fn create_layout(&self) {
+    fn create_layout(&mut self) {
         let content_area = self.dialog.content_area();
         content_area.set_margin_top(6);
         content_area.set_margin_start(6);
@@ -991,7 +989,37 @@ impl SettingsDialog {
         content_area.append(&self.widgets.button_box);
 
         notebook.append_page(&self.general_tab(), Some(&gtk4::Label::new(Some(&tr!("tab-general")))));
-        notebook.append_page(&self.advanced_tab(), Some(&gtk4::Label::new(Some(&tr!("tab-advanced")))));
+        notebook.append_page(
+            &self.advanced_tab(),
+            Some(&gtk4::Label::new(Some(&tr!("tab-advanced")))),
+        );
+
+        // self.dialog
+        //     .set_default_size(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
+        self.resize_dialog_to_fit_revealers();
+    }
+
+    fn resize_dialog_to_fit_revealers(&self) {
+        let mut max_width = 0;
+
+        // Iterate through all revealers
+        for revealer in &self.revealers {
+            if let Some(child) = revealer.child() {
+                child.queue_resize();
+                let requisition = child.preferred_size();
+                let width = requisition.1.width(); // Natural width
+                max_width = max_width.max(width);
+            }
+            revealer.set_reveal_child(false);
+        }
+
+        max_width += 50;
+
+        let current_size = self.dialog.default_size();
+        let height = current_size.1.max(400);
+
+        // Set the dialog's default size
+        self.dialog.set_default_size(max_width, height);
     }
 }
 
