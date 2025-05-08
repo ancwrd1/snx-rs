@@ -160,7 +160,7 @@ impl ConnectionInfo {
         let values = self.to_values();
         let label_width = values
             .iter()
-            .map(|(label, _)| locale_fn(label).len())
+            .map(|(label, _)| locale_fn(label).chars().count())
             .max()
             .unwrap_or_default();
         let mut result = String::new();

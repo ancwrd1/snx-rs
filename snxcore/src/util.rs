@@ -150,9 +150,9 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
         .iter()
         .map(|(label, _)| {
             if label.starts_with("[") {
-                label.len()
+                label.chars().count()
             } else {
-                i18n::translate(label).len()
+                i18n::translate(label).chars().count()
             }
         })
         .max()
