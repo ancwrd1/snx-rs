@@ -50,6 +50,33 @@ error-file-not-exist = Filen finnes ikke: {$path}
 error-invalid-cert-id = Sertifikat-ID er ikke i heksadesimalt format: {$id}
 error-ca-root-not-exist = CA-rotsti finnes ikke: {$path}
 error-validation = Valideringsfeil
+error-user-input-canceled = Brukerinndata avbrutt
+error-connection-canceled = Tilkobling avbrutt
+error-unknown-event = Ukjent hendelse: {$event}
+error-no-service-connection = Ingen tilkobling til tjenesten
+error-empty-input = Inndata kan ikke være tom
+
+# New error messages
+error-invalid-object = Ugyldig objekt
+error-no-connector = Ingen tunnelkobling
+error-connection-cancelled = Tilkobling avbrutt
+error-tunnel-disconnected = Tunnel frakoblet, siste melding: {$message}
+error-unexpected-reply = Uventet svar
+error-auth-failed = Autentisering mislyktes
+error-no-server-name = Manglende påkrevd parameter: server-name
+error-no-login-type = Manglende påkrevd parameter: login-type
+error-connection-timeout = Tilkoblingstimeout
+error-invalid-response = Ugyldig svar
+error-cannot-send-request = Kan ikke sende forespørsel til tjenesten
+error-cannot-read-reply = Kan ikke lese svar fra tjenesten
+error-no-ipv4 = Ingen IPv4-adresse for {$server}
+error-not-challenge-state = Ikke en utfordringsstatus
+error-no-challenge = Ingen utfordring i dataene
+error-endless-challenges = Uendelig løkke av brukernavnutfordringer
+error-no-pkcs12 = Ingen PKCS12-sti og passord oppgitt
+error-no-pkcs8 = Ingen PKCS8 PEM-sti oppgitt
+error-no-pkcs11 = Ingen PKCS11 PIN oppgitt
+error-no-ipsec-session = Ingen IPSEC-økt
 
 # Placeholder texts
 placeholder-domains = Domener separert med komma

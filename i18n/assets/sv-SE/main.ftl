@@ -50,6 +50,33 @@ error-file-not-exist = Filen finns inte: {$path}
 error-invalid-cert-id = Certifikat-ID är inte i hexadecimalt format: {$id}
 error-ca-root-not-exist = CA-rotpath finns inte: {$path}
 error-validation = Valideringsfel
+error-user-input-canceled = Användarinput avbruten
+error-connection-canceled = Anslutning avbruten
+error-unknown-event = Okänd händelse: {$event}
+error-no-service-connection = Ingen anslutning till tjänsten
+error-empty-input = Input kan inte vara tom
+
+# New error messages
+error-invalid-object = Ogiltigt objekt
+error-no-connector = Ingen tunnelanslutning
+error-connection-cancelled = Anslutning avbruten
+error-tunnel-disconnected = Tunnel frånkopplad, sista meddelande: {$message}
+error-unexpected-reply = Oväntat svar
+error-auth-failed = Autentisering misslyckades
+error-no-server-name = Saknad obligatorisk parameter: server-name
+error-no-login-type = Saknad obligatorisk parameter: login-type
+error-connection-timeout = Anslutningstimeout
+error-invalid-response = Ogiltigt svar
+error-cannot-send-request = Kan inte skicka förfrågan till tjänsten
+error-cannot-read-reply = Kan inte läsa svar från tjänsten
+error-no-ipv4 = Ingen IPv4-adress för {$server}
+error-not-challenge-state = Inte ett utmaningstillstånd
+error-no-challenge = Ingen utmaning i data
+error-endless-challenges = Oändlig loop av användarnamnsutmaningar
+error-no-pkcs12 = Ingen PKCS12-sökväg och lösenord angivna
+error-no-pkcs8 = Ingen PKCS8 PEM-sökväg angiven
+error-no-pkcs11 = Ingen PKCS11 PIN angiven
+error-no-ipsec-session = Ingen IPSEC-session
 
 # Placeholder texts
 placeholder-domains = Domäner separerade med kommatecken

@@ -2,6 +2,7 @@ use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use futures::{SinkExt, StreamExt};
+use i18n::tr;
 use tokio::net::UnixStream;
 use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::warn;
@@ -204,11 +205,11 @@ where
 
     async fn do_connect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
         if params.server_name.is_empty() {
-            anyhow::bail!("Missing required parameter: server-name");
+            anyhow::bail!(tr!("error-no-server-name"));
         }
 
         if params.login_type.is_empty() {
-            anyhow::bail!("Missing required parameter: login-type");
+            anyhow::bail!(tr!("error-no-login-type"));
         }
 
         if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {
@@ -234,13 +235,13 @@ where
                             tokio::time::sleep(Duration::from_millis(50)).await;
                             continue;
                         } else {
-                            anyhow::bail!("Connection timeout!")
+                            anyhow::bail!(tr!("error-connection-timeout"));
                         }
                     }
                     other => return other,
                 },
                 Ok(TunnelServiceResponse::Error(error)) => anyhow::bail!(error),
-                Ok(_) => anyhow::bail!("Invalid response!"),
+                Ok(_) => anyhow::bail!(tr!("error-invalid-response")),
                 Err(e) => return Err(e),
             }
         }
@@ -282,7 +283,7 @@ where
         let mut stream = self
             .get_stream()
             .await
-            .map_err(|_| anyhow!("Unable to connect to the service!"))?;
+            .map_err(|_| anyhow!(tr!("error-no-service-connection")))?;
 
         let mut codec = LengthDelimitedCodec::new().framed(&mut stream);
 
@@ -290,14 +291,14 @@ where
 
         let Ok(Ok(_)) = tokio::time::timeout(SEND_TIMEOUT, codec.send(data.into())).await else {
             self.stream = None;
-            anyhow::bail!("Cannot send request to the service!")
+            anyhow::bail!(tr!("error-cannot-send-request"));
         };
 
         if let Ok(Some(Ok(bytes))) = tokio::time::timeout(timeout, codec.next()).await {
             Ok(serde_json::from_slice(&bytes)?)
         } else {
             self.stream = None;
-            anyhow::bail!("Cannot read reply from the service!")
+            anyhow::bail!(tr!("error-cannot-read-reply"));
         }
     }
 

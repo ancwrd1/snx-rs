@@ -19,6 +19,7 @@ use ipnet::Ipv4Net;
 use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error};
+use i18n::tr;
 
 use crate::{
     ccc::CccHttpClient,
@@ -183,7 +184,7 @@ impl VpnTunnel for TunIpsecTunnel {
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
         let Some(ref ipsec_session) = self.session.ipsec_session else {
-            anyhow::bail!("No IPSEC session!");
+            anyhow::bail!(tr!("error-no-ipsec-session"));
         };
 
         let mut tun = TunDevice::new(name_hint, ipsec_session.address, Some(ipsec_session.netmask))?;
@@ -191,7 +192,7 @@ impl VpnTunnel for TunIpsecTunnel {
 
         self.setup_routing(&tun_name).await?;
 
-        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
+        let session = self.session.ipsec_session.as_ref().context(tr!("error-no-ipsec-session"))?;
 
         let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
 

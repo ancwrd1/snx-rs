@@ -15,6 +15,7 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     pin_mut,
 };
+use i18n::tr;
 use ipnet::Ipv4Net;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
@@ -154,7 +155,7 @@ impl SslTunnel {
             SslPacketType::Control(expr) => {
                 trace!("Hello reply: {:?}", expr);
                 if matches!(&expr, SExpression::Object(Some(name), _) if name == "disconnect") {
-                    anyhow::bail!("Tunnel disconnected, last message: {}", expr);
+                    anyhow::bail!(tr!("error-tunnel-disconnected", message = expr));
                 }
                 let hello_reply = expr.try_into::<HelloReply>()?;
                 self.ip_address.clone_from(&hello_reply.data.office_mode.ipaddr);
@@ -162,7 +163,7 @@ impl SslTunnel {
                 self.keepalive = Duration::from_secs(hello_reply.data.timeouts.keepalive);
                 hello_reply
             }
-            _ => anyhow::bail!("Unexpected reply"),
+            _ => anyhow::bail!(tr!("error-unexpected-reply")),
         };
 
         Ok(reply.data)

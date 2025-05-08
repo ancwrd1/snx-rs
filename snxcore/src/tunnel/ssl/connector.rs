@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use async_trait::async_trait;
+use i18n::tr;
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, warn};
 
@@ -46,7 +47,7 @@ impl CccTunnelConnector {
             "done" => {}
             other => {
                 warn!("Authn status: {}", other);
-                anyhow::bail!("Authentication failed!");
+                anyhow::bail!(tr!("error-auth-failed"));
             }
         }
 
@@ -55,7 +56,7 @@ impl CccTunnelConnector {
             _ => {
                 let msg = match (data.error_message, data.error_id, data.error_code) {
                     (Some(message), Some(id), Some(code)) => format!("[{} {}] {}", code, id.0, message.0),
-                    _ => "Authentication failed!".to_owned(),
+                    _ => tr!("error-auth-failed"),
                 };
                 warn!("{}", msg);
                 anyhow::bail!(msg);

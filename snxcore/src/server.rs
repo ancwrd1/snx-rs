@@ -7,6 +7,7 @@ use std::{
 
 use anyhow::{Context, anyhow};
 use futures::{FutureExt, SinkExt, StreamExt};
+use i18n::tr;
 use tokio::sync::{Mutex, RwLock, mpsc};
 use tracing::{debug, warn};
 
@@ -212,7 +213,7 @@ impl ServerHandler {
 
             Ok(TunnelServiceResponse::Ok)
         } else {
-            Err(anyhow!("No tunnel connector!"))
+            Err(anyhow!(tr!("error-no-connector")))
         }
     }
 
@@ -238,7 +239,7 @@ impl ServerHandler {
             };
 
             let session = tokio::select! {
-                _ = self.cancel_receiver.recv() => anyhow::bail!("Connection cancelled!"),
+                _ = self.cancel_receiver.recv() => anyhow::bail!(tr!("error-connection-cancelled")),
                 res = fut => res?
             };
 
@@ -253,7 +254,7 @@ impl ServerHandler {
 
         let new_session = if let Some(connector) = self.state.connector.lock().await.as_mut() {
             tokio::select! {
-                _ = self.cancel_receiver.recv() => anyhow::bail!("Connection cancelled!"),
+                _ = self.cancel_receiver.recv() => anyhow::bail!(tr!("error-connection-cancelled")),
                 res = connector.challenge_code(session, code) => res?
             }
         } else {

@@ -56,6 +56,28 @@ error-unknown-event = Неизвестное событие: {$event}
 error-no-service-connection = Нет соединения со службой
 error-empty-input = Ввод не может быть пустым
 
+# New error messages
+error-invalid-object = Недопустимый объект
+error-no-connector = Нет коннектора туннеля
+error-connection-cancelled = Соединение отменено
+error-tunnel-disconnected = Туннель отключен, последнее сообщение: {$message}
+error-unexpected-reply = Неожиданный ответ
+error-auth-failed = Ошибка аутентификации
+error-no-server-name = Отсутствует обязательный параметр: server-name
+error-no-login-type = Отсутствует обязательный параметр: login-type
+error-connection-timeout = Таймаут соединения
+error-invalid-response = Недопустимый ответ
+error-cannot-send-request = Невозможно отправить запрос в службу
+error-cannot-read-reply = Невозможно прочитать ответ от службы
+error-no-ipv4 = Нет IPv4 адреса для {$server}
+error-not-challenge-state = Не состояние запроса
+error-no-challenge = Нет запроса в данных
+error-endless-challenges = Бесконечный цикл запросов имени пользователя
+error-no-pkcs12 = Не указан путь к PKCS12 и пароль
+error-no-pkcs8 = Не указан путь к PKCS8 PEM
+error-no-pkcs11 = Не указан PIN-код PKCS11
+error-no-ipsec-session = Нет сессии IPSEC
+
 # Placeholder texts
 placeholder-domains = Домены через запятую
 placeholder-ip-addresses = IP-адреса через запятую

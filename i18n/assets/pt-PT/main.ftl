@@ -50,6 +50,33 @@ error-file-not-exist = O ficheiro não existe: {$path}
 error-invalid-cert-id = ID do certificado não está em formato hexadecimal: {$id}
 error-ca-root-not-exist = O caminho raiz CA não existe: {$path}
 error-validation = Erro de validação
+error-user-input-canceled = Entrada do utilizador cancelada
+error-connection-canceled = Ligação cancelada
+error-unknown-event = Evento desconhecido: {$event}
+error-no-service-connection = Sem ligação ao serviço
+error-empty-input = A entrada não pode estar vazia
+
+# New error messages
+error-invalid-object = Objeto inválido
+error-no-connector = Sem conector de túnel
+error-connection-cancelled = Ligação cancelada
+error-tunnel-disconnected = Túnel desligado, última mensagem: {$message}
+error-unexpected-reply = Resposta inesperada
+error-auth-failed = Autenticação falhou
+error-no-server-name = Parâmetro obrigatório em falta: server-name
+error-no-login-type = Parâmetro obrigatório em falta: login-type
+error-connection-timeout = Tempo limite de ligação
+error-invalid-response = Resposta inválida
+error-cannot-send-request = Não é possível enviar pedido ao serviço
+error-cannot-read-reply = Não é possível ler resposta do serviço
+error-no-ipv4 = Sem endereço IPv4 para {$server}
+error-not-challenge-state = Não é um estado de desafio
+error-no-challenge = Sem desafio nos dados
+error-endless-challenges = Ciclo infinito de desafios de nome de utilizador
+error-no-pkcs12 = Sem caminho PKCS12 e palavra-passe fornecidos
+error-no-pkcs8 = Sem caminho PKCS8 PEM fornecido
+error-no-pkcs11 = Sem PIN PKCS11 fornecido
+error-no-ipsec-session = Sem sessão IPSEC
 
 # Placeholder texts
 placeholder-domains = Domínios separados por vírgulas

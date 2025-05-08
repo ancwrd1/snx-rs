@@ -56,6 +56,28 @@ error-unknown-event = Unbekanntes Ereignis: {$event}
 error-no-service-connection = Keine Verbindung zum Dienst
 error-empty-input = Eingabe darf nicht leer sein
 
+# New error messages
+error-invalid-object = Ungültiges Objekt
+error-no-connector = Kein Tunnel-Connector
+error-connection-cancelled = Verbindung abgebrochen
+error-tunnel-disconnected = Tunnel getrennt, letzte Nachricht: {$message}
+error-unexpected-reply = Unerwartete Antwort
+error-auth-failed = Authentifizierung fehlgeschlagen
+error-no-server-name = Erforderlicher Parameter fehlt: server-name
+error-no-login-type = Erforderlicher Parameter fehlt: login-type
+error-connection-timeout = Verbindungszeitüberschreitung
+error-invalid-response = Ungültige Antwort
+error-cannot-send-request = Anfrage kann nicht an den Dienst gesendet werden
+error-cannot-read-reply = Antwort vom Dienst kann nicht gelesen werden
+error-no-ipv4 = Keine IPv4-Adresse für {$server}
+error-not-challenge-state = Kein Challenge-Status
+error-no-challenge = Keine Challenge in den Daten
+error-endless-challenges = Endlosschleife von Benutzernamen-Challenges
+error-no-pkcs12 = Kein PKCS12-Pfad und Passwort angegeben
+error-no-pkcs8 = Kein PKCS8 PEM-Pfad angegeben
+error-no-pkcs11 = Kein PKCS11-PIN angegeben
+error-no-ipsec-session = Keine IPSEC-Sitzung
+
 # Placeholder texts
 placeholder-domains = Durch Komma getrennte Domänen
 placeholder-ip-addresses = Durch Komma getrennte IP-Adressen

@@ -9,6 +9,7 @@ use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
+use i18n::tr;
 use isakmp::{
     ikev1::{service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
@@ -116,7 +117,7 @@ impl IpsecTunnelConnector {
             .await?;
 
         let IpAddr::V4(gateway_address) = socket.peer_addr()?.ip() else {
-            anyhow::bail!("No IPv4 address for {}", params.server_name);
+            anyhow::bail!(tr!("error-no-ipv4", server = params.server_name));
         };
 
         let prober = NattProber::new(socket.peer_addr()?, params.port_knock);
@@ -165,7 +166,7 @@ impl IpsecTunnelConnector {
             .unwrap_or_else(|| "challenge".to_owned());
 
         if state != "challenge" && state != "new_factor" && state != "failed_attempt" {
-            anyhow::bail!("Not a challenge state!");
+            anyhow::bail!(tr!("error-not-challenge-state"));
         }
 
         let inner = msg_obj
@@ -274,7 +275,7 @@ impl IpsecTunnelConnector {
             }
             Some(status) => {
                 warn!("IPSec authentication failed, status: {}", status);
-                Err(anyhow!("Authentication failed!"))
+                Err(anyhow!(tr!("error-auth-failed")))
             }
             None => {
                 let attr = get_challenge_attribute_type(&id_reply);
@@ -293,13 +294,13 @@ impl IpsecTunnelConnector {
                         username: None,
                     })
                 } else {
-                    anyhow::bail!("No challenge in payload!");
+                    anyhow::bail!(tr!("error-no-challenge"));
                 };
 
                 match attr {
                     ConfigAttributeType::UserName => {
                         if self.last_challenge_type == ConfigAttributeType::UserName {
-                            anyhow::bail!("Endless loop of username challenges!");
+                            anyhow::bail!(tr!("error-endless-challenges"));
                         }
 
                         self.last_challenge_type = attr;
@@ -507,11 +508,11 @@ impl IpsecTunnelConnector {
                     data: std::fs::read(path)?,
                     password: password.clone(),
                 },
-                _ => anyhow::bail!("No PKCS12 path and password provided!"),
+                _ => anyhow::bail!(tr!("error-no-pkcs12")),
             },
             CertType::Pkcs8 => match params.cert_path {
                 Some(ref path) => Identity::Pkcs8 { path: path.clone() },
-                None => anyhow::bail!("No PKCS8 PEM path provided!"),
+                None => anyhow::bail!(tr!("error-no-pkcs8")),
             },
             CertType::Pkcs11 => match params.cert_password {
                 Some(ref pin) => Identity::Pkcs11 {
@@ -522,9 +523,8 @@ impl IpsecTunnelConnector {
                         .as_ref()
                         .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
                 },
-                None => anyhow::bail!("No PKCS11 pin provided!"),
+                None => anyhow::bail!(tr!("error-no-pkcs11")),
             },
-
             CertType::None => Identity::None,
         };
         Ok(identity)

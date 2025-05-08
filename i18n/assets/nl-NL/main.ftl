@@ -50,6 +50,33 @@ error-file-not-exist = Bestand bestaat niet: {$path}
 error-invalid-cert-id = Certificaat-ID niet in hexadecimaal formaat: {$id}
 error-ca-root-not-exist = CA-rootpad bestaat niet: {$path}
 error-validation = Validatiefout
+error-user-input-canceled = Gebruikersinvoer geannuleerd
+error-connection-canceled = Verbinding geannuleerd
+error-unknown-event = Onbekende gebeurtenis: {$event}
+error-no-service-connection = Geen verbinding met de service
+error-empty-input = Invoer mag niet leeg zijn
+
+# New error messages
+error-invalid-object = Ongeldig object
+error-no-connector = Geen tunnelconnector
+error-connection-cancelled = Verbinding geannuleerd
+error-tunnel-disconnected = Tunnel verbroken, laatste bericht: {$message}
+error-unexpected-reply = Onverwachte reactie
+error-auth-failed = Authenticatie mislukt
+error-no-server-name = Verplichte parameter ontbreekt: server-name
+error-no-login-type = Verplichte parameter ontbreekt: login-type
+error-connection-timeout = Verbindingstimeout
+error-invalid-response = Ongeldige reactie
+error-cannot-send-request = Kan verzoek niet naar service sturen
+error-cannot-read-reply = Kan antwoord van service niet lezen
+error-no-ipv4 = Geen IPv4-adres voor {$server}
+error-not-challenge-state = Geen uitdagingsstatus
+error-no-challenge = Geen uitdaging in gegevens
+error-endless-challenges = Oneindige lus van gebruikersnaamuitdagingen
+error-no-pkcs12 = Geen PKCS12-pad en wachtwoord opgegeven
+error-no-pkcs8 = Geen PKCS8 PEM-pad opgegeven
+error-no-pkcs11 = Geen PKCS11 PIN opgegeven
+error-no-ipsec-session = Geen IPSEC-sessie
 
 # Placeholder texts
 placeholder-domains = Door komma's gescheiden domeinen

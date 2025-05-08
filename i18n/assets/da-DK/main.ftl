@@ -50,6 +50,33 @@ error-file-not-exist = Filen findes ikke: {$path}
 error-invalid-cert-id = Certifikat-ID er ikke i hexadecimalt format: {$id}
 error-ca-root-not-exist = CA-rodsti findes ikke: {$path}
 error-validation = Valideringsfejl
+error-user-input-canceled = Brugerinput annulleret
+error-connection-canceled = Forbindelse annulleret
+error-unknown-event = Ukendt begivenhed: {$event}
+error-no-service-connection = Ingen forbindelse til tjenesten
+error-empty-input = Input kan ikke være tomt
+
+# New error messages
+error-invalid-object = Ugyldigt objekt
+error-no-connector = Ingen tunnelforbindelse
+error-connection-cancelled = Forbindelse annulleret
+error-tunnel-disconnected = Tunnel afbrudt, sidste besked: {$message}
+error-unexpected-reply = Uventet svar
+error-auth-failed = Godkendelse mislykkedes
+error-no-server-name = Manglende påkrævet parameter: server-name
+error-no-login-type = Manglende påkrævet parameter: login-type
+error-connection-timeout = Forbindelsestimeout
+error-invalid-response = Ugyldigt svar
+error-cannot-send-request = Kan ikke sende anmodning til tjenesten
+error-cannot-read-reply = Kan ikke læse svar fra tjenesten
+error-no-ipv4 = Ingen IPv4-adresse for {$server}
+error-not-challenge-state = Ikke en udfordringsstatus
+error-no-challenge = Ingen udfordring i data
+error-endless-challenges = Uendelig løkke af brugernavnudfordringer
+error-no-pkcs12 = Ingen PKCS12-sti og adgangskode angivet
+error-no-pkcs8 = Ingen PKCS8 PEM-sti angivet
+error-no-pkcs11 = Ingen PKCS11 PIN angivet
+error-no-ipsec-session = Ingen IPSEC-session
 
 # Placeholder texts
 placeholder-domains = Domæner adskilt med komma

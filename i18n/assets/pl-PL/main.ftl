@@ -50,6 +50,33 @@ error-file-not-exist = Plik nie istnieje: {$path}
 error-invalid-cert-id = Identyfikator certyfikatu nie w formacie szesnastkowym: {$id}
 error-ca-root-not-exist = Ścieżka główna CA nie istnieje: {$path}
 error-validation = Błąd walidacji
+error-user-input-canceled = Wprowadzanie danych przez użytkownika anulowane
+error-connection-canceled = Połączenie anulowane
+error-unknown-event = Nieznane zdarzenie: {$event}
+error-no-service-connection = Brak połączenia z usługą
+error-empty-input = Dane wejściowe nie mogą być puste
+
+# New error messages
+error-invalid-object = Nieprawidłowy obiekt
+error-no-connector = Brak łącznika tunelu
+error-connection-cancelled = Połączenie anulowane
+error-tunnel-disconnected = Tunel rozłączony, ostatnia wiadomość: {$message}
+error-unexpected-reply = Nieoczekiwana odpowiedź
+error-auth-failed = Uwierzytelnianie nie powiodło się
+error-no-server-name = Brak wymaganego parametru: server-name
+error-no-login-type = Brak wymaganego parametru: login-type
+error-connection-timeout = Przekroczenie czasu połączenia
+error-invalid-response = Nieprawidłowa odpowiedź
+error-cannot-send-request = Nie można wysłać żądania do usługi
+error-cannot-read-reply = Nie można odczytać odpowiedzi z usługi
+error-no-ipv4 = Brak adresu IPv4 dla {$server}
+error-not-challenge-state = Nie jest stanem wyzwania
+error-no-challenge = Brak wyzwania w danych
+error-endless-challenges = Nieskończona pętla wyzwań nazwy użytkownika
+error-no-pkcs12 = Nie podano ścieżki PKCS12 i hasła
+error-no-pkcs8 = Nie podano ścieżki PKCS8 PEM
+error-no-pkcs11 = Nie podano kodu PIN PKCS11
+error-no-ipsec-session = Brak sesji IPSEC
 
 # Placeholder texts
 placeholder-domains = Domeny oddzielone przecinkami

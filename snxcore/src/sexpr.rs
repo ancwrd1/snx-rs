@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
 use anyhow::{Context, anyhow};
+use i18n::tr;
 use num_traits::Num;
 use pest::{Parser, iterators::Pairs};
 use pest_derive::Parser;
@@ -254,7 +255,7 @@ fn parse_obj(pairs: RulePairs) -> anyhow::Result<SExpression> {
                 let (key, value) = parse_field(pair.into_inner())?;
                 fields.insert(key, value);
             }
-            _ => anyhow::bail!("Invalid object"),
+            _ => anyhow::bail!(tr!("error-invalid-object")),
         }
     }
     Ok(SExpression::Object(name, fields))

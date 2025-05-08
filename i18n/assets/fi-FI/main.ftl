@@ -50,6 +50,33 @@ error-file-not-exist = Tiedostoa ei löydy: {$path}
 error-invalid-cert-id = Varmennetunniste ei ole heksadesimaalimuodossa: {$id}
 error-ca-root-not-exist = CA-juuripolkua ei löydy: {$path}
 error-validation = Validoinnin virhe
+error-user-input-canceled = Käyttäjän syöte peruttu
+error-connection-canceled = Yhteys peruttu
+error-unknown-event = Tuntematon tapahtuma: {$event}
+error-no-service-connection = Ei yhteyttä palveluun
+error-empty-input = Syöte ei voi olla tyhjä
+
+# New error messages
+error-invalid-object = Virheellinen objekti
+error-no-connector = Ei tunneliyhteyttä
+error-connection-cancelled = Yhteys peruttu
+error-tunnel-disconnected = Tunneli katkaistu, viimeisin viesti: {$message}
+error-unexpected-reply = Odottamaton vastaus
+error-auth-failed = Tunnistus epäonnistui
+error-no-server-name = Pakollinen parametri puuttuu: server-name
+error-no-login-type = Pakollinen parametri puuttuu: login-type
+error-connection-timeout = Yhteyden aikakatkaisu
+error-invalid-response = Virheellinen vastaus
+error-cannot-send-request = Pyyntöä ei voi lähettää palveluun
+error-cannot-read-reply = Vastausta ei voi lukea palvelusta
+error-no-ipv4 = Ei IPv4-osoitetta kohteelle {$server}
+error-not-challenge-state = Ei haasteiden tilaa
+error-no-challenge = Ei haastetta tiedoissa
+error-endless-challenges = Loputon silmukka käyttäjätunnushaasteita
+error-no-pkcs12 = Ei PKCS12-polku ja salasana annettu
+error-no-pkcs8 = Ei PKCS8 PEM-polku annettu
+error-no-pkcs11 = Ei PKCS11 PIN-koodia annettu
+error-no-ipsec-session = Ei IPSEC-istuntoa
 
 # Placeholder texts
 placeholder-domains = Pilkulla erotetut verkkotunnukset

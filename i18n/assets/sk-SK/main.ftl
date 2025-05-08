@@ -50,6 +50,33 @@ error-file-not-exist = Súbor neexistuje: {$path}
 error-invalid-cert-id = ID certifikátu nie je v hexadecimálnom formáte: {$id}
 error-ca-root-not-exist = Cesta ku koreňovému certifikátu CA neexistuje: {$path}
 error-validation = Chyba overenia
+error-user-input-canceled = Vstup používateľa zrušený
+error-connection-canceled = Pripojenie zrušené
+error-unknown-event = Neznáma udalosť: {$event}
+error-no-service-connection = Žiadne pripojenie k službe
+error-empty-input = Vstup nemôže byť prázdny
+
+# New error messages
+error-invalid-object = Neplatný objekt
+error-no-connector = Žiadny konektor tunela
+error-connection-cancelled = Pripojenie zrušené
+error-tunnel-disconnected = Tunel odpojený, posledná správa: {$message}
+error-unexpected-reply = Neočakávaná odpoveď
+error-auth-failed = Overenie zlyhalo
+error-no-server-name = Chýba povinný parameter: server-name
+error-no-login-type = Chýba povinný parameter: login-type
+error-connection-timeout = Časový limit pripojenia
+error-invalid-response = Neplatná odpoveď
+error-cannot-send-request = Nie je možné odoslať požiadavku na službu
+error-cannot-read-reply = Nie je možné prečítať odpoveď zo služby
+error-no-ipv4 = Žiadna IPv4 adresa pre {$server}
+error-not-challenge-state = Nie je stav výzvy
+error-no-challenge = Žiadna výzva v dátach
+error-endless-challenges = Nekonečná slučka výziev používateľského mena
+error-no-pkcs12 = Žiadna cesta PKCS12 a heslo nie sú poskytnuté
+error-no-pkcs8 = Žiadna cesta PKCS8 PEM nie je poskytnutá
+error-no-pkcs11 = Žiadny PIN PKCS11 nie je poskytnutý
+error-no-ipsec-session = Žiadna IPSEC relácia
 
 # Placeholder texts
 placeholder-domains = Domény oddelené čiarkami
