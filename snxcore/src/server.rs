@@ -105,7 +105,7 @@ impl CommandServer {
                     let cancel_state = cancel_state.clone();
                     tokio::spawn(async move {
                         let mut handler = ServerHandler::new(state, cancel_state, sender).await;
-                        handler.handle(stream).await.inspect_err(|e| warn!("Error handling connection: {}", e))
+                        handler.handle(stream).await
                     });
                 }
             }
