@@ -34,6 +34,8 @@ label-ignored-routes = Te negeren routes
 label-client-cert = Clientcertificaat of stuurprogrammapad (.pem, .pfx/.p12, .so)
 label-cert-password = PFX-wachtwoord of PKCS11-pin
 label-cert-id = Hexadecimale ID van PKCS11-certificaat
+label-language = Taal
+label-system-language = Systeemstandaard
 
 # Tabs and expanders
 tab-general = Algemeen

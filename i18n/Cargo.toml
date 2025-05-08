@@ -11,6 +11,6 @@ keywords.workspace = true
 publish.workspace = true
 
 [dependencies]
-fluent-templates = { version = "0.13", features = ["fluent-template-macros"] }
+fluent-templates = "0.13"
 sys-locale = "0.3"
 cached = "0.55"

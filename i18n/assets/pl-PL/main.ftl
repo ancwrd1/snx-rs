@@ -34,6 +34,8 @@ label-ignored-routes = Trasy do ignorowania
 label-client-cert = Certyfikat klienta lub ścieżka sterownika (.pem, .pfx/.p12, .so)
 label-cert-password = Hasło PFX lub PIN PKCS11
 label-cert-id = Identyfikator szesnastkowy certyfikatu PKCS11
+label-language = Język
+label-system-language = Domyślny systemowy
 
 # Tabs and expanders
 tab-general = Ogólne

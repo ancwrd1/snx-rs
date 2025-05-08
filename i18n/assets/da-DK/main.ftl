@@ -34,6 +34,8 @@ label-ignored-routes = Ruter der skal ignoreres
 label-client-cert = Klientcertifikat eller driversti (.pem, .pfx/.p12, .so)
 label-cert-password = PFX-adgangskode eller PKCS11-PIN
 label-cert-id = PKCS11-certifikatets hexadecimale ID
+label-language = Sprog
+label-system-language = Systemstandard
 
 # Tabs and expanders
 tab-general = Generelt

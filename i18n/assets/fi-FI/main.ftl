@@ -34,6 +34,8 @@ label-ignored-routes = Ohitettavat reitit
 label-client-cert = Asiakasvarmenne tai ajuripolku (.pem, .pfx/.p12, .so)
 label-cert-password = PFX-salasana tai PKCS11-PIN
 label-cert-id = PKCS11-varmennuksen heksadesimaalinen tunniste
+label-language = Kieli
+label-system-language = Järjestelmän oletus
 
 # Tabs and expanders
 tab-general = Yleiset

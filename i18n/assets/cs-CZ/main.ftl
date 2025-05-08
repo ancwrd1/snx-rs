@@ -34,6 +34,8 @@ label-ignored-routes = Trasy k ignorování
 label-client-cert = Klientský certifikát nebo cesta k ovladači (.pem, .pfx/.p12, .so)
 label-cert-password = Heslo PFX nebo PIN PKCS11
 label-cert-id = Hexadecimální ID certifikátu PKCS11
+label-language = Jazyk
+label-system-language = Systémové výchozí
 
 # Tabs and expanders
 tab-general = Obecné

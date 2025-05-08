@@ -69,6 +69,7 @@ struct MyWidgets {
     icon_theme: gtk4::ComboBoxText,
     error: gtk4::Label,
     button_box: gtk4::Box,
+    locale: gtk4::ComboBoxText,
 }
 
 impl MyWidgets {
@@ -323,6 +324,7 @@ impl SettingsDialog {
             .halign(Align::Start)
             .build();
         let icon_theme = gtk4::ComboBoxText::builder().build();
+        let locale = gtk4::ComboBoxText::builder().build();
 
         let error = gtk4::Label::new(None);
         error.set_visible(false);
@@ -499,6 +501,7 @@ impl SettingsDialog {
             icon_theme,
             error,
             button_box,
+            locale,
         });
 
         let widgets2 = widgets.clone();
@@ -629,6 +632,12 @@ impl SettingsDialog {
         params.port_knock = self.widgets.port_knock.is_active();
         params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
 
+        let active = self.widgets.locale.active();
+        match active {
+            None | Some(0) => params.locale = None,
+            Some(_) => params.locale = self.widgets.locale.active_text().and_then(|v| v.parse().ok()),
+        }
+
         params.save()?;
 
         Ok(params)
@@ -701,6 +710,23 @@ impl SettingsDialog {
             .set_active(Some(self.params.icon_theme.as_u32()));
         icon_theme_box.append(&self.widgets.icon_theme);
         icon_theme_box
+    }
+
+    fn locale_box(&self) -> gtk4::Box {
+        let locale_box = self.form_box(&tr!("label-language"));
+
+        self.widgets.locale.append_text(&tr!("label-system-language"));
+        for locale in i18n::get_locales() {
+            self.widgets.locale.append_text(&locale.to_string());
+        }
+
+        if let Some(ref locale) = self.params.locale {
+            self.select_combo_box_item(&self.widgets.locale, locale);
+        } else {
+            self.widgets.locale.set_active(Some(0));
+        }
+        locale_box.append(&self.widgets.locale);
+        locale_box
     }
 
     fn user_box(&self) -> gtk4::Box {
@@ -809,6 +835,9 @@ impl SettingsDialog {
 
         let icon_theme_box = self.icon_theme_box();
         misc_box.append(&icon_theme_box);
+
+        let locale_box = self.locale_box();
+        misc_box.append(&locale_box);
 
         misc_box
     }
@@ -1020,6 +1049,28 @@ impl SettingsDialog {
 
         // Set the dialog's default size
         self.dialog.set_default_size(max_width, height);
+    }
+
+    fn select_combo_box_item(&self, combo_box: &gtk4::ComboBoxText, target_text: &str) {
+        if let Some(model) = combo_box.model() {
+            let mut index = 0;
+            let mut found = false;
+            model.foreach(|model, _path, iter| {
+                if let Ok(text) = model.get_value(iter, 0).get::<String>() {
+                    if text == target_text {
+                        combo_box.set_active(Some(index));
+                        found = true;
+                        return true;
+                    }
+                }
+                index += 1;
+                false
+            });
+
+            if !found {
+                combo_box.set_active(Some(0));
+            }
+        }
     }
 }
 

@@ -244,6 +244,7 @@ pub struct TunnelParams {
     pub icon_theme: IconTheme,
     pub set_routing_domains: bool,
     pub port_knock: bool,
+    pub locale: Option<String>,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -282,6 +283,7 @@ impl Default for TunnelParams {
             icon_theme: IconTheme::default(),
             set_routing_domains: false,
             port_knock: false,
+            locale: None,
             config_file: Self::default_config_path(),
         }
     }
@@ -339,6 +341,7 @@ impl TunnelParams {
                 "client-mode" => params.client_mode = v,
                 "set-routing-domains" => params.set_routing_domains = v.parse().unwrap_or_default(),
                 "port-knock" => params.port_knock = v.parse().unwrap_or_default(),
+                "locale" => params.locale = Some(v),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -435,6 +438,10 @@ impl TunnelParams {
         writeln!(buf, "icon-theme={}", self.icon_theme)?;
         writeln!(buf, "set-routing-domains={}", self.set_routing_domains)?;
         writeln!(buf, "port-knock={}", self.port_knock)?;
+
+        if let Some(ref locale) = self.locale {
+            writeln!(buf, "locale={}", locale)?;
+        }
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);
