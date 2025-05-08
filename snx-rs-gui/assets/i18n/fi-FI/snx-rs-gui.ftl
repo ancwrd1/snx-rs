@@ -71,3 +71,42 @@ cert-type-hw = Laiteavain
 icon-theme-auto = Automaattinen
 icon-theme-dark = Tumma
 icon-theme-light = Vaalea
+
+# Connection info
+info-connected-since = Yhdistetty alkaen
+info-server-name = Palvelimen nimi
+info-user-name = Käyttäjänimi
+info-login-type = Kirjautumistyyppi
+info-tunnel-type = Tunnelityyppi
+info-transport-type = Kuljetustyyppi
+info-ip-address = IP-osoite
+info-dns-servers = DNS-palvelimet
+info-search-domains = Hakualueet
+info-interface = Käyttöliittymä
+info-dns-configured = DNS määritetty
+info-routing-configured = Reititys määritetty
+info-default-route = Oletusreitti
+
+# Application
+app-title = SNX-RS VPN-asiakasohjelma Linuxille
+app-connection-error = Yhteysvirhe
+app-connection-success = Yhteys onnistui
+
+# Authentication
+auth-dialog-title = VPN-todennustekijä
+auth-dialog-message = Syötä todennustekijäsi:
+
+# Status dialog
+status-dialog-title = Yhteystiedot
+status-button-copy = Kopioi
+status-button-settings = Asetukset
+status-button-connect = Yhdistä
+status-button-disconnect = Katkaise yhteys
+
+# Tray menu
+tray-menu-connect = Yhdistä
+tray-menu-disconnect = Katkaise yhteys
+tray-menu-status = Yhteyden tila...
+tray-menu-settings = Asetukset...
+tray-menu-about = Tietoja...
+tray-menu-exit = Lopeta

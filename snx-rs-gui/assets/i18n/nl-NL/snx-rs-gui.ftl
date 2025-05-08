@@ -71,3 +71,42 @@ cert-type-hw = Hardware-token
 icon-theme-auto = Auto
 icon-theme-dark = Donker
 icon-theme-light = Licht
+
+# Connection info
+info-connected-since = Verbonden sinds
+info-server-name = Servernaam
+info-user-name = Gebruikersnaam
+info-login-type = Inlogtype
+info-tunnel-type = Tunneltype
+info-transport-type = Transporttype
+info-ip-address = IP-adres
+info-dns-servers = DNS-servers
+info-search-domains = Zoekdomeinen
+info-interface = Interface
+info-dns-configured = DNS geconfigureerd
+info-routing-configured = Routering geconfigureerd
+info-default-route = Standaardroute
+
+# Application
+app-title = SNX-RS VPN-client voor Linux
+app-connection-error = Verbindingsfout
+app-connection-success = Verbinding geslaagd
+
+# Authentication
+auth-dialog-title = VPN-authenticatiefactor
+auth-dialog-message = Voer uw authenticatiefactor in:
+
+# Status dialog
+status-dialog-title = Verbindingsinformatie
+status-button-copy = Kopiëren
+status-button-settings = Instellingen
+status-button-connect = Verbinden
+status-button-disconnect = Verbreken
+
+# Tray menu
+tray-menu-connect = Verbinden
+tray-menu-disconnect = Verbreken
+tray-menu-status = Verbindingsstatus...
+tray-menu-settings = Instellingen...
+tray-menu-about = Over...
+tray-menu-exit = Afsluiten

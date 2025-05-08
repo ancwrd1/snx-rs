@@ -71,3 +71,42 @@ cert-type-hw = Token sprzętowy
 icon-theme-auto = Auto
 icon-theme-dark = Ciemny
 icon-theme-light = Jasny
+
+# Connection info
+info-connected-since = Połączono od
+info-server-name = Nazwa serwera
+info-user-name = Nazwa użytkownika
+info-login-type = Typ logowania
+info-tunnel-type = Typ tunelu
+info-transport-type = Typ transportu
+info-ip-address = Adres IP
+info-dns-servers = Serwery DNS
+info-search-domains = Domeny wyszukiwania
+info-interface = Interfejs
+info-dns-configured = DNS skonfigurowany
+info-routing-configured = Routing skonfigurowany
+info-default-route = Trasa domyślna
+
+# Application
+app-title = Klient VPN SNX-RS dla Linux
+app-connection-error = Błąd połączenia
+app-connection-success = Połączenie udane
+
+# Authentication
+auth-dialog-title = Czynnik uwierzytelniania VPN
+auth-dialog-message = Wprowadź swój czynnik uwierzytelniania:
+
+# Status dialog
+status-dialog-title = Informacje o połączeniu
+status-button-copy = Kopiuj
+status-button-settings = Ustawienia
+status-button-connect = Połącz
+status-button-disconnect = Rozłącz
+
+# Tray menu
+tray-menu-connect = Połącz
+tray-menu-disconnect = Rozłącz
+tray-menu-status = Status połączenia...
+tray-menu-settings = Ustawienia...
+tray-menu-about = O programie...
+tray-menu-exit = Zakończ

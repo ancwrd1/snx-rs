@@ -128,45 +128,68 @@ impl ConnectionInfo {
     pub fn to_values(&self) -> Vec<(&'static str, String)> {
         vec![
             (
-                "Connected since",
+                "info-connected-since",
                 if let Some(ref since) = self.since {
                     since.format("%Y-%m-%d %H:%M:%S").to_string()
                 } else {
                     String::new()
                 },
             ),
-            ("Server name", self.or_empty(|| self.server_name.clone())),
-            ("User name", self.or_empty(|| self.username.clone())),
-            ("Login type", self.or_empty(|| self.login_type.clone())),
-            ("Tunnel type", self.or_empty(|| self.tunnel_type.to_string())),
-            ("Transport type", self.or_empty(|| self.transport_type.to_string())),
-            ("IP address", self.or_empty(|| self.ip_address.to_string())),
-            ("DNS servers", self.or_empty(|| format!("{:?}", self.dns_servers))),
+            ("info-server-name", self.or_empty(|| self.server_name.clone())),
+            ("info-user-name", self.or_empty(|| self.username.clone())),
+            ("info-login-type", self.or_empty(|| self.login_type.clone())),
+            ("info-tunnel-type", self.or_empty(|| self.tunnel_type.to_string())),
+            ("info-transport-type", self.or_empty(|| self.transport_type.to_string())),
+            ("info-ip-address", self.or_empty(|| self.ip_address.to_string())),
+            ("info-dns-servers", self.or_empty(|| format!("{:?}", self.dns_servers))),
             (
-                "Search domains",
+                "info-search-domains",
                 self.or_empty(|| format!("[{}]", self.search_domains.join(", "))),
             ),
-            ("Interface", self.or_empty(|| self.interface_name.clone())),
-            ("DNS configured", self.or_empty(|| self.dns_configured.to_string())),
+            ("info-interface", self.or_empty(|| self.interface_name.clone())),
+            ("info-dns-configured", self.or_empty(|| self.dns_configured.to_string())),
             (
-                "Routing configured",
+                "info-routing-configured",
                 self.or_empty(|| self.routing_configured.to_string()),
             ),
-            ("Default route", self.or_empty(|| self.default_route.to_string())),
+            ("info-default-route", self.or_empty(|| self.default_route.to_string())),
         ]
     }
 
-    pub fn print(&self) -> String {
+    pub fn print<F: Fn(&str) -> String>(&self, locale_fn: F) -> String {
         let values = self.to_values();
-        let label_width = values.iter().map(|(label, _)| label.len()).max().unwrap_or_default();
+        let label_width = values
+            .iter()
+            .map(|(label, _)| locale_fn(label).len())
+            .max()
+            .unwrap_or_default();
         let mut result = String::new();
         for (index, (key, value)) in values.iter().enumerate() {
-            result.push_str(&format!("{:>label_width$}: {}", key, value));
+            result.push_str(&format!("{:>label_width$}: {}", locale_fn(key), value));
             if index < values.len() - 1 {
                 result.push('\n');
             }
         }
         result
+    }
+
+    pub fn english_text(key: &str) -> String {
+        match key {
+            "info-connected-since" => "Connected since".to_owned(),
+            "info-server-name" => "Server name".to_owned(),
+            "info-user-name" => "User name".to_owned(),
+            "info-login-type" => "Login type".to_owned(),
+            "info-tunnel-type" => "Tunnel type".to_owned(),
+            "info-transport-type" => "Transport type".to_owned(),
+            "info-ip-address" => "IP address".to_owned(),
+            "info-dns-servers" => "DNS servers".to_owned(),
+            "info-search-domains" => "Search domains".to_owned(),
+            "info-interface" => "Interface".to_owned(),
+            "info-dns-configured" => "DNS configured".to_owned(),
+            "info-routing-configured" => "Routing configured".to_owned(),
+            "info-default-route" => "Default route".to_owned(),
+            _ => key.to_owned(),
+        }
     }
 }
 
@@ -188,9 +211,9 @@ impl ConnectionStatus {
         Self::Mfa(challenge)
     }
 
-    pub fn print(&self) -> String {
+    pub fn print<F: Fn(&str) -> String>(&self, locale_fn: F) -> String {
         match self {
-            Self::Connected(info) => info.print(),
+            Self::Connected(info) => info.print(locale_fn),
             other => other.to_string(),
         }
     }

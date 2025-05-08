@@ -52,3 +52,7 @@ macro_rules! tr {
         i18n_embed_fl::fl!($crate::i18n::HOLDER.loader.read().unwrap(), $message_id, $($key = $value), *)
     };
 }
+
+pub fn translate(key: &str) -> String {
+    HOLDER.loader.read().unwrap().get(key)
+}

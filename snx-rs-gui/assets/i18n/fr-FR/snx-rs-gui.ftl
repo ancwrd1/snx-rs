@@ -100,3 +100,18 @@ tray-menu-status = État de la connexion...
 tray-menu-settings = Paramètres...
 tray-menu-about = À propos...
 tray-menu-exit = Quitter
+
+# Connection info
+info-connected-since = Connecté depuis
+info-server-name = Nom du serveur
+info-user-name = Nom d'utilisateur
+info-login-type = Type de connexion
+info-tunnel-type = Type de tunnel
+info-transport-type = Type de transport
+info-ip-address = Adresse IP
+info-dns-servers = Serveurs DNS
+info-search-domains = Domaines de recherche
+info-interface = Interface
+info-dns-configured = DNS configuré
+info-routing-configured = Routage configuré
+info-default-route = Route par défaut

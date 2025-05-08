@@ -2,6 +2,7 @@ use std::{future::Future, path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use futures::pin_mut;
+use snxcore::model::ConnectionInfo;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
@@ -107,7 +108,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     if command != ServiceCommand::Info {
-        println!("{}", status.print());
+        println!("{}", status.print(ConnectionInfo::english_text));
     }
 
     Ok(())

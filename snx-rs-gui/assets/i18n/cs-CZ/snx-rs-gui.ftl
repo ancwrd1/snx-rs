@@ -71,3 +71,42 @@ cert-type-hw = Hardwarový token
 icon-theme-auto = Automaticky
 icon-theme-dark = Tmavý
 icon-theme-light = Světlý
+
+# Connection info
+info-connected-since = Připojeno od
+info-server-name = Název serveru
+info-user-name = Uživatelské jméno
+info-login-type = Typ přihlášení
+info-tunnel-type = Typ tunelu
+info-transport-type = Typ transportu
+info-ip-address = IP adresa
+info-dns-servers = DNS servery
+info-search-domains = Vyhledávací domény
+info-interface = Rozhraní
+info-dns-configured = DNS nakonfigurováno
+info-routing-configured = Směrování nakonfigurováno
+info-default-route = Výchozí trasa
+
+# Application
+app-title = SNX-RS VPN klient pro Linux
+app-connection-error = Chyba připojení
+app-connection-success = Připojení úspěšné
+
+# Authentication
+auth-dialog-title = VPN autentizační faktor
+auth-dialog-message = Zadejte váš autentizační faktor:
+
+# Status dialog
+status-dialog-title = Informace o připojení
+status-button-copy = Kopírovat
+status-button-settings = Nastavení
+status-button-connect = Připojit
+status-button-disconnect = Odpojit
+
+# Tray menu
+tray-menu-connect = Připojit
+tray-menu-disconnect = Odpojit
+tray-menu-status = Stav připojení...
+tray-menu-settings = Nastavení...
+tray-menu-about = O aplikaci...
+tray-menu-exit = Ukončit

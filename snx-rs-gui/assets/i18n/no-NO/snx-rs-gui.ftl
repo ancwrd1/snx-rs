@@ -71,3 +71,42 @@ cert-type-hw = Maskinvare-token
 icon-theme-auto = Automatisk
 icon-theme-dark = Mørk
 icon-theme-light = Lys
+
+# Connection info
+info-connected-since = Tilkoblet siden
+info-server-name = Servernavn
+info-user-name = Brukernavn
+info-login-type = Innloggingstype
+info-tunnel-type = Tunneltype
+info-transport-type = Transporttype
+info-ip-address = IP-adresse
+info-dns-servers = DNS-servere
+info-search-domains = Søkedomener
+info-interface = Grensesnitt
+info-dns-configured = DNS konfigurert
+info-routing-configured = Ruting konfigurert
+info-default-route = Standardrute
+
+# Application
+app-title = SNX-RS VPN-klient for Linux
+app-connection-error = Tilkoblingsfeil
+app-connection-success = Tilkobling vellykket
+
+# Authentication
+auth-dialog-title = VPN-autentiseringsfaktor
+auth-dialog-message = Skriv inn din autentiseringsfaktor:
+
+# Status dialog
+status-dialog-title = Tilkoblingsinformasjon
+status-button-copy = Kopier
+status-button-settings = Innstillinger
+status-button-connect = Koble til
+status-button-disconnect = Koble fra
+
+# Tray menu
+tray-menu-connect = Koble til
+tray-menu-disconnect = Koble fra
+tray-menu-status = Tilkoblingsstatus...
+tray-menu-settings = Innstillinger...
+tray-menu-about = Om...
+tray-menu-exit = Avslutt

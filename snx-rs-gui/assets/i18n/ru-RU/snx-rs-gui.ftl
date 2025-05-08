@@ -100,3 +100,18 @@ tray-menu-status = Статус соединения...
 tray-menu-settings = Настройки...
 tray-menu-about = О программе...
 tray-menu-exit = Выход
+
+# Connection info
+info-connected-since = Подключено с
+info-server-name = Имя сервера
+info-user-name = Имя пользователя
+info-login-type = Тип входа
+info-tunnel-type = Тип туннеля
+info-transport-type = Тип транспорта
+info-ip-address = IP-адрес
+info-dns-servers = DNS-серверы
+info-search-domains = Домены поиска
+info-interface = Интерфейс
+info-dns-configured = DNS настроен
+info-routing-configured = Маршрутизация настроена
+info-default-route = Маршрут по умолчанию

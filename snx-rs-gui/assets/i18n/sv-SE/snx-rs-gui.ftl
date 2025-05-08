@@ -71,3 +71,42 @@ cert-type-hw = Hårdvarutoken
 icon-theme-auto = Automatiskt
 icon-theme-dark = Mörkt
 icon-theme-light = Ljust
+
+# Connection info
+info-connected-since = Ansluten sedan
+info-server-name = Servernamn
+info-user-name = Användarnamn
+info-login-type = Inloggningstyp
+info-tunnel-type = Tunneltyp
+info-transport-type = Transporttyp
+info-ip-address = IP-adress
+info-dns-servers = DNS-servrar
+info-search-domains = Sökdomäner
+info-interface = Gränssnitt
+info-dns-configured = DNS konfigurerad
+info-routing-configured = Routning konfigurerad
+info-default-route = Standardrutt
+
+# Application
+app-title = SNX-RS VPN-klient för Linux
+app-connection-error = Anslutningsfel
+app-connection-success = Anslutning lyckades
+
+# Authentication
+auth-dialog-title = VPN-autentiseringsfaktor
+auth-dialog-message = Ange din autentiseringsfaktor:
+
+# Status dialog
+status-dialog-title = Anslutningsinformation
+status-button-copy = Kopiera
+status-button-settings = Inställningar
+status-button-connect = Anslut
+status-button-disconnect = Koppla från
+
+# Tray menu
+tray-menu-connect = Anslut
+tray-menu-disconnect = Koppla från
+tray-menu-status = Anslutningsstatus...
+tray-menu-settings = Inställningar...
+tray-menu-about = Om...
+tray-menu-exit = Avsluta
