@@ -142,7 +142,7 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
             .filter(|opt| opt.show_realm != 0)
         {
             let factors = opt.factors.into_values().map(|factor| factor.factor_type).join(", ");
-            values.push((format!("[{}]", opt.display_name), format!("{} {{{}}}", opt.id, factors)));
+            values.push((format!("[{}]", opt.display_name), format!("{} ({})", opt.id, factors)));
         }
     }
 
