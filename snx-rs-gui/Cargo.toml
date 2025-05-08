@@ -30,9 +30,6 @@ libc = "0.2"
 async-trait = "0.1"
 interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
-i18n-embed = { version = "0.15", features = [
-    "fluent-system",
-    "desktop-requester",
-] }
-i18n-embed-fl = "0.9"
-rust-embed = { version = "8", features = ["debug-embed"] }
+fluent-templates = { version = "0.13", features = ["fluent-template-macros"] }
+sys-locale = "0.3"
+cached = "0.55"

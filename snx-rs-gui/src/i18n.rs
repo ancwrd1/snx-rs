@@ -1,58 +1,38 @@
-use std::sync::RwLock;
+use cached::proc_macro::cached;
+use fluent_templates::{static_loader, LanguageIdentifier, Loader};
 
-use i18n_embed::{
-    DesktopLanguageRequester,
-    fluent::{FluentLanguageLoader, fluent_language_loader},
-    unic_langid::LanguageIdentifier,
-};
-use once_cell::sync::Lazy;
-use tracing::error;
-
-use crate::assets;
-
-pub struct LoaderHolder {
-    pub loader: RwLock<FluentLanguageLoader>,
-}
-
-pub static HOLDER: Lazy<LoaderHolder> = Lazy::new(|| {
-    let locale = std::env::var("SNXRS_LOCALE").ok();
-
-    LoaderHolder {
-        loader: RwLock::new(new_language_loader(locale)),
-    }
-});
-
-fn new_language_loader<S>(fallback_locale: Option<S>) -> FluentLanguageLoader
-where
-    S: AsRef<str>,
-{
-    let languages = match fallback_locale {
-        Some(loc) => match loc.as_ref().parse::<LanguageIdentifier>() {
-            Ok(lang) => vec![lang],
-            Err(e) => {
-                error!("{}", e);
-                DesktopLanguageRequester::requested_languages()
-            }
-        },
-        None => DesktopLanguageRequester::requested_languages(),
+static_loader! {
+    pub static LOCALES = {
+        locales: "./assets/i18n",
+        fallback_language: "en-US",
+        customise: |bundle| bundle.set_use_isolating(false),
     };
-    let loader = fluent_language_loader!();
-    let _ = i18n_embed::select(&loader, &assets::Localizations, &languages);
-    loader.set_use_isolating(false);
-    loader
 }
 
 #[macro_export]
 macro_rules! tr {
     ($message_id:literal) => {
-        i18n_embed_fl::fl!($crate::i18n::HOLDER.loader.read().unwrap(), $message_id)
+        fluent_templates::Loader::lookup(&*$crate::i18n::LOCALES, &$crate::i18n::get_user_locale(), $message_id)
     };
 
     ($message_id:literal, $($key:ident = $value:expr),*) => {
-        i18n_embed_fl::fl!($crate::i18n::HOLDER.loader.read().unwrap(), $message_id, $($key = $value), *)
+        {
+            let mut args = std::collections::HashMap::new();
+            $(args.insert(std::borrow::Cow::Borrowed(stringify!($key)), $value.to_string().into());)*
+            fluent_templates::Loader::lookup_with_args(&*$crate::i18n::LOCALES, &$crate::i18n::get_user_locale(), $message_id, &args)
+        }
     };
 }
 
 pub fn translate(key: &str) -> String {
-    HOLDER.loader.read().unwrap().get(key)
+    LOCALES.lookup(&get_user_locale(), key)
+}
+
+#[cached]
+pub fn get_user_locale() -> LanguageIdentifier {
+    let lang = std::env::var("SNXRS_LOCALE")
+        .ok()
+        .or_else(|| sys_locale::get_locale())
+        .unwrap_or_else(|| "en-US".to_string());
+    LanguageIdentifier::from_bytes(lang.as_bytes()).unwrap()
 }

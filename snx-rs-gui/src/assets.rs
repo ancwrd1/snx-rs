@@ -43,7 +43,3 @@ pub static LIGHT_THEME_ARGB: Lazy<IconTheme> = Lazy::new(|| IconTheme {
         .unwrap_or_default(),
     connected: png_to_argb(include_bytes!("../../assets/icons/light/network-vpn-connected.png")).unwrap_or_default(),
 });
-
-#[derive(rust_embed::RustEmbed)]
-#[folder = "assets/i18n/"]
-pub struct Localizations;
