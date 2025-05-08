@@ -14,8 +14,12 @@ pub struct LoaderHolder {
     pub loader: RwLock<FluentLanguageLoader>,
 }
 
-pub static HOLDER: Lazy<LoaderHolder> = Lazy::new(|| LoaderHolder {
-    loader: RwLock::new(new_language_loader(None::<&str>)),
+pub static HOLDER: Lazy<LoaderHolder> = Lazy::new(|| {
+    let locale = std::env::var("SNXRS_LOCALE").ok();
+
+    LoaderHolder {
+        loader: RwLock::new(new_language_loader(locale)),
+    }
 });
 
 fn new_language_loader<S>(fallback_locale: Option<S>) -> FluentLanguageLoader

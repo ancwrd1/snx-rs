@@ -50,6 +50,11 @@ error-file-not-exist = Datei existiert nicht: {$path}
 error-invalid-cert-id = Zertifikats-ID nicht im Hex-Format: {$id}
 error-ca-root-not-exist = CA-Stammpfad existiert nicht: {$path}
 error-validation = Validierungsfehler
+error-user-input-canceled = Benutzereingabe abgebrochen
+error-connection-canceled = Verbindung abgebrochen
+error-unknown-event = Unbekanntes Ereignis: {$event}
+error-no-service-connection = Keine Verbindung zum Dienst
+error-empty-input = Eingabe darf nicht leer sein
 
 # Placeholder texts
 placeholder-domains = Durch Komma getrennte Domänen
@@ -71,3 +76,27 @@ cert-type-hw = Hardware-Token
 icon-theme-auto = Auto
 icon-theme-dark = Dunkel
 icon-theme-light = Hell
+
+# Application
+app-title = SNX-RS VPN-Client für Linux
+app-connection-error = Verbindungsfehler
+app-connection-success = Verbindung erfolgreich
+
+# Authentication
+auth-dialog-title = VPN-Authentifizierungsfaktor
+auth-dialog-message = Bitte geben Sie Ihren Authentifizierungsfaktor ein:
+
+# Status dialog
+status-dialog-title = Verbindungsinformationen
+status-button-copy = Kopieren
+status-button-settings = Einstellungen
+status-button-connect = Verbinden
+status-button-disconnect = Trennen
+
+# Tray menu
+tray-menu-connect = Verbinden
+tray-menu-disconnect = Trennen
+tray-menu-status = Verbindungsstatus...
+tray-menu-settings = Einstellungen...
+tray-menu-about = Über...
+tray-menu-exit = Beenden

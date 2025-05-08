@@ -50,6 +50,11 @@ error-file-not-exist = Файл не существует: {$path}
 error-invalid-cert-id = ID сертификата не в шестнадцатеричном формате: {$id}
 error-ca-root-not-exist = Путь к корневому сертификату CA не существует: {$path}
 error-validation = Ошибка проверки
+error-user-input-canceled = Ввод пользователя отменён
+error-connection-canceled = Соединение отменено
+error-unknown-event = Неизвестное событие: {$event}
+error-no-service-connection = Нет соединения со службой
+error-empty-input = Ввод не может быть пустым
 
 # Placeholder texts
 placeholder-domains = Домены через запятую
@@ -71,3 +76,27 @@ cert-type-hw = Аппаратный токен
 icon-theme-auto = Авто
 icon-theme-dark = Тёмная
 icon-theme-light = Светлая
+
+# Application
+app-title = VPN-клиент SNX-RS для Linux
+app-connection-error = Ошибка соединения
+app-connection-success = Соединение установлено
+
+# Authentication
+auth-dialog-title = Фактор аутентификации VPN
+auth-dialog-message = Пожалуйста, введите ваш фактор аутентификации:
+
+# Status dialog
+status-dialog-title = Информация о соединении
+status-button-copy = Копировать
+status-button-settings = Настройки
+status-button-connect = Подключить
+status-button-disconnect = Отключить
+
+# Tray menu
+tray-menu-connect = Подключить
+tray-menu-disconnect = Отключить
+tray-menu-status = Статус соединения...
+tray-menu-settings = Настройки...
+tray-menu-about = О программе...
+tray-menu-exit = Выход

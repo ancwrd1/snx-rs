@@ -50,6 +50,11 @@ error-file-not-exist = Le fichier n'existe pas : {$path}
 error-invalid-cert-id = ID de certificat non au format hexadécimal : {$id}
 error-ca-root-not-exist = Le chemin racine CA n'existe pas : {$path}
 error-validation = Erreur de validation
+error-user-input-canceled = Saisie utilisateur annulée
+error-connection-canceled = Connexion annulée
+error-unknown-event = Événement inconnu : {$event}
+error-no-service-connection = Pas de connexion au service
+error-empty-input = La saisie ne peut pas être vide
 
 # Placeholder texts
 placeholder-domains = Domaines séparés par des virgules
@@ -71,3 +76,27 @@ cert-type-hw = Jeton matériel
 icon-theme-auto = Auto
 icon-theme-dark = Sombre
 icon-theme-light = Clair
+
+# Application
+app-title = Client VPN SNX-RS pour Linux
+app-connection-error = Erreur de connexion
+app-connection-success = Connexion réussie
+
+# Authentication
+auth-dialog-title = Facteur d'authentification VPN
+auth-dialog-message = Veuillez saisir votre facteur d'authentification :
+
+# Status dialog
+status-dialog-title = Informations de connexion
+status-button-copy = Copier
+status-button-settings = Paramètres
+status-button-connect = Se connecter
+status-button-disconnect = Se déconnecter
+
+# Tray menu
+tray-menu-connect = Se connecter
+tray-menu-disconnect = Se déconnecter
+tray-menu-status = État de la connexion...
+tray-menu-settings = Paramètres...
+tray-menu-about = À propos...
+tray-menu-exit = Quitter
