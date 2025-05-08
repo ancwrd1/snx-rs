@@ -38,6 +38,7 @@ Run the service application in command mode, then start the GUI frontend which w
 * Automatic IPSec tunnel reconnection without authentication, via optional parameter
 * SSL tunnel via Linux TUN device (deprecated)
 * Store a password factor in the OS keychain using Secret Service API
+* Localization support, see i18n/assets directory for a list of supported locales
 
 ## System Requirements
 
