@@ -1,3 +1,4 @@
+
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
@@ -16,7 +17,7 @@ use snxcore::{
 use tokio::sync::mpsc::Sender;
 use tracing::warn;
 
-use crate::tray::TrayCommand;
+use crate::{tr, tray::TrayCommand};
 
 fn set_container_visible(widget: &Widget, flag: bool) {
     if let Some(parent) = widget.parent() {
@@ -73,22 +74,22 @@ struct MyWidgets {
 impl MyWidgets {
     fn validate(&self) -> anyhow::Result<()> {
         if self.server_name.text().is_empty() {
-            anyhow::bail!("No server address specified");
+            anyhow::bail!(tr!("error-no-server"));
         }
 
         if self.auth_type.active().is_none() {
-            anyhow::bail!("No authentication method selected");
+            anyhow::bail!(tr!("error-no-auth"));
         }
 
         let cert_path = self.cert_path.text();
 
         if !cert_path.is_empty() && !Path::new(&cert_path).exists() {
-            anyhow::bail!("File does not exist: {}", cert_path);
+            anyhow::bail!(tr!("error-file-not-exist", path = cert_path.to_string()));
         }
 
         let cert_id = self.cert_id.text().replace(':', "");
         if !cert_id.is_empty() && hex::decode(&cert_id).is_err() {
-            anyhow::bail!("Certificate ID not in hex format: {}", cert_id);
+            anyhow::bail!(tr!("error-invalid-cert-id", id = cert_id));
         }
 
         let ca_cert = self.ca_cert.text();
@@ -96,7 +97,7 @@ impl MyWidgets {
         if !ca_cert.is_empty() {
             for c in ca_cert.split(',') {
                 if !Path::new(c.trim()).exists() {
-                    anyhow::bail!("CA root path does not exist: {}", c);
+                    anyhow::bail!(tr!("error-ca-root-not-exist", path = c));
                 }
             }
         }
@@ -142,7 +143,7 @@ impl SettingsDialog {
 
     pub fn new<W: IsA<Window>>(parent: W, params: Arc<TunnelParams>) -> Self {
         let dialog = gtk4::Dialog::builder()
-            .title("VPN settings")
+            .title(tr!("dialog-title"))
             .transient_for(&parent)
             .build();
 
@@ -154,7 +155,7 @@ impl SettingsDialog {
             .halign(Align::End)
             .build();
 
-        let ok_button = gtk4::Button::with_label("OK");
+        let ok_button = gtk4::Button::with_label(&tr!("button-ok"));
         ok_button.connect_clicked(clone!(
             #[weak]
             dialog,
@@ -163,7 +164,7 @@ impl SettingsDialog {
             }
         ));
 
-        let apply_button = gtk4::Button::with_label("Apply");
+        let apply_button = gtk4::Button::with_label(&tr!("button-apply"));
         apply_button.connect_clicked(clone!(
             #[weak]
             dialog,
@@ -172,7 +173,7 @@ impl SettingsDialog {
             }
         ));
 
-        let cancel_button = gtk4::Button::with_label("Cancel");
+        let cancel_button = gtk4::Button::with_label(&tr!("button-cancel"));
         cancel_button.connect_clicked(clone!(
             #[weak]
             dialog,
@@ -189,7 +190,7 @@ impl SettingsDialog {
 
         let server_name = gtk4::Entry::builder().text(&params.server_name).hexpand(true).build();
 
-        let fetch_info = gtk4::Button::builder().label("Fetch info").halign(Align::End).build();
+        let fetch_info = gtk4::Button::builder().label(tr!("button-fetch-info")).halign(Align::End).build();
         let auth_type = gtk4::ComboBoxText::builder().build();
         let tunnel_type = gtk4::ComboBoxText::builder().build();
         let user_name = gtk4::Entry::builder().text(&params.user_name).build();
@@ -206,17 +207,17 @@ impl SettingsDialog {
             .build();
 
         let search_domains = gtk4::Entry::builder()
-            .placeholder_text("Comma-separated domains")
+            .placeholder_text(tr!("placeholder-domains"))
             .text(params.search_domains.join(","))
             .build();
 
         let ignored_domains = gtk4::Entry::builder()
-            .placeholder_text("Comma-separated domains")
+            .placeholder_text(tr!("placeholder-domains"))
             .text(params.ignore_search_domains.join(","))
             .build();
 
         let dns_servers = gtk4::Entry::builder()
-            .placeholder_text("Comma-separated IP addresses")
+            .placeholder_text(tr!("placeholder-ip-addresses"))
             .text(
                 params
                     .dns_servers
@@ -228,7 +229,7 @@ impl SettingsDialog {
             .build();
 
         let ignored_dns_servers = gtk4::Entry::builder()
-            .placeholder_text("Comma-separated IP addresses")
+            .placeholder_text(tr!("placeholder-ip-addresses"))
             .text(
                 params
                     .ignore_dns_servers
@@ -249,7 +250,7 @@ impl SettingsDialog {
             .build();
 
         let add_routes = gtk4::Entry::builder()
-            .placeholder_text("Comma-separated x.x.x.x/x")
+            .placeholder_text(tr!("placeholder-routes"))
             .text(
                 params
                     .add_routes
@@ -261,7 +262,7 @@ impl SettingsDialog {
             .build();
 
         let ignored_routes = gtk4::Entry::builder()
-            .placeholder_text("Comma-separated x.x.x.x/x")
+            .placeholder_text(tr!("placeholder-routes"))
             .text(
                 params
                     .ignore_routes
@@ -298,7 +299,7 @@ impl SettingsDialog {
             .text(params.cert_id.as_deref().unwrap_or_default())
             .build();
         let ca_cert = gtk4::Entry::builder()
-            .placeholder_text("Comma-separated PEM or DER files")
+            .placeholder_text(tr!("placeholder-certs"))
             .text(
                 params
                     .ca_cert
@@ -657,21 +658,21 @@ impl SettingsDialog {
         entry_box.append(&self.widgets.server_name);
         entry_box.append(&self.widgets.fetch_info);
 
-        let server_box = self.form_box("VPN server address");
+        let server_box = self.form_box(&tr!("label-server-address"));
         server_box.append(&entry_box);
         server_box
     }
 
     fn auth_box(&self) -> gtk4::Box {
-        let auth_box = self.form_box("Authentication method");
+        let auth_box = self.form_box(&tr!("label-auth-method"));
         auth_box.append(&self.widgets.auth_type);
         auth_box
     }
 
     fn tunnel_box(&self) -> gtk4::Box {
-        let tunnel_box = self.form_box("Tunnel type");
-        self.widgets.tunnel_type.insert_text(0, "IPSec");
-        self.widgets.tunnel_type.insert_text(1, "SSL (deprecated)");
+        let tunnel_box = self.form_box(&tr!("label-tunnel-type"));
+        self.widgets.tunnel_type.insert_text(0, &tr!("tunnel-type-ipsec"));
+        self.widgets.tunnel_type.insert_text(1, &tr!("tunnel-type-ssl"));
         self.widgets
             .tunnel_type
             .set_active(if self.params.tunnel_type == TunnelType::Ipsec {
@@ -684,21 +685,21 @@ impl SettingsDialog {
     }
 
     fn cert_type_box(&self) -> gtk4::Box {
-        let cert_type_box = self.form_box("Certificate auth type");
-        self.widgets.cert_type.insert_text(0, "None");
-        self.widgets.cert_type.insert_text(1, "PFX file");
-        self.widgets.cert_type.insert_text(2, "PEM file");
-        self.widgets.cert_type.insert_text(3, "Hardware token");
+        let cert_type_box = self.form_box(&tr!("label-cert-auth-type"));
+        self.widgets.cert_type.insert_text(0, &tr!("cert-type-none"));
+        self.widgets.cert_type.insert_text(1, &tr!("cert-type-pfx"));
+        self.widgets.cert_type.insert_text(2, &tr!("cert-type-pem"));
+        self.widgets.cert_type.insert_text(3, &tr!("cert-type-hw"));
         self.widgets.cert_type.set_active(Some(self.params.cert_type.as_u32()));
         cert_type_box.append(&self.widgets.cert_type);
         cert_type_box
     }
 
     fn icon_theme_box(&self) -> gtk4::Box {
-        let icon_theme_box = self.form_box("Icon theme");
-        self.widgets.icon_theme.insert_text(0, "Auto");
-        self.widgets.icon_theme.insert_text(1, "Dark");
-        self.widgets.icon_theme.insert_text(2, "Light");
+        let icon_theme_box = self.form_box(&tr!("label-icon-theme"));
+        self.widgets.icon_theme.insert_text(0, &tr!("icon-theme-auto"));
+        self.widgets.icon_theme.insert_text(1, &tr!("icon-theme-dark"));
+        self.widgets.icon_theme.insert_text(2, &tr!("icon-theme-light"));
         self.widgets
             .icon_theme
             .set_active(Some(self.params.icon_theme.as_u32()));
@@ -707,13 +708,13 @@ impl SettingsDialog {
     }
 
     fn user_box(&self) -> gtk4::Box {
-        let user_box = self.form_box("User name");
+        let user_box = self.form_box(&tr!("label-username"));
         user_box.append(&self.widgets.user_name);
         user_box
     }
 
     fn password_box(&self) -> gtk4::Box {
-        let password_box = self.form_box("Password");
+        let password_box = self.form_box(&tr!("label-password"));
         password_box.append(&self.widgets.password);
         password_box
     }
@@ -728,27 +729,27 @@ impl SettingsDialog {
             .spacing(12)
             .build();
 
-        let no_dns = self.form_box("Do not change DNS resolver configuration");
+        let no_dns = self.form_box(&tr!("label-no-dns"));
         no_dns.append(&self.widgets.no_dns);
         dns_box.append(&no_dns);
 
-        let dns_servers = self.form_box("Additional DNS servers");
+        let dns_servers = self.form_box(&tr!("label-dns-servers"));
         dns_servers.append(&self.widgets.dns_servers);
         dns_box.append(&dns_servers);
 
-        let ignored_dns_servers = self.form_box("Ignored DNS servers");
+        let ignored_dns_servers = self.form_box(&tr!("label-ignored-dns-servers"));
         ignored_dns_servers.append(&self.widgets.ignored_dns_servers);
         dns_box.append(&ignored_dns_servers);
 
-        let search_domains = self.form_box("Additional search domains");
+        let search_domains = self.form_box(&tr!("label-search-domains"));
         search_domains.append(&self.widgets.search_domains);
         dns_box.append(&search_domains);
 
-        let ignored_domains = self.form_box("Ignored search domains");
+        let ignored_domains = self.form_box(&tr!("label-ignored-domains"));
         ignored_domains.append(&self.widgets.ignored_domains);
         dns_box.append(&ignored_domains);
 
-        let set_routing_domains = self.form_box("Treat received search domains as routing domains");
+        let set_routing_domains = self.form_box(&tr!("label-routing-domains"));
         set_routing_domains.append(&self.widgets.set_routing_domains);
         dns_box.append(&set_routing_domains);
 
@@ -765,11 +766,11 @@ impl SettingsDialog {
             .spacing(12)
             .build();
 
-        let ca_cert = self.form_box("Server CA root certificates");
+        let ca_cert = self.form_box(&tr!("label-ca-cert"));
         ca_cert.append(&self.widgets.ca_cert);
         certs_box.append(&ca_cert);
 
-        let no_cert_check = self.form_box("Disable all TLS certificate checks (INSECURE!)");
+        let no_cert_check = self.form_box(&tr!("label-no-cert-check"));
         no_cert_check.append(&self.widgets.no_cert_check);
         certs_box.append(&no_cert_check);
 
@@ -786,27 +787,27 @@ impl SettingsDialog {
             .spacing(12)
             .build();
 
-        let password_factor = self.form_box("Index of password factor, 1..N");
+        let password_factor = self.form_box(&tr!("label-password-factor"));
         password_factor.append(&self.widgets.password_factor);
         misc_box.append(&password_factor);
 
-        let no_keychain = self.form_box("Do not store passwords in the keychain");
+        let no_keychain = self.form_box(&tr!("label-no-keychain"));
         no_keychain.append(&self.widgets.no_keychain);
         misc_box.append(&no_keychain);
 
-        let ike_lifetime = self.form_box("IPSec IKE SA lifetime, seconds");
+        let ike_lifetime = self.form_box(&tr!("label-ike-lifetime"));
         ike_lifetime.append(&self.widgets.ike_lifetime);
         misc_box.append(&ike_lifetime);
 
-        let ike_persist = self.form_box("Save IPSec IKE session and reconnect automatically");
+        let ike_persist = self.form_box(&tr!("label-ike-persist"));
         ike_persist.append(&self.widgets.ike_persist);
         misc_box.append(&ike_persist);
 
-        let no_keepalive = self.form_box("Disable IPSec keepalive packets");
+        let no_keepalive = self.form_box(&tr!("label-no-keepalive"));
         no_keepalive.append(&self.widgets.no_keepalive);
         misc_box.append(&no_keepalive);
 
-        let port_knock = self.form_box("Enable NAT-T port knocking");
+        let port_knock = self.form_box(&tr!("label-port-knock"));
         port_knock.append(&self.widgets.port_knock);
         misc_box.append(&port_knock);
 
@@ -827,19 +828,19 @@ impl SettingsDialog {
             .spacing(6)
             .build();
 
-        let no_routing = self.form_box("Ignore all acquired routes");
+        let no_routing = self.form_box(&tr!("label-no-routing"));
         no_routing.append(&self.widgets.no_routing);
         routing_box.append(&no_routing);
 
-        let default_routing = self.form_box("Set default route through the tunnel");
+        let default_routing = self.form_box(&tr!("label-default-routing"));
         default_routing.append(&self.widgets.default_routing);
         routing_box.append(&default_routing);
 
-        let add_routes = self.form_box("Additional static routes");
+        let add_routes = self.form_box(&tr!("label-add-routes"));
         add_routes.append(&self.widgets.add_routes);
         routing_box.append(&add_routes);
 
-        let ignored_routes = self.form_box("Routes to ignore");
+        let ignored_routes = self.form_box(&tr!("label-ignored-routes"));
         ignored_routes.append(&self.widgets.ignored_routes);
         routing_box.append(&ignored_routes);
 
@@ -876,15 +877,15 @@ impl SettingsDialog {
         let cert_type_box = self.cert_type_box();
         certs_box.append(&cert_type_box);
 
-        let cert_path = self.form_box("Client certificate or driver path (.pem, .pfx/.p12, .so)");
+        let cert_path = self.form_box(&tr!("label-client-cert"));
         cert_path.append(&self.widgets.cert_path);
         certs_box.append(&cert_path);
 
-        let cert_password = self.form_box("PFX password or PKCS11 pin");
+        let cert_password = self.form_box(&tr!("label-cert-password"));
         cert_password.append(&self.widgets.cert_password);
         certs_box.append(&cert_password);
 
-        let cert_id = self.form_box("Hex ID of PKCS11 certificate");
+        let cert_id = self.form_box(&tr!("label-cert-id"));
         cert_id.append(&self.widgets.cert_id);
         certs_box.append(&cert_id);
 
@@ -964,10 +965,10 @@ impl SettingsDialog {
             .spacing(3)
             .build();
 
-        self.add_expander("DNS", &inner, &self.dns_box());
-        self.add_expander("Routing", &inner, &self.routing_box());
-        self.add_expander("Certificates", &inner, &self.certs_box());
-        self.add_expander("Misc settings", &inner, &self.misc_box());
+        self.add_expander(&tr!("expand-dns"), &inner, &self.dns_box());
+        self.add_expander(&tr!("expand-routing"), &inner, &self.routing_box());
+        self.add_expander(&tr!("expand-certificates"), &inner, &self.certs_box());
+        self.add_expander(&tr!("expand-misc"), &inner, &self.misc_box());
 
         let viewport = gtk4::Viewport::builder().build();
         viewport.set_child(Some(&inner));
@@ -989,8 +990,8 @@ impl SettingsDialog {
         content_area.append(&self.widgets.error);
         content_area.append(&self.widgets.button_box);
 
-        notebook.append_page(&self.general_tab(), Some(&gtk4::Label::new(Some("General"))));
-        notebook.append_page(&self.advanced_tab(), Some(&gtk4::Label::new(Some("Advanced"))));
+        notebook.append_page(&self.general_tab(), Some(&gtk4::Label::new(Some(&tr!("tab-general")))));
+        notebook.append_page(&self.advanced_tab(), Some(&gtk4::Label::new(Some(&tr!("tab-advanced")))));
     }
 }
 

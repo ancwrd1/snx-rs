@@ -48,7 +48,7 @@ impl FromStr for TrayEvent {
             "status" => Ok(TrayEvent::Status),
             "exit" => Ok(TrayEvent::Exit),
             "about" => Ok(TrayEvent::About),
-            _ => Err(anyhow!("Unknown event: {}", s)),
+            _ => Err(anyhow!(crate::tr!("error-unknown-event", event = s))),
         }
     }
 }
@@ -82,7 +82,7 @@ impl AppTray {
         let app_tray = AppTray {
             command_sender: tx,
             command_receiver: Some(rx),
-            status: Arc::new(Err(anyhow!("No service connection"))),
+            status: Arc::new(Err(anyhow!(crate::tr!("error-no-service-connection")))),
             config_file: params.config_file().clone(),
             tray_icon: handle,
         };
@@ -262,34 +262,34 @@ impl ksni::Tray for KsniTray {
             }),
             MenuItem::Separator,
             MenuItem::Standard(StandardItem {
-                label: "Connect".to_string(),
+                label: crate::tr!("tray-menu-connect").to_string(),
                 enabled: self.connect_enabled,
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Connect)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
-                label: "Disconnect".to_string(),
+                label: crate::tr!("tray-menu-disconnect").to_string(),
                 enabled: self.disconnect_enabled,
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Disconnect)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
-                label: "Connection status...".to_string(),
+                label: crate::tr!("tray-menu-status").to_string(),
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Status)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
-                label: "Settings...".to_string(),
+                label: crate::tr!("tray-menu-settings").to_string(),
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Settings)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
-                label: "About...".to_string(),
+                label: crate::tr!("tray-menu-about").to_string(),
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::About)),
                 ..Default::default()
             }),
             MenuItem::Standard(StandardItem {
-                label: "Exit".to_string(),
+                label: crate::tr!("tray-menu-exit").to_string(),
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Exit)),
                 ..Default::default()
             }),

@@ -4,18 +4,18 @@ use std::{
 };
 
 use gtk4::{
-    Align, Orientation, ResponseType,
-    glib::{self, clone},
-    prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
+    glib::{self, clone}, prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt}, Align,
+    Orientation,
+    ResponseType,
 };
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
+    model::{params::TunnelParams, ConnectionInfo, ConnectionStatus},
 };
 use tokio::sync::mpsc::Sender;
 
-use crate::{main_window, prompt::GtkPrompt, tray::TrayEvent};
+use crate::{main_window, prompt::GtkPrompt, tr, tray::TrayEvent};
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
     let form = gtk4::Box::builder()
@@ -51,11 +51,11 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
     ));
 
     let dialog = gtk4::Dialog::builder()
-        .title("Connection information")
+        .title(tr!("status-dialog-title"))
         .transient_for(&main_window())
         .build();
 
-    let ok = gtk4::Button::builder().label("OK").build();
+    let ok = gtk4::Button::builder().label(tr!("button-ok")).build();
 
     ok.connect_clicked(clone!(
         #[weak]
@@ -65,7 +65,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         }
     ));
 
-    let copy = gtk4::Button::builder().label("Copy").build();
+    let copy = gtk4::Button::builder().label(tr!("status-button-copy")).build();
 
     let status_copy = status.clone();
     copy.connect_clicked(clone!(move |_| {
@@ -79,7 +79,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
             }));
     }));
 
-    let settings = gtk4::Button::builder().label("Settings").build();
+    let settings = gtk4::Button::builder().label(tr!("status-button-settings")).build();
 
     let sender2 = sender.clone();
     settings.connect_clicked(move |_| {
@@ -88,7 +88,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
     });
 
     let connect = gtk4::Button::builder()
-        .label("Connect")
+        .label(tr!("status-button-connect"))
         .sensitive(matches!(*status.read().unwrap(), Ok(ConnectionStatus::Disconnected)))
         .build();
 
@@ -100,7 +100,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
     });
 
     let disconnect = gtk4::Button::builder()
-        .label("Disconnect")
+        .label(tr!("status-button-disconnect"))
         .sensitive(matches!(
             *status.read().unwrap(),
             Ok(ConnectionStatus::Connected(_) | ConnectionStatus::Connecting | ConnectionStatus::Mfa(_))
@@ -166,7 +166,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
                 inner.remove(&widget);
             }
 
-            let info = get_info(&status);
+            let info = get_info(status);
             for (key, value) in info.to_values() {
                 inner.append(&status_entry(&format!("{}:", key), &value));
             }

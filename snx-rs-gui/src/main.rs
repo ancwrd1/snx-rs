@@ -27,6 +27,7 @@ use crate::{
 
 mod assets;
 mod dbus;
+mod i18n;
 mod ipc;
 mod params;
 mod prompt;
@@ -107,12 +108,12 @@ async fn main() -> anyhow::Result<()> {
                         let sender = tray_command_sender.clone();
                         let (tx, rx) = mpsc::channel(16);
                         cancel_sender = Some(tx);
-                        tokio::spawn(async move { do_connect(sender, params, rx).await });
+                        tokio::task::spawn_local(async move { do_connect(sender, params, rx).await });
                     }
                     TrayEvent::Disconnect => {
                         let sender = tray_command_sender.clone();
                         let cancel_sender = cancel_sender.take();
-                        tokio::spawn(async move { do_disconnect(sender, params, cancel_sender).await });
+                        tokio::task::spawn_local(async move { do_disconnect(sender, params, cancel_sender).await });
                     }
                     TrayEvent::Settings => {
                         settings::start_settings_dialog(main_window(), tray_command_sender.clone(), params)
@@ -172,8 +173,8 @@ fn do_about() {
             .website("https://github.com/ancwrd1/snx-rs")
             .authors([env!("CARGO_PKG_AUTHORS")])
             .license_type(License::Agpl30)
-            .program_name("SNX-RS VPN Client for Linux")
-            .title("SNX-RS VPN Client for Linux")
+            .program_name(tr!("app-title"))
+            .title(tr!("app-title"))
             .build();
 
         dialog.present();
@@ -199,7 +200,7 @@ fn init_logging(params: &TunnelParams) {
 }
 
 async fn status_poll(sender: mpsc::Sender<TrayCommand>, params: CmdlineParams) {
-    let mut prev_status = Arc::new(Err(anyhow::anyhow!("No service connection!")));
+    let mut prev_status = Arc::new(Err(anyhow::anyhow!(tr!("error-no-service-connection"))));
 
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
@@ -241,16 +242,21 @@ async fn do_connect(
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
     let mut status = tokio::select! {
-        _ = cancel_receiver.recv() => Err(anyhow::anyhow!("Connection cancelled!")),
+        _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-canceled"))),
         status = controller.command(ServiceCommand::Connect, params.clone()) => status
     };
 
     if let Err(ref e) = status {
-        let _ = GtkPrompt.show_notification("Connection error", &e.to_string()).await;
+        let _ = GtkPrompt
+            .show_notification(&tr!("app-connection-error"), &e.to_string())
+            .await;
         status = controller.command(ServiceCommand::Status, params).await;
     } else if let Ok(ConnectionStatus::Connected(_)) = status {
         let _ = GtkPrompt
-            .show_notification("Connection succeeded", &format!("Connected to {}", params.server_name))
+            .show_notification(
+                &tr!("app-connection-success"),
+                &format!("Connected to {}", params.server_name),
+            )
             .await;
     };
 

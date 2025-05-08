@@ -1,8 +1,8 @@
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use gtk4::{
-    Align, Orientation, ResponseType,
-    glib::{self, ControlFlow, clone},
-    prelude::*,
+    glib::{self, clone, ControlFlow}, prelude::*, Align,
+    Orientation,
+    ResponseType,
 };
 use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 use tokio::sync::mpsc;
@@ -20,11 +20,11 @@ impl GtkPrompt {
             let tx = tx.clone();
             glib::spawn_future_local(async move {
                 let dialog = gtk4::Dialog::builder()
-                    .title("VPN Authentication Factor")
+                    .title(crate::tr!("auth-dialog-title"))
                     .transient_for(&main_window())
                     .build();
 
-                let ok = gtk4::Button::builder().label("OK").build();
+                let ok = gtk4::Button::builder().label(crate::tr!("button-ok")).build();
                 ok.connect_clicked(clone!(
                     #[weak]
                     dialog,
@@ -33,7 +33,7 @@ impl GtkPrompt {
                     }
                 ));
 
-                let cancel = gtk4::Button::builder().label("Cancel").build();
+                let cancel = gtk4::Button::builder().label(crate::tr!("button-cancel")).build();
                 cancel.connect_clicked(clone!(
                     #[weak]
                     dialog,
@@ -109,13 +109,13 @@ impl GtkPrompt {
                 if response == ResponseType::Ok {
                     let _ = tx.send(Ok(entry.text().to_string())).await;
                 } else {
-                    let _ = tx.send(Err(anyhow!("User input canceled"))).await;
+                    let _ = tx.send(Err(anyhow!(crate::tr!("error-user-input-canceled")))).await;
                 }
             });
             ControlFlow::Break
         });
 
-        rx.recv().await.context("User input canceled")?
+        rx.recv().await.context(crate::tr!("error-user-input-canceled"))?
     }
 }
 
