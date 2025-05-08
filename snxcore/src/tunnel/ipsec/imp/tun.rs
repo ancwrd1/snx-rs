@@ -15,11 +15,11 @@ use futures::{
     channel::mpsc::{Receiver, Sender},
     pin_mut,
 };
+use i18n::tr;
 use ipnet::Ipv4Net;
 use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error};
-use i18n::tr;
 
 use crate::{
     ccc::CccHttpClient,
@@ -192,7 +192,11 @@ impl VpnTunnel for TunIpsecTunnel {
 
         self.setup_routing(&tun_name).await?;
 
-        let session = self.session.ipsec_session.as_ref().context(tr!("error-no-ipsec-session"))?;
+        let session = self
+            .session
+            .ipsec_session
+            .as_ref()
+            .context(tr!("error-no-ipsec-session"))?;
 
         let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
 
