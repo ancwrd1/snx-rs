@@ -1,4 +1,5 @@
 ## Unreleased
+- Added localization support.
 - Various bugfixes for connection status, firewall and tunnel setup.
 - For older kernels or if xfrm module is not available, fall back to TUN-UDP transport.
 - Added custom actions in the .desktop file, to control the GUI frontend via context menu.
