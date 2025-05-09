@@ -1,4 +1,4 @@
-## Unreleased
+## v4.3.0 (2025-05-09)
 - Added localization support.
 - Various bugfixes for connection status, firewall and tunnel setup.
 - For older kernels or if xfrm module is not available, fall back to TUN-UDP transport.
@@ -7,6 +7,7 @@
 - Show authenticated username and login type in the status information output.
 - Added "Connect", "Disconnect" and "Settings" buttons in the status dialog.
 - Always allow status dialog to be shown, and update it dynamically.
+- Fixed a bug with server info display when multiple fingerprints are present in the response.
 
 ## v4.2.0 (2025-05-02)
 - On desktop environments other than GNOME or KDE use standard icons instead of pixmaps.

@@ -100,8 +100,9 @@ pub fn new_ipsec_configurator(
     ipsec_session: IpsecSession,
     src_port: u16,
     dest_ip: Ipv4Addr,
+    dest_port: u16,
 ) -> anyhow::Result<impl IpsecConfigurator + use<>> {
-    IpsecImpl::new(name, ipsec_session, src_port, dest_ip)
+    IpsecImpl::new(name, ipsec_session, src_port, dest_ip, dest_port)
 }
 
 pub fn new_keychain() -> impl Keychain {

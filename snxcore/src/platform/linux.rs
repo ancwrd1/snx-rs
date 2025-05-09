@@ -1,9 +1,3 @@
-use std::{
-    fs,
-    os::fd::{AsRawFd, RawFd},
-    time::Duration,
-};
-
 use anyhow::anyhow;
 use cached::proc_macro::cached;
 pub use keychain::SecretServiceKeychain as KeychainImpl;
@@ -15,6 +9,8 @@ use nix::{
 };
 pub use resolver::new_resolver_configurator;
 pub use routing::LinuxRoutingConfigurator as RoutingImpl;
+use std::os::fd::{AsFd, OwnedFd};
+use std::{fs, os::fd::AsRawFd, time::Duration};
 use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
@@ -93,7 +89,7 @@ impl UdpSocketExt for UdpSocket {
 
 pub struct SingleInstance {
     name: String,
-    handle: Option<RawFd>,
+    handle: Option<OwnedFd>,
 }
 
 unsafe impl Send for SingleInstance {}
@@ -115,7 +111,7 @@ impl SingleInstance {
             l_pid: 0,
         };
 
-        match fcntl::fcntl(fd, FcntlArg::F_SETLK(&fl)) {
+        match fcntl::fcntl(fd.as_fd(), FcntlArg::F_SETLK(&fl)) {
             Ok(_) => Ok(SingleInstance {
                 name: name.as_ref().to_owned(),
                 handle: Some(fd),

@@ -83,6 +83,7 @@ impl NativeIpsecTunnel {
             ipsec_session.clone(),
             natt_socket.local_addr()?.port(),
             gateway_address,
+            server_info.connectivity_info.natt_port,
         )?;
 
         configurator.configure().await?;

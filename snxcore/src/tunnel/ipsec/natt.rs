@@ -12,7 +12,7 @@ use crate::{platform::UdpSocketExt, tunnel::TunnelEvent};
 
 const MAX_NATT_PROBES: usize = 2;
 
-// Both packets are IKE SA requests that do some magic of unblocking port 4500 for some users.
+// Both packets are IKE SA requests that do some magic of unblocking NATT port for some users.
 const NMAP_KNOCK: &[&[u8]] = &[
     &[
         0x0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x10, 0x2, 0x0,
@@ -54,7 +54,7 @@ impl NattProber {
     pub async fn probe(&self) -> anyhow::Result<()> {
         if self.send_probe().await.is_err() {
             if self.port_knock {
-                // attempt to unblock port 4500 by sending some magic packets to port 500
+                // attempt to unblock NATT port by sending some magic packets to port 500
                 self.send_nmap_knock().await?;
             }
 

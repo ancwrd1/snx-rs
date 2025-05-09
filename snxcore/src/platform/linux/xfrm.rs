@@ -72,7 +72,7 @@ struct XfrmState<'a> {
     src: Ipv4Addr,
     dst: Ipv4Addr,
     src_port: u16,
-    dst_port: u16,
+    dest_port: u16,
     if_id: u32,
     params: &'a EspCryptMaterial,
 }
@@ -130,7 +130,7 @@ impl XfrmState<'_> {
             "encap",
             "espinudp",
             &self.src_port.to_string(),
-            &self.dst_port.to_string(),
+            &self.dest_port.to_string(),
             "0.0.0.0",
         ])
         .await?;
@@ -233,10 +233,17 @@ pub struct XfrmConfigurator {
     if_id: u32,
     src_port: u16,
     dest_ip: Ipv4Addr,
+    dest_port: u16,
 }
 
 impl XfrmConfigurator {
-    pub fn new(name: &str, ipsec_session: IpsecSession, src_port: u16, dest_ip: Ipv4Addr) -> anyhow::Result<Self> {
+    pub fn new(
+        name: &str,
+        ipsec_session: IpsecSession,
+        src_port: u16,
+        dest_ip: Ipv4Addr,
+        dest_port: u16,
+    ) -> anyhow::Result<Self> {
         let if_id = random();
 
         Ok(Self {
@@ -246,6 +253,7 @@ impl XfrmConfigurator {
             dest_ip,
             if_id,
             src_port,
+            dest_port,
         })
     }
 
@@ -273,7 +281,7 @@ impl XfrmConfigurator {
             src,
             dst,
             src_port: self.src_port,
-            dst_port: 4500,
+            dest_port: self.dest_port,
             if_id: self.if_id,
             params,
         };

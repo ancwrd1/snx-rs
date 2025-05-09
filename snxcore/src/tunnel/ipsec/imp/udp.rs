@@ -11,6 +11,7 @@ use crate::{
         VpnSession,
         params::{TransportType, TunnelParams},
     },
+    server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
@@ -50,7 +51,10 @@ pub(crate) struct UdpIpsecTunnel(Box<TunIpsecTunnel>);
 impl UdpIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
-        socket.connect((params.server_name.as_str(), 4500)).await?;
+        let server_info = server_info::get(&params).await?;
+        socket
+            .connect((params.server_name.as_str(), server_info.connectivity_info.natt_port))
+            .await?;
 
         let address = socket.peer_addr()?;
         let (sender, receiver) = make_channel(socket, address);

@@ -30,6 +30,6 @@
 | `ike-persist=true\|false`                 | Save IKE session to disk and try to reconnect automatically after application restart                                                                 |
 | `log-level=<log_level>`                   | Logging level: error, warn, debug, info, trace. Default is info. Note: trace-level log includes request and response dumps with sensitive information |
 | `no-keepalive=true\|false`                | Disable keepalive packets for IPSec. Some Check Point servers block the keepalive requests.                                                           |
-| `port-knock=true\|false`                  | Enable port knock workaround to detect NAT-T port 4500 availability in some environments.                                                             |
+| `port-knock=true\|false`                  | Enable port knock workaround to detect NAT-T port availability in some environments.                                                                  |
 | `icon-theme=auto\|dark\|light`            | Set icon theme for the GUI app.                                                                                                                       |
 | `locale=<locale>`                         | Override system locale for i18n support.                                                                                                              |
