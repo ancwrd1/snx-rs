@@ -363,7 +363,6 @@ impl SettingsDialog {
             }
         ));
 
-        let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
         let params2 = params.clone();
 
         fetch_info.connect_clicked(clone!(
@@ -375,6 +374,8 @@ impl SettingsDialog {
             server_name,
             #[weak]
             no_cert_check,
+            #[weak]
+            error,
             move |_| {
                 if server_name.text().is_empty() {
                     auth_type.set_sensitive(false);
@@ -385,65 +386,50 @@ impl SettingsDialog {
                         ignore_server_cert: no_cert_check.is_active(),
                         ..(*params2).clone()
                     };
-                    glib::spawn_future_local(clone!(
-                        #[strong]
-                        sender,
-                        async move {
-                            let response = server_info::get(&params).await;
-                            let _ = sender.send(response).await;
-                            Ok::<_, anyhow::Error>(())
-                        }
-                    ));
-                }
-            }
-        ));
+                    let params2 = params2.clone();
+                    glib::spawn_future_local(clone!(async move {
+                        let response = server_info::get(&params).await;
 
-        let params2 = params.clone();
+                        auth_type.remove_all();
 
-        glib::spawn_future_local(clone!(
-            #[weak]
-            dialog,
-            #[weak]
-            auth_type,
-            #[weak]
-            error,
-            async move {
-                while let Some(result) = receiver.recv().await {
-                    auth_type.remove_all();
-                    match result {
-                        Ok(server_info) => {
-                            error.set_label("");
-                            error.set_visible(false);
-                            let mut options_list = server_info
-                                .login_options_data
-                                .map(|d| d.login_options_list)
-                                .unwrap_or_default();
-                            if options_list.is_empty() {
-                                options_list.insert(String::new(), LoginOption::unspecified());
-                            }
-                            for (i, option) in options_list.into_values().filter(|opt| opt.show_realm != 0).enumerate()
-                            {
-                                let factors = option
-                                    .factors
-                                    .values()
-                                    .map(|factor| factor.factor_type.clone())
-                                    .collect::<Vec<_>>();
-                                unsafe {
-                                    auth_type.set_data(&option.id, factors);
+                        match response {
+                            Ok(server_info) => {
+                                error.set_label("");
+                                error.set_visible(false);
+                                let mut options_list = server_info
+                                    .login_options_data
+                                    .map(|d| d.login_options_list)
+                                    .unwrap_or_default();
+                                if options_list.is_empty() {
+                                    options_list.insert(String::new(), LoginOption::unspecified());
                                 }
-                                auth_type.append(Some(&option.id), &option.display_name);
-                                if params2.login_type == option.id {
-                                    auth_type.set_active(Some(i as _));
+                                for (i, option) in
+                                    options_list.into_values().filter(|opt| opt.show_realm != 0).enumerate()
+                                {
+                                    let factors = option
+                                        .factors
+                                        .values()
+                                        .map(|factor| factor.factor_type.clone())
+                                        .collect::<Vec<_>>();
+                                    unsafe {
+                                        auth_type.set_data(&option.id, factors);
+                                    }
+                                    auth_type.append(Some(&option.id), &option.display_name);
+                                    if params2.login_type == option.id {
+                                        auth_type.set_active(Some(i as _));
+                                    }
                                 }
+                                auth_type.set_sensitive(true);
                             }
-                            auth_type.set_sensitive(true);
+                            Err(e) => {
+                                error.set_label(&e.to_string());
+                                error.set_visible(true);
+                            }
                         }
-                        Err(e) => {
-                            error.set_label(&e.to_string());
-                            error.set_visible(true);
-                        }
-                    }
-                    dialog.set_sensitive(true);
+                        dialog.set_sensitive(true);
+
+                        Ok::<_, anyhow::Error>(())
+                    }));
                 }
             }
         ));
