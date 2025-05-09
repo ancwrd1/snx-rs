@@ -1,3 +1,5 @@
+use std::{sync::Arc, time::Duration};
+
 use futures::pin_mut;
 use gtk4::{
     Align, Orientation, ResponseType,
@@ -8,10 +10,6 @@ use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
-};
-use std::{
-    sync::{Arc, RwLock},
-    time::Duration,
 };
 use tokio::sync::mpsc::Sender;
 
@@ -45,10 +43,7 @@ fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
 
 pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelParams>) {
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
-
-    let status = Arc::new(RwLock::new(
-        controller.command(ServiceCommand::Status, params.clone()).await,
-    ));
+    let status = controller.command(ServiceCommand::Status, params.clone()).await;
 
     let dialog = gtk4::Dialog::builder()
         .title(tr!("status-dialog-title"))
@@ -60,24 +55,25 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
     ok.connect_clicked(clone!(
         #[weak]
         dialog,
-        move |_| {
-            dialog.response(ResponseType::Ok);
-        }
+        move |_| dialog.response(ResponseType::Ok)
     ));
 
     let copy = gtk4::Button::builder().label(tr!("status-button-copy")).build();
 
-    let status_copy = status.clone();
-    copy.connect_clicked(clone!(move |_| {
-        let info = get_info(&status_copy.read().unwrap());
-        gtk4::gdk::Display::default()
-            .unwrap()
-            .clipboard()
-            .set_text(&info.to_values().into_iter().fold(String::new(), |mut acc, (k, v)| {
+    let params2 = params.clone();
+    copy.connect_clicked(move |_| {
+        let params2 = params2.clone();
+        glib::spawn_future_local(async move {
+            let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
+            let status = controller.command(ServiceCommand::Status, params2.clone()).await;
+            let info = get_info(&status);
+            let text = &info.to_values().into_iter().fold(String::new(), |mut acc, (k, v)| {
                 acc.push_str(&format!("{}: {}\n", i18n::translate(k), v));
                 acc
-            }));
-    }));
+            });
+            gtk4::gdk::Display::default().unwrap().clipboard().set_text(text);
+        });
+    });
 
     let settings = gtk4::Button::builder().label(tr!("status-button-settings")).build();
 
@@ -87,10 +83,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         tokio::spawn(async move { sender.send(TrayEvent::Settings).await });
     });
 
-    let connect = gtk4::Button::builder()
-        .label(tr!("status-button-connect"))
-        .sensitive(matches!(*status.read().unwrap(), Ok(ConnectionStatus::Disconnected)))
-        .build();
+    let connect = gtk4::Button::builder().label(tr!("status-button-connect")).build();
 
     let sender2 = sender.clone();
     connect.connect_clicked(move |btn| {
@@ -99,13 +92,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         btn.set_sensitive(false);
     });
 
-    let disconnect = gtk4::Button::builder()
-        .label(tr!("status-button-disconnect"))
-        .sensitive(matches!(
-            *status.read().unwrap(),
-            Ok(ConnectionStatus::Connected(_) | ConnectionStatus::Connecting | ConnectionStatus::Mfa(_))
-        ))
-        .build();
+    let disconnect = gtk4::Button::builder().label(tr!("status-button-disconnect")).build();
 
     let sender2 = sender.clone();
     disconnect.connect_clicked(move |btn| {
@@ -173,27 +160,24 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         }
     );
 
-    update_ui(&status.read().unwrap());
+    update_ui(&status);
 
     let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-    let status2 = status.clone();
 
     glib::spawn_future_local(async move {
-        while rx.recv().await.is_some() {
-            let status = status2.read().unwrap();
+        while let Some(status) = rx.recv().await {
             update_ui(&status);
         }
     });
 
     let fut = async move {
-        let mut old_status = String::new();
+        let mut old_status = format!("{:?}", status);
         loop {
             let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
             let status_str = format!("{:?}", new_status);
             if old_status != status_str {
                 old_status = status_str;
-                *status.write().unwrap() = new_status;
-                if tx.send(()).await.is_err() {
+                if tx.send(new_status).await.is_err() {
                     break;
                 }
             }
