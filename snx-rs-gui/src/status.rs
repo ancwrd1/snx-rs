@@ -1,8 +1,4 @@
-use std::{
-    sync::{Arc, RwLock},
-    time::Duration,
-};
-
+use futures::pin_mut;
 use gtk4::{
     Align, Orientation, ResponseType,
     glib::{self, clone},
@@ -12,6 +8,10 @@ use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
+};
+use std::{
+    sync::{Arc, RwLock},
+    time::Duration,
 };
 use tokio::sync::mpsc::Sender;
 
@@ -185,7 +185,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         }
     });
 
-    tokio::spawn(async move {
+    let fut = async move {
         let mut old_status = String::new();
         loop {
             let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
@@ -199,12 +199,13 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
             }
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
-    });
+    };
+    pin_mut!(fut);
 
     content.append(&inner);
     content.append(&button_box);
 
     GtkWindowExt::set_focus(&dialog, Some(&ok));
-    dialog.run_future().await;
+    futures::future::select(fut, dialog.run_future()).await;
     dialog.close();
 }
