@@ -1,6 +1,6 @@
 ## v4.3.1 (2025-05-10)
 - Fixed a bug with the GUI application stopping responding and consuming 100% CPU.
-- Added Brasilian Portuguese localization
+- Added Brazilian Portuguese localization
 - Added some missing translations
 
 ## v4.3.0 (2025-05-09)
