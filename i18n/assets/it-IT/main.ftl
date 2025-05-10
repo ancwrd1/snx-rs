@@ -98,10 +98,6 @@ error-no-sender = Nessun mittente
 error-empty-ccc-session = Sessione CCC vuota
 error-identity-timeout = Timeout durante l'attesa della risposta di identità, il tipo di accesso è corretto?
 
-# New error messages
-error-connection-cancelled = Connessione annullata
-error-connection-timeout = Timeout della connessione
-
 # Placeholder texts
 placeholder-domains = Domini separati da virgole
 placeholder-ip-addresses = Indirizzi IP separati da virgole
