@@ -66,7 +66,7 @@ impl NattProber {
                     return Ok(());
                 }
             }
-            anyhow::bail!("Probing failed, server is not reachable via ESPinUDP tunnel!");
+            anyhow::bail!(i18n::tr!("error-probing-failed"));
         } else {
             Ok(())
         }

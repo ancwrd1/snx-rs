@@ -81,6 +81,12 @@ error-no-pkcs8 = No PKCS8 PEM path provided
 error-no-pkcs11 = No PKCS11 pin provided
 error-no-ipsec-session = No IPSEC session
 error-request-failed-error-code = Request failed, error code: {$error_code}
+error-no-root-privileges = This program should be run as a root user!
+error-missing-required-parameters = Missing required parameters: server name and/or login type!
+error-missing-server-name = Missing required parameter: server name!
+error-invalid-response = Invalid response!
+error-no-connector-for-challenge-code = No connector to send the challenge code to!
+error-probing-failed = Probing failed, server is not reachable via NATT port!
 
 # Placeholder texts
 placeholder-domains = Comma-separated domains

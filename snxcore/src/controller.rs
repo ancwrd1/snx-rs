@@ -261,7 +261,7 @@ where
                     .await?;
                 Err(anyhow!(e))
             }
-            Ok(_) => anyhow::bail!("Invalid response!"),
+            Ok(_) => anyhow::bail!(tr!("error-invalid-response")),
             Err(e) => Err(e),
         }
     }

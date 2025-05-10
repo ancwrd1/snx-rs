@@ -60,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
 
     if cmdline_params.mode != OperationMode::Info && !is_root() {
-        anyhow::bail!("This program should be run as a root user!");
+        anyhow::bail!(i18n::tr!("error-no-root-privileges"));
     }
 
     platform::init();
@@ -96,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
 
 async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
     if params.server_name.is_empty() {
-        anyhow::bail!("Missing required parameters: server name!");
+        anyhow::bail!(i18n::tr!("error-missing-server-name"));
     }
     snxcore::util::print_login_options(&params).await?;
 
@@ -124,7 +124,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     let (command_sender, command_receiver) = mpsc::channel(16);
 
     if params.server_name.is_empty() || params.login_type.is_empty() {
-        anyhow::bail!("Missing required parameters: server name and/or login type");
+        anyhow::bail!(i18n::tr!("error-missing-required-parameters"));
     }
 
     let mut mfa_prompts = server_info::get_login_prompts(&params).await.unwrap_or_default();

@@ -258,7 +258,7 @@ impl ServerHandler {
                 res = connector.challenge_code(session, code) => res?
             }
         } else {
-            anyhow::bail!("No connector to send the challenge code to!")
+            anyhow::bail!(tr!("error-no-connector-for-challenge-code"))
         };
 
         self.connect_for_session(new_session).await
