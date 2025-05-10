@@ -163,6 +163,7 @@ language-nl-NL = Hollanti
 language-no-NO = Norja
 language-pl-PL = Puola
 language-pt-PT = Portugali
+language-pt-BR = Brasilianportugali
 language-ru-RU = Venäjä
 language-sk-SK = Slovakia
 language-sv-SE = Ruotsi
