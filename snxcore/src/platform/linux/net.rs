@@ -190,7 +190,7 @@ impl NetworkInterface for LinuxNetworkInterface {
                 }
             }
         }
-        Err(anyhow!("Cannot determine default IP!"))
+        Err(anyhow!(i18n::tr!("error-cannot-determine-ip")))
     }
 
     async fn delete_device(&self, device_name: &str) -> anyhow::Result<()> {

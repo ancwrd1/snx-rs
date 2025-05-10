@@ -390,7 +390,7 @@ impl IpsecTunnelConnector {
             if let Some(ref mut sender) = self.command_sender {
                 Ok(sender.send(TunnelCommand::ReKey(self.ipsec_session.clone())).await?)
             } else {
-                Err(anyhow!("No sender!"))
+                Err(anyhow!(tr!("error-no-sender")))
             }
         } else {
             Ok(())

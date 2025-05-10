@@ -101,6 +101,6 @@ impl KeepaliveRunner {
 
         debug!("Keepalive failed!");
 
-        Err(anyhow!("Keepalive failed!"))
+        Err(anyhow!(i18n::tr!("error-keepalive-failed")))
     }
 }

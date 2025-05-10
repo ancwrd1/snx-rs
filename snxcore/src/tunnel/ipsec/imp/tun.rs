@@ -367,7 +367,7 @@ impl VpnTunnel for TunIpsecTunnel {
                             }
                         }
                     } else {
-                        break Err(anyhow!("Receive failed"));
+                        break Err(anyhow!(tr!("error-receive-failed")));
                     }
                 }
             }

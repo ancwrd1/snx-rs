@@ -53,7 +53,7 @@ async fn udp_send_receive(socket: &UdpSocket, data: &[u8], timeout: Duration) ->
     if let (Ok(_), Ok(Ok((size, _)))) = result {
         Ok(buf[0..size].to_vec())
     } else {
-        Err(anyhow!("Error sending UDP request!"))
+        Err(anyhow!(i18n::tr!("error-udp-request-failed")))
     }
 }
 

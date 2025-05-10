@@ -57,7 +57,7 @@ impl UdpSocketExt for UdpSocket {
                 size_of::<libc::c_int>() as _,
             );
             if rc != 0 {
-                Err(anyhow!("Cannot set UDP_ENCAP socket option, error code: {}", rc))
+                Err(anyhow!(i18n::tr!("error-udp-encap-failed", code = rc)))
             } else {
                 Ok(())
             }
@@ -75,7 +75,7 @@ impl UdpSocketExt for UdpSocket {
                 size_of::<libc::c_int>() as _,
             );
             if rc != 0 {
-                Err(anyhow!("Cannot set SO_NO_CHECK socket option, error code: {}", rc))
+                Err(anyhow!(i18n::tr!("error-so-no-check-failed", code = rc)))
             } else {
                 Ok(())
             }

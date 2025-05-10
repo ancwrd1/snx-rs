@@ -28,7 +28,7 @@ impl SecurePrompt for TtyPrompt {
                     passterm::Stream::Stderr,
                 )?)
             } else {
-                Err(anyhow!("No attached TTY to get user input!"))
+                Err(anyhow!(i18n::tr!("error-no-tty")))
             }
         })
         .await??)
@@ -46,7 +46,7 @@ impl SecurePrompt for TtyPrompt {
                 stdin().read_line(&mut line)?;
                 Ok(line.trim().to_owned())
             } else {
-                Err(anyhow!("No attached TTY to get user input!"))
+                Err(anyhow!(i18n::tr!("error-no-tty")))
             }
         })
         .await??)

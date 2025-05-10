@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use i18n::tr;
 use reqwest::{Certificate, Identity};
 use tracing::{trace, warn};
 
@@ -201,7 +202,7 @@ impl CccHttpClient {
 
         match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
-            _ => Err(anyhow!("Invalid authentication response!")),
+            _ => Err(anyhow!(tr!("error-invalid-auth-response"))),
         }
     }
 
@@ -210,7 +211,7 @@ impl CccHttpClient {
 
         match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
-            _ => Err(anyhow!("Invalid authentication response!")),
+            _ => Err(anyhow!(tr!("error-invalid-auth-response"))),
         }
     }
 
@@ -219,7 +220,7 @@ impl CccHttpClient {
 
         match self.send_ccc_request(req).await? {
             ResponseData::ClientSettings(data) => Ok(data),
-            _ => Err(anyhow!("Invalid client settings response!")),
+            _ => Err(anyhow!(tr!("error-invalid-client-settings"))),
         }
     }
 

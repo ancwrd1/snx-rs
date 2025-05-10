@@ -43,7 +43,7 @@ impl FromStr for ServiceCommand {
             "disconnect" => Ok(Self::Disconnect),
             "reconnect" => Ok(Self::Reconnect),
             "info" => Ok(Self::Info),
-            other => Err(anyhow!("Invalid command: {}", other)),
+            other => Err(anyhow!(tr!("error-invalid-command", command = other))),
         }
     }
 }
@@ -178,7 +178,7 @@ where
                     }
                     _ => {
                         warn!("Unable to acquire OTP from the browser");
-                        Err(anyhow!("Unable to acquire OTP from the browser!"))
+                        Err(anyhow!(tr!("error-otp-browser-failed")))
                     }
                 }
             }

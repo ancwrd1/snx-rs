@@ -102,7 +102,7 @@ impl TunnelConnector for CccTunnelConnector {
     async fn delete_session(&mut self) {}
 
     async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
-        Err(anyhow!("Not implemented"))
+        Err(anyhow!(tr!("error-not-implemented")))
     }
 
     async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {

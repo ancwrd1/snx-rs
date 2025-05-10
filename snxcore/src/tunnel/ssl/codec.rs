@@ -88,7 +88,7 @@ impl Decoder for SslPacketCodec {
                 src.advance(8 + len);
                 Ok(Some(SslPacketType::Data(data)))
             }
-            _ => Err(anyhow!("Unknown packet type!")),
+            _ => Err(anyhow!(i18n::tr!("error-unknown-packet-type"))),
         }
     }
 }

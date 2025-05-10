@@ -10,6 +10,7 @@ use std::{
 use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
+use i18n::tr;
 use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -34,7 +35,7 @@ impl FromStr for OperationMode {
             "standalone" => Ok(Self::Standalone),
             "command" => Ok(Self::Command),
             "info" => Ok(Self::Info),
-            _ => Err(anyhow!("Invalid operation mode!")),
+            _ => Err(anyhow!(tr!("error-invalid-operation-mode"))),
         }
     }
 }
@@ -70,7 +71,7 @@ impl FromStr for TunnelType {
         match s.to_lowercase().as_str() {
             "ipsec" => Ok(TunnelType::Ipsec),
             "ssl" => Ok(TunnelType::Ssl),
-            _ => Err(anyhow!("Invalid tunnel type!")),
+            _ => Err(anyhow!(tr!("error-invalid-tunnel-type"))),
         }
     }
 }
@@ -136,7 +137,7 @@ impl FromStr for CertType {
             "pkcs12" => Ok(CertType::Pkcs12),
             "pkcs8" => Ok(CertType::Pkcs8),
             "pkcs11" => Ok(CertType::Pkcs11),
-            _ => Err(anyhow!("Invalid cert type!")),
+            _ => Err(anyhow!(tr!("error-invalid-cert-type"))),
         }
     }
 }
@@ -188,7 +189,7 @@ impl FromStr for IconTheme {
             "auto" => Ok(IconTheme::Auto),
             "dark" => Ok(IconTheme::Dark),
             "light" => Ok(IconTheme::Light),
-            _ => Err(anyhow!("Invalid icon theme!")),
+            _ => Err(anyhow!(tr!("error-invalid-icon-theme"))),
         }
     }
 }

@@ -51,7 +51,7 @@ pub fn spawn_otp_listener(cancel_receiver: oneshot::Receiver<()>) -> oneshot::Re
                 return Ok(otp.as_str().to_owned());
             }
         }
-        Err(anyhow!("Invalid OTP reply"))
+        Err(anyhow!(i18n::tr!("error-invalid-otp-reply")))
     };
 
     tokio::spawn(async move {

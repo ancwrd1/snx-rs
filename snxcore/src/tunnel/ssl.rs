@@ -403,14 +403,14 @@ impl VpnTunnel for SslTunnel {
                 },
                 () = &mut ka_run => {
                     warn!("Keepalive failed, exiting");
-                    break Err(anyhow!("Keepalive failed"));
+                    break Err(anyhow!(tr!("error-keepalive-failed")));
                 }
 
                 result = tun_receiver.next() => {
                     if let Some(Ok(item)) = result {
                         self.send(item).await?;
                     } else {
-                        break Err(anyhow!("Receive failed"));
+                        break Err(anyhow!(tr!("error-receive-failed")));
                     }
                 }
             }

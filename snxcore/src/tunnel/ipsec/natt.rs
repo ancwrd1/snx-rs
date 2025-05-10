@@ -95,7 +95,7 @@ impl NattProber {
                 );
                 Ok(())
             }
-            _ => Err(anyhow!("No NAT-T reply!")),
+            _ => Err(anyhow!(i18n::tr!("error-no-natt-reply"))),
         }
     }
 

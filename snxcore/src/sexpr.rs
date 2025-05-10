@@ -238,7 +238,7 @@ fn parse_sexpr(mut pairs: RulePairs) -> anyhow::Result<SExpression> {
         Some(rule) if rule.as_rule() == Rule::obj => parse_obj(rule.into_inner()),
         Some(rule) if rule.as_rule() == Rule::array => parse_array(rule.into_inner()),
         Some(rule) if rule.as_rule() == Rule::value => parse_value(rule.into_inner()),
-        other => Err(anyhow!("Invalid sexpr: {:?}", other)),
+        other => Err(anyhow!(tr!("error-invalid-sexpr", value = format!("{:?}", other)))),
     }
 }
 
@@ -286,7 +286,7 @@ fn parse_value(mut pairs: RulePairs) -> anyhow::Result<SExpression> {
             let value = pair.as_str().to_owned();
             Ok(SExpression::Value(value))
         }
-        _ => Err(anyhow!("Invalid value")),
+        _ => Err(anyhow!(tr!("error-invalid-value"))),
     }
 }
 

@@ -31,7 +31,7 @@ impl TryFrom<u32> for SystemColorTheme {
             0 => Ok(SystemColorTheme::NoPreference),
             1 => Ok(SystemColorTheme::Dark),
             2 => Ok(SystemColorTheme::Light),
-            _ => Err(anyhow!("Unknown color-scheme value")),
+            _ => Err(anyhow!(i18n::tr!("error-unknown-color-scheme"))),
         }
     }
 }
