@@ -31,3 +31,4 @@ libc = "0.2"
 async-trait = "0.1"
 interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
+async-channel = "2"

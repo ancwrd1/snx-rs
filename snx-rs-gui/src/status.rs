@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use futures::pin_mut;
 use gtk4::{
     Align, Orientation, ResponseType,
     glib::{self, clone},
@@ -42,9 +41,6 @@ fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
 }
 
 pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelParams>) {
-    let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
-    let status = controller.command(ServiceCommand::Status, params.clone()).await;
-
     let dialog = gtk4::Dialog::builder()
         .title(tr!("status-dialog-title"))
         .transient_for(&main_window())
@@ -63,7 +59,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
     let params2 = params.clone();
     copy.connect_clicked(move |_| {
         let params2 = params2.clone();
-        glib::spawn_future_local(async move {
+        tokio::spawn(async move {
             let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
             let status = controller.command(ServiceCommand::Status, params2.clone()).await;
             let info = get_info(&status);
@@ -160,18 +156,19 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         }
     );
 
-    update_ui(&status);
-
-    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+    let (tx, rx) = async_channel::bounded(1);
 
     glib::spawn_future_local(async move {
-        while let Some(status) = rx.recv().await {
+        while let Ok(status) = rx.recv().await {
             update_ui(&status);
         }
     });
 
-    let fut = async move {
-        let mut old_status = format!("{:?}", status);
+    let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel();
+
+    tokio::spawn(async move {
+        let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
+        let mut old_status = String::new();
         loop {
             let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
             let status_str = format!("{:?}", new_status);
@@ -181,15 +178,19 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
                     break;
                 }
             }
-            tokio::time::sleep(Duration::from_secs(2)).await;
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_secs(2)) => {}
+                _ = &mut stop_rx => break,
+            }
         }
-    };
-    pin_mut!(fut);
+    });
 
     content.append(&inner);
     content.append(&button_box);
 
     GtkWindowExt::set_focus(&dialog, Some(&ok));
-    futures::future::select(fut, dialog.run_future()).await;
+
+    dialog.run_future().await;
     dialog.close();
+    let _ = stop_tx.send(());
 }

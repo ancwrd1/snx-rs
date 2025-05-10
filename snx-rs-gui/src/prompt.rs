@@ -6,7 +6,6 @@ use gtk4::{
 };
 use i18n::tr;
 use snxcore::{model::PromptInfo, prompt::SecurePrompt};
-use tokio::sync::mpsc;
 
 use crate::{dbus::send_notification, main_window};
 
@@ -14,7 +13,7 @@ pub struct GtkPrompt;
 
 impl GtkPrompt {
     async fn get_input(&self, prompt: PromptInfo, secure: bool) -> anyhow::Result<String> {
-        let (tx, mut rx) = mpsc::channel(1);
+        let (tx, rx) = async_channel::bounded(1);
 
         glib::idle_add(move || {
             let prompt = prompt.clone();
