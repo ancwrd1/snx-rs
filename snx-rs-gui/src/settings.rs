@@ -387,7 +387,7 @@ impl SettingsDialog {
                         ..(*params2).clone()
                     };
                     let params2 = params2.clone();
-                    glib::spawn_future_local(clone!(async move {
+                    glib::spawn_future_local(async move {
                         let response = server_info::get(&params).await;
 
                         auth_type.remove_all();
@@ -429,7 +429,7 @@ impl SettingsDialog {
                         dialog.set_sensitive(true);
 
                         Ok::<_, anyhow::Error>(())
-                    }));
+                    });
                 }
             }
         ));
