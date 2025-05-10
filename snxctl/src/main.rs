@@ -107,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     if command != ServiceCommand::Info {
-        println!("{}", status.print(i18n::translate));
+        println!("{}", status.print());
     }
 
     Ok(())
