@@ -246,7 +246,7 @@ async fn do_connect(
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
     let mut status = tokio::select! {
-        _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-canceled"))),
+        _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-cancelled"))),
         status = controller.command(ServiceCommand::Connect, params.clone()) => status
     };
 

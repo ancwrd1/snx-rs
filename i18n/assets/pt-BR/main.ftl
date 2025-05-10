@@ -36,6 +36,7 @@ label-cert-password = Senha do arquivo PFX ou pin PKCS11
 label-cert-id = ID hexadecimal do certificado PKCS11
 label-language = Idioma
 label-system-language = Padrão do sistema
+label-username-password = Nome de usuário e senha
 
 # Tabs and expanders
 tab-general = Geral
@@ -46,29 +47,25 @@ expand-certificates = Certificados
 expand-misc = Outras configurações
 
 # Error messages
-error-no-server = Nenhum endereço de servidor especificado
+error-no-server-name = Nenhum endereço de servidor especificado
 error-no-auth = Nenhum método de autenticação selecionado
 error-file-not-exist = O arquivo não existe: {$path}
 error-invalid-cert-id = ID do certificado não está em formato hexadecimal: {$id}
 error-ca-root-not-exist = O caminho do certificado raiz não existe: {$path}
 error-validation = Erro de validação
 error-user-input-canceled = Entrada de usuário cancelada
-error-connection-canceled = Conexão cancelada
+error-connection-cancelled = Conexão cancelada
 error-unknown-event = Evento desconhecido: {$event}
 error-no-service-connection = Sem conexão ao serviço
 error-empty-input = O campo não pode estar vazio
-
-# New error messages
 error-invalid-object = Objeto inválido
 error-no-connector = Sem conector de túnel
-error-connection-cancelled = Conexão cancelada
 error-tunnel-disconnected = Túnel desconectado, última mensagem: {$message}
 error-unexpected-reply = Resposta inesperada
 error-auth-failed = A autenticação falhou
-error-no-server-name = Falta um parâmetro obrigatório: server-name
 error-no-login-type = Falta um parâmetro obrigatório: login-type
 error-connection-timeout = Tempo limite da conexão
-error-invalid-response = Resposta inválida
+error-invalid-response = Resposta inválida!
 error-cannot-send-request = Impossível enviar pedido ao serviço
 error-cannot-read-reply = Impossível ler a resposta do serviço
 error-no-ipv4 = Sem endereço IPv4 para o servidor {$server}
@@ -79,6 +76,37 @@ error-no-pkcs12 = Não foram informados o caminho PKCS12 e a senha do certificad
 error-no-pkcs8 = Não foi informado um caminho para o certificado PEM PKCS8
 error-no-pkcs11 = Não foi informado um PIN PKCS11
 error-no-ipsec-session = Sem sessão IPSec
+error-request-failed-error-code = Falha na requisição, código de erro: {$error_code}
+error-no-root-privileges = Este programa deve ser executado como usuário root!
+error-missing-required-parameters = Parâmetros obrigatórios ausentes: nome do servidor e/ou tipo de acesso!
+error-missing-server-name = Parâmetro obrigatório ausente: nome do servidor!
+error-no-connector-for-challenge-code = Sem conector para enviar o código de desafio!
+error-probing-failed = Sondagem falhou, o servidor não está acessível através da porta NATT!
+error-invalid-sexpr = sexpr inválido: {$value}
+error-invalid-value = Valor inválido
+error-udp-request-failed = Erro ao enviar requisição UDP
+error-no-tty = Sem TTY conectado para entrada do usuário
+error-invalid-auth-response = Resposta de autenticação inválida
+error-invalid-client-settings = Configurações do cliente inválidas
+error-invalid-otp-reply = Resposta OTP inválida
+error-udp-encap-failed = Não foi possível definir a opção de socket UDP_ENCAP, código de erro: {$code}
+error-so-no-check-failed = Não foi possível definir a opção de socket SO_NO_CHECK, código de erro: {$code}
+error-keepalive-failed = Keepalive falhou
+error-receive-failed = Recebimento falhou
+error-unknown-color-scheme = Valor de esquema de cores desconhecido
+error-cannot-determine-ip = Não foi possível determinar o IP padrão
+error-invalid-command = Comando inválido: {$command}
+error-otp-browser-failed = Não foi possível obter o OTP do navegador
+error-invalid-operation-mode = Modo de operação inválido
+error-invalid-tunnel-type = Tipo de túnel inválido
+error-invalid-cert-type = Tipo de certificado inválido
+error-invalid-icon-theme = Tema de ícones inválido
+error-no-natt-reply = Sem resposta NATT
+error-not-implemented = Não implementado
+error-unknown-packet-type = Tipo de pacote desconhecido
+error-no-sender = Sem remetente
+error-empty-ccc-session = Sessão CCC vazia
+error-identity-timeout = Timeout ao aguardar resposta de identidade, o tipo de acesso está correto?
 
 # Placeholder texts
 placeholder-domains = Domínios separados por vírgulas

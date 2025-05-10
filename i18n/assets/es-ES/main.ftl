@@ -36,6 +36,7 @@ label-cert-password = Contraseña PFX o PIN PKCS11
 label-cert-id = ID hexadecimal del certificado PKCS11
 label-language = Idioma
 label-system-language = Predeterminado del sistema
+label-username-password = Nombre de usuario y contraseña
 
 # Tabs and expanders
 tab-general = General
@@ -46,39 +47,55 @@ expand-certificates = Certificados
 expand-misc = Configuración adicional
 
 # Error messages
-error-no-server = No se ha especificado dirección de servidor
+error-no-server-name = No se ha especificado dirección de servidor
 error-no-auth = No se ha seleccionado método de autenticación
 error-file-not-exist = El archivo no existe: {$path}
 error-invalid-cert-id = ID de certificado no en formato hexadecimal: {$id}
 error-ca-root-not-exist = La ruta raíz CA no existe: {$path}
 error-validation = Error de validación
 error-user-input-canceled = Entrada de usuario cancelada
-error-connection-canceled = Conexión cancelada
+error-connection-cancelled = Conexión cancelada
 error-unknown-event = Evento desconocido: {$event}
 error-no-service-connection = No hay conexión al servicio
 error-empty-input = La entrada no puede estar vacía
-
-# New error messages
 error-invalid-object = Objeto inválido
 error-no-connector = No hay conector de túnel
-error-connection-cancelled = Conexión cancelada
 error-tunnel-disconnected = Túnel desconectado, último mensaje: {$message}
 error-unexpected-reply = Respuesta inesperada
 error-auth-failed = Error de autenticación
-error-no-server-name = Falta el parámetro obligatorio: server-name
 error-no-login-type = Falta el parámetro obligatorio: login-type
 error-connection-timeout = Tiempo de conexión agotado
-error-invalid-response = Respuesta inválida
-error-cannot-send-request = No se puede enviar la solicitud al servicio
-error-cannot-read-reply = No se puede leer la respuesta del servicio
-error-no-ipv4 = No hay dirección IPv4 para {$server}
-error-not-challenge-state = No es un estado de desafío
-error-no-challenge = No hay desafío en los datos
-error-endless-challenges = Bucle infinito de desafíos de nombre de usuario
-error-no-pkcs12 = No se proporcionó ruta PKCS12 y contraseña
-error-no-pkcs8 = No se proporcionó ruta PKCS8 PEM
-error-no-pkcs11 = No se proporcionó código PIN PKCS11
-error-no-ipsec-session = No hay sesión IPSEC
+error-request-failed-error-code = Error en la solicitud, código de error: {$error_code}
+error-no-root-privileges = ¡Este programa debe ejecutarse como usuario root!
+error-missing-required-parameters = ¡Faltan parámetros obligatorios: nombre del servidor y/o tipo de inicio de sesión!
+error-missing-server-name = ¡Falta el parámetro obligatorio: nombre del servidor!
+error-no-connector-for-challenge-code = ¡No hay conector para enviar el código de desafío!
+error-probing-failed = ¡Error en la prueba, el servidor no es accesible a través del puerto NATT!
+error-invalid-sexpr = sexpr inválido: {$value}
+error-invalid-value = Valor inválido
+error-udp-request-failed = Error al enviar la solicitud UDP
+error-no-tty = No hay TTY conectado para obtener la entrada del usuario
+error-invalid-auth-response = Respuesta de autenticación inválida
+error-invalid-client-settings = Respuesta de configuración del cliente inválida
+error-invalid-otp-reply = Respuesta OTP inválida
+error-udp-encap-failed = No se pudo establecer la opción de socket UDP_ENCAP, código de error: {$code}
+error-so-no-check-failed = No se pudo establecer la opción de socket SO_NO_CHECK, código de error: {$code}
+error-keepalive-failed = Error en keepalive
+error-receive-failed = Error en la recepción
+error-unknown-color-scheme = Valor de esquema de color desconocido
+error-cannot-determine-ip = No se puede determinar la IP predeterminada
+error-invalid-command = Comando inválido: {$command}
+error-otp-browser-failed = No se pudo obtener el OTP desde el navegador
+error-invalid-operation-mode = Modo de operación inválido
+error-invalid-tunnel-type = Tipo de túnel inválido
+error-invalid-cert-type = Tipo de certificado inválido
+error-invalid-icon-theme = Tema de iconos inválido
+error-no-natt-reply = No hay respuesta NATT
+error-not-implemented = No implementado
+error-unknown-packet-type = Tipo de paquete desconocido
+error-no-sender = No hay remitente
+error-empty-ccc-session = Sesión CCC vacía
+error-identity-timeout = Tiempo de espera al esperar la respuesta de identidad, ¿es correcto el tipo de inicio de sesión?
 
 # Placeholder texts
 placeholder-domains = Dominios separados por comas

@@ -36,6 +36,7 @@ label-cert-password = PFX-adgangskode eller PKCS11-PIN
 label-cert-id = PKCS11-certifikatets hexadecimale ID
 label-language = Sprog
 label-system-language = Systemstandard
+label-username-password = Brugernavn og adgangskode
 
 # Tabs and expanders
 tab-general = Generelt
@@ -46,26 +47,22 @@ expand-certificates = Certifikater
 expand-misc = Yderligere indstillinger
 
 # Error messages
-error-no-server = Ingen serveradresse angivet
+error-no-server-name = Ingen serveradresse angivet
 error-no-auth = Ingen godkendelsesmetode valgt
 error-file-not-exist = Filen findes ikke: {$path}
 error-invalid-cert-id = Certifikat-ID er ikke i hexadecimalt format: {$id}
 error-ca-root-not-exist = CA-rodsti findes ikke: {$path}
 error-validation = Valideringsfejl
 error-user-input-canceled = Brugerinput annulleret
-error-connection-canceled = Forbindelse annulleret
+error-connection-cancelled = Forbindelse annulleret
 error-unknown-event = Ukendt begivenhed: {$event}
 error-no-service-connection = Ingen forbindelse til tjenesten
 error-empty-input = Input kan ikke være tomt
-
-# New error messages
 error-invalid-object = Ugyldigt objekt
 error-no-connector = Ingen tunnelforbindelse
-error-connection-cancelled = Forbindelse annulleret
 error-tunnel-disconnected = Tunnel afbrudt, sidste besked: {$message}
 error-unexpected-reply = Uventet svar
 error-auth-failed = Godkendelse mislykkedes
-error-no-server-name = Manglende påkrævet parameter: server-name
 error-no-login-type = Manglende påkrævet parameter: login-type
 error-connection-timeout = Forbindelsestimeout
 error-invalid-response = Ugyldigt svar
@@ -79,6 +76,35 @@ error-no-pkcs12 = Ingen PKCS12-sti og adgangskode angivet
 error-no-pkcs8 = Ingen PKCS8 PEM-sti angivet
 error-no-pkcs11 = Ingen PKCS11 PIN angivet
 error-no-ipsec-session = Ingen IPSEC-session
+error-request-failed-error-code = Anmodning mislykkedes, feilkode: {$error_code}
+error-no-root-privileges = Dette program skal køres som root-bruger!
+error-missing-required-parameters = Manglende påkrævede parametre: servernavn og/eller adgangstype!
+error-missing-server-name = Manglende påkrævet parameter: servernavn!
+error-invalid-sexpr = Ugyldig sexpr: {$value}
+error-invalid-value = Ugyldig værdi
+error-udp-request-failed = Fejl ved afsendelse af UDP-anmodning
+error-no-tty = Ingen TTY tilsluttet til brugerinput
+error-invalid-auth-response = Ugyldigt godkendelsessvar
+error-invalid-client-settings = Ugyldige klientindstillinger
+error-invalid-otp-reply = Ugyldigt OTP-svar
+error-udp-encap-failed = Kan ikke indstille UDP_ENCAP socket-option, feilkode: {$code}
+error-so-no-check-failed = Kan ikke indstille SO_NO_CHECK socket-option, feilkode: {$code}
+error-keepalive-failed = Keepalive mislykkedes
+error-receive-failed = Modtagelse mislykkedes
+error-unknown-color-scheme = Ukendt farveskema-værdi
+error-cannot-determine-ip = Kan ikke bestemme standard-IP
+error-invalid-command = Ugyldig kommando: {$command}
+error-otp-browser-failed = Kan ikke få OTP fra browseren
+error-invalid-operation-mode = Ugyldig driftsmåde
+error-invalid-tunnel-type = Ugyldig tunneltype
+error-invalid-cert-type = Ugyldig certifikattype
+error-invalid-icon-theme = Ugyldigt ikon-tema
+error-no-natt-reply = Intet NATT-svar
+error-not-implemented = Ikke implementeret
+error-unknown-packet-type = Ukendt pakketype
+error-no-sender = Ingen afsender
+error-empty-ccc-session = Tom CCC-session
+error-identity-timeout = Timeout ved venten på identitetssvar, er adgangstypen korrekt?
 
 # Placeholder texts
 placeholder-domains = Domæner adskilt med komma

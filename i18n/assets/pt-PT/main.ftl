@@ -36,6 +36,7 @@ label-cert-password = Palavra-passe PFX ou PIN PKCS11
 label-cert-id = ID hexadecimal do certificado PKCS11
 label-language = Idioma
 label-system-language = Predefinição do sistema
+label-username-password = Nome de utilizador e palavra-passe
 
 # Tabs and expanders
 tab-general = Geral
@@ -46,29 +47,25 @@ expand-certificates = Certificados
 expand-misc = Definições adicionais
 
 # Error messages
-error-no-server = Nenhum endereço de servidor especificado
+error-no-server-name = Nenhum endereço de servidor especificado
 error-no-auth = Nenhum método de autenticação selecionado
 error-file-not-exist = O ficheiro não existe: {$path}
 error-invalid-cert-id = ID do certificado não está em formato hexadecimal: {$id}
 error-ca-root-not-exist = O caminho raiz CA não existe: {$path}
 error-validation = Erro de validação
 error-user-input-canceled = Entrada do utilizador cancelada
-error-connection-canceled = Ligação cancelada
+error-connection-cancelled = Ligação cancelada
 error-unknown-event = Evento desconhecido: {$event}
 error-no-service-connection = Sem ligação ao serviço
 error-empty-input = A entrada não pode estar vazia
-
-# New error messages
 error-invalid-object = Objeto inválido
 error-no-connector = Sem conector de túnel
-error-connection-cancelled = Ligação cancelada
 error-tunnel-disconnected = Túnel desligado, última mensagem: {$message}
 error-unexpected-reply = Resposta inesperada
 error-auth-failed = Autenticação falhou
-error-no-server-name = Parâmetro obrigatório em falta: server-name
 error-no-login-type = Parâmetro obrigatório em falta: login-type
 error-connection-timeout = Tempo limite de ligação
-error-invalid-response = Resposta inválida
+error-invalid-response = Resposta inválida!
 error-cannot-send-request = Não é possível enviar pedido ao serviço
 error-cannot-read-reply = Não é possível ler resposta do serviço
 error-no-ipv4 = Sem endereço IPv4 para {$server}
@@ -79,6 +76,37 @@ error-no-pkcs12 = Sem caminho PKCS12 e palavra-passe fornecidos
 error-no-pkcs8 = Sem caminho PKCS8 PEM fornecido
 error-no-pkcs11 = Sem PIN PKCS11 fornecido
 error-no-ipsec-session = Sem sessão IPSEC
+error-request-failed-error-code = Pedido falhou, código de erro: {$error_code}
+error-no-root-privileges = Este programa deve ser executado como utilizador root!
+error-missing-required-parameters = Parâmetros obrigatórios em falta: nome do servidor e/ou tipo de acesso!
+error-missing-server-name = Parâmetro obrigatório em falta: nome do servidor!
+error-no-connector-for-challenge-code = Sem conector para enviar o código de desafio!
+error-probing-failed = Sondagem falhou, o servidor não está acessível através da porta NATT!
+error-invalid-sexpr = sexpr inválido: {$value}
+error-invalid-value = Valor inválido
+error-udp-request-failed = Erro ao enviar pedido UDP
+error-no-tty = Sem TTY ligado para entrada do utilizador
+error-invalid-auth-response = Resposta de autenticação inválida
+error-invalid-client-settings = Definições do cliente inválidas
+error-invalid-otp-reply = Resposta OTP inválida
+error-udp-encap-failed = Não é possível definir a opção de socket UDP_ENCAP, código de erro: {$code}
+error-so-no-check-failed = Não é possível definir a opção de socket SO_NO_CHECK, código de erro: {$code}
+error-keepalive-failed = Keepalive falhou
+error-receive-failed = Receção falhou
+error-unknown-color-scheme = Valor de esquema de cores desconhecido
+error-cannot-determine-ip = Não é possível determinar o IP predefinido
+error-invalid-command = Comando inválido: {$command}
+error-otp-browser-failed = Não é possível obter o OTP do navegador
+error-invalid-operation-mode = Modo de operação inválido
+error-invalid-tunnel-type = Tipo de túnel inválido
+error-invalid-cert-type = Tipo de certificado inválido
+error-invalid-icon-theme = Tema de ícones inválido
+error-no-natt-reply = Sem resposta NATT
+error-not-implemented = Não implementado
+error-unknown-packet-type = Tipo de pacote desconhecido
+error-no-sender = Sem remetente
+error-empty-ccc-session = Sessão CCC vazia
+error-identity-timeout = Tempo limite ao aguardar resposta de identidade, o tipo de acesso está correto?
 
 # Placeholder texts
 placeholder-domains = Domínios separados por vírgulas

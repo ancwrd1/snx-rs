@@ -47,29 +47,27 @@ expand-certificates = Certificates
 expand-misc = Misc settings
 
 # Error messages
-error-no-server = No server address specified
+error-no-server-name = No server address specified
 error-no-auth = No authentication method selected
 error-file-not-exist = File does not exist: {$path}
 error-invalid-cert-id = Certificate ID not in hex format: {$id}
 error-ca-root-not-exist = CA root path does not exist: {$path}
 error-validation = Validation error
 error-user-input-canceled = User input canceled
-error-connection-canceled = Connection canceled
+error-connection-cancelled = Connection cancelled
 error-unknown-event = Unknown event: {$event}
 error-no-service-connection = No connection to service
 error-empty-input = Input cannot be empty
+error-invalid-response = Invalid response!
 
 # New error messages
 error-invalid-object = Invalid object
 error-no-connector = No tunnel connector
-error-connection-cancelled = Connection cancelled
 error-tunnel-disconnected = Tunnel disconnected, last message: {$message}
 error-unexpected-reply = Unexpected reply
 error-auth-failed = Authentication failed
-error-no-server-name = Missing required parameter: server-name
 error-no-login-type = Missing required parameter: login-type
 error-connection-timeout = Connection timeout
-error-invalid-response = Invalid response
 error-cannot-send-request = Cannot send request to the service
 error-cannot-read-reply = Cannot read reply from the service
 error-no-ipv4 = No IPv4 address for {$server}
@@ -84,7 +82,6 @@ error-request-failed-error-code = Request failed, error code: {$error_code}
 error-no-root-privileges = This program should be run as a root user!
 error-missing-required-parameters = Missing required parameters: server name and/or login type!
 error-missing-server-name = Missing required parameter: server name!
-error-invalid-response = Invalid response!
 error-no-connector-for-challenge-code = No connector to send the challenge code to!
 error-probing-failed = Probing failed, server is not reachable via NATT port!
 error-invalid-sexpr = Invalid sexpr: {$value}

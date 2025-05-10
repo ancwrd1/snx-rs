@@ -46,26 +46,22 @@ expand-certificates = Varmenne
 expand-misc = Muut asetukset
 
 # Error messages
-error-no-server = Palvelimen osoitetta ei ole määritetty
+error-no-server-name = Palvelimen osoitetta ei ole määritetty
 error-no-auth = Tunnistusmenetelmää ei ole valittu
 error-file-not-exist = Tiedostoa ei löydy: {$path}
 error-invalid-cert-id = Varmennetunniste ei ole heksadesimaalimuodossa: {$id}
 error-ca-root-not-exist = CA-juuripolkua ei löydy: {$path}
 error-validation = Validoinnin virhe
 error-user-input-canceled = Käyttäjän syöte peruttu
-error-connection-canceled = Yhteys peruttu
+error-connection-cancelled = Yhteys peruttu
 error-unknown-event = Tuntematon tapahtuma: {$event}
 error-no-service-connection = Ei yhteyttä palveluun
 error-empty-input = Syöte ei voi olla tyhjä
-
-# New error messages
 error-invalid-object = Virheellinen objekti
 error-no-connector = Ei tunneliyhteyttä
-error-connection-cancelled = Yhteys peruttu
 error-tunnel-disconnected = Tunneli katkaistu, viimeisin viesti: {$message}
 error-unexpected-reply = Odottamaton vastaus
 error-auth-failed = Tunnistus epäonnistui
-error-no-server-name = Pakollinen parametri puuttuu: server-name
 error-no-login-type = Pakollinen parametri puuttuu: login-type
 error-connection-timeout = Yhteyden aikakatkaisu
 error-invalid-response = Virheellinen vastaus
@@ -79,6 +75,37 @@ error-no-pkcs12 = Ei PKCS12-polku ja salasana annettu
 error-no-pkcs8 = Ei PKCS8 PEM-polku annettu
 error-no-pkcs11 = Ei PKCS11 PIN-koodia annettu
 error-no-ipsec-session = Ei IPSEC-istuntoa
+error-request-failed-error-code = Pyyntö epäonnistui, virhekoodi: {$error_code}
+error-no-root-privileges = Tämä ohjelma pitää ajaa root-käyttäjänä!
+error-missing-required-parameters = Pakolliset parametrit puuttuvat: palvelimen nimi ja/tai kirjautumistyyppi!
+error-missing-server-name = Pakollinen parametri puuttuu: palvelimen nimi!
+error-no-connector-for-challenge-code = Ei konektoria haastekoodin lähettämiseen!
+error-probing-failed = Tarkistus epäonnistui, palvelimeen ei pääse NATT-portin kautta!
+error-invalid-sexpr = Virheellinen sexpr: {$value}
+error-invalid-value = Virheellinen arvo
+error-udp-request-failed = Virhe UDP-pyynnön lähetyksessä
+error-no-tty = Ei TTY-yhteyttä käyttäjän syötteeseen
+error-invalid-auth-response = Virheellinen tunnistusvastaus
+error-invalid-client-settings = Virheelliset asiakasasetukset
+error-invalid-otp-reply = Virheellinen OTP-vastaus
+error-udp-encap-failed = UDP_ENCAP-soketin asetusta ei voi asettaa, virhekoodi: {$code}
+error-so-no-check-failed = SO_NO_CHECK-soketin asetusta ei voi asettaa, virhekoodi: {$code}
+error-keepalive-failed = Keepalive epäonnistui
+error-receive-failed = Vastaanotto epäonnistui
+error-unknown-color-scheme = Tuntematon väriteeman arvo
+error-cannot-determine-ip = Oletus-IP-osoitetta ei voi määrittää
+error-invalid-command = Virheellinen komento: {$command}
+error-otp-browser-failed = OTP:ta ei voi hakea selaimesta
+error-invalid-operation-mode = Virheellinen toimintatila
+error-invalid-tunnel-type = Virheellinen tunnelityyppi
+error-invalid-cert-type = Virheellinen varmennetyyppi
+error-invalid-icon-theme = Virheellinen kuvaketeema
+error-no-natt-reply = Ei NATT-vastausta
+error-not-implemented = Ei toteutettu
+error-unknown-packet-type = Tuntematon pakettityyppi
+error-no-sender = Ei lähettäjää
+error-empty-ccc-session = Tyhjä CCC-istunto
+error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kirjautumistyyppi oikea?
 
 # Placeholder texts
 placeholder-domains = Pilkulla erotetut verkkotunnukset

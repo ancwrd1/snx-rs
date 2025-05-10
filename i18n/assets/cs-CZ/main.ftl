@@ -36,6 +36,7 @@ label-cert-password = Heslo PFX nebo PIN PKCS11
 label-cert-id = Hexadecimální ID certifikátu PKCS11
 label-language = Jazyk
 label-system-language = Systémové výchozí
+label-username-password = Uživatelské jméno a heslo
 
 # Tabs and expanders
 tab-general = Obecné
@@ -46,26 +47,22 @@ expand-certificates = Certifikáty
 expand-misc = Další nastavení
 
 # Error messages
-error-no-server = Není zadána adresa serveru
+error-no-server-name = Není zadána adresa serveru
 error-no-auth = Není vybrána metoda ověřování
 error-file-not-exist = Soubor neexistuje: {$path}
 error-invalid-cert-id = ID certifikátu není v hexadecimálním formátu: {$id}
 error-ca-root-not-exist = Cesta ke kořenovému certifikátu CA neexistuje: {$path}
 error-validation = Chyba ověření
 error-user-input-canceled = Vstup uživatele zrušen
-error-connection-canceled = Připojení zrušeno
+error-connection-cancelled = Připojení zrušeno
 error-unknown-event = Neznámá událost: {$event}
 error-no-service-connection = Žádné připojení ke službě
 error-empty-input = Vstup nemůže být prázdný
-
-# New error messages
 error-invalid-object = Neplatný objekt
 error-no-connector = Žádný konektor tunelu
-error-connection-cancelled = Připojení zrušeno
 error-tunnel-disconnected = Tunel odpojen, poslední zpráva: {$message}
 error-unexpected-reply = Neočekávaná odpověď
 error-auth-failed = Ověření selhalo
-error-no-server-name = Chybí povinný parametr: server-name
 error-no-login-type = Chybí povinný parametr: login-type
 error-connection-timeout = Časový limit připojení
 error-invalid-response = Neplatná odpověď
@@ -79,6 +76,37 @@ error-no-pkcs12 = Žádná cesta PKCS12 a heslo nejsou poskytnuty
 error-no-pkcs8 = Žádná cesta PKCS8 PEM není poskytnuta
 error-no-pkcs11 = Žádný PIN PKCS11 není poskytnut
 error-no-ipsec-session = Žádná IPSEC relace
+error-request-failed-error-code = Požadavek selhal, kód chyby: {$error_code}
+error-no-root-privileges = Tento program musí být spuštěn jako root uživatel!
+error-missing-required-parameters = Chybí povinné parametry: název serveru a/nebo typ přístupu!
+error-missing-server-name = Chybí povinný parametr: název serveru!
+error-no-connector-for-challenge-code = Žádný konektor pro odeslání kódu výzvy!
+error-probing-failed = Sondování selhalo, server není dostupný přes port NATT!
+error-invalid-sexpr = Neplatný sexpr: {$value}
+error-invalid-value = Neplatná hodnota
+error-udp-request-failed = Chyba při odesílání UDP požadavku
+error-no-tty = Žádný TTY připojen pro vstup uživatele
+error-invalid-auth-response = Neplatná odpověď ověření
+error-invalid-client-settings = Neplatná nastavení klienta
+error-invalid-otp-reply = Neplatná odpověď OTP
+error-udp-encap-failed = Nelze nastavit možnost soketu UDP_ENCAP, kód chyby: {$code}
+error-so-no-check-failed = Nelze nastavit možnost soketu SO_NO_CHECK, kód chyby: {$code}
+error-keepalive-failed = Keepalive selhal
+error-receive-failed = Příjem selhal
+error-unknown-color-scheme = Neznámá hodnota barevného schématu
+error-cannot-determine-ip = Nelze určit výchozí IP
+error-invalid-command = Neplatný příkaz: {$command}
+error-otp-browser-failed = Nelze získat OTP z prohlížeče
+error-invalid-operation-mode = Neplatný provozní režim
+error-invalid-tunnel-type = Neplatný typ tunelu
+error-invalid-cert-type = Neplatný typ certifikátu
+error-invalid-icon-theme = Neplatný motiv ikon
+error-no-natt-reply = Žádná odpověď NATT
+error-not-implemented = Neimplementováno
+error-unknown-packet-type = Neznámý typ paketu
+error-no-sender = Žádný odesílatel
+error-empty-ccc-session = Prázdná CCC relace
+error-identity-timeout = Časový limit při čekání na odpověď identity, je typ přístupu správný?
 
 # Placeholder texts
 placeholder-domains = Domény oddělené čárkami

@@ -36,6 +36,7 @@ label-cert-password = Mot de passe PFX ou code PIN PKCS11
 label-cert-id = ID hexadécimal du certificat PKCS11
 label-language = Langue
 label-system-language = Par défaut du système
+label-username-password = Nom d'utilisateur et mot de passe
 
 # Tabs and expanders
 tab-general = Général
@@ -46,29 +47,25 @@ expand-certificates = Certificats
 expand-misc = Paramètres divers
 
 # Error messages
-error-no-server = Aucune adresse de serveur spécifiée
+error-no-server-name = Aucune adresse de serveur spécifiée
 error-no-auth = Aucune méthode d'authentification sélectionnée
 error-file-not-exist = Le fichier n'existe pas : {$path}
 error-invalid-cert-id = ID de certificat non au format hexadécimal : {$id}
 error-ca-root-not-exist = Le chemin racine CA n'existe pas : {$path}
 error-validation = Erreur de validation
 error-user-input-canceled = Saisie utilisateur annulée
-error-connection-canceled = Connexion annulée
+error-connection-cancelled = Connexion annulée
 error-unknown-event = Événement inconnu : {$event}
 error-no-service-connection = Pas de connexion au service
 error-empty-input = La saisie ne peut pas être vide
-
-# New error messages
 error-invalid-object = Objet invalide
 error-no-connector = Pas de connecteur de tunnel
-error-connection-cancelled = Connexion annulée
 error-tunnel-disconnected = Tunnel déconnecté, dernier message : {$message}
 error-unexpected-reply = Réponse inattendue
 error-auth-failed = Échec de l'authentification
-error-no-server-name = Paramètre obligatoire manquant : server-name
 error-no-login-type = Paramètre obligatoire manquant : login-type
 error-connection-timeout = Délai de connexion dépassé
-error-invalid-response = Réponse invalide
+error-invalid-response = Réponse invalide !
 error-cannot-send-request = Impossible d'envoyer la requête au service
 error-cannot-read-reply = Impossible de lire la réponse du service
 error-no-ipv4 = Pas d'adresse IPv4 pour {$server}
@@ -79,6 +76,37 @@ error-no-pkcs12 = Pas de chemin PKCS12 et mot de passe fournis
 error-no-pkcs8 = Pas de chemin PKCS8 PEM fourni
 error-no-pkcs11 = Pas de code PIN PKCS11 fourni
 error-no-ipsec-session = Pas de session IPSEC
+error-request-failed-error-code = Échec de la requête, code d'erreur : {$error_code}
+error-no-root-privileges = Ce programme doit être exécuté en tant qu'utilisateur root !
+error-missing-required-parameters = Paramètres obligatoires manquants : nom du serveur et/ou type de connexion !
+error-missing-server-name = Paramètre obligatoire manquant : nom du serveur !
+error-no-connector-for-challenge-code = Pas de connecteur pour envoyer le code de défi !
+error-probing-failed = Échec de la sonde, le serveur n'est pas accessible via le port NATT !
+error-invalid-sexpr = sexpr invalide : {$value}
+error-invalid-value = Valeur invalide
+error-udp-request-failed = Erreur lors de l'envoi de la requête UDP
+error-no-tty = Pas de TTY attaché pour obtenir la saisie utilisateur
+error-invalid-auth-response = Réponse d'authentification invalide
+error-invalid-client-settings = Réponse des paramètres client invalide
+error-invalid-otp-reply = Réponse OTP invalide
+error-udp-encap-failed = Impossible de définir l'option de socket UDP_ENCAP, code d'erreur : {$code}
+error-so-no-check-failed = Impossible de définir l'option de socket SO_NO_CHECK, code d'erreur : {$code}
+error-keepalive-failed = Échec du keepalive
+error-receive-failed = Échec de la réception
+error-unknown-color-scheme = Valeur de schéma de couleur inconnue
+error-cannot-determine-ip = Impossible de déterminer l'IP par défaut
+error-invalid-command = Commande invalide : {$command}
+error-otp-browser-failed = Impossible d'obtenir l'OTP depuis le navigateur
+error-invalid-operation-mode = Mode d'opération invalide
+error-invalid-tunnel-type = Type de tunnel invalide
+error-invalid-cert-type = Type de certificat invalide
+error-invalid-icon-theme = Thème d'icônes invalide
+error-no-natt-reply = Pas de réponse NATT
+error-not-implemented = Non implémenté
+error-unknown-packet-type = Type de paquet inconnu
+error-no-sender = Pas d'expéditeur
+error-empty-ccc-session = Session CCC vide
+error-identity-timeout = Délai d'attente lors de l'attente de la réponse d'identité, le type de connexion est-il correct ?
 
 # Placeholder texts
 placeholder-domains = Domaines séparés par des virgules

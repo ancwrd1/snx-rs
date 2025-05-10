@@ -75,7 +75,7 @@ struct MyWidgets {
 impl MyWidgets {
     fn validate(&self) -> anyhow::Result<()> {
         if self.server_name.text().is_empty() {
-            anyhow::bail!(tr!("error-no-server"));
+            anyhow::bail!(tr!("error-no-server-name"));
         }
 
         if self.auth_type.active().is_none() {

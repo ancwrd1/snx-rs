@@ -36,6 +36,7 @@ label-cert-password = PFX-Passwort oder PKCS11-PIN
 label-cert-id = Hex-ID des PKCS11-Zertifikats
 label-language = Sprache
 label-system-language = Systemstandard
+label-username-password = Benutzername und Passwort
 
 # Tabs and expanders
 tab-general = Allgemein
@@ -46,29 +47,25 @@ expand-certificates = Zertifikate
 expand-misc = Weitere Einstellungen
 
 # Error messages
-error-no-server = Keine Serveradresse angegeben
+error-no-server-name = Keine Serveradresse angegeben
 error-no-auth = Keine Authentifizierungsmethode ausgewählt
 error-file-not-exist = Datei existiert nicht: {$path}
 error-invalid-cert-id = Zertifikats-ID nicht im Hex-Format: {$id}
 error-ca-root-not-exist = CA-Stammpfad existiert nicht: {$path}
 error-validation = Validierungsfehler
 error-user-input-canceled = Benutzereingabe abgebrochen
-error-connection-canceled = Verbindung abgebrochen
+error-connection-cancelled = Verbindung abgebrochen
 error-unknown-event = Unbekanntes Ereignis: {$event}
 error-no-service-connection = Keine Verbindung zum Dienst
 error-empty-input = Eingabe darf nicht leer sein
-
-# New error messages
 error-invalid-object = Ungültiges Objekt
 error-no-connector = Kein Tunnel-Connector
-error-connection-cancelled = Verbindung abgebrochen
 error-tunnel-disconnected = Tunnel getrennt, letzte Nachricht: {$message}
 error-unexpected-reply = Unerwartete Antwort
 error-auth-failed = Authentifizierung fehlgeschlagen
-error-no-server-name = Erforderlicher Parameter fehlt: server-name
 error-no-login-type = Erforderlicher Parameter fehlt: login-type
 error-connection-timeout = Verbindungszeitüberschreitung
-error-invalid-response = Ungültige Antwort
+error-invalid-response = Ungültige Antwort!
 error-cannot-send-request = Anfrage kann nicht an den Dienst gesendet werden
 error-cannot-read-reply = Antwort vom Dienst kann nicht gelesen werden
 error-no-ipv4 = Keine IPv4-Adresse für {$server}
@@ -79,6 +76,37 @@ error-no-pkcs12 = Kein PKCS12-Pfad und Passwort angegeben
 error-no-pkcs8 = Kein PKCS8 PEM-Pfad angegeben
 error-no-pkcs11 = Kein PKCS11-PIN angegeben
 error-no-ipsec-session = Keine IPSEC-Sitzung
+error-request-failed-error-code = Anfrage fehlgeschlagen, Fehlercode: {$error_code}
+error-no-root-privileges = Dieses Programm muss als Root-Benutzer ausgeführt werden!
+error-missing-required-parameters = Erforderliche Parameter fehlen: Servername und/oder Anmeldetyp!
+error-missing-server-name = Erforderlicher Parameter fehlt: Servername!
+error-no-connector-for-challenge-code = Kein Connector zum Senden des Challenge-Codes!
+error-probing-failed = Prüfung fehlgeschlagen, Server ist über NATT-Port nicht erreichbar!
+error-invalid-sexpr = Ungültiger sexpr: {$value}
+error-invalid-value = Ungültiger Wert
+error-udp-request-failed = Fehler beim Senden der UDP-Anfrage
+error-no-tty = Kein angeschlossenes TTY für Benutzereingabe
+error-invalid-auth-response = Ungültige Authentifizierungsantwort
+error-invalid-client-settings = Ungültige Client-Einstellungsantwort
+error-invalid-otp-reply = Ungültige OTP-Antwort
+error-udp-encap-failed = Socket-Option UDP_ENCAP konnte nicht gesetzt werden, Fehlercode: {$code}
+error-so-no-check-failed = Socket-Option SO_NO_CHECK konnte nicht gesetzt werden, Fehlercode: {$code}
+error-keepalive-failed = Keepalive fehlgeschlagen
+error-receive-failed = Empfang fehlgeschlagen
+error-unknown-color-scheme = Unbekannter Farb-Schema-Wert
+error-cannot-determine-ip = Standard-IP kann nicht bestimmt werden
+error-invalid-command = Ungültiger Befehl: {$command}
+error-otp-browser-failed = OTP konnte nicht aus dem Browser abgerufen werden
+error-invalid-operation-mode = Ungültiger Betriebsmodus
+error-invalid-tunnel-type = Ungültiger Tunneltyp
+error-invalid-cert-type = Ungültiger Zertifikatstyp
+error-invalid-icon-theme = Ungültiges Symbolthema
+error-no-natt-reply = Keine NATT-Antwort
+error-not-implemented = Nicht implementiert
+error-unknown-packet-type = Unbekannter Pakettyp
+error-no-sender = Kein Absender
+error-empty-ccc-session = Leere CCC-Sitzung
+error-identity-timeout = Timeout beim Warten auf Identitätsantwort, ist der Anmeldetyp korrekt?
 
 # Placeholder texts
 placeholder-domains = Durch Komma getrennte Domänen

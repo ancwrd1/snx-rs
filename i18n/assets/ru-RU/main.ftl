@@ -36,6 +36,7 @@ label-cert-password = Пароль PFX или PIN-код PKCS11
 label-cert-id = Шестнадцатеричный ID сертификата PKCS11
 label-language = Язык
 label-system-language = Системный по умолчанию
+label-username-password = Имя пользователя и пароль
 
 # Tabs and expanders
 tab-general = Основные
@@ -46,29 +47,24 @@ expand-certificates = Сертификаты
 expand-misc = Прочие настройки
 
 # Error messages
-error-no-server = Не указан адрес сервера
+error-no-server-name = Не указан адрес сервера
 error-no-auth = Не выбран метод аутентификации
 error-file-not-exist = Файл не существует: {$path}
 error-invalid-cert-id = ID сертификата не в шестнадцатеричном формате: {$id}
 error-ca-root-not-exist = Путь к корневому сертификату CA не существует: {$path}
 error-validation = Ошибка проверки
 error-user-input-canceled = Ввод пользователя отменён
-error-connection-canceled = Соединение отменено
+error-connection-cancelled = Соединение отменено
 error-unknown-event = Неизвестное событие: {$event}
 error-no-service-connection = Нет соединения со службой
 error-empty-input = Ввод не может быть пустым
-
-# New error messages
 error-invalid-object = Недопустимый объект
 error-no-connector = Нет коннектора туннеля
-error-connection-cancelled = Соединение отменено
 error-tunnel-disconnected = Туннель отключен, последнее сообщение: {$message}
 error-unexpected-reply = Неожиданный ответ
 error-auth-failed = Ошибка аутентификации
-error-no-server-name = Отсутствует обязательный параметр: server-name
 error-no-login-type = Отсутствует обязательный параметр: login-type
 error-connection-timeout = Таймаут соединения
-error-invalid-response = Недопустимый ответ
 error-cannot-send-request = Невозможно отправить запрос в службу
 error-cannot-read-reply = Невозможно прочитать ответ от службы
 error-no-ipv4 = Нет IPv4 адреса для {$server}
@@ -79,6 +75,38 @@ error-no-pkcs12 = Не указан путь к PKCS12 и пароль
 error-no-pkcs8 = Не указан путь к PKCS8 PEM
 error-no-pkcs11 = Не указан PIN-код PKCS11
 error-no-ipsec-session = Нет сессии IPSEC
+error-request-failed-error-code = Ошибка запроса, код ошибки: {$error_code}
+error-no-root-privileges = Эта программа должна быть запущена с правами root!
+error-missing-required-parameters = Отсутствуют обязательные параметры: имя сервера и/или тип входа!
+error-missing-server-name = Отсутствует обязательный параметр: имя сервера!
+error-no-connector-for-challenge-code = Нет коннектора для отправки кода запроса!
+error-probing-failed = Ошибка проверки, сервер недоступен через порт NATT!
+error-invalid-sexpr = Недопустимый sexpr: {$value}
+error-invalid-value = Недопустимое значение
+error-udp-request-failed = Ошибка отправки UDP-запроса
+error-no-tty = Нет подключенного TTY для получения ввода пользователя
+error-invalid-auth-response = Недопустимый ответ аутентификации
+error-invalid-client-settings = Недопустимый ответ настроек клиента
+error-invalid-otp-reply = Недопустимый ответ OTP
+error-udp-encap-failed = Не удалось установить опцию сокета UDP_ENCAP, код ошибки: {$code}
+error-so-no-check-failed = Не удалось установить опцию сокета SO_NO_CHECK, код ошибки: {$code}
+error-keepalive-failed = Ошибка keepalive
+error-receive-failed = Ошибка получения
+error-unknown-color-scheme = Неизвестное значение цветовой схемы
+error-cannot-determine-ip = Не удалось определить IP по умолчанию
+error-invalid-command = Недопустимая команда: {$command}
+error-otp-browser-failed = Не удалось получить OTP из браузера
+error-invalid-operation-mode = Недопустимый режим работы
+error-invalid-tunnel-type = Недопустимый тип туннеля
+error-invalid-cert-type = Недопустимый тип сертификата
+error-invalid-icon-theme = Недопустимая тема иконок
+error-no-natt-reply = Нет ответа NAT-T
+error-not-implemented = Не реализовано
+error-unknown-packet-type = Неизвестный тип пакета
+error-no-sender = Нет отправителя
+error-empty-ccc-session = Пустая сессия CCC
+error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
+error-invalid-response = Недопустимый ответ!
 
 # Placeholder texts
 placeholder-domains = Домены через запятую

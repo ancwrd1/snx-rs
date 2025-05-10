@@ -36,6 +36,7 @@ label-cert-password = PFX-passord eller PKCS11-PIN
 label-cert-id = PKCS11-sertifikatets heksadesimale ID
 label-language = Språk
 label-system-language = Systemstandard
+label-username-password = Brukernavn og passord
 
 # Tabs and expanders
 tab-general = Generelt
@@ -46,26 +47,22 @@ expand-certificates = Sertifikater
 expand-misc = Tilleggsinnstillinger
 
 # Error messages
-error-no-server = Ingen serveradresse er angitt
+error-no-server-name = Ingen serveradresse er angitt
 error-no-auth = Ingen autentiseringsmetode er valgt
 error-file-not-exist = Filen finnes ikke: {$path}
 error-invalid-cert-id = Sertifikat-ID er ikke i heksadesimalt format: {$id}
 error-ca-root-not-exist = CA-rotsti finnes ikke: {$path}
 error-validation = Valideringsfeil
 error-user-input-canceled = Brukerinndata avbrutt
-error-connection-canceled = Tilkobling avbrutt
+error-connection-cancelled = Tilkobling avbrutt
 error-unknown-event = Ukjent hendelse: {$event}
 error-no-service-connection = Ingen tilkobling til tjenesten
 error-empty-input = Inndata kan ikke være tom
-
-# New error messages
 error-invalid-object = Ugyldig objekt
 error-no-connector = Ingen tunnelkobling
-error-connection-cancelled = Tilkobling avbrutt
 error-tunnel-disconnected = Tunnel frakoblet, siste melding: {$message}
 error-unexpected-reply = Uventet svar
 error-auth-failed = Autentisering mislyktes
-error-no-server-name = Manglende påkrevd parameter: server-name
 error-no-login-type = Manglende påkrevd parameter: login-type
 error-connection-timeout = Tilkoblingstimeout
 error-invalid-response = Ugyldig svar
@@ -79,6 +76,37 @@ error-no-pkcs12 = Ingen PKCS12-sti og passord oppgitt
 error-no-pkcs8 = Ingen PKCS8 PEM-sti oppgitt
 error-no-pkcs11 = Ingen PKCS11 PIN oppgitt
 error-no-ipsec-session = Ingen IPSEC-økt
+error-request-failed-error-code = Forespørsel mislyktes, feilkode: {$error_code}
+error-no-root-privileges = Dette programmet må kjøres som root-bruker!
+error-missing-required-parameters = Manglende påkrevde parametere: servernavn og/eller tilgangstype!
+error-missing-server-name = Manglende påkrevd parameter: servernavn!
+error-no-connector-for-challenge-code = Ingen kobling for å sende utfordringskode!
+error-probing-failed = Sondering mislyktes, serveren er ikke tilgjengelig via NATT-port!
+error-invalid-sexpr = Ugyldig sexpr: {$value}
+error-invalid-value = Ugyldig verdi
+error-udp-request-failed = Feil ved sending av UDP-forespørsel
+error-no-tty = Ingen TTY tilkoblet for brukerinndata
+error-invalid-auth-response = Ugyldig autentiseringssvar
+error-invalid-client-settings = Ugyldige klientinnstillinger
+error-invalid-otp-reply = Ugyldig OTP-svar
+error-udp-encap-failed = Kan ikke sette UDP_ENCAP socket-opsjon, feilkode: {$code}
+error-so-no-check-failed = Kan ikke sette SO_NO_CHECK socket-opsjon, feilkode: {$code}
+error-keepalive-failed = Keepalive mislyktes
+error-receive-failed = Mottak mislyktes
+error-unknown-color-scheme = Ukjent fargeskjema-verdi
+error-cannot-determine-ip = Kan ikke bestemme standard-IP
+error-invalid-command = Ugyldig kommando: {$command}
+error-otp-browser-failed = Kan ikke få OTP fra nettleser
+error-invalid-operation-mode = Ugyldig driftsmodus
+error-invalid-tunnel-type = Ugyldig tunneltype
+error-invalid-cert-type = Ugyldig sertifikattype
+error-invalid-icon-theme = Ugyldig ikon-tema
+error-no-natt-reply = Ingen NATT-svar
+error-not-implemented = Ikke implementert
+error-unknown-packet-type = Ukjent pakketype
+error-no-sender = Ingen avsender
+error-empty-ccc-session = Tom CCC-økt
+error-identity-timeout = Timeout mens du venter på identitetssvar, er tilgangstypen korrekt?
 
 # Placeholder texts
 placeholder-domains = Domener separert med komma
