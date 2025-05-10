@@ -163,6 +163,7 @@ language-nl-NL = Nederlands
 language-no-NO = Noors
 language-pl-PL = Pools
 language-pt-PT = Portugees
+language-pt-BR = Braziliaans-Portugees
 language-ru-RU = Russisch
 language-sk-SK = Slowaaks
 language-sv-SE = Zweeds
