@@ -156,16 +156,16 @@ impl ConnectionInfo {
         ]
     }
 
-    pub fn print<F: Fn(&str) -> String>(&self, locale_fn: F) -> String {
+    pub fn print(&self) -> String {
         let values = self.to_values();
         let label_width = values
             .iter()
-            .map(|(label, _)| locale_fn(label).chars().count())
+            .map(|(label, _)| i18n::translate(label).chars().count())
             .max()
             .unwrap_or_default();
         let mut result = String::new();
         for (index, (key, value)) in values.iter().enumerate() {
-            result.push_str(&format!("{:>label_width$}: {}", locale_fn(key), value));
+            result.push_str(&format!("{:>label_width$}: {}", i18n::translate(key), value));
             if index < values.len() - 1 {
                 result.push('\n');
             }
@@ -192,9 +192,9 @@ impl ConnectionStatus {
         Self::Mfa(challenge)
     }
 
-    pub fn print<F: Fn(&str) -> String>(&self, locale_fn: F) -> String {
+    pub fn print(&self) -> String {
         match self {
-            Self::Connected(info) => info.print(locale_fn),
+            Self::Connected(info) => info.print(),
             other => other.to_string(),
         }
     }
