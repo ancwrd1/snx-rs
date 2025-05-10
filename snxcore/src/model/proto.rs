@@ -316,7 +316,7 @@ impl LoginOption {
         Self {
             id: "vpn_Username_Password".to_string(),
             secondary_realm_hash: String::new(),
-            display_name: i18n::tr!("label-username-password").into(),
+            display_name: i18n::tr!("label-username-password"),
             show_realm: 0,
             factors: BTreeMap::default(),
         }
