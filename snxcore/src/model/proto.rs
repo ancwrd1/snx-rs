@@ -1,6 +1,5 @@
 use std::{collections::BTreeMap, net::Ipv4Addr};
 
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::model::wrappers::*;
@@ -100,9 +99,10 @@ pub struct CccServerResponseData {
 impl CccServerResponseData {
     pub fn into_data(self) -> anyhow::Result<ResponseData> {
         match self.data {
-            ResponseData::Generic(v) if v.as_str().is_some_and(|s| s.is_empty()) => {
-                Err(anyhow!("Request failed, error code: {}", self.header.return_code))
-            }
+            ResponseData::Generic(v) if v.as_str().is_some_and(|s| s.is_empty()) => anyhow::bail!(i18n::tr!(
+                "error-request-failed-error-code",
+                error_code = self.header.return_code
+            )),
             other => Ok(other),
         }
     }
@@ -316,7 +316,7 @@ impl LoginOption {
         Self {
             id: "vpn_Username_Password".to_string(),
             secondary_realm_hash: String::new(),
-            display_name: "Username and password".into(),
+            display_name: i18n::tr!("label-username-password").into(),
             show_realm: 0,
             factors: BTreeMap::default(),
         }

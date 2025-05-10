@@ -36,6 +36,7 @@ label-cert-password = PFX password or PKCS11 pin
 label-cert-id = Hex ID of PKCS11 certificate
 label-language = Language
 label-system-language = System default
+label-username-password = Username and password
 
 # Tabs and expanders
 tab-general = General
@@ -79,6 +80,7 @@ error-no-pkcs12 = No PKCS12 path and password provided
 error-no-pkcs8 = No PKCS8 PEM path provided
 error-no-pkcs11 = No PKCS11 pin provided
 error-no-ipsec-session = No IPSEC session
+error-request-failed-error-code = Request failed, error code: {$error_code}
 
 # Placeholder texts
 placeholder-domains = Comma-separated domains
