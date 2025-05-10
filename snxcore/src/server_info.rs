@@ -13,13 +13,7 @@ use crate::{
     sexpr::SExpression,
 };
 
-#[cached(
-    result = true,
-    ty = "cached::UnboundCache<String, ServerInfoResponse>",
-    create = "{ cached::UnboundCache::new() }",
-    convert = r#"{ params.server_name.clone() }"#
-)]
-pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
+pub async fn get_uncached(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
     let client = CccHttpClient::new(Arc::new(params.clone()), None);
 
     let info = client.get_server_info().await?;
@@ -28,6 +22,16 @@ pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
         .cloned()
         .unwrap_or(SExpression::Null)
         .try_into()
+}
+
+#[cached(
+    result = true,
+    ty = "cached::UnboundCache<String, ServerInfoResponse>",
+    create = "{ cached::UnboundCache::new() }",
+    convert = r#"{ params.server_name.clone() }"#
+)]
+pub async fn get(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
+    get_uncached(params).await
 }
 
 pub async fn get_login_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>> {

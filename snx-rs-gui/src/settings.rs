@@ -387,8 +387,15 @@ impl SettingsDialog {
                         ..(*params2).clone()
                     };
                     let params2 = params2.clone();
+
+                    let (tx, rx) = async_channel::bounded(1);
+                    tokio::spawn(async move {
+                        let response = server_info::get_uncached(&params).await;
+                        let _ = tx.send(response).await;
+                    });
+
                     glib::spawn_future_local(async move {
-                        let response = server_info::get(&params).await;
+                        let response = rx.recv().await.unwrap();
 
                         auth_type.remove_all();
 
@@ -421,14 +428,13 @@ impl SettingsDialog {
                                 }
                                 auth_type.set_sensitive(true);
                             }
+
                             Err(e) => {
                                 error.set_label(&e.to_string());
                                 error.set_visible(true);
                             }
                         }
                         dialog.set_sensitive(true);
-
-                        Ok::<_, anyhow::Error>(())
                     });
                 }
             }
