@@ -6,7 +6,7 @@ button-cancel = Cancelar
 button-fetch-info = Buscar informações
 
 # Labels
-label-server-address = VPN server address
+label-server-address = Endereço do servidor de VPN
 label-auth-method = Método de autenticação
 label-tunnel-type = Tipo de túnel
 label-cert-auth-type = Tipo de autenticação do certificado
@@ -130,7 +130,7 @@ icon-theme-dark = Escuro
 icon-theme-light = Claro
 
 # Application
-app-title = Cliente VPNM SNX-RS para Linux
+app-title = Cliente VPN SNX-RS para Linux
 app-connection-error = Erro de conexã́o
 app-connection-success = Conexão estabelecida com sucesso
 
