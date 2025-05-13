@@ -4,3 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    versioning-strategy: lockfile-only
+    rebase-strategy: auto
+    group:
+        name: "all-cargo-dependencies"
+        patterns:
+            - "*"
