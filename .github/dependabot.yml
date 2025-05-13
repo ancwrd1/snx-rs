@@ -6,7 +6,7 @@ updates:
       interval: "weekly"
     versioning-strategy: lockfile-only
     rebase-strategy: auto
-    group:
-        name: "all-cargo-dependencies"
+    groups:
+      all-cargo-deps:
         patterns:
-            - "*"
+          - "*"
