@@ -1,7 +1,7 @@
 use anyhow::{Context, anyhow};
 use gtk4::{
     Align, Orientation, ResponseType,
-    glib::{self, ControlFlow, clone},
+    glib::{self, clone},
     prelude::*,
 };
 use i18n::tr;
@@ -15,9 +15,7 @@ impl GtkPrompt {
     async fn get_input(&self, prompt: PromptInfo, secure: bool) -> anyhow::Result<String> {
         let (tx, rx) = async_channel::bounded(1);
 
-        glib::idle_add(move || {
-            let prompt = prompt.clone();
-            let tx = tx.clone();
+        glib::idle_add_once(move || {
             glib::spawn_future_local(async move {
                 let dialog = gtk4::Dialog::builder()
                     .title(tr!("auth-dialog-title"))
@@ -117,7 +115,6 @@ impl GtkPrompt {
                     let _ = tx.send(Err(anyhow!(tr!("error-user-input-canceled")))).await;
                 }
             });
-            ControlFlow::Break
         });
 
         rx.recv().await.context(tr!("error-user-input-canceled"))?

@@ -3,7 +3,7 @@ use std::{cell::OnceCell, sync::Arc, time::Duration};
 use clap::Parser;
 use gtk4::{
     Application, ApplicationWindow, License,
-    glib::{self, ControlFlow, clone},
+    glib::{self, clone},
     prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt, WidgetExt},
 };
 use i18n::tr;
@@ -169,7 +169,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn do_about() {
-    glib::idle_add(|| {
+    glib::idle_add_once(|| {
         let dialog = gtk4::AboutDialog::builder()
             .transient_for(&main_window())
             .version(env!("CARGO_PKG_VERSION"))
@@ -182,16 +182,12 @@ fn do_about() {
             .build();
 
         dialog.present();
-        ControlFlow::Break
     });
 }
 
 fn do_status(sender: mpsc::Sender<TrayEvent>, params: Arc<TunnelParams>) {
-    glib::idle_add(move || {
-        let sender = sender.clone();
-        let params = params.clone();
+    glib::idle_add_once(move || {
         glib::spawn_future_local(async move { show_status_dialog(sender, params).await });
-        ControlFlow::Break
     });
 }
 
