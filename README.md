@@ -9,11 +9,13 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ## Quick Start Guide (GUI)
 
-Run the service application in command mode, then start the GUI frontend which will display an icon in the taskbar.
+Run the service application in command mode and start the GUI frontend which will display an icon in the taskbar.
 **GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. 
 
-* `sudo ./snx-rs -m command`
-* `./snx-rs-gui`
+```bash
+./snx-rs-gui
+sudo ./snx-rs -m command
+```
 
 ## Quick Start Guide (CLI)
 
