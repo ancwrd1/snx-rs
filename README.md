@@ -7,13 +7,22 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ⚠️ Before creating an issue, please check the [FAQ section](#faq).
 
-## Quick Start Guide
+## Quick Start Guide (GUI)
 
 Run the service application in command mode, then start the GUI frontend which will display an icon in the taskbar.
 **GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. 
 
 * `sudo ./snx-rs -m command`
 * `./snx-rs-gui`
+
+## Quick Start Guide (CLI)
+
+```bash
+# get the list of supported login types
+./snx-rs -m info -s remote.company.com
+# create the tunnel
+sudo ./snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com
+```
 
 👇 Keep reading for additional information and command line usage.
 
@@ -185,13 +194,18 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 | `Timeout while waiting for identity response`                     | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                      |
 | `Error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server host is not reachable or certificate is untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks (not recommended).                             |
 | `No session in reply`                                             | Usually happens when Check Point server runs out of Office Mode licenses. Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect` | 
-| A specific feature is missing or connection does not work         | Use the [cp-ikev1-proxy](https://github.com/ancwrd1/cp-ikev1-proxy) MITM proxy tool to capture the packets from the working Windows VPN client, then create an issue for it.            | 
+| Translation is incorrect or missing for my language               | Open a PR to fix it. For new language support see the section `Additional Translations` below.                                                                                          | 
 
 ## Contributing
 
 Pull requests, bug reports, and suggestions are welcome. This is a hobby project I maintain in my free time.
 
 Before opening a PR, make sure to reformat the sources with the `cargo fmt` command and run it through the `cargo clippy` for any warnings.
+
+## Additional Translations
+
+Use the llm-localization-prompt.txt as a prompt to perform automated translation via the AI agent of choice.
+Tested with Zed editor and GPT-4.1 model.
 
 ## Building from Sources
 
