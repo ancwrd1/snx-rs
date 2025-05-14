@@ -13,8 +13,10 @@ Run the service application in command mode and start the GUI frontend which wil
 **GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. 
 
 ```bash
-./snx-rs-gui
+# run the service in command mode
 sudo ./snx-rs -m command
+# run the GUI frontend
+./snx-rs-gui
 ```
 
 ## Quick Start Guide (CLI)
@@ -206,8 +208,8 @@ Before opening a PR, make sure to reformat the sources with the `cargo fmt` comm
 
 ## Additional Translations
 
-Use the llm-localization-prompt.txt as a prompt to perform automated translation via the AI agent of choice.
-Tested with Zed editor and GPT-4.1 model.
+The provided [sample AI prompt](https://github.com/ancwrd1/snx-rs/blob/main/llm-localization-prompt.txt) can be used
+to perform automated translation via the AI agent of choice. Tested with Zed editor and GPT-4.1 model.
 
 ## Building from Sources
 
