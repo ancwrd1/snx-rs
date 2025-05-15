@@ -360,7 +360,7 @@ impl IpsecTunnelConnector {
                 msg.exchange_type, msg.message_id, payload_types,
             );
 
-            if payload_types.iter().any(|p| *p == PayloadType::SecurityAssociation) {
+            if payload_types.contains(&PayloadType::SecurityAssociation) {
                 self.rekey_tunnel().await?;
             }
         }
