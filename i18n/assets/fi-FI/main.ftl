@@ -12,6 +12,7 @@ label-tunnel-type = Tunnelityyppi
 label-cert-auth-type = Varmennetyyppi
 label-icon-theme = Kuvaketeema
 label-username = Käyttäjätunnus
+label-username-required = Käyttäjätunnus vaaditaan todennukseen
 label-password = Salasana
 label-no-dns = Älä muuta DNS-konfiguraatiota
 label-dns-servers = Lisä-DNS-palvelimet

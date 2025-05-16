@@ -12,6 +12,7 @@ label-tunnel-type = Tunnel type
 label-cert-auth-type = Certificate auth type
 label-icon-theme = Icon theme
 label-username = User name
+label-username-required = Username is required for authentication
 label-password = Password
 label-no-dns = Do not change DNS resolver configuration
 label-dns-servers = Additional DNS servers
@@ -37,7 +38,6 @@ label-cert-id = Hex ID of PKCS11 certificate
 label-language = Language
 label-system-language = System default
 label-username-password = Username and password
-label-username-required = Username is required for authentication
 
 # Tabs and expanders
 tab-general = General

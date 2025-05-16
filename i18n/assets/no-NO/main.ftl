@@ -12,6 +12,7 @@ label-tunnel-type = Tunneltype
 label-cert-auth-type = Sertifikattype
 label-icon-theme = Ikon-tema
 label-username = Brukernavn
+label-username-required = Brukernavn er påkrevd for autentisering
 label-password = Passord
 label-no-dns = Ikke endre DNS-konfigurasjonen
 label-dns-servers = Tilleggs-DNS-servere

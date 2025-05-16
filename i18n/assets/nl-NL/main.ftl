@@ -12,6 +12,7 @@ label-tunnel-type = Tunneltype
 label-cert-auth-type = Certificaattype
 label-icon-theme = Pictogramthema
 label-username = Gebruikersnaam
+label-username-required = Gebruikersnaam is vereist voor authenticatie
 label-password = Wachtwoord
 label-no-dns = DNS-resolverconfiguratie niet wijzigen
 label-dns-servers = Extra DNS-servers

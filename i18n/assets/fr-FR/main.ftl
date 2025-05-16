@@ -12,6 +12,7 @@ label-tunnel-type = Type de tunnel
 label-cert-auth-type = Type de certificat
 label-icon-theme = Thème d'icônes
 label-username = Nom d'utilisateur
+label-username-required = Le nom d'utilisateur est requis pour l'authentification
 label-password = Mot de passe
 label-no-dns = Ne pas modifier la configuration du résolveur DNS
 label-dns-servers = Serveurs DNS supplémentaires
