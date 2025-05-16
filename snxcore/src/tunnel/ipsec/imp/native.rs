@@ -61,7 +61,7 @@ impl NativeIpsecTunnel {
         let ready = Arc::new(AtomicBool::new(false));
         let keepalive_runner = KeepaliveRunner::new(
             ipsec_session.address,
-            gateway_address,
+            server_info.connectivity_info.server_ip,
             if params.no_keepalive || !platform::get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
