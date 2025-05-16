@@ -90,9 +90,10 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(async move { my_tray.run().await });
 
     let tray_command_sender2 = tray_command_sender.clone();
+    let tray_event_sender2 = tray_event_sender.clone();
     let cmdline_params2 = cmdline_params.clone();
 
-    tokio::spawn(async move { status_poll(tray_command_sender2, cmdline_params2).await });
+    tokio::spawn(async move { status_poll(tray_command_sender2, tray_event_sender2, cmdline_params2).await });
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
@@ -199,10 +200,16 @@ fn init_logging(params: &TunnelParams) {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 }
 
-async fn status_poll(sender: mpsc::Sender<TrayCommand>, params: CmdlineParams) {
+async fn status_poll(
+    command_sender: mpsc::Sender<TrayCommand>,
+    event_sender: mpsc::Sender<TrayEvent>,
+    params: CmdlineParams,
+) {
     let mut prev_status = Arc::new(Err(anyhow::anyhow!(tr!("error-no-service-connection"))));
 
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
+
+    let mut first_run = true;
 
     loop {
         let tunnel_params = Arc::new(TunnelParams::load(params.config_file()).unwrap_or_default());
@@ -212,7 +219,18 @@ async fn status_poll(sender: mpsc::Sender<TrayCommand>, params: CmdlineParams) {
 
         if status_str != format!("{:?}", *prev_status) {
             prev_status = Arc::new(status);
-            let _ = sender.send(TrayCommand::Update(Some(prev_status.clone()))).await;
+            let _ = command_sender
+                .send(TrayCommand::Update(Some(prev_status.clone())))
+                .await;
+
+            if first_run {
+                first_run = false;
+                if tunnel_params.auto_connect {
+                    if let Ok(ConnectionStatus::Disconnected) = prev_status.as_ref() {
+                        let _ = event_sender.send(TrayEvent::Connect).await;
+                    }
+                }
+            }
         }
 
         tokio::time::sleep(PING_DURATION).await;

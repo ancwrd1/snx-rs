@@ -33,3 +33,4 @@
 | `port-knock=true\|false`                  | Enable port knock workaround to detect NAT-T port availability in some environments.                                                                  |
 | `icon-theme=auto\|dark\|light`            | Set icon theme for the GUI app.                                                                                                                       |
 | `locale=<locale>`                         | Override system locale for i18n support.                                                                                                              |
+| `auto-connect=true\|false`                | Automatically connect when the GUI frontend starts.                                                                                                   |

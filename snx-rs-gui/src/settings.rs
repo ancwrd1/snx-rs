@@ -70,6 +70,7 @@ struct MyWidgets {
     error: gtk4::Label,
     button_box: gtk4::Box,
     locale: gtk4::ComboBoxText,
+    auto_connect: gtk4::Switch,
 }
 
 impl MyWidgets {
@@ -325,6 +326,10 @@ impl SettingsDialog {
             .build();
         let icon_theme = gtk4::ComboBoxText::builder().build();
         let locale = gtk4::ComboBoxText::builder().build();
+        let auto_connect = gtk4::Switch::builder()
+            .active(params.auto_connect)
+            .halign(Align::Start)
+            .build();
 
         let error = gtk4::Label::new(None);
         error.set_visible(false);
@@ -494,6 +499,7 @@ impl SettingsDialog {
             error,
             button_box,
             locale,
+            auto_connect,
         });
 
         let widgets2 = widgets.clone();
@@ -630,6 +636,7 @@ impl SettingsDialog {
             Some(index) => i18n::get_locales().get(index as usize - 1).map(|l| l.to_string()),
         };
         params.locale = new_locale.clone();
+        params.auto_connect = self.widgets.auto_connect.is_active();
 
         i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
 
@@ -831,13 +838,30 @@ impl SettingsDialog {
         port_knock.append(&self.widgets.port_knock);
         misc_box.append(&port_knock);
 
+        misc_box
+    }
+
+    fn ui_box(&self) -> gtk4::Box {
+        let ui_box = gtk4::Box::builder()
+            .orientation(Orientation::Vertical)
+            .margin_top(6)
+            .margin_bottom(6)
+            .margin_start(12)
+            .margin_end(12)
+            .spacing(12)
+            .build();
+
         let icon_theme_box = self.icon_theme_box();
-        misc_box.append(&icon_theme_box);
+        ui_box.append(&icon_theme_box);
 
         let locale_box = self.locale_box();
-        misc_box.append(&locale_box);
+        ui_box.append(&locale_box);
 
-        misc_box
+        let auto_connect = self.form_box(&tr!("label-auto-connect"));
+        auto_connect.append(&self.widgets.auto_connect);
+        ui_box.append(&auto_connect);
+
+        ui_box
     }
 
     fn routing_box(&self) -> gtk4::Box {
@@ -994,6 +1018,7 @@ impl SettingsDialog {
         self.add_expander(&tr!("expand-routing"), &inner, &self.routing_box());
         self.add_expander(&tr!("expand-certificates"), &inner, &self.certs_box());
         self.add_expander(&tr!("expand-misc"), &inner, &self.misc_box());
+        self.add_expander(&tr!("expand-ui"), &inner, &self.ui_box());
 
         let viewport = gtk4::Viewport::builder().build();
         viewport.set_child(Some(&inner));

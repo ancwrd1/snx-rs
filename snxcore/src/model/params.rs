@@ -246,6 +246,7 @@ pub struct TunnelParams {
     pub set_routing_domains: bool,
     pub port_knock: bool,
     pub locale: Option<String>,
+    pub auto_connect: bool,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -285,6 +286,7 @@ impl Default for TunnelParams {
             set_routing_domains: false,
             port_knock: false,
             locale: None,
+            auto_connect: false,
             config_file: Self::default_config_path(),
         }
     }
@@ -343,6 +345,7 @@ impl TunnelParams {
                 "set-routing-domains" => params.set_routing_domains = v.parse().unwrap_or_default(),
                 "port-knock" => params.port_knock = v.parse().unwrap_or_default(),
                 "locale" => params.locale = Some(v),
+                "auto-connect" => params.auto_connect = v.parse().unwrap_or_default(),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -443,6 +446,8 @@ impl TunnelParams {
         if let Some(ref locale) = self.locale {
             writeln!(buf, "locale={}", locale)?;
         }
+
+        writeln!(buf, "auto-connect={}", self.auto_connect)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);
