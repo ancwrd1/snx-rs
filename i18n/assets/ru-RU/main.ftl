@@ -61,6 +61,7 @@ error-connection-cancelled = Соединение отменено
 error-unknown-event = Неизвестное событие: {$event}
 error-no-service-connection = Нет соединения со службой
 error-empty-input = Ввод не может быть пустым
+error-invalid-response = Недопустимый ответ!
 error-invalid-object = Недопустимый объект
 error-no-connector = Нет коннектора туннеля
 error-tunnel-disconnected = Туннель отключен, последнее сообщение: {$message}
@@ -109,7 +110,6 @@ error-unknown-packet-type = Неизвестный тип пакета
 error-no-sender = Нет отправителя
 error-empty-ccc-session = Пустая сессия CCC
 error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
-error-invalid-response = Недопустимый ответ!
 
 # Placeholder texts
 placeholder-domains = Домены через запятую
