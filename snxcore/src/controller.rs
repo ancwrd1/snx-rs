@@ -183,7 +183,7 @@ where
                 }
             }
             MfaType::UserNameInput => {
-                let mut prompt = PromptInfo::new("Username is required for authentication", &mfa.prompt);
+                let mut prompt = PromptInfo::new(tr!("label-username-required"), &mfa.prompt);
                 prompt.default_entry = if params.user_name.is_empty() {
                     std::env::var("USER").ok()
                 } else {

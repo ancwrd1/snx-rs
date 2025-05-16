@@ -2,6 +2,7 @@ use std::{future::Future, sync::Arc};
 
 use clap::Parser;
 use futures::pin_mut;
+use i18n::tr;
 use snxcore::{
     browser::spawn_otp_listener,
     ccc::CccHttpClient,
@@ -60,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
 
     if cmdline_params.mode != OperationMode::Info && !is_root() {
-        anyhow::bail!(i18n::tr!("error-no-root-privileges"));
+        anyhow::bail!(tr!("error-no-root-privileges"));
     }
 
     platform::init();
@@ -96,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
 
 async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
     if params.server_name.is_empty() {
-        anyhow::bail!(i18n::tr!("error-missing-server-name"));
+        anyhow::bail!(tr!("error-missing-server-name"));
     }
     snxcore::util::print_login_options(&params).await?;
 
@@ -106,7 +107,7 @@ async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
 async fn main_command() -> anyhow::Result<()> {
     let instance = SingleInstance::new("/var/run/snx-rs.lock")?;
     if !instance.is_single() {
-        eprintln!("{}", i18n::translate("cli-another-instance-running"));
+        eprintln!("{}", tr!("cli-another-instance-running"));
         return Ok(());
     }
 
@@ -124,7 +125,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     let (command_sender, command_receiver) = mpsc::channel(16);
 
     if params.server_name.is_empty() || params.login_type.is_empty() {
-        anyhow::bail!(i18n::tr!("error-missing-required-parameters"));
+        anyhow::bail!(tr!("error-missing-required-parameters"));
     }
 
     let mut mfa_prompts = server_info::get_login_prompts(&params).await.unwrap_or_default();
@@ -172,7 +173,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 }
             }
             MfaType::IdentityProvider => {
-                println!("{}", i18n::translate("cli-identity-provider-auth"));
+                println!("{}", tr!("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
                 let (_tx, rx) = oneshot::channel();
                 let receiver = spawn_otp_listener(rx);
@@ -180,7 +181,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {
-                let prompt = PromptInfo::new("Username is required for authentication", &challenge.prompt);
+                let prompt = PromptInfo::new(tr!("label-username-required"), &challenge.prompt);
                 let input = TtyPrompt.get_plain_input(prompt).await?;
                 session = connector.challenge_code(session, &input).await?;
             }
@@ -206,7 +207,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
                     if let TunnelEvent::Connected(info) = event {
                         println!("{}", info.print());
-                        println!("{}", i18n::translate("cli-tunnel-connected"));
+                        println!("{}", tr!("cli-tunnel-connected"));
                     }
                 }
             }
@@ -216,7 +217,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     let client = CccHttpClient::new(params.clone(), Some(session));
                     let _ = client.signout().await;
                 }
-                println!("\n{}", i18n::translate("cli-tunnel-disconnected"));
+                println!("\n{}", tr!("cli-tunnel-disconnected"));
                 break result;
             }
         }

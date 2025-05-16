@@ -37,6 +37,7 @@ label-cert-id = Hex ID of PKCS11 certificate
 label-language = Language
 label-system-language = System default
 label-username-password = Username and password
+label-username-required = Username is required for authentication
 
 # Tabs and expanders
 tab-general = General
