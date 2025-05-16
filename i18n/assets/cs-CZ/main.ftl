@@ -38,6 +38,7 @@ label-cert-id = Hexadecimální ID certifikátu PKCS11
 label-language = Jazyk
 label-system-language = Systémové výchozí
 label-username-password = Uživatelské jméno a heslo
+label-auto-connect = Automaticky se připojit při spuštění
 
 # Tabs and expanders
 tab-general = Obecné
@@ -46,6 +47,7 @@ expand-dns = DNS
 expand-routing = Směrování
 expand-certificates = Certifikáty
 expand-misc = Další nastavení
+expand-ui = Nastavení rozhraní
 
 # Error messages
 error-no-server-name = Není zadána adresa serveru
@@ -196,6 +198,12 @@ language-pt-BR = Brazilská portugalština
 language-ru-RU = Ruština
 language-sk-SK = Slovenština
 language-sv-SE = Švédština
+
+# Connection status messages
+connection-status-disconnected = Odpojeno
+connection-status-connecting = Probíhá připojování
+connection-status-connected-since = Připojeno od: {$since}
+connection-status-mfa-pending = Čeká se na MFA: {$mfa_type}
 
 # Login options
 login-options-server-address = Adresa serveru

@@ -37,6 +37,8 @@ label-cert-password = PFX-salasana tai PKCS11-PIN
 label-cert-id = PKCS11-varmennuksen heksadesimaalinen tunniste
 label-language = Kieli
 label-system-language = Järjestelmän oletus
+label-username-password = Käyttäjätunnus ja salasana
+label-auto-connect = Yhdistä automaattisesti käynnistyksessä
 
 # Tabs and expanders
 tab-general = Yleiset
@@ -45,6 +47,7 @@ expand-dns = DNS
 expand-routing = Reititys
 expand-certificates = Varmenne
 expand-misc = Muut asetukset
+expand-ui = Käyttöliittymän asetukset
 
 # Error messages
 error-no-server-name = Palvelimen osoitetta ei ole määritetty
@@ -58,6 +61,7 @@ error-connection-cancelled = Yhteys peruttu
 error-unknown-event = Tuntematon tapahtuma: {$event}
 error-no-service-connection = Ei yhteyttä palveluun
 error-empty-input = Syöte ei voi olla tyhjä
+error-invalid-response = Virheellinen vastaus!
 error-invalid-object = Virheellinen objekti
 error-no-connector = Ei tunneliyhteyttä
 error-tunnel-disconnected = Tunneli katkaistu, viimeisin viesti: {$message}
@@ -65,7 +69,6 @@ error-unexpected-reply = Odottamaton vastaus
 error-auth-failed = Tunnistus epäonnistui
 error-no-login-type = Pakollinen parametri puuttuu: login-type
 error-connection-timeout = Yhteyden aikakatkaisu
-error-invalid-response = Virheellinen vastaus
 error-cannot-send-request = Pyyntöä ei voi lähettää palveluun
 error-cannot-read-reply = Vastausta ei voi lukea palvelusta
 error-no-ipv4 = Ei IPv4-osoitetta kohteelle {$server}

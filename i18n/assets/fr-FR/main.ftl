@@ -38,6 +38,7 @@ label-cert-id = ID hexadécimal du certificat PKCS11
 label-language = Langue
 label-system-language = Par défaut du système
 label-username-password = Nom d'utilisateur et mot de passe
+label-auto-connect = Se connecter automatiquement au démarrage
 
 # Tabs and expanders
 tab-general = Général
@@ -46,6 +47,7 @@ expand-dns = DNS
 expand-routing = Routage
 expand-certificates = Certificats
 expand-misc = Paramètres divers
+expand-ui = Interface utilisateur
 
 # Error messages
 error-no-server-name = Aucune adresse de serveur spécifiée

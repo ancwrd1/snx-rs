@@ -38,6 +38,7 @@ label-cert-id = Шестнадцатеричный ID сертификата PKC
 label-language = Язык
 label-system-language = Системный по умолчанию
 label-username-password = Имя пользователя и пароль
+label-auto-connect = Автоматически подключаться при запуске
 
 # Tabs and expanders
 tab-general = Основные
@@ -46,6 +47,7 @@ expand-dns = DNS
 expand-routing = Маршрутизация
 expand-certificates = Сертификаты
 expand-misc = Прочие настройки
+expand-ui = Настройки интерфейса
 
 # Error messages
 error-no-server-name = Не указан адрес сервера

@@ -38,6 +38,7 @@ label-cert-id = ID hexadecimal del certificado PKCS11
 label-language = Idioma
 label-system-language = Predeterminado del sistema
 label-username-password = Nombre de usuario y contraseña
+label-auto-connect = Conectar automáticamente al inicio
 
 # Tabs and expanders
 tab-general = General
@@ -46,6 +47,7 @@ expand-dns = DNS
 expand-routing = Enrutamiento
 expand-certificates = Certificados
 expand-misc = Configuración adicional
+expand-ui = Interfaz de usuario
 
 # Error messages
 error-no-server-name = No se ha especificado dirección de servidor
@@ -59,6 +61,7 @@ error-connection-cancelled = Conexión cancelada
 error-unknown-event = Evento desconocido: {$event}
 error-no-service-connection = No hay conexión al servicio
 error-empty-input = La entrada no puede estar vacía
+error-invalid-response = ¡Respuesta inválida!
 error-invalid-object = Objeto inválido
 error-no-connector = No hay conector de túnel
 error-tunnel-disconnected = Túnel desconectado, último mensaje: {$message}
@@ -184,6 +187,7 @@ language-pt-PT = Portugués
 language-ru-RU = Ruso
 language-sk-SK = Eslovaco
 language-sv-SE = Sueco
+language-pt-BR = Portugués brasileño
 
 # Connection status messages
 connection-status-disconnected = Desconectado
