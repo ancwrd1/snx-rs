@@ -42,7 +42,7 @@ struct MyWidgets {
     fetch_info: gtk4::Button,
     auth_type: gtk4::ComboBoxText,
     tunnel_type: gtk4::ComboBoxText,
-    user_name: gtk4::Entry,
+    username: gtk4::Entry,
     password: gtk4::Entry,
     password_factor: gtk4::Entry,
     no_dns: gtk4::Switch,
@@ -193,7 +193,10 @@ impl SettingsDialog {
             .build();
         let auth_type = gtk4::ComboBoxText::builder().build();
         let tunnel_type = gtk4::ComboBoxText::builder().build();
-        let user_name = gtk4::Entry::builder().text(&params.user_name).build();
+        let username = gtk4::Entry::builder()
+            .text(&params.user_name)
+            .placeholder_text(std::env::var("USER").unwrap_or_default())
+            .build();
         let password = gtk4::Entry::builder().text(&params.password).visibility(false).build();
         let password_factor = gtk4::Entry::builder().text(params.password_factor.to_string()).build();
 
@@ -339,7 +342,7 @@ impl SettingsDialog {
             #[weak]
             auth_type,
             #[weak]
-            user_name,
+            username,
             #[weak]
             tunnel_type,
             #[weak]
@@ -352,7 +355,7 @@ impl SettingsDialog {
                     if let Some(factors) = factors {
                         let is_saml = factors.iter().any(|f| f == "identity_provider");
                         let is_cert = factors.iter().any(|f| f == "certificate");
-                        set_container_visible(user_name.as_ref(), !is_saml && !is_cert);
+                        set_container_visible(username.as_ref(), !is_saml && !is_cert);
                         set_container_visible(cert_path.as_ref(), is_cert);
                         if !is_cert {
                             cert_type.set_active(Some(0));
@@ -471,7 +474,7 @@ impl SettingsDialog {
             fetch_info,
             auth_type,
             tunnel_type,
-            user_name,
+            username,
             password,
             password_factor,
             no_dns,
@@ -553,7 +556,7 @@ impl SettingsDialog {
             0 => TunnelType::Ipsec,
             _ => TunnelType::Ssl,
         };
-        params.user_name = self.widgets.user_name.text().into();
+        params.user_name = self.widgets.username.text().into();
         params.password = self.widgets.password.text().into();
         params.password_factor = self.widgets.password_factor.text().parse()?;
         params.no_dns = self.widgets.no_dns.is_active();
@@ -736,7 +739,7 @@ impl SettingsDialog {
 
     fn user_box(&self) -> gtk4::Box {
         let user_box = self.form_box(&tr!("label-username"));
-        user_box.append(&self.widgets.user_name);
+        user_box.append(&self.widgets.username);
         user_box
     }
 
