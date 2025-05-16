@@ -72,7 +72,7 @@ Keywords[sk_SK]=sieť;vpn;
 Keywords[sv_SE]=nätverk;vpn;
 TryExec=/opt/snx-rs/snx-rs-gui
 Type=Application
-Actions=connect;disconnect;settings;status;exit;about
+Actions=connect;disconnect;settings;status
 
 [Desktop Action connect]
 Name=Connect
@@ -153,43 +153,3 @@ Name[ru_RU]=Информация о соединении
 Name[sk_SK]=Informácie o pripojení
 Name[sv_SE]=Anslutningsinformation
 Exec=/opt/snx-rs/snx-rs-gui -m status
-
-[Desktop Action exit]
-Name=Exit
-Name[cs_CZ]=Ukončit
-Name[da_DK]=Afslut
-Name[de_DE]=Beenden
-Name[en_US]=Exit
-Name[es_ES]=Salir
-Name[fi_FI]=Poistu
-Name[fr_FR]=Quitter
-Name[it_IT]=Esci
-Name[nl_NL]=Afsluiten
-Name[no_NO]=Avslutt
-Name[pl_PL]=Wyjdź
-Name[pt_BR]=Sair
-Name[pt_PT]=Sair
-Name[ru_RU]=Выход
-Name[sk_SK]=Ukončiť
-Name[sv_SE]=Avsluta
-Exec=/opt/snx-rs/snx-rs-gui -m exit
-
-[Desktop Action about]
-Name=About
-Name[cs_CZ]=O programu
-Name[da_DK]=Om
-Name[de_DE]=Über
-Name[en_US]=About
-Name[es_ES]=Acerca de
-Name[fi_FI]=Tietoja
-Name[fr_FR]=À propos
-Name[it_IT]=Informazioni
-Name[nl_NL]=Over
-Name[no_NO]=Om
-Name[pl_PL]=O programie
-Name[pt_BR]=Sobre
-Name[pt_PT]=Sobre
-Name[ru_RU]=О программе
-Name[sk_SK]=O programe
-Name[sv_SE]=Om
-Exec=/opt/snx-rs/snx-rs-gui -m about
