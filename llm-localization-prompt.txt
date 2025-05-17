@@ -8,3 +8,5 @@ Add an additional localization support for $LOCALE by doing the following:
 * translate ALL entries in the copied file to the target locale $LOCALE.
 * add an additional language-$LOCALE entry in there.
 * modify all existing localization files and add a correctly translated language-$LOCALE entry in each of them.
+
+Keep the original file structure intact, grouped by the key type. Do not modify the existing translation strings.
