@@ -25,7 +25,6 @@
 | `ca-cert=<ca_certs>`                      | One or more comma-separated custom CA root certificates used to validate TLS connection.                                                              |
 | `tunnel-type=ipsec\|ssl`                  | Tunnel type, default is ipsec                                                                                                                         |
 | `no-keychain=true\|false`                 | Do not store password in the OS keychain, default is false                                                                                            |
-| `esp-lifetime=3600`                       | ESP SA lifetime in seconds, default is 3600                                                                                                           |
 | `ike-lifetime=28800`                      | IKE SA lifetime in seconds, default is 28800. Set to higher value to extend IPSec session duration                                                    |
 | `ike-persist=true\|false`                 | Save IKE session to disk and try to reconnect automatically after application restart                                                                 |
 | `log-level=<log_level>`                   | Logging level: error, warn, debug, info, trace. Default is info. Note: trace-level log includes request and response dumps with sensitive information |
