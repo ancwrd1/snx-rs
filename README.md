@@ -198,6 +198,7 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 | `Timeout while waiting for identity response`                     | Check if the correct login type is specified (one of the vpn_XXX identifiers returned from the "-m info" command).                                                                      |
 | `Error sending request for url (https://IP_OR_HOSTNAME/clients/)` | VPN server host is not reachable or certificate is untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks (not recommended).                             |
 | `No session in reply`                                             | Usually happens when Check Point server runs out of Office Mode licenses. Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect` | 
+| Unable to reach remote sites by their fully qualified names       | VPN server does not return back the proper search domains. Use the `search-domains` option to specify DNS domains manually.                                                             | 
 | Translation is incorrect or missing for my language               | Open a PR to fix it. For new language support see the section `Additional Translations` below.                                                                                          | 
 
 ## Contributing
