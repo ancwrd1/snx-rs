@@ -1,3 +1,13 @@
+use std::{
+    fs,
+    net::SocketAddr,
+    os::{
+        fd::AsRawFd,
+        fd::{AsFd, OwnedFd},
+    },
+    time::Duration,
+};
+
 use anyhow::anyhow;
 use cached::proc_macro::cached;
 pub use keychain::SecretServiceKeychain as KeychainImpl;
@@ -9,8 +19,6 @@ use nix::{
 };
 pub use resolver::new_resolver_configurator;
 pub use routing::LinuxRoutingConfigurator as RoutingImpl;
-use std::os::fd::{AsFd, OwnedFd};
-use std::{fs, os::fd::AsRawFd, time::Duration};
 use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
@@ -84,6 +92,10 @@ impl UdpSocketExt for UdpSocket {
 
     async fn send_receive(&self, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>> {
         super::udp_send_receive(self, data, timeout).await
+    }
+
+    async fn send_receive_to(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>> {
+        super::udp_send_receive_to(self, data, timeout, target).await
     }
 }
 

@@ -57,7 +57,19 @@ impl XfrmLink<'_> {
         ])
         .await?;
 
+        self.add_address().await?;
+
+        Ok(())
+    }
+
+    async fn add_address(&self) -> anyhow::Result<()> {
         iproute2(&["addr", "add", &self.address.to_string(), "dev", self.name]).await?;
+
+        Ok(())
+    }
+
+    async fn delete_address(&self, address: Ipv4Net) -> anyhow::Result<()> {
+        iproute2(&["addr", "del", &address.to_string(), "dev", self.name]).await?;
 
         Ok(())
     }
@@ -376,6 +388,8 @@ impl IpsecConfigurator for XfrmConfigurator {
             )
             .await;
 
+        let old_address = self.new_xfrm_link().address;
+
         self.ipsec_session = session.clone();
 
         self.configure_xfrm_state(
@@ -392,6 +406,10 @@ impl IpsecConfigurator for XfrmConfigurator {
             &self.ipsec_session.esp_in,
         )
         .await?;
+
+        let link = self.new_xfrm_link();
+        link.add_address().await?;
+        link.delete_address(old_address).await?;
 
         Ok(())
     }

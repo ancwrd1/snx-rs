@@ -380,7 +380,9 @@ impl IpsecTunnelConnector {
                 .is_some_and(|last_rekey| SystemTime::now().duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
         {
             debug!("Start rekeying IPSec tunnel");
-            self.do_esp_proposal().await?;
+            self.do_session_exchange(self.username.clone()).await?;
+
+            debug!("New IP address: {}", self.ipsec_session.address);
 
             debug!(
                 "New ESP SPI: {:04x}, {:04x}",

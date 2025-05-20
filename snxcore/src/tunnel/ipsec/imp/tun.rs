@@ -329,7 +329,6 @@ impl VpnTunnel for TunIpsecTunnel {
         let server_info = server_info::get(&params).await?;
 
         let keepalive_runner = KeepaliveRunner::new(
-            ipsec_session.address,
             server_info.connectivity_info.server_ip,
             if self.params.no_keepalive || !platform::get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))

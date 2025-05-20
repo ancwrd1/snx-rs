@@ -1,5 +1,5 @@
 use std::{
-    net::Ipv4Addr,
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -40,21 +40,19 @@ fn make_keepalive_packet() -> [u8; 84] {
 }
 
 pub struct KeepaliveRunner {
-    src: Ipv4Addr,
     dst: Ipv4Addr,
     ready: Arc<AtomicBool>,
 }
 
 impl KeepaliveRunner {
-    pub fn new(src: Ipv4Addr, dst: Ipv4Addr, ready: Arc<AtomicBool>) -> Self {
-        Self { src, dst, ready }
+    pub fn new(dst: Ipv4Addr, ready: Arc<AtomicBool>) -> Self {
+        Self { dst, ready }
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
-        let src = self.src.to_string();
+        let udp = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
 
-        let udp = tokio::net::UdpSocket::bind((src, TunnelParams::IPSEC_KEEPALIVE_PORT)).await?;
-        udp.connect((self.dst, TunnelParams::IPSEC_KEEPALIVE_PORT)).await?;
+        let target = SocketAddr::V4(SocketAddrV4::new(self.dst, TunnelParams::IPSEC_KEEPALIVE_PORT));
 
         // Disable UDP checksum validation for incoming packets.
         // Checkpoint gateway doesn't set it correctly.
@@ -68,7 +66,7 @@ impl KeepaliveRunner {
                     trace!("Sending keepalive to {}", self.dst);
 
                     let data = make_keepalive_packet();
-                    let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT).await;
+                    let result = udp.send_receive_to(&data, KEEPALIVE_TIMEOUT, target).await;
 
                     if let Ok(reply) = result {
                         trace!("Received keepalive response from {}, size: {}", self.dst, reply.len());
