@@ -94,6 +94,12 @@ impl CommandServer {
                                 cancel_state.lock().await.sender = None;
                                 self.connection_state.reset().await;
                             }
+                            TunnelEvent::Rekeyed(address) => {
+                                let mut guard = self.connection_state.connection_status.write().await;
+                                if let ConnectionStatus::Connected(ref mut info) = *guard {
+                                   info.ip_address = address;
+                                }
+                            }
                             _ => {}
                         }
                     }

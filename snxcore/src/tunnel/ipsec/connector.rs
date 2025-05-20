@@ -100,6 +100,7 @@ pub struct IpsecTunnelConnector {
     username: String,
     ipsec_session: IpsecSession,
     last_rekey: Option<SystemTime>,
+    last_ip_lease: Option<SystemTime>,
     command_sender: Option<Sender<TunnelCommand>>,
     esp_transport: TransportType,
 }
@@ -145,6 +146,7 @@ impl IpsecTunnelConnector {
             username: String::new(),
             ipsec_session: IpsecSession::default(),
             last_rekey: None,
+            last_ip_lease: None,
             command_sender: None,
             esp_transport,
         })
@@ -213,6 +215,15 @@ impl IpsecTunnelConnector {
             .read_u32::<BigEndian>()?
             .into();
 
+        self.ipsec_session.address_lifetime = Duration::from_secs(
+            get_long_attribute(&om_reply, ConfigAttributeType::AddressExpiry)
+                .context("No address expiry in reply!")?
+                .reader()
+                .read_u32::<BigEndian>()?
+                .into(),
+        );
+        self.last_ip_lease = Some(SystemTime::now());
+
         self.ipsec_session.dns = get_long_attributes(&om_reply, ConfigAttributeType::Ipv4Dns)
             .into_iter()
             .flat_map(|b| b.reader().read_u32::<BigEndian>().ok())
@@ -236,6 +247,15 @@ impl IpsecTunnelConnector {
 
         self.ipsec_session.transport_type = self.esp_transport;
         self.username = username;
+
+        debug!("OM IP address: {}", self.ipsec_session.address);
+        debug!("OM IP netmask: {}", self.ipsec_session.netmask);
+        debug!(
+            "OM IP lifetime: {} seconds",
+            self.ipsec_session.address_lifetime.as_secs()
+        );
+        debug!("OM DNS servers: {:?}", self.ipsec_session.dns);
+        debug!("OM search domains: {:?}", self.ipsec_session.domains);
 
         self.do_esp_proposal().await?;
 
@@ -368,22 +388,37 @@ impl IpsecTunnelConnector {
     }
 
     async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
+        if !platform::new_network_interface().is_online() {
+            return Ok(());
+        }
+
         let lifetime = if self.ipsec_session.lifetime < MIN_ESP_LIFETIME {
             self.ipsec_session.lifetime
         } else {
             self.ipsec_session.lifetime - MIN_ESP_LIFETIME
         };
 
-        if platform::new_network_interface().is_online()
-            && self
-                .last_rekey
-                .is_some_and(|last_rekey| SystemTime::now().duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
+        let now = SystemTime::now();
+        let mut rekeyed = false;
+
+        if self.last_ip_lease.is_some_and(|last_ip_lease| {
+            now.duration_since(last_ip_lease)
+                .unwrap_or(self.ipsec_session.address_lifetime)
+                >= self.ipsec_session.address_lifetime
+        }) {
+            debug!("Start refreshing IPSec session");
+            self.do_session_exchange(self.username.clone()).await?;
+            rekeyed = true;
+        } else if self
+            .last_rekey
+            .is_some_and(|last_rekey| now.duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
         {
             debug!("Start rekeying IPSec tunnel");
-            self.do_session_exchange(self.username.clone()).await?;
+            self.do_esp_proposal().await?;
+            rekeyed = true;
+        }
 
-            debug!("New IP address: {}", self.ipsec_session.address);
-
+        if rekeyed {
             debug!(
                 "New ESP SPI: {:04x}, {:04x}",
                 self.ipsec_session.esp_in.spi, self.ipsec_session.esp_out.spi
@@ -670,6 +705,9 @@ impl TunnelConnector for IpsecTunnelConnector {
             }
             TunnelEvent::RemoteControlData(data) => {
                 self.parse_isakmp(data).await?;
+            }
+            TunnelEvent::Rekeyed(_) => {
+                debug!("Tunnel rekeyed");
             }
         }
         Ok(())

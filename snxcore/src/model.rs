@@ -29,6 +29,7 @@ pub struct IpsecSession {
     pub esp_in: Arc<EspCryptMaterial>,
     pub esp_out: Arc<EspCryptMaterial>,
     pub transport_type: TransportType,
+    pub address_lifetime: Duration,
 }
 
 impl Default for IpsecSession {
@@ -42,6 +43,7 @@ impl Default for IpsecSession {
             esp_in: Arc::default(),
             esp_out: Arc::default(),
             transport_type: TransportType::default(),
+            address_lifetime: Duration::default(),
         }
     }
 }

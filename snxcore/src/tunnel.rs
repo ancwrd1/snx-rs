@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use ipnet::Ipv4Net;
 use tokio::sync::mpsc;
 
 use crate::{
@@ -28,6 +29,7 @@ pub enum TunnelEvent {
     Disconnected,
     RekeyCheck,
     RemoteControlData(Bytes),
+    Rekeyed(Ipv4Net),
 }
 
 #[async_trait]

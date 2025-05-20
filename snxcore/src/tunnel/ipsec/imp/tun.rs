@@ -19,7 +19,7 @@ use i18n::tr;
 use ipnet::Ipv4Net;
 use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use crate::{
     ccc::CccHttpClient,
@@ -267,6 +267,8 @@ impl VpnTunnel for TunIpsecTunnel {
 
         let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
 
+        let mut ip_address = Ipv4Net::with_netmask(session.address, session.netmask)?;
+
         let info = ConnectionInfo {
             since: Some(Local::now()),
             server_name: self.params.server_name.clone(),
@@ -274,10 +276,10 @@ impl VpnTunnel for TunIpsecTunnel {
             login_type: self.params.login_type.clone(),
             tunnel_type: self.params.tunnel_type,
             transport_type: session.transport_type,
-            ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,
+            ip_address,
             dns_servers: resolver_config.dns_servers,
             search_domains: resolver_config.search_domains,
-            interface_name: tun_name,
+            interface_name: tun_name.clone(),
             dns_configured: !self.params.no_dns,
             routing_configured: !self.params.no_routing,
             default_route: self.params.default_route,
@@ -319,7 +321,25 @@ impl VpnTunnel for TunIpsecTunnel {
                             .unwrap()
                             .set_params(session.esp_out.spi, session.esp_out.clone());
 
+                        let new_address = Ipv4Net::with_netmask(session.address, session.netmask).unwrap_or(ip_address);
+
+                        if ip_address != new_address {
+                            debug!(
+                                "IP address changed from {} to {}, replacing it for device {}",
+                                ip_address, new_address, tun_name
+                            );
+                            if let Err(e) = platform::new_network_interface()
+                                .replace_ip_address(&tun_name, ip_address, new_address)
+                                .await
+                            {
+                                warn!("Failed to replace IP address: {}", e);
+                            }
+                            ip_address = new_address;
+                        }
+
                         ready.store(true, Ordering::SeqCst);
+
+                        let _ = event_sender.send(TunnelEvent::Rekeyed(new_address)).await;
                     }
                 }
             }

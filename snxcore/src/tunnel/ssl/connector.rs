@@ -154,6 +154,10 @@ impl TunnelConnector for CccTunnelConnector {
             TunnelEvent::RemoteControlData(_) => {
                 warn!("Tunnel data received: shouldn't happen for SSL tunnel!");
             }
+            TunnelEvent::Rekeyed(_) => {
+                debug!("Tunnel rekeyed");
+
+            }
         }
         Ok(())
     }

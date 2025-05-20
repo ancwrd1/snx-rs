@@ -178,6 +178,8 @@ impl VpnTunnel for NativeIpsecTunnel {
             self.setup_dns(&resolver_config, false).await?;
         }
 
+        let ip_address = Ipv4Net::with_netmask(session.address, session.netmask)?;
+
         let info = ConnectionInfo {
             since: Some(Local::now()),
             server_name: self.params.server_name.clone(),
@@ -185,7 +187,7 @@ impl VpnTunnel for NativeIpsecTunnel {
             login_type: self.params.login_type.clone(),
             tunnel_type: self.params.tunnel_type,
             transport_type: session.transport_type,
-            ip_address: Ipv4Net::with_netmask(session.address, session.netmask)?,
+            ip_address,
             dns_servers: resolver_config.dns_servers,
             search_domains: resolver_config.search_domains,
             interface_name: self.device_name.clone(),
@@ -225,6 +227,8 @@ impl VpnTunnel for NativeIpsecTunnel {
                         self.ready.store(false, Ordering::SeqCst);
                         let _ = self.configurator.rekey(&session).await;
                         self.ready.store(true, Ordering::SeqCst);
+                        let address = Ipv4Net::with_netmask(session.address, session.netmask).unwrap_or(ip_address);
+                        let _ = event_sender.send(TunnelEvent::Rekeyed(address)).await;
                     }
                 }
             }

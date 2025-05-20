@@ -111,6 +111,12 @@ pub trait NetworkInterface {
     async fn get_default_ip(&self) -> anyhow::Result<Ipv4Addr>;
     async fn delete_device(&self, device_name: &str) -> anyhow::Result<()>;
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()>;
+    async fn replace_ip_address(
+        &self,
+        device_name: &str,
+        old_address: Ipv4Net,
+        new_address: Ipv4Net,
+    ) -> anyhow::Result<()>;
 
     fn is_online(&self) -> bool;
     fn poll_online(&self);
