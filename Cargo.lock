@@ -1491,7 +1491,7 @@ dependencies = [
 
 [[package]]
 name = "i18n"
-version = "4.3.1"
+version = "4.4.0"
 dependencies = [
  "cached",
  "fluent-templates",
@@ -2877,7 +2877,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 
 [[package]]
 name = "snx-rs"
-version = "4.3.1"
+version = "4.4.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2893,7 +2893,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "4.3.1"
+version = "4.4.0"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -2920,7 +2920,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "4.3.1"
+version = "4.4.0"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -2967,7 +2967,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "4.3.1"
+version = "4.4.0"
 dependencies = [
  "anyhow",
  "clap",
