@@ -3,6 +3,8 @@
 - Added translations for .desktop file actions.
 - Added a new category in the configuration dialog, "UI Settings".
 - Send keepalive packets to the advertised server IP instead of the default public address.
+- Added automatic IP address renewal when it expires.
+- Fixed an issue with too short IP lease time.
 
 ## v4.3.1 (2025-05-10)
 - Fixed a bug with the GUI application stopping responding and consuming 100% CPU.
