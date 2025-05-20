@@ -408,8 +408,11 @@ impl IpsecConfigurator for XfrmConfigurator {
         .await?;
 
         let link = self.new_xfrm_link();
-        link.add_address().await?;
-        link.delete_address(old_address).await?;
+
+        if old_address != link.address {
+            link.add_address().await?;
+            link.delete_address(old_address).await?;
+        }
 
         Ok(())
     }
