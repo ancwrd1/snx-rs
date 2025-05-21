@@ -1,4 +1,4 @@
-## Next release
+## v4.4.0 (2025-05-22)
 - Added `auto-connect` option which enables automatic tunnel connect when GUI frontend starts.
 - Added translations for .desktop file actions.
 - Added a new category in the configuration dialog, "UI Settings".
