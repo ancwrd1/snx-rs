@@ -1,3 +1,8 @@
+use std::{
+    net::{Ipv4Addr, SocketAddr},
+    time::Duration,
+};
+
 use anyhow::anyhow;
 use async_trait::async_trait;
 use ipnet::Ipv4Net;
@@ -7,8 +12,6 @@ pub use platform_impl::{
     IpsecImpl, KeychainImpl, NetworkInterfaceImpl, RoutingImpl, SingleInstance, get_features, get_machine_uuid, init,
     new_resolver_configurator,
 };
-use std::net::SocketAddr;
-use std::{net::Ipv4Addr, time::Duration};
 use tokio::net::UdpSocket;
 
 use crate::model::IpsecSession;
@@ -39,26 +42,10 @@ pub enum UdpEncap {
 pub trait UdpSocketExt {
     fn set_encap(&self, encap: UdpEncap) -> anyhow::Result<()>;
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()>;
-    async fn send_receive(&self, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>>;
-    async fn send_receive_to(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>>;
+    async fn send_receive(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>>;
 }
 
-async fn udp_send_receive(socket: &UdpSocket, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>> {
-    let mut buf = vec![0u8; 65536];
-
-    let send_fut = socket.send(data);
-    let recv_fut = tokio::time::timeout(timeout, socket.recv_from(&mut buf));
-
-    let result = futures::future::join(send_fut, recv_fut).await;
-
-    if let (Ok(_), Ok(Ok((size, _)))) = result {
-        Ok(buf[0..size].to_vec())
-    } else {
-        Err(anyhow!(i18n::tr!("error-udp-request-failed")))
-    }
-}
-
-async fn udp_send_receive_to(
+async fn udp_send_receive(
     socket: &UdpSocket,
     data: &[u8],
     timeout: Duration,

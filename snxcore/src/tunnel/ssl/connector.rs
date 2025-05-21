@@ -156,7 +156,6 @@ impl TunnelConnector for CccTunnelConnector {
             }
             TunnelEvent::Rekeyed(_) => {
                 debug!("Tunnel rekeyed");
-
             }
         }
         Ok(())

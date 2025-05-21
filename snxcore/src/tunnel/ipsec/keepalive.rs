@@ -66,7 +66,7 @@ impl KeepaliveRunner {
                     trace!("Sending keepalive to {}", self.dst);
 
                     let data = make_keepalive_packet();
-                    let result = udp.send_receive_to(&data, KEEPALIVE_TIMEOUT, target).await;
+                    let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT, target).await;
 
                     if let Ok(reply) = result {
                         trace!("Received keepalive response from {}, size: {}", self.dst, reply.len());
