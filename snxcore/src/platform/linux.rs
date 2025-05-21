@@ -90,12 +90,8 @@ impl UdpSocketExt for UdpSocket {
         }
     }
 
-    async fn send_receive(&self, data: &[u8], timeout: Duration) -> anyhow::Result<Vec<u8>> {
-        super::udp_send_receive(self, data, timeout).await
-    }
-
-    async fn send_receive_to(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>> {
-        super::udp_send_receive_to(self, data, timeout, target).await
+    async fn send_receive(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>> {
+        super::udp_send_receive(self, data, timeout, target).await
     }
 }
 

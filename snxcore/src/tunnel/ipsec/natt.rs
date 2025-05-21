@@ -76,11 +76,10 @@ impl NattProber {
         debug!("Sending NAT-T probe to {}", self.address);
 
         let udp = UdpSocket::bind("0.0.0.0:0").await?;
-        udp.connect(self.address).await?;
 
         let data = vec![0u8; 32];
 
-        let result = udp.send_receive(&data, Duration::from_secs(2)).await;
+        let result = udp.send_receive(&data, Duration::from_secs(2), self.address).await;
 
         match result {
             Ok(reply) if reply.len() == 32 => {
