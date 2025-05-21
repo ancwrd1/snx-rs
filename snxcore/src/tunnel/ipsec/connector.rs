@@ -39,7 +39,7 @@ use crate::{
     util,
 };
 
-const MIN_ESP_LIFETIME: Duration = Duration::from_secs(60);
+const MIN_LIFETIME: Duration = Duration::from_secs(60);
 const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 
 const SESSIONS_PATH: &str = "/var/cache/snx-rs/sessions";
@@ -392,19 +392,23 @@ impl IpsecTunnelConnector {
             return Ok(());
         }
 
-        let lifetime = if self.ipsec_session.lifetime < MIN_ESP_LIFETIME {
+        let lifetime = if self.ipsec_session.lifetime < MIN_LIFETIME {
             self.ipsec_session.lifetime
         } else {
-            self.ipsec_session.lifetime - MIN_ESP_LIFETIME
+            self.ipsec_session.lifetime - MIN_LIFETIME
+        };
+
+        let address_lifetime = if self.ipsec_session.address_lifetime < MIN_LIFETIME {
+            self.ipsec_session.address_lifetime
+        } else {
+            self.ipsec_session.address_lifetime - MIN_LIFETIME
         };
 
         let now = SystemTime::now();
         let mut rekeyed = false;
 
         if self.last_ip_lease.is_some_and(|last_ip_lease| {
-            now.duration_since(last_ip_lease)
-                .unwrap_or(self.ipsec_session.address_lifetime)
-                >= self.ipsec_session.address_lifetime
+            now.duration_since(last_ip_lease).unwrap_or(address_lifetime) >= address_lifetime
         }) {
             debug!("Start refreshing IPSec session");
             self.do_session_exchange(self.username.clone()).await?;
