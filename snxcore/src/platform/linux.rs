@@ -156,13 +156,13 @@ pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
 
 #[cached]
 async fn is_xfrm_available() -> bool {
-    let _ = crate::util::run_command("modprobe", ["xfrm_user"]).await;
+    let _ = crate::util::run_command("modprobe", ["xfrm_interface"]).await;
 
     let output = crate::util::run_command::<_, _, &str>("lsmod", [])
         .await
         .unwrap_or_default();
 
-    let result = output.contains("xfrm_user");
+    let result = output.contains("xfrm");
 
     debug!("XFRM available: {}", result);
 
