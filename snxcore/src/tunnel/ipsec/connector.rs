@@ -621,7 +621,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             .await
             .map_err(|e| {
                 if e.downcast_ref::<tokio::time::error::Elapsed>().is_some() {
-                    anyhow::anyhow!("Timeout while waiting for identity response, is the login type correct?")
+                    anyhow::anyhow!(tr!("error-identity-timeout"))
                 } else {
                     e
                 }
