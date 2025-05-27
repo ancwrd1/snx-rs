@@ -1,10 +1,10 @@
-use std::{cell::OnceCell, sync::Arc, time::Duration};
+use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Duration};
 
 use clap::Parser;
 use gtk4::{
-    Application, ApplicationWindow, License,
+    Application, ApplicationWindow, License, Window,
     glib::{self, clone},
-    prelude::{ApplicationExt, ApplicationExtManual, GtkWindowExt, WidgetExt},
+    prelude::{ApplicationExt, ApplicationExtManual, Cast, GtkWindowExt, IsA, WidgetExt},
 };
 use i18n::tr;
 use snxcore::{
@@ -39,11 +39,25 @@ mod tray;
 const PING_DURATION: Duration = Duration::from_secs(2);
 
 thread_local! {
-    static MAIN_WINDOW: OnceCell<ApplicationWindow> = const { OnceCell::new() };
+    static WINDOWS: RefCell<HashMap<String, Window>> = RefCell::new(HashMap::new());
 }
 
 pub fn main_window() -> ApplicationWindow {
-    MAIN_WINDOW.with(|cell| cell.get().cloned()).unwrap()
+    get_window("main").unwrap().downcast::<ApplicationWindow>().unwrap()
+}
+
+pub fn get_window(name: &str) -> Option<Window> {
+    WINDOWS.with(|cell| cell.borrow().get(name).cloned())
+}
+
+pub fn set_window<W: Cast + IsA<Window>>(name: &str, window: Option<W>) {
+    WINDOWS.with(|cell| {
+        if let Some(window) = window {
+            cell.borrow_mut().insert(name.to_string(), window.upcast::<Window>())
+        } else {
+            cell.borrow_mut().remove(name)
+        }
+    });
 }
 
 const APP_CSS: &str = include_str!("../assets/app.css");
@@ -149,9 +163,7 @@ async fn main() -> anyhow::Result<()> {
             gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
-        MAIN_WINDOW.with(move |cell| {
-            let _ = cell.set(app_window);
-        });
+        set_window("main", Some(app_window));
     });
 
     if let Some(mut command) = cmdline_params.command {
@@ -171,6 +183,11 @@ async fn main() -> anyhow::Result<()> {
 
 fn do_about() {
     glib::idle_add_once(|| {
+        if let Some(dialog) = get_window("about") {
+            dialog.present();
+            return;
+        }
+
         let dialog = gtk4::AboutDialog::builder()
             .transient_for(&main_window())
             .version(env!("CARGO_PKG_VERSION"))
@@ -182,6 +199,12 @@ fn do_about() {
             .title(tr!("app-title"))
             .build();
 
+        set_window("about", Some(dialog.clone()));
+
+        dialog.connect_close_request(|_| {
+            set_window("about", None::<gtk4::Dialog>);
+            glib::signal::Propagation::Proceed
+        });
         dialog.present();
     });
 }

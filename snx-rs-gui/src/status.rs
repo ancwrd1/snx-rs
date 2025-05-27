@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use gtk4::{
-    Align, Orientation, ResponseType,
+    Align, Dialog, Orientation, ResponseType,
     glib::{self, clone},
     prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
 };
@@ -12,7 +12,7 @@ use snxcore::{
 };
 use tokio::sync::mpsc::Sender;
 
-use crate::{main_window, prompt::GtkPrompt, tr, tray::TrayEvent};
+use crate::{get_window, main_window, prompt::GtkPrompt, set_window, tr, tray::TrayEvent};
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
     let form = gtk4::Box::builder()
@@ -41,7 +41,12 @@ fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
 }
 
 pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelParams>) {
-    let dialog = gtk4::Dialog::builder()
+    if let Some(dialog) = get_window("status") {
+        dialog.present();
+        return;
+    }
+
+    let dialog = Dialog::builder()
         .title(tr!("status-dialog-title"))
         .transient_for(&main_window())
         .build();
@@ -190,7 +195,9 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
 
     GtkWindowExt::set_focus(&dialog, Some(&ok));
 
+    set_window("status", Some(dialog.clone()));
     dialog.run_future().await;
+    set_window("status", None::<Dialog>);
     dialog.close();
     let _ = stop_tx.send(());
 }

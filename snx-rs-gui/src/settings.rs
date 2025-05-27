@@ -1,7 +1,7 @@
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
-    Align, ButtonsType, DialogFlags, MessageType, Orientation, ResponseType, Widget, Window,
+    Align, ButtonsType, Dialog, DialogFlags, MessageType, Orientation, ResponseType, Widget, Window,
     glib::{self, clone},
     prelude::*,
 };
@@ -16,7 +16,7 @@ use snxcore::{
 use tokio::sync::mpsc::Sender;
 use tracing::warn;
 
-use crate::{tr, tray::TrayCommand};
+use crate::{get_window, set_window, tr, tray::TrayCommand};
 
 fn set_container_visible(widget: &Widget, flag: bool) {
     if let Some(parent) = widget.parent() {
@@ -32,7 +32,7 @@ fn set_container_visible(widget: &Widget, flag: bool) {
 
 struct SettingsDialog {
     params: Arc<TunnelParams>,
-    dialog: gtk4::Dialog,
+    dialog: Dialog,
     widgets: Rc<MyWidgets>,
     revealers: Vec<gtk4::Revealer>,
 }
@@ -141,7 +141,7 @@ impl MyWidgets {
 
 impl SettingsDialog {
     pub fn new<W: IsA<Window>>(parent: W, params: Arc<TunnelParams>) -> Self {
-        let dialog = gtk4::Dialog::builder()
+        let dialog = Dialog::builder()
             .title(tr!("dialog-title"))
             .transient_for(&parent)
             .build();
@@ -544,8 +544,11 @@ impl SettingsDialog {
     }
 
     pub async fn run(&self) -> ResponseType {
+        set_window("settings", Some(self.dialog.clone()));
         self.dialog.present();
-        self.dialog.run_future().await
+        let result = self.dialog.run_future().await;
+        set_window("settings", None::<Dialog>);
+        result
     }
 
     pub fn save(&self) -> anyhow::Result<TunnelParams> {
@@ -1107,6 +1110,11 @@ impl Drop for SettingsDialog {
 }
 
 pub fn start_settings_dialog<W: IsA<Window>>(parent: W, sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
+    if let Some(window) = get_window("settings") {
+        window.present();
+        return;
+    }
+
     let dialog = SettingsDialog::new(parent, params.clone());
     let sender = sender.clone();
     glib::spawn_future_local(async move {
