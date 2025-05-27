@@ -1711,7 +1711,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#cfaecdf3d5a4a23c810e9e71d750436f01cdd3fd"
+source = "git+https://github.com/ancwrd1/isakmp.git#9391a1f0efb66704ddd82011ec71d32edf90dcb7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1797,9 +1797,9 @@ dependencies = [
 
 [[package]]
 name = "libloading"
-version = "0.8.7"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a793df0d7afeac54f95b471d3af7f0d4fb975699f972341a4b76988d49cdf0c"
+checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
  "windows-targets 0.53.0",
@@ -3944,7 +3944,7 @@ dependencies = [
  "blocking",
  "c2rust-bitfields",
  "futures",
- "libloading 0.8.7",
+ "libloading 0.8.8",
  "log",
  "thiserror 2.0.12",
  "windows-sys 0.59.0",
