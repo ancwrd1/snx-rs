@@ -158,13 +158,10 @@ pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
 async fn is_xfrm_available() -> bool {
     let _ = crate::util::run_command("modprobe", ["xfrm_interface"]).await;
 
-    let output = crate::util::run_command::<_, _, &str>("lsmod", [])
-        .await
-        .unwrap_or_default();
+    let modules = tokio::fs::read_to_string("/proc/modules").await.unwrap_or_default();
+    let result = modules.lines().any(|line| line.starts_with("xfrm_"));
 
-    let result = output.contains("xfrm");
-
-    debug!("XFRM available: {}", result);
+    debug!("Kernel xfrm available: {}", result);
 
     result
 }
@@ -174,5 +171,15 @@ pub async fn get_features() -> PlatformFeatures {
         ipsec_native: is_xfrm_available().await,
         ipsec_keepalive: true,
         split_dns: true,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_xfrm_check() {
+        assert!(is_xfrm_available().await);
     }
 }
