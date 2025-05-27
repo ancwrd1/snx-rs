@@ -1,3 +1,7 @@
+## Next Version
+- Added support for MD5, SHA384 and SHA512 hash algorithms for IKE SA.
+- Fixed xfrm module detection with some kernels and distros
+
 ## v4.4.0 (2025-05-22)
 - Added `auto-connect` option which enables automatic tunnel connect when GUI frontend starts.
 - Added translations for .desktop file actions.
