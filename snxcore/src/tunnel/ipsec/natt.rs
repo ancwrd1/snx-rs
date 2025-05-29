@@ -10,8 +10,6 @@ use tracing::debug;
 
 use crate::{platform::UdpSocketExt, tunnel::TunnelEvent};
 
-const MAX_NATT_PROBES: usize = 2;
-
 // Both packets are IKE SA requests that do some magic of unblocking NATT port for some users.
 const NMAP_KNOCK: &[&[u8]] = &[
     &[
@@ -56,17 +54,12 @@ impl NattProber {
             if self.port_knock {
                 // attempt to unblock NATT port by sending some magic packets to port 500
                 self.send_nmap_knock().await?;
+                self.send_nmap_knock().await?;
             }
 
-            for _ in 0..MAX_NATT_PROBES {
-                if self.port_knock {
-                    self.send_nmap_knock().await?;
-                }
-                if self.send_probe().await.is_ok() {
-                    return Ok(());
-                }
-            }
-            anyhow::bail!(i18n::tr!("error-probing-failed"));
+            self.send_probe()
+                .await
+                .map_err(|_| anyhow!(i18n::tr!("error-probing-failed")))
         } else {
             Ok(())
         }
