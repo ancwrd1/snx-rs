@@ -3,13 +3,19 @@
 basedir="$(cd $(dirname $0)/.. && pwd -P)"
 target="$basedir/target"
 version="$(git -C "$basedir" describe)"
-arches="x86_64"
+arches="x86_64 aarch64"
 apps="snx-rs snxctl snx-rs-gui"
 assets="snx-rs.conf snx-rs.service snx-rs-gui.desktop"
 
 for arch in $arches; do
     name="snx-rs-$version-linux-$arch"
     triple="$arch-unknown-linux-gnu"
+
+    if [ ! -f "$target/$triple/lto/snx-rs" ]; then
+        continue
+    fi
+
+    echo "Packaging for $arch"
 
     rm -rf "$target/$name"
     mkdir "$target/$name"
