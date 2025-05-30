@@ -2,7 +2,7 @@ use bytes::Bytes;
 use futures::{SinkExt, StreamExt};
 use interprocess::local_socket::{
     GenericNamespaced, Name, ToNsName,
-    traits::{tokio::Listener, tokio::Stream},
+    traits::tokio::{Listener, Stream},
 };
 use tokio::sync::mpsc::Sender;
 use tokio_util::codec::{Decoder, LengthDelimitedCodec};

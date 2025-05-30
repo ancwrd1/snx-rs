@@ -15,8 +15,7 @@ use snxcore::{
     prompt::SecurePrompt,
 };
 use tokio::sync::mpsc;
-use tracing::level_filters::LevelFilter;
-use tracing::warn;
+use tracing::{level_filters::LevelFilter, warn};
 
 use crate::{
     params::CmdlineParams,

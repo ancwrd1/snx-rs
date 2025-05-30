@@ -4,10 +4,8 @@ use std::{
 };
 
 use cached::proc_macro::cached;
-use fluent_templates::{LanguageIdentifier, Loader, static_loader};
-
 pub use fluent_templates;
-use fluent_templates::fluent_bundle::FluentValue;
+use fluent_templates::{LanguageIdentifier, Loader, fluent_bundle::FluentValue, static_loader};
 
 static_loader! {
     pub static LOCALES = {

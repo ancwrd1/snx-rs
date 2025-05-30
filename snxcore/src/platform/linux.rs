@@ -1,10 +1,7 @@
 use std::{
     fs,
     net::SocketAddr,
-    os::{
-        fd::AsRawFd,
-        fd::{AsFd, OwnedFd},
-    },
+    os::fd::{AsFd, AsRawFd, OwnedFd},
     time::Duration,
 };
 
