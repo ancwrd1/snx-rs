@@ -1,6 +1,9 @@
-## Next Version
+## v4.4.1 (2025-05-30)
 - Added support for MD5, SHA384 and SHA512 hash algorithms for IKE SA.
-- Fixed xfrm module detection with some kernels and distros
+- Fixed xfrm module detection with some kernels and distros.
+- Fixed some missing translations.
+- Only allow one UI dialog of a given type to be shown.
+- Reduced the number of NAT-T probes for faster IPSec transport detection.
 
 ## v4.4.0 (2025-05-22)
 - Added `auto-connect` option which enables automatic tunnel connect when GUI frontend starts.
