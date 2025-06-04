@@ -39,7 +39,8 @@ use crate::{
     util,
 };
 
-const MIN_LIFETIME: Duration = Duration::from_secs(60);
+const ESP_LIFETIME_LEEWAY: Duration = Duration::from_secs(60);
+const ADDRESS_LIFETIME_LEEWAY: Duration = Duration::from_secs(300);
 const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 
 const SESSIONS_PATH: &str = "/var/cache/snx-rs/sessions";
@@ -197,7 +198,7 @@ impl IpsecTunnelConnector {
     }
 
     async fn do_session_exchange(&mut self, username: String) -> anyhow::Result<Arc<VpnSession>> {
-        let om_reply = self.service.send_om_request().await?;
+        let om_reply = self.service.send_om_request(Some(self.ipsec_session.address)).await?;
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
@@ -392,16 +393,16 @@ impl IpsecTunnelConnector {
             return Ok(());
         }
 
-        let lifetime = if self.ipsec_session.lifetime < MIN_LIFETIME {
+        let lifetime = if self.ipsec_session.lifetime < ESP_LIFETIME_LEEWAY {
             self.ipsec_session.lifetime
         } else {
-            self.ipsec_session.lifetime - MIN_LIFETIME
+            self.ipsec_session.lifetime - ESP_LIFETIME_LEEWAY
         };
 
-        let address_lifetime = if self.ipsec_session.address_lifetime < MIN_LIFETIME {
+        let address_lifetime = if self.ipsec_session.address_lifetime < ADDRESS_LIFETIME_LEEWAY {
             self.ipsec_session.address_lifetime
         } else {
-            self.ipsec_session.address_lifetime - MIN_LIFETIME
+            self.ipsec_session.address_lifetime - ADDRESS_LIFETIME_LEEWAY
         };
 
         let now = SystemTime::now();
