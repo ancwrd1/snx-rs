@@ -9,6 +9,7 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
+use cached::proc_macro::cached;
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use itertools::Itertools;
 use tokio::process::Command;
@@ -174,6 +175,7 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cached]
 pub fn get_device_id() -> String {
     let machine_uuid = crate::platform::get_machine_uuid().unwrap_or_else(|_| Uuid::new_v4());
     Uuid::new_v5(&Uuid::NAMESPACE_OID, machine_uuid.as_bytes())

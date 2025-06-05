@@ -198,7 +198,13 @@ impl IpsecTunnelConnector {
     }
 
     async fn do_session_exchange(&mut self, username: String) -> anyhow::Result<Arc<VpnSession>> {
-        let om_reply = self.service.send_om_request(None).await?;
+        let om_reply = self
+            .service
+            .send_om_request(
+                None,
+                Some(Bytes::copy_from_slice(&util::get_device_id().as_bytes()[0..6])),
+            )
+            .await?;
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
