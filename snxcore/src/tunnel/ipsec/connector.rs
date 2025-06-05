@@ -5,7 +5,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
@@ -22,19 +22,19 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
-        params::{CertType, TransportType, TunnelParams}, proto::{AuthenticationRealm, ClientLoggingData}, IpsecSession, MfaChallenge, MfaType,
-        SessionState,
-        VpnSession,
+        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
+        params::{CertType, TransportType, TunnelParams},
+        proto::{AuthenticationRealm, ClientLoggingData},
     },
     platform::{self, NetworkInterface},
     server_info,
     sexpr::SExpression,
     tunnel::{
+        TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
         ipsec::{
             imp::{native::NativeIpsecTunnel, tcpt::TcptIpsecTunnel, udp::UdpIpsecTunnel},
             natt::NattProber,
-        }, TunnelCommand, TunnelConnector, TunnelEvent,
-        VpnTunnel,
+        },
     },
     util,
 };
