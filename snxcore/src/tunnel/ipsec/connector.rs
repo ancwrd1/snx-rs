@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use i18n::tr;
+use ipnet::Ipv4Net;
 use isakmp::{
     ikev1::{service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
@@ -198,10 +199,12 @@ impl IpsecTunnelConnector {
     }
 
     async fn do_session_exchange(&mut self, username: String) -> anyhow::Result<Arc<VpnSession>> {
+        let address = Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask)?;
+
         let om_reply = self
             .service
             .send_om_request(
-                None,
+                Some(address),
                 Some(Bytes::copy_from_slice(&util::get_device_id().as_bytes()[0..6])),
             )
             .await?;
