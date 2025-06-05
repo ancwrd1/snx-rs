@@ -5,12 +5,11 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use i18n::tr;
-use ipnet::Ipv4Net;
 use isakmp::{
     ikev1::{service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
@@ -23,19 +22,19 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
-        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
-        params::{CertType, TransportType, TunnelParams},
-        proto::{AuthenticationRealm, ClientLoggingData},
+        params::{CertType, TransportType, TunnelParams}, proto::{AuthenticationRealm, ClientLoggingData}, IpsecSession, MfaChallenge, MfaType,
+        SessionState,
+        VpnSession,
     },
     platform::{self, NetworkInterface},
     server_info,
     sexpr::SExpression,
     tunnel::{
-        TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
         ipsec::{
             imp::{native::NativeIpsecTunnel, tcpt::TcptIpsecTunnel, udp::UdpIpsecTunnel},
             natt::NattProber,
-        },
+        }, TunnelCommand, TunnelConnector, TunnelEvent,
+        VpnTunnel,
     },
     util,
 };
@@ -199,12 +198,10 @@ impl IpsecTunnelConnector {
     }
 
     async fn do_session_exchange(&mut self, username: String) -> anyhow::Result<Arc<VpnSession>> {
-        let address = Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask)?;
-
         let om_reply = self
             .service
             .send_om_request(
-                Some(address),
+                None,
                 Some(Bytes::copy_from_slice(&util::get_device_id().as_bytes()[0..6])),
             )
             .await?;
