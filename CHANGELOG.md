@@ -1,5 +1,5 @@
 ## Next Version
-- Fixed a problem with volatile IP renewal (new address on each renewwal).
+- Fixed a problem when a new IP address was returned after each renewal.
 
 
 ## v4.4.1 (2025-05-30)
