@@ -267,9 +267,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.17.0"
+version = "3.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1628fb46dfa0b37568d12e5edd512553eccf6a22a78e8bde00bb4aed84d5bdbf"
+checksum = "793db76d6187cd04dff33004d8e6c9cc4e05cd330500379d2394209271b4aeee"
 
 [[package]]
 name = "byteorder"
@@ -376,9 +376,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.25"
+version = "1.2.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0fc897dc1e865cc67c0e05a836d9d3f1df3cbe442aa4a9473b18e12624a4951"
+checksum = "956a5e21988b87f372569b66183b78babf23ebc2e744b733e4350a752c4dafac"
 dependencies = [
  "shlex",
 ]
@@ -1485,7 +1485,7 @@ dependencies = [
 
 [[package]]
 name = "i18n"
-version = "4.4.1"
+version = "4.4.2"
 dependencies = [
  "cached",
  "fluent-templates",
@@ -2872,7 +2872,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 
 [[package]]
 name = "snx-rs"
-version = "4.4.1"
+version = "4.4.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -2888,7 +2888,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "4.4.1"
+version = "4.4.2"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -2915,7 +2915,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "4.4.1"
+version = "4.4.2"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -2962,7 +2962,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "4.4.1"
+version = "4.4.2"
 dependencies = [
  "anyhow",
  "clap",

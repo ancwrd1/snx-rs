@@ -1,3 +1,7 @@
+## Next Version
+- Fixed a problem with volatile IP renewal (new address on each renewwal).
+
+
 ## v4.4.1 (2025-05-30)
 - Added support for MD5, SHA384 and SHA512 hash algorithms for IKE SA.
 - Fixed xfrm module detection with some kernels and distros.
