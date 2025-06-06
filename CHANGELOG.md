@@ -1,4 +1,4 @@
-## Next Version
+## v4.4.2 (2025-06-06)
 - Fixed a problem when a new IP address was returned after each renewal.
 
 
