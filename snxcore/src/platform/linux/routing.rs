@@ -8,14 +8,12 @@ use crate::{model::params::TunnelParams, platform::RoutingConfigurator};
 
 pub struct LinuxRoutingConfigurator {
     device: String,
-    address: Ipv4Addr,
 }
 
 impl LinuxRoutingConfigurator {
-    pub fn new<S: AsRef<str>>(device: S, address: Ipv4Addr) -> Self {
+    pub fn new<S: AsRef<str>>(device: S, _address: Ipv4Addr) -> Self {
         Self {
             device: device.as_ref().to_string(),
-            address,
         }
     }
 
@@ -45,19 +43,6 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
 
     async fn setup_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
         debug!("Setting up default route through {}", self.device);
-        crate::util::run_command(
-            "ip",
-            [
-                "route",
-                "add",
-                "default",
-                "via",
-                &self.address.to_string(),
-                "dev",
-                &self.device,
-            ],
-        )
-        .await?;
 
         let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
         let dst = destination.to_string();
