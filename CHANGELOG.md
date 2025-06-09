@@ -1,6 +1,8 @@
-## v4.4.2 (2025-06-06)
-- Fixed a problem when a new IP address was returned after each renewal.
+## v4.4.3 (2025-06-09)
+- Fixed a regression with default-route option which did not work correctly.
 
+## v4.4.2 (2025-06-06)
+- Fixed a problem where a new IP address was returned after each renewal.
 
 ## v4.4.1 (2025-05-30)
 - Added support for MD5, SHA384 and SHA512 hash algorithms for IKE SA.
