@@ -317,8 +317,16 @@ impl LoginOption {
             id: "vpn_Username_Password".to_string(),
             secondary_realm_hash: String::new(),
             display_name: i18n::tr!("label-username-password"),
-            show_realm: 0,
-            factors: BTreeMap::default(),
+            show_realm: 1,
+            factors: BTreeMap::from([(
+                "1".to_owned(),
+                LoginFactor {
+                    factor_type: "password".to_owned(),
+                    securid_card_type: String::new(),
+                    certificate_storage_type: String::new(),
+                    custom_display_labels: LoginDisplayLabelSelect::Empty(String::new()),
+                },
+            )]),
         }
     }
 

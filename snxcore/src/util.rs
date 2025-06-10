@@ -17,7 +17,10 @@ use tracing::trace;
 use uuid::Uuid;
 
 use crate::{
-    model::{params::TunnelParams, proto::NetworkRange},
+    model::{
+        params::TunnelParams,
+        proto::{LoginOption, NetworkRange},
+    },
     server_info,
 };
 
@@ -136,15 +139,18 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
         ));
     }
 
-    if let Some(login_options_data) = info.login_options_data {
-        for opt in login_options_data
-            .login_options_list
-            .into_values()
-            .filter(|opt| opt.show_realm != 0)
-        {
-            let factors = opt.factors.into_values().map(|factor| factor.factor_type).join(", ");
-            values.push((format!("[{}]", opt.display_name), format!("{} ({})", opt.id, factors)));
-        }
+    let mut options_list = info
+        .login_options_data
+        .map(|data| data.login_options_list)
+        .unwrap_or_default();
+
+    if options_list.is_empty() {
+        options_list.insert(String::new(), LoginOption::unspecified());
+    }
+
+    for opt in options_list.into_values().filter(|opt| opt.show_realm != 0) {
+        let factors = opt.factors.into_values().map(|factor| factor.factor_type).join(", ");
+        values.push((format!("[{}]", opt.display_name), format!("{} ({})", opt.id, factors)));
     }
 
     let label_width = values
