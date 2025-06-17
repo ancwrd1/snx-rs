@@ -1,3 +1,6 @@
+## v4.4.4 (2025-06-17)
+- Fixed a regression in the UI where the empty login type list is displayed when VPN server does not advertize a list of login methods.
+
 ## v4.4.3 (2025-06-09)
 - Fixed a regression with default-route option which did not work correctly.
 
