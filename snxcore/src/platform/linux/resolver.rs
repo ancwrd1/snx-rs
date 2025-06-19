@@ -1,11 +1,8 @@
-use std::{
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::{fs, io::Write, path::PathBuf};
 
 use anyhow::Context;
 use async_trait::async_trait;
+use cached::proc_macro::cached;
 use tracing::debug;
 
 use crate::platform::{ResolverConfig, ResolverConfigurator};
@@ -59,7 +56,7 @@ pub fn new_resolver_configurator<S>(device: S) -> anyhow::Result<Box<dyn Resolve
 where
     S: AsRef<str>,
 {
-    match detect_resolver(RESOLV_CONF)? {
+    match detect_resolver(RESOLV_CONF.into())? {
         ResolverType::SystemdResolved => Ok(Box::new(SystemdResolvedConfigurator {
             device: device.as_ref().to_owned(),
         })),
@@ -97,11 +94,9 @@ fn read_symlinks(path: PathBuf, depth: u8) -> anyhow::Result<PathBuf> {
     }
 }
 
-fn detect_resolver<P>(path: P) -> anyhow::Result<ResolverType>
-where
-    P: AsRef<Path>,
-{
-    let resolve_conf_path = read_symlinks(path.as_ref().to_owned(), 10)?;
+#[cached(result = true)]
+fn detect_resolver(path: PathBuf) -> anyhow::Result<ResolverType> {
+    let resolve_conf_path = read_symlinks(path, 10)?;
 
     let result = if resolve_conf_path
         .canonicalize()?
