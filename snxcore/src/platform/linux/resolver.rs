@@ -194,7 +194,10 @@ impl ResolverConfigurator for ResolvConfConfigurator {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Error, ErrorKind};
+    use std::{
+        io::{Error, ErrorKind},
+        path::Path,
+    };
 
     use super::*;
 
