@@ -223,6 +223,8 @@ to perform automated translation via the AI agent of choice. Tested with Zed edi
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
 
+NOTE: the minimal support Rust version is 1.85.
+
 ## Acknowledgements
 
 Special thanks to the [cpyvpn](https://gitlab.com/cpvpn/cpyvpn) project for inspiration around SAML and IKEv1 exchange.
