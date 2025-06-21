@@ -62,12 +62,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Handle completions immediately and exit
     if let Some(shell) = cmdline_params.completions {
-        clap_complete::generate(
-            shell,
-            &mut CmdlineParams::command(),
-            "snx-rs",
-            &mut std::io::stdout(),
-        );
+        clap_complete::generate(shell, &mut CmdlineParams::command(), "snx-rs", &mut std::io::stdout());
         return Ok(());
     }
 
