@@ -453,6 +453,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "4.5.54"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aad5b1b4de04fead402672b48897030eec1f3bfe1550776322f59f6d6e6a5677"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "clap_derive"
 version = "4.5.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2870,6 +2879,7 @@ version = "4.4.4"
 dependencies = [
  "anyhow",
  "clap",
+ "clap_complete",
  "futures",
  "i18n",
  "ipnet",
@@ -2889,6 +2899,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "clap",
+ "clap_complete",
  "futures",
  "gtk4",
  "hex",
@@ -2960,6 +2971,7 @@ version = "4.4.4"
 dependencies = [
  "anyhow",
  "clap",
+ "clap_complete",
  "futures",
  "i18n",
  "snxcore",

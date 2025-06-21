@@ -195,6 +195,11 @@ pub struct CmdlineParams {
         help = "Enable port knock workaround for NAT-T probing"
     )]
     pub port_knock: Option<bool>,
+    #[clap(
+        long = "completions",
+        help = "Generate shell completions for the given shell"
+    )]
+    pub completions: Option<clap_complete::Shell>,
 }
 
 impl CmdlineParams {
