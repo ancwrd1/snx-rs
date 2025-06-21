@@ -39,9 +39,12 @@ enum SnxCommand {
     Info,
     #[clap(name = "completions", about = "Generate shell completions")]
     Completions {
-        #[clap(default_value="bash", help = "The shell to generate completions for (bash, elvish, fish, zsh))")]
+        #[clap(
+            default_value = "bash",
+            help = "The shell to generate completions for (bash, elvish, fish, zsh))"
+        )]
         shell: clap_complete::Shell,
-    }
+    },
 }
 
 impl From<SnxCommand> for ServiceCommand {
