@@ -13,6 +13,9 @@ repository = "https://github.com/ancwrd1/snx-rs"
 keywords = ["snx", "vpn", "ipsec"]
 publish = false
 
+[workspace.dependencies]
+clap_complete = { version = "4.5.*" }
+
 [profile.release]
 panic = "abort"
 

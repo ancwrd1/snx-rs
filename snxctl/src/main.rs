@@ -1,6 +1,6 @@
-use std::{future::Future, path::PathBuf, sync::Arc};
+use std::{future::Future, io, path::PathBuf, sync::Arc};
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use snxcore::{
     browser::SystemBrowser,
@@ -37,6 +37,11 @@ enum SnxCommand {
     Status,
     #[clap(name = "info", about = "Show server information")]
     Info,
+    #[clap(name = "completions", about = "Generate shell completions")]
+    Completions {
+        #[clap(default_value="bash", help = "The shell to generate completions for (bash, elvish, fish, zsh))")]
+        shell: clap_complete::Shell,
+    }
 }
 
 impl From<SnxCommand> for ServiceCommand {
@@ -47,6 +52,7 @@ impl From<SnxCommand> for ServiceCommand {
             SnxCommand::Reconnect => ServiceCommand::Reconnect,
             SnxCommand::Status => ServiceCommand::Status,
             SnxCommand::Info => ServiceCommand::Info,
+            SnxCommand::Completions { .. } => unreachable!("Handled separately in main"),
         }
     }
 }
@@ -73,6 +79,12 @@ where
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let params = CmdlineParams::parse();
+
+    // Handle completions immediately and exit
+    if let SnxCommand::Completions { shell } = &params.command {
+        clap_complete::generate(*shell, &mut CmdlineParams::command(), "snxctl", &mut io::stdout());
+        return Ok(());
+    }
 
     let config_file = params
         .config_file

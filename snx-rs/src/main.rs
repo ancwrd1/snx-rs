@@ -1,6 +1,6 @@
 use std::{future::Future, sync::Arc};
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
 use snxcore::{
@@ -59,6 +59,17 @@ where
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
+
+    // Handle completions immediately and exit
+    if let Some(shell) = cmdline_params.completions {
+        clap_complete::generate(
+            shell,
+            &mut CmdlineParams::command(),
+            "snx-rs",
+            &mut std::io::stdout(),
+        );
+        return Ok(());
+    }
 
     if cmdline_params.mode != OperationMode::Info && !is_root() {
         anyhow::bail!(tr!("error-no-root-privileges"));

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Duration};
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use gtk4::{
     Application, ApplicationWindow, License, Window,
     glib::{self, clone},
@@ -64,6 +64,17 @@ const APP_CSS: &str = include_str!("../assets/app.css");
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cmdline_params = params::CmdlineParams::parse();
+
+    // Handle completions immediately and exit
+    if let Some(shell) = cmdline_params.completions {
+        clap_complete::generate(
+            shell,
+            &mut CmdlineParams::command(),
+            "snx-rs-gui",
+            &mut std::io::stdout(),
+        );
+        return Ok(());
+    }
 
     let tunnel_params = Arc::new(TunnelParams::load(cmdline_params.config_file()).unwrap_or_default());
 
