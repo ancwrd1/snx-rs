@@ -136,7 +136,7 @@ impl ResolvConfConfigurator {
         let new_nameservers = config
             .dns_servers
             .iter()
-            .map(|s| format!("nameserver {}", s))
+            .map(|s| format!("nameserver {s}"))
             .collect::<Vec<_>>();
 
         let mut search = conf
@@ -156,7 +156,7 @@ impl ResolvConfConfigurator {
 
         if configure {
             if search.is_empty() {
-                search.push(format!("search {}", search_domains));
+                search.push(format!("search {search_domains}"));
             } else if !search.iter().any(|s| s.contains(&search_domains)) {
                 search[0] = format!("{} {}", search[0], search_domains);
             }
@@ -287,10 +287,10 @@ mod tests {
 
         let error = detect_resolver(symlink.clone()).expect_err("Invalid symlink should trigger error");
 
-        println!("{:#}", error);
+        println!("{error:#}");
 
         assert_eq!(
-            format!("{}", error),
+            format!("{error}"),
             format!("Failed to resolve symlink '{}'", symlink.display())
         );
         assert_eq!(
@@ -327,10 +327,10 @@ mod tests {
 
         let error = detect_resolver(symlink1.clone()).expect_err("Invalid symlink should trigger error");
 
-        println!("{:#}", error);
+        println!("{error:#}");
 
         assert_eq!(
-            format!("{}", error),
+            format!("{error}"),
             format!("Failed to resolve symlink '{}'", symlink1.display())
         );
         assert_eq!(
@@ -341,8 +341,7 @@ mod tests {
         let root_cause = format!("{}", error.root_cause());
         assert!(
             root_cause.contains("possible loop"),
-            "'{}' should contain 'possible loop'",
-            root_cause
+            "'{root_cause}' should contain 'possible loop'"
         );
     }
 

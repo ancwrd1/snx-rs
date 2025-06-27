@@ -444,7 +444,7 @@ impl TunnelParams {
         writeln!(buf, "port-knock={}", self.port_knock)?;
 
         if let Some(ref locale) = self.locale {
-            writeln!(buf, "locale={}", locale)?;
+            writeln!(buf, "locale={locale}")?;
         }
 
         writeln!(buf, "auto-connect={}", self.auto_connect)?;

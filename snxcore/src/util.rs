@@ -171,13 +171,13 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
         } else {
             i18n::translate(key)
         };
-        result.push_str(&format!("{:>label_width$}: {}", key_str, value));
+        result.push_str(&format!("{key_str:>label_width$}: {value}"));
         if index < values.len() - 1 {
             result.push('\n');
         }
     }
 
-    println!("{}", result);
+    println!("{result}");
     Ok(())
 }
 
@@ -197,7 +197,7 @@ pub fn resolve_ipv4_host(server_name: &str) -> anyhow::Result<Ipv4Addr> {
             IpAddr::V4(v4) => Some(v4),
             IpAddr::V6(_) => None,
         })
-        .context(format!("Cannot resolve {}", server_name))?;
+        .context(format!("Cannot resolve {server_name}"))?;
 
     Ok(address)
 }

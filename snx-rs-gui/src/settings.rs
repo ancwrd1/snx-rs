@@ -727,11 +727,11 @@ impl SettingsDialog {
         for locale in i18n::get_locales() {
             self.widgets
                 .locale
-                .append_text(&i18n::translate(&format!("language-{}", locale)));
+                .append_text(&i18n::translate(&format!("language-{locale}")));
         }
 
         if let Some(ref locale) = self.params.locale {
-            let translated = i18n::translate(&format!("language-{}", locale));
+            let translated = i18n::translate(&format!("language-{locale}"));
             self.select_combo_box_item(&self.widgets.locale, &translated);
         } else {
             self.widgets.locale.set_active(Some(0));

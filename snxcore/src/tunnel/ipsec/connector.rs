@@ -242,7 +242,7 @@ impl IpsecTunnelConnector {
             .split([',', ';'])
             .map(|s| {
                 if self.params.set_routing_domains && features.split_dns {
-                    format!("~{}", s)
+                    format!("~{s}")
                 } else {
                     s.to_owned()
                 }

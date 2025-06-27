@@ -86,7 +86,7 @@ async fn main() -> anyhow::Result<()> {
 
     let uid = unsafe { libc::getuid() };
 
-    let instance = SingleInstance::new(format!("/tmp/snx-rs-gui-{}.lock", uid))?;
+    let instance = SingleInstance::new(format!("/tmp/snx-rs-gui-{uid}.lock"))?;
     if !instance.is_single() {
         if let Some(mut command) = cmdline_params.command {
             if command == TrayEvent::Connect && tunnel_params.server_name.is_empty() {

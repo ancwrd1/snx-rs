@@ -46,7 +46,7 @@ pub async fn get_login_prompts(params: &TunnelParams) -> anyhow::Result<VecDeque
             LoginDisplayLabelSelect::LoginDisplayLabel(map) => map.get("password").map(|label| {
                 PromptInfo::new(
                     map.get("header").map(ToOwned::to_owned).unwrap_or_default(),
-                    format!("{}: ", label),
+                    format!("{label}: "),
                 )
             }),
             LoginDisplayLabelSelect::Empty(_) => None,

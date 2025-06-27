@@ -239,7 +239,7 @@ impl SslTunnel {
             .iter()
             .map(|s| {
                 if self.params.set_routing_domains && features.split_dns {
-                    format!("~{}", s)
+                    format!("~{s}")
                 } else {
                     s.clone()
                 }

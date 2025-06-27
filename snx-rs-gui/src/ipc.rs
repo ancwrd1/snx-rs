@@ -39,7 +39,7 @@ pub fn start_ipc_listener(sender: Sender<TrayEvent>) -> anyhow::Result<()> {
 
 fn ipc_name() -> anyhow::Result<Name<'static>> {
     let uid = unsafe { libc::getuid() };
-    Ok(format!("snx-rs-gui-{}", uid).to_ns_name::<GenericNamespaced>()?)
+    Ok(format!("snx-rs-gui-{uid}").to_ns_name::<GenericNamespaced>()?)
 }
 
 async fn handle_connection(

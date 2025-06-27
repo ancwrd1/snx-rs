@@ -208,9 +208,9 @@ fn to_json_value(v: &str) -> Value {
 
 fn format_value(value: &str) -> String {
     if value.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
-        format!("(\"{}\")", value)
+        format!("(\"{value}\")")
     } else {
-        format!("({})", value)
+        format!("({value})")
     }
 }
 
@@ -388,7 +388,7 @@ mod tests {
         let inner = expr.get("Response:data").unwrap().as_value().unwrap();
         assert_eq!(inner, "hello world");
 
-        let encoded = format!("{}", expr);
+        let encoded = format!("{expr}");
         assert_eq!(encoded, data);
     }
 
@@ -406,7 +406,7 @@ mod tests {
         let inner = expr.get("key").unwrap().as_value().unwrap();
         assert_eq!(inner, "Hello_world!");
 
-        let encoded = format!("{}", expr);
+        let encoded = format!("{expr}");
         assert_eq!(encoded, "(\n\t:key (\"Hello_world!\"))");
     }
 
@@ -424,7 +424,7 @@ mod tests {
         let inner = expr.get("key").unwrap().as_value().unwrap();
         assert_eq!(inner, "Hello_world");
 
-        let encoded = format!("{}", expr);
+        let encoded = format!("{expr}");
         assert_eq!(encoded, "(\n\t:key (Hello_world))");
     }
 

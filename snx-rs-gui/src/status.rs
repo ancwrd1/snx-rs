@@ -176,7 +176,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         let mut old_status = String::new();
         loop {
             let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
-            let status_str = format!("{:?}", new_status);
+            let status_str = format!("{new_status:?}");
             if old_status != status_str {
                 old_status = status_str;
                 if tx.send(new_status).await.is_err() {
