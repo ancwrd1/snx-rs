@@ -28,7 +28,14 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
             .css_classes(vec!["darkened"])
             .build(),
     );
-    form.append(&gtk4::Label::builder().label(value).halign(Align::Start).build());
+    form.append(
+        &gtk4::Label::builder()
+            .label(value)
+            .max_width_chars(60)
+            .wrap(true)
+            .halign(Align::Start)
+            .build(),
+    );
     form
 }
 
