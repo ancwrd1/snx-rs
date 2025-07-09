@@ -15,7 +15,7 @@ use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
-use crate::util;
+use crate::util::{self, ipv4net_to_string, parse_ipv4_or_subnet};
 
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
 
@@ -320,9 +320,9 @@ impl TunnelParams {
                 }
                 "default-route" => params.default_route = v.parse().unwrap_or_default(),
                 "no-routing" => params.no_routing = v.parse().unwrap_or_default(),
-                "add-routes" => params.add_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect(),
+                "add-routes" => params.add_routes = v.split(',').flat_map(|s| parse_ipv4_or_subnet(s).ok()).collect(),
                 "ignore-routes" => {
-                    params.ignore_routes = v.split(',').flat_map(|s| s.trim().parse().ok()).collect();
+                    params.ignore_routes = v.split(',').flat_map(|s| parse_ipv4_or_subnet(s).ok()).collect();
                 }
                 "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                 "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
@@ -394,7 +394,7 @@ impl TunnelParams {
             "add-routes={}",
             self.add_routes
                 .iter()
-                .map(|r| r.to_string())
+                .map(|r| ipv4net_to_string(*r))
                 .collect::<Vec<_>>()
                 .join(",")
         )?;
@@ -403,7 +403,7 @@ impl TunnelParams {
             "ignore-routes={}",
             self.ignore_routes
                 .iter()
-                .map(|r| r.to_string())
+                .map(|r| ipv4net_to_string(*r))
                 .collect::<Vec<_>>()
                 .join(",")
         )?;

@@ -221,6 +221,22 @@ pub fn parse_config<S: AsRef<str>>(config: S) -> anyhow::Result<HashMap<String, 
     Ok(result)
 }
 
+pub fn parse_ipv4_or_subnet(s: &str) -> anyhow::Result<Ipv4Net> {
+    if let Ok(ip) = s.parse::<Ipv4Net>() {
+        Ok(ip)
+    } else {
+        Ok(Ipv4Net::new(s.parse::<Ipv4Addr>()?, 32)?)
+    }
+}
+
+pub fn ipv4net_to_string(ip: Ipv4Net) -> String {
+    if ip.prefix_len() == 32 {
+        ip.addr().to_string()
+    } else {
+        ip.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -249,7 +265,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_range() {
+    fn test_parse_range() {
         let ipaddr = "10.0.10.10".parse::<Ipv4Addr>().unwrap();
         let range = NetworkRange {
             from: "10.0.0.0".parse().unwrap(),
@@ -262,5 +278,29 @@ mod tests {
         for subnet in subnets {
             assert_eq!(subnet.to_string(), "10.0.0.0/8");
         }
+    }
+
+    #[test]
+    fn test_parse_ipv4_or_subnet() {
+        assert_eq!(
+            parse_ipv4_or_subnet("10.0.0.1/8").unwrap(),
+            Ipv4Net::new([10, 0, 0, 1].into(), 8).unwrap()
+        );
+        assert_eq!(
+            parse_ipv4_or_subnet("10.0.0.2").unwrap(),
+            Ipv4Net::new([10, 0, 0, 2].into(), 32).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_ipv4net_to_string() {
+        assert_eq!(
+            ipv4net_to_string(Ipv4Net::new([10, 0, 0, 1].into(), 8).unwrap()),
+            "10.0.0.1/8"
+        );
+        assert_eq!(
+            ipv4net_to_string(Ipv4Net::new([10, 0, 0, 2].into(), 32).unwrap()),
+            "10.0.0.2"
+        );
     }
 }

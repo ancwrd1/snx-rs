@@ -5,13 +5,13 @@ use gtk4::{
     glib::{self, clone},
     prelude::*,
 };
-use ipnet::Ipv4Net;
 use snxcore::{
     model::{
         params::{TunnelParams, TunnelType},
         proto::LoginOption,
     },
     server_info,
+    util::{ipv4net_to_string, parse_ipv4_or_subnet},
 };
 use tokio::sync::mpsc::Sender;
 use tracing::warn;
@@ -124,14 +124,14 @@ impl MyWidgets {
         let add_routes = self.add_routes.text();
         if !add_routes.is_empty() {
             for r in add_routes.split(',') {
-                r.parse::<Ipv4Net>()?;
+                parse_ipv4_or_subnet(r)?;
             }
         }
 
         let ignored_routes = self.ignored_routes.text();
         if !ignored_routes.is_empty() {
             for r in ignored_routes.split(',') {
-                r.parse::<Ipv4Net>()?;
+                parse_ipv4_or_subnet(r)?;
             }
         }
 
@@ -258,7 +258,7 @@ impl SettingsDialog {
                 params
                     .add_routes
                     .iter()
-                    .map(|r| r.to_string())
+                    .map(|r| ipv4net_to_string(*r))
                     .collect::<Vec<_>>()
                     .join(","),
             )
@@ -270,7 +270,7 @@ impl SettingsDialog {
                 params
                     .ignore_routes
                     .iter()
-                    .map(|r| r.to_string())
+                    .map(|r| ipv4net_to_string(*r))
                     .collect::<Vec<_>>()
                     .join(","),
             )
@@ -599,14 +599,14 @@ impl SettingsDialog {
             .add_routes
             .text()
             .split(',')
-            .flat_map(|s| s.trim().parse().ok())
+            .flat_map(|s| parse_ipv4_or_subnet(s).ok())
             .collect();
         params.ignore_routes = self
             .widgets
             .ignored_routes
             .text()
             .split(',')
-            .flat_map(|s| s.trim().parse().ok())
+            .flat_map(|s| parse_ipv4_or_subnet(s).ok())
             .collect();
         params.no_keychain = self.widgets.no_keychain.is_active();
         params.ignore_server_cert = self.widgets.no_cert_check.is_active();
