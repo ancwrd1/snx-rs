@@ -169,7 +169,7 @@ impl AppTray {
             .is_ok_and(|status| *status != ConnectionStatus::Disconnected);
 
         self.tray_icon
-            .update(move |tray| {
+            .update(|tray| {
                 tray.status_label = status_label;
                 tray.icon = icon;
                 tray.connect_enabled = connect_enabled;

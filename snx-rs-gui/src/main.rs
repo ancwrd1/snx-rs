@@ -238,11 +238,10 @@ async fn status_poll(
     event_sender: mpsc::Sender<TrayEvent>,
     params: CmdlineParams,
 ) {
-    let mut prev_status = Arc::new(Err(anyhow::anyhow!(tr!("error-no-service-connection"))));
-
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
     let mut first_run = true;
+    let mut old_status = String::new();
 
     loop {
         let tunnel_params = Arc::new(TunnelParams::load(params.config_file()).unwrap_or_default());
@@ -250,18 +249,16 @@ async fn status_poll(
         let status = controller.command(ServiceCommand::Status, tunnel_params.clone()).await;
         let status_str = format!("{status:?}");
 
-        if status_str != format!("{:?}", *prev_status) {
-            prev_status = Arc::new(status);
-            let _ = command_sender
-                .send(TrayCommand::Update(Some(prev_status.clone())))
-                .await;
+        if status_str != old_status {
+            old_status = status_str;
+            let is_disconnected = matches!(status, Ok(ConnectionStatus::Disconnected));
+
+            let _ = command_sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
 
             if first_run {
                 first_run = false;
-                if tunnel_params.auto_connect {
-                    if let Ok(ConnectionStatus::Disconnected) = prev_status.as_ref() {
-                        let _ = event_sender.send(TrayEvent::Connect).await;
-                    }
+                if tunnel_params.auto_connect && is_disconnected {
+                    let _ = event_sender.send(TrayEvent::Connect).await;
                 }
             }
         }
