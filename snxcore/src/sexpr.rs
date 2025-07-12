@@ -197,8 +197,12 @@ impl fmt::Display for SExpression {
 fn to_json_value(v: &str) -> Value {
     if let Ok(i) = v.parse::<u32>() {
         Value::Number(i.into())
-    } else if let Ok(h) = u32::from_str_radix(v.trim_start_matches("0x"), 16) {
-        Value::Number(h.into())
+    } else if v.starts_with("0x") {
+        if let Ok(h) = u32::from_str_radix(v.trim_start_matches("0x"), 16) {
+            Value::Number(h.into())
+        } else {
+            Value::String(v.to_string())
+        }
     } else if let Ok(b) = v.parse::<bool>() {
         Value::Bool(b)
     } else {
@@ -445,5 +449,29 @@ mod tests {
         let expr = SExpression::from(&req);
         let s_expr = expr.to_string();
         assert!(s_expr.contains("RequestData ()"));
+    }
+
+    #[test]
+    fn test_nonhex_which_looks_hex_value() {
+        #[derive(Deserialize)]
+        struct Data {
+            key: String,
+        }
+
+        let sexpr = "(:key (AD))".parse::<SExpression>().unwrap();
+        let data: Data = sexpr.try_into().unwrap();
+        assert_eq!(data.key, "AD");
+    }
+
+    #[test]
+    fn test_hex_value() {
+        #[derive(Deserialize)]
+        struct Data {
+            key: u32,
+        }
+
+        let sexpr = "(:key (0xAD))".parse::<SExpression>().unwrap();
+        let data: Data = sexpr.try_into().unwrap();
+        assert_eq!(data.key, 0xad);
     }
 }
