@@ -1,3 +1,9 @@
+## v4.4.5 (2025-07-12)
+- Added a parameter to the command line tools to generate shell autocompletions.
+- For the routing options, allow to specify IP addresses without the CIDR /XX notation, in which case /32 is assumed.
+- Wrap UI labels in the status dialog if they are too long.
+- Fixed a bug for the incorrect parsing of hex-like strings in the server info response.
+
 ## v4.4.4 (2025-06-17)
 - Fixed a regression in the UI where the empty login type list is displayed when VPN server does not advertize a list of login methods.
 
