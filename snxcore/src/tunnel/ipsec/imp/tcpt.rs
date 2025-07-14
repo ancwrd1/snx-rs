@@ -15,6 +15,7 @@ use crate::{
         VpnSession,
         params::{TransportType, TunnelParams},
     },
+    server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
@@ -53,7 +54,10 @@ pub(crate) struct TcptIpsecTunnel(Box<TunIpsecTunnel>);
 
 impl TcptIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
-        let mut tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
+        let info = server_info::get(&params).await?;
+
+        let mut tcp =
+            tokio::net::TcpStream::connect((params.server_name.as_str(), info.connectivity_info.tcpt_port)).await?;
 
         tcp.handshake(TcptDataType::Esp).await?;
 

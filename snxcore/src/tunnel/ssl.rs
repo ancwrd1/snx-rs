@@ -29,6 +29,7 @@ use crate::{
         proto::{ClientHelloData, HelloReply, HelloReplyData, OfficeMode, OptionalRequest},
     },
     platform::{self, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
+    server_info,
     sexpr::SExpression,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
     util,
@@ -87,7 +88,10 @@ pub(crate) struct SslTunnel {
 
 impl SslTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
-        let tcp = tokio::net::TcpStream::connect((params.server_name.as_str(), 443)).await?;
+        let info = server_info::get(&params).await?;
+
+        let tcp =
+            tokio::net::TcpStream::connect((params.server_name.as_str(), info.connectivity_info.tcpt_port)).await?;
 
         let mut builder = TlsConnector::builder();
 
