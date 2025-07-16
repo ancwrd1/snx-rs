@@ -1,14 +1,6 @@
-use std::{
-    collections::HashMap,
-    ffi::OsStr,
-    fmt,
-    future::Future,
-    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
-    path::Path,
-    process::Output,
-};
+use std::{collections::HashMap, ffi::OsStr, fmt, future::Future, net::Ipv4Addr, path::Path, process::Output};
 
-use anyhow::{Context, anyhow};
+use anyhow::anyhow;
 use cached::proc_macro::cached;
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use itertools::Itertools;
@@ -188,18 +180,6 @@ pub fn get_device_id() -> String {
         .braced()
         .encode_upper(&mut Uuid::encode_buffer())
         .to_owned()
-}
-
-pub fn resolve_ipv4_host(server_name: &str) -> anyhow::Result<Ipv4Addr> {
-    let address = server_name
-        .to_socket_addrs()?
-        .find_map(|addr| match addr.ip() {
-            IpAddr::V4(v4) => Some(v4),
-            IpAddr::V6(_) => None,
-        })
-        .context(format!("Cannot resolve {server_name}"))?;
-
-    Ok(address)
 }
 
 pub fn parse_config<S: AsRef<str>>(config: S) -> anyhow::Result<HashMap<String, String>> {

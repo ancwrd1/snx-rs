@@ -111,11 +111,15 @@ impl IpsecTunnelConnector {
         let server_info = server_info::get(&params).await?;
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
+
+        let host = if let Some((host, _)) = params.server_name.split_once(':') {
+            host
+        } else {
+            &params.server_name
+        };
+
         socket
-            .connect(format!(
-                "{}:{}",
-                params.server_name, server_info.connectivity_info.natt_port
-            ))
+            .connect(&format!("{host}:{}", server_info.connectivity_info.natt_port))
             .await?;
 
         let IpAddr::V4(gateway_address) = socket.peer_addr()?.ip() else {
@@ -532,10 +536,9 @@ impl IpsecTunnelConnector {
 
         let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
 
-        let tcpt_address = format!("{}:{}", params.server_name, server_info.connectivity_info.tcpt_port)
-            .to_socket_addrs()?
-            .next()
-            .context("No address!")?;
+        let address = params.server_name_with_port(server_info.connectivity_info.tcpt_port);
+
+        let tcpt_address = address.to_socket_addrs()?.next().context("No address!")?;
 
         let transport = Box::new(TcptTransport::new(
             TcptDataType::Ike,

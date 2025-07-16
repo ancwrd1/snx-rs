@@ -48,10 +48,7 @@ impl NativeIpsecTunnel {
 
         let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
-        let gateway_address = util::resolve_ipv4_host(&format!(
-            "{}:{}",
-            params.server_name, server_info.connectivity_info.natt_port
-        ))?;
+        let gateway_address = params.server_name_to_ipv4(server_info.connectivity_info.natt_port)?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",

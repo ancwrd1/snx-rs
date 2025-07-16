@@ -90,8 +90,9 @@ impl SslTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let info = server_info::get(&params).await?;
 
-        let tcp =
-            tokio::net::TcpStream::connect((params.server_name.as_str(), info.connectivity_info.tcpt_port)).await?;
+        let address = params.server_name_with_port(info.connectivity_info.tcpt_port);
+
+        let tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
 
         let mut builder = TlsConnector::builder();
 
@@ -191,9 +192,12 @@ impl SslTunnel {
             let ipaddr = self.hello_reply.office_mode.ipaddr.parse().unwrap();
             let configurator = platform::new_routing_configurator(device.name(), ipaddr);
 
-            if let Ok(dest_ip) = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name)) {
-                let _ = configurator.remove_default_route(dest_ip).await;
+            if let Ok(info) = server_info::get(&self.params).await {
+                if let Ok(dest_ip) = self.params.server_name_to_ipv4(info.connectivity_info.tcpt_port) {
+                    let _ = configurator.remove_default_route(dest_ip).await;
+                }
             }
+
             if !self.params.no_dns {
                 let config = self.make_resolver_config().await;
                 let _ = self.setup_dns(config, device.name(), true).await;
@@ -209,7 +213,9 @@ impl SslTunnel {
         let ipaddr = self.hello_reply.office_mode.ipaddr.parse()?;
         let configurator = platform::new_routing_configurator(dev_name, ipaddr);
 
-        let dest_ip = util::resolve_ipv4_host(&format!("{}:443", self.params.server_name))?;
+        let dest_ip = self
+            .params
+            .server_name_to_ipv4(server_info::get(&self.params).await?.connectivity_info.tcpt_port)?;
 
         let mut subnets = self.params.add_routes.clone();
 

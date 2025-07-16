@@ -52,9 +52,10 @@ impl UdpIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         let server_info = server_info::get(&params).await?;
-        socket
-            .connect((params.server_name.as_str(), server_info.connectivity_info.natt_port))
-            .await?;
+
+        let address = params.server_name_with_port(server_info.connectivity_info.natt_port);
+
+        socket.connect(address.as_ref()).await?;
 
         let address = socket.peer_addr()?;
         let (sender, receiver) = make_channel(socket, address);

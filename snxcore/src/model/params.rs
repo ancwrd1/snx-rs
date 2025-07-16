@@ -1,13 +1,14 @@
 use std::{
+    borrow::Cow,
     fmt, fs,
     io::{Cursor, Write},
-    net::Ipv4Addr,
+    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
     path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
 };
 
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use base64::Engine;
 use directories_next::ProjectDirs;
 use i18n::tr;
@@ -474,5 +475,26 @@ impl TunnelParams {
 
     pub fn default_config_path() -> PathBuf {
         Self::default_config_dir().join("snx-rs.conf")
+    }
+
+    pub fn server_name_with_port(&self, port: u16) -> Cow<'_, str> {
+        if self.server_name.contains(':') {
+            Cow::Borrowed(self.server_name.as_str())
+        } else {
+            Cow::Owned(format!("{}:{}", self.server_name, port))
+        }
+    }
+
+    pub fn server_name_to_ipv4(&self, port: u16) -> anyhow::Result<Ipv4Addr> {
+        let address = self
+            .server_name_with_port(port)
+            .to_socket_addrs()?
+            .find_map(|addr| match addr.ip() {
+                IpAddr::V4(v4) => Some(v4),
+                IpAddr::V6(_) => None,
+            })
+            .context(format!("Cannot resolve {}", self.server_name))?;
+
+        Ok(address)
     }
 }

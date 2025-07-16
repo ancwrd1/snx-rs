@@ -59,18 +59,18 @@ impl TunIpsecTunnel {
         receiver: PacketReceiver,
         esp_transport: TransportType,
     ) -> anyhow::Result<Self> {
-        let server_info = server_info::get(&params).await?;
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
 
         let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
-        let (port, encap_type) = match esp_transport {
-            TransportType::Tcpt => (server_info.connectivity_info.tcpt_port, EspEncapType::Udp),
-            _ => (server_info.connectivity_info.tcpt_port, EspEncapType::None),
+        let encap_type = match esp_transport {
+            TransportType::Tcpt => EspEncapType::Udp,
+            _ => EspEncapType::None,
         };
 
-        let gateway_address = util::resolve_ipv4_host(&format!("{}:{}", params.server_name, port))?;
+        let gateway_address =
+            params.server_name_to_ipv4(server_info::get(&params).await?.connectivity_info.tcpt_port)?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",
