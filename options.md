@@ -2,7 +2,7 @@
 
 | Option                                    | Description                                                                                                                                           |
 |-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `server-name=<ip_or_address>`             | VPN server to connect to, this is a required parameter                                                                                                |
+| `server-name=<ip_or_address>[:port]`      | VPN server to connect to, this is a required parameter. Optional port can be specified if different from 443.                                         |
 | `login-type=vpn_xxx`                      | Authentication method, acquired from the server, this is a required parameter                                                                         |
 | `user-name=<username>`                    | User name to authenticate, not used for SAML or certificate authentication                                                                            |
 | `password=<pass>`                         | Optional password in base64 encoding                                                                                                                  |
