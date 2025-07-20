@@ -14,7 +14,7 @@ publish.workspace = true
 snxcore = { path = "../snxcore" }
 i18n = { path = "../i18n" }
 ksni = "0.3"
-gtk4 = "0.9"
+gtk4 = "0.10"
 png = "0.17"
 tracing = "0.1"
 tracing-subscriber = "0.3"
