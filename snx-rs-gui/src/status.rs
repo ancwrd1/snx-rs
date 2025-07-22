@@ -34,6 +34,7 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
             .max_width_chars(60)
             .wrap(true)
             .halign(Align::Start)
+            .selectable(true)
             .build(),
     );
     form
