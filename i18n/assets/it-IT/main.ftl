@@ -101,6 +101,16 @@ error-unknown-packet-type = Tipo di pacchetto sconosciuto
 error-no-sender = Nessun mittente
 error-empty-ccc-session = Sessione CCC vuota
 error-identity-timeout = Timeout durante l'attesa della risposta di identità, il tipo di accesso è corretto?
+error-not-challenge-state = Non è uno stato di sfida
+error-no-pkcs8 = Nessun percorso PEM PKCS8 fornito
+error-no-pkcs12 = Nessun percorso e password PKCS12 forniti
+error-no-pkcs11 = Nessun PIN PKCS11 fornito
+error-no-ipv4 = Nessun indirizzo IPv4 per {$server}
+error-no-ipsec-session = Nessuna sessione IPSEC
+error-no-challenge = Nessuna sfida nel payload
+error-endless-challenges = Loop infinito di sfide del nome utente
+error-cannot-send-request = Impossibile inviare la richiesta al servizio
+error-cannot-read-reply = Impossibile leggere la risposta dal servizio
 
 # Placeholder texts
 placeholder-domains = Domini separati da virgole

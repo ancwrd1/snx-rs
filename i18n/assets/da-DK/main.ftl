@@ -109,6 +109,8 @@ error-unknown-packet-type = Ukendt pakketype
 error-no-sender = Ingen afsender
 error-empty-ccc-session = Tom CCC-session
 error-identity-timeout = Timeout ved venten på identitetssvar, er adgangstypen korrekt?
+error-probing-failed = Sondering mislykkedes, serveren er ikke tilgængelig via NATT-port!
+error-no-connector-for-challenge-code = Ingen connector til at sende challenge-koden til!
 
 # Placeholder texts
 placeholder-domains = Domæner adskilt med komma
