@@ -136,8 +136,9 @@ impl MyWidgets {
             }
         }
 
-        if !self.ip_lease_time.text().trim().is_empty() {
-            self.ip_lease_time.text().parse::<u32>()?;
+        let ip_lease_time = self.ip_lease_time.text();
+        if !ip_lease_time.trim().is_empty() {
+            ip_lease_time.parse::<u32>()?;
         }
 
         Ok(())
@@ -650,20 +651,19 @@ impl SettingsDialog {
         params.port_knock = self.widgets.port_knock.is_active();
         params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
 
-        let active = self.widgets.locale.active();
-        let new_locale = match active {
+        let selected_locale = self.widgets.locale.active();
+        let new_locale = match selected_locale {
             None | Some(0) => None,
             Some(index) => i18n::get_locales().get(index as usize - 1).map(|l| l.to_string()),
         };
         params.locale = new_locale.clone();
         params.auto_connect = self.widgets.auto_connect.is_active();
 
-        let trimmed = self.widgets.ip_lease_time.text().trim().to_owned();
-
-        params.ip_lease_time = if trimmed.is_empty() {
+        let ip_lease_time = self.widgets.ip_lease_time.text();
+        params.ip_lease_time = if ip_lease_time.trim().is_empty() {
             None
         } else {
-            Some(Duration::from_secs(trimmed.parse()?))
+            Some(Duration::from_secs(ip_lease_time.parse()?))
         };
 
         i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
