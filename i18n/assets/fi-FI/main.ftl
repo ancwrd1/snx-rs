@@ -39,6 +39,7 @@ label-language = Kieli
 label-system-language = Järjestelmän oletus
 label-username-password = Käyttäjätunnus ja salasana
 label-auto-connect = Yhdistä automaattisesti käynnistyksessä
+label-ip-lease-time = Mukautettu IP-vuokra-aika, sekuntia
 
 # Tabs and expanders
 tab-general = Yleiset

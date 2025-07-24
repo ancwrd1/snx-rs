@@ -39,6 +39,7 @@ label-language = Sprog
 label-system-language = Systemstandard
 label-username-password = Brugernavn og adgangskode
 label-auto-connect = Forbind automatisk ved opstart
+label-ip-lease-time = Brugerdefineret IP-leasetid, sekunder
 
 # Tabs and expanders
 tab-general = Generelt

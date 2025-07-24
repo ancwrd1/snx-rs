@@ -39,6 +39,7 @@ label-language = Jazyk
 label-system-language = Systémové výchozí
 label-username-password = Uživatelské jméno a heslo
 label-auto-connect = Automaticky se připojit při spuštění
+label-ip-lease-time = Vlastní doba pronájmu IP, sekundy
 
 # Tabs and expanders
 tab-general = Obecné

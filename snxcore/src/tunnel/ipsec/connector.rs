@@ -223,13 +223,17 @@ impl IpsecTunnelConnector {
             .read_u32::<BigEndian>()?
             .into();
 
-        self.ipsec_session.address_lifetime = Duration::from_secs(
-            get_long_attribute(&om_reply, ConfigAttributeType::AddressExpiry)
-                .context("No address expiry in reply!")?
-                .reader()
-                .read_u32::<BigEndian>()?
-                .into(),
-        );
+        self.ipsec_session.address_lifetime = if let Some(lease) = self.params.ip_lease_time {
+            lease
+        } else {
+            Duration::from_secs(
+                get_long_attribute(&om_reply, ConfigAttributeType::AddressExpiry)
+                    .context("No address expiry in reply!")?
+                    .reader()
+                    .read_u32::<BigEndian>()?
+                    .into(),
+            )
+        };
         self.last_ip_lease = Some(SystemTime::now());
 
         self.ipsec_session.dns = get_long_attributes(&om_reply, ConfigAttributeType::Ipv4Dns)

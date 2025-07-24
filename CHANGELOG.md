@@ -1,3 +1,8 @@
+## v4.5.0 (next version)
+- Added a possibility to specify custom server port if it's different from 443.
+- UI labels are made selectable in the connection status dialog.
+- Added a new option `ip-lease-time`, to specify the custom IP lease time.
+
 ## v4.4.5 (2025-07-12)
 - Added a parameter to the command line tools to generate shell autocompletions.
 - For the routing options, allow to specify IP addresses without the CIDR /XX notation, in which case /32 is assumed.

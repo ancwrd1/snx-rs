@@ -39,6 +39,7 @@ label-language = Taal
 label-system-language = Systeemstandaard
 label-username-password = Gebruikersnaam en wachtwoord
 label-auto-connect = Automatisch verbinden bij opstarten
+label-ip-lease-time = Aangepaste IP-leasetijd, seconden
 
 # Tabs and expanders
 tab-general = Algemeen

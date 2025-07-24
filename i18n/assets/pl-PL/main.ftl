@@ -39,6 +39,7 @@ label-language = Język
 label-system-language = Domyślny systemowy
 label-username-password = Nazwa użytkownika i hasło
 label-auto-connect = Automatycznie łącz przy starcie
+label-ip-lease-time = Niestandardowy czas dzierżawy IP, sekundy
 
 # Tabs and expanders
 tab-general = Ogólne

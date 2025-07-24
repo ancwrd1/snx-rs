@@ -195,8 +195,12 @@ pub struct CmdlineParams {
         help = "Enable port knock workaround for NAT-T probing"
     )]
     pub port_knock: Option<bool>,
+
     #[clap(long = "completions", help = "Generate shell completions for the given shell")]
     pub completions: Option<clap_complete::Shell>,
+
+    #[clap(long = "ip-lease-time", short = 'P', help = "Custom IP lease time in seconds")]
+    pub ip_lease_time: Option<u64>,
 }
 
 impl CmdlineParams {
@@ -320,6 +324,10 @@ impl CmdlineParams {
 
         if let Some(port_knock) = self.port_knock {
             other.port_knock = port_knock;
+        }
+
+        if let Some(ip_lease_time) = self.ip_lease_time {
+            other.ip_lease_time = Some(Duration::from_secs(ip_lease_time));
         }
     }
 }

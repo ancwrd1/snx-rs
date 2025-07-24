@@ -33,3 +33,4 @@
 | `icon-theme=auto\|dark\|light`            | Set icon theme for the GUI app.                                                                                                                       |
 | `locale=<locale>`                         | Override system locale for i18n support.                                                                                                              |
 | `auto-connect=true\|false`                | Automatically connect when the GUI frontend starts.                                                                                                   |
+| `ip-lease-time=NN`                        | Override IP lease time with a given value in seconds. The default is to use the lease time acquired from the VPN server.                              |

@@ -48,7 +48,7 @@ zbus = { version = "5", default-features = false, features = ["tokio"] }
 secret-service = {  version = "5", features = ["rt-tokio-crypto-rust"] }
 uuid = { version = "1", features = ["v4", "v5"] }
 opener = { version = "0.8"}
-cached = {  version = "0.55",  features = ["async"] }
+cached = {  version = "0.56",  features = ["async"] }
 openssl-sys = "0.9"
 openssl = "0.10"
 itertools = "0.14"

@@ -71,6 +71,7 @@ struct MyWidgets {
     button_box: gtk4::Box,
     locale: gtk4::ComboBoxText,
     auto_connect: gtk4::Switch,
+    ip_lease_time: gtk4::Entry,
 }
 
 impl MyWidgets {
@@ -133,6 +134,10 @@ impl MyWidgets {
             for r in ignored_routes.split(',') {
                 parse_ipv4_or_subnet(r)?;
             }
+        }
+
+        if !self.ip_lease_time.text().trim().is_empty() {
+            self.ip_lease_time.text().parse::<u32>()?;
         }
 
         Ok(())
@@ -333,6 +338,14 @@ impl SettingsDialog {
             .active(params.auto_connect)
             .halign(Align::Start)
             .build();
+        let ip_lease_time = gtk4::Entry::builder()
+            .text(
+                params
+                    .ip_lease_time
+                    .map(|v| v.as_secs().to_string())
+                    .unwrap_or_default(),
+            )
+            .build();
 
         let error = gtk4::Label::new(None);
         error.set_visible(false);
@@ -503,6 +516,7 @@ impl SettingsDialog {
             button_box,
             locale,
             auto_connect,
+            ip_lease_time,
         });
 
         let widgets2 = widgets.clone();
@@ -643,6 +657,14 @@ impl SettingsDialog {
         };
         params.locale = new_locale.clone();
         params.auto_connect = self.widgets.auto_connect.is_active();
+
+        let trimmed = self.widgets.ip_lease_time.text().trim().to_owned();
+
+        params.ip_lease_time = if trimmed.is_empty() {
+            None
+        } else {
+            Some(Duration::from_secs(trimmed.parse()?))
+        };
 
         i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
 
@@ -843,6 +865,10 @@ impl SettingsDialog {
         let port_knock = self.form_box(&tr!("label-port-knock"));
         port_knock.append(&self.widgets.port_knock);
         misc_box.append(&port_knock);
+
+        let ip_lease_time = self.form_box(&tr!("label-ip-lease-time"));
+        ip_lease_time.append(&self.widgets.ip_lease_time);
+        misc_box.append(&ip_lease_time);
 
         misc_box
     }

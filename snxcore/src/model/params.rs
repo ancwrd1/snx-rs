@@ -248,6 +248,7 @@ pub struct TunnelParams {
     pub port_knock: bool,
     pub locale: Option<String>,
     pub auto_connect: bool,
+    pub ip_lease_time: Option<Duration>,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -288,6 +289,7 @@ impl Default for TunnelParams {
             port_knock: false,
             locale: None,
             auto_connect: false,
+            ip_lease_time: None,
             config_file: Self::default_config_path(),
         }
     }
@@ -347,6 +349,13 @@ impl TunnelParams {
                 "port-knock" => params.port_knock = v.parse().unwrap_or_default(),
                 "locale" => params.locale = Some(v),
                 "auto-connect" => params.auto_connect = v.parse().unwrap_or_default(),
+                "ip-lease-time" => {
+                    params.ip_lease_time = if !v.trim().is_empty() {
+                        v.parse::<u64>().ok().map(Duration::from_secs)
+                    } else {
+                        None
+                    };
+                }
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -449,6 +458,11 @@ impl TunnelParams {
         }
 
         writeln!(buf, "auto-connect={}", self.auto_connect)?;
+        writeln!(
+            buf,
+            "ip-lease-time={}",
+            self.ip_lease_time.map(|v| v.as_secs().to_string()).unwrap_or_default()
+        )?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);
