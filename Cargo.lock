@@ -2907,7 +2907,6 @@ dependencies = [
  "hex",
  "i18n",
  "interprocess",
- "ipnet",
  "ksni",
  "libc",
  "once_cell",
