@@ -1,13 +1,9 @@
-use std::{
-    fs::Permissions,
-    os::unix::fs::PermissionsExt,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use anyhow::{Context, anyhow};
 use futures::{FutureExt, SinkExt, StreamExt};
 use i18n::tr;
+use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Listener};
 use tokio::sync::{Mutex, RwLock, mpsc};
 use tracing::{debug, warn};
 
@@ -18,7 +14,7 @@ use crate::{
     tunnel::{self, TunnelConnector, TunnelEvent},
 };
 
-pub const DEFAULT_LISTEN_PATH: &str = "/var/run/snx-rs.sock";
+pub const DEFAULT_NAME: &str = "snx-rs.sock";
 
 const MAX_PACKET_SIZE: usize = 1_000_000;
 
@@ -42,30 +38,30 @@ struct CancelState {
 }
 
 pub struct CommandServer {
-    listen_path: PathBuf,
+    name: String,
     connection_state: Arc<ConnectionState>,
 }
 
 impl Default for CommandServer {
     fn default() -> Self {
-        Self::with_listen_path(DEFAULT_LISTEN_PATH)
+        Self::with_name(DEFAULT_NAME)
     }
 }
 
 impl CommandServer {
-    pub fn with_listen_path<P: AsRef<Path>>(listen_path: P) -> Self {
+    pub fn with_name<S: AsRef<str>>(name: S) -> Self {
         Self {
-            listen_path: listen_path.as_ref().to_owned(),
+            name: name.as_ref().to_owned(),
             connection_state: Arc::new(ConnectionState::default()),
         }
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
-        debug!("Starting command server on {}", self.listen_path.display());
-        let _ = std::fs::remove_file(&self.listen_path);
+        debug!("Starting command server: {}", self.name);
 
-        let socket = tokio::net::UnixListener::bind(&self.listen_path)?;
-        std::fs::set_permissions(&self.listen_path, Permissions::from_mode(0o777))?;
+        let listener = interprocess::local_socket::ListenerOptions::new()
+            .name(self.name.to_ns_name::<GenericNamespaced>()?)
+            .create_tokio()?;
 
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
@@ -104,8 +100,8 @@ impl CommandServer {
                         }
                     }
                 }
-                result = socket.accept() => {
-                    let (stream, _) = result?;
+                result = listener.accept() => {
+                    let stream = result?;
                     let sender = event_sender.clone();
                     let state = self.connection_state.clone();
 
@@ -144,7 +140,7 @@ impl ServerHandler {
         }
     }
 
-    async fn handle(&mut self, stream: tokio::net::UnixStream) -> anyhow::Result<()> {
+    async fn handle(&mut self, stream: interprocess::local_socket::tokio::Stream) -> anyhow::Result<()> {
         let mut codec = tokio_util::codec::LengthDelimitedCodec::builder()
             .max_frame_length(MAX_PACKET_SIZE)
             .new_framed(stream);

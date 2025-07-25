@@ -52,6 +52,7 @@ cached = {  version = "0.56",  features = ["async"] }
 openssl-sys = "0.9"
 openssl = "0.10"
 itertools = "0.14"
+interprocess = { version = "2", features = ["tokio"] }
 
 [dev-dependencies]
 tempfile = "3"

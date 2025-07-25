@@ -3,7 +3,7 @@ use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 use anyhow::anyhow;
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
-use tokio::net::UnixStream;
+use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Stream};
 use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::warn;
 
@@ -15,7 +15,7 @@ use crate::{
     },
     platform::{self, Keychain},
     prompt::SecurePrompt,
-    server::DEFAULT_LISTEN_PATH,
+    server::DEFAULT_NAME,
     server_info,
 };
 
@@ -55,7 +55,7 @@ pub struct ServiceController<B, P> {
     username: String,
     mfa_index: usize,
     browser_controller: B,
-    stream: Option<UnixStream>,
+    stream: Option<interprocess::local_socket::tokio::Stream>,
     otp_cancel_sender: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
@@ -77,12 +77,19 @@ where
         }
     }
 
-    async fn get_stream(&mut self) -> anyhow::Result<&mut UnixStream> {
+    async fn get_stream(&mut self) -> anyhow::Result<&mut interprocess::local_socket::tokio::Stream> {
         match self.stream.take() {
             Some(stream) => Ok(self.stream.insert(stream)),
-            None => Ok(self.stream.insert(
-                tokio::time::timeout(SERVICE_CONNECT_TIMEOUT, UnixStream::connect(DEFAULT_LISTEN_PATH)).await??,
-            )),
+            None => {
+                let name = DEFAULT_NAME.to_ns_name::<GenericNamespaced>()?;
+                Ok(self.stream.insert(
+                    tokio::time::timeout(
+                        SERVICE_CONNECT_TIMEOUT,
+                        interprocess::local_socket::tokio::Stream::connect(name),
+                    )
+                    .await??,
+                ))
+            }
         }
     }
 
