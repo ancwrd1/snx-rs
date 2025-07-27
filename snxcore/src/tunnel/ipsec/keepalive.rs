@@ -2,9 +2,9 @@ use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     sync::{
         Arc,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -16,26 +16,22 @@ use crate::{
 };
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
-const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(5);
-const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(5);
+const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(2);
+const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(2);
 const KEEPALIVE_MAX_RETRIES: u32 = 5;
 
-// picked from wireshark logs
-fn make_keepalive_packet() -> [u8; 84] {
-    let mut data = [0u8; 84];
+fn make_keepalive_packet() -> [u8; 12] {
+    static KEEPALIVE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
-    // 0x00000011 looks like a packet type, KEEPALIVE in this case
-    data[0..4].copy_from_slice(&0x0000_0011u32.to_be_bytes());
+    let mut data = [0u8; 12];
 
-    // 0x0001 is probably a direction: request or response. We get 0x0002 as a response back.
-    data[4..6].copy_from_slice(&0x0001u16.to_be_bytes());
+    let counter = (KEEPALIVE_COUNTER.fetch_add(1, Ordering::SeqCst) & 0xffff_fffff) as u32;
 
-    // this looks like a content type, probably means TIMESTAMP
+    data[0..4].copy_from_slice(&counter.to_be_bytes());
+    data[4..6].copy_from_slice(&0x0003u16.to_be_bytes());
     data[6..8].copy_from_slice(&0x0002u16.to_be_bytes());
+    data[8..10].copy_from_slice(&0x000cu16.to_be_bytes());
 
-    // timestamp
-    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
-    data[8..16].copy_from_slice(&timestamp.to_be_bytes());
     data
 }
 
