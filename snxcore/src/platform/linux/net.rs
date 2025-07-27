@@ -70,15 +70,13 @@ impl LinuxNetworkInterface {
     }
 
     async fn is_firewalld_active(&self) -> bool {
-        util::run_command("firewall-cmd", ["--state"]).await.is_ok() && self.chain_exists(FIREWALLD_CHAIN_NAME).await
+        // util::run_command("firewall-cmd", ["--state"]).await.is_ok()
+        //     && self.get_chain_rules(FIREWALLD_CHAIN_NAME).await.is_ok()
+        false
     }
 
     async fn get_chain_rules(&self, chain: &str) -> anyhow::Result<String> {
         util::run_command("nft", ["list", "chain", "inet", FIREWALLD_TABLE_NAME, chain]).await
-    }
-
-    async fn chain_exists(&self, chain: &str) -> bool {
-        self.get_chain_rules(chain).await.is_ok()
     }
 
     async fn add_chain(&self, chain: &str) -> anyhow::Result<()> {
@@ -111,7 +109,6 @@ impl LinuxNetworkInterface {
     }
     async fn set_allow_firewalld_icmp_invalid_state(&self, device_name: &str) -> anyhow::Result<()> {
         if !self.is_firewalld_active().await {
-            debug!("firewalld/nftables not active");
             return Ok(());
         }
 
