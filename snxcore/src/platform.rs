@@ -1,4 +1,5 @@
 use std::{
+    marker::PhantomData,
     net::{Ipv4Addr, SocketAddr},
     time::Duration,
 };
@@ -7,12 +8,9 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use ipnet::Ipv4Net;
 #[cfg(target_os = "linux")]
-use linux as platform_impl;
-pub use platform_impl::{
-    IpsecImpl, KeychainImpl, NetworkInterfaceImpl, RoutingImpl, SingleInstance, get_features, get_machine_uuid, init,
-    new_resolver_configurator,
-};
+use linux::LinuxPlatformAccess as PlatformAccessImpl;
 use tokio::net::UdpSocket;
+use uuid::Uuid;
 
 use crate::model::IpsecSession;
 
@@ -109,24 +107,40 @@ pub trait NetworkInterface {
     fn poll_online(&self);
 }
 
-pub fn new_ipsec_configurator(
-    name: &str,
-    ipsec_session: IpsecSession,
-    src_port: u16,
-    dest_ip: Ipv4Addr,
-    dest_port: u16,
-) -> anyhow::Result<impl IpsecConfigurator + use<>> {
-    IpsecImpl::new(name, ipsec_session, src_port, dest_ip, dest_port)
+pub trait SingleInstance {
+    fn is_single(&self) -> bool;
 }
 
-pub fn new_keychain() -> impl Keychain {
-    KeychainImpl::new()
+pub struct Platform(PhantomData<()>);
+
+impl Platform {
+    pub fn get() -> impl PlatformAccess {
+        PlatformAccessImpl
+    }
 }
 
-pub fn new_routing_configurator<S: AsRef<str>>(device: S, address: Ipv4Addr) -> impl RoutingConfigurator {
-    RoutingImpl::new(device, address)
-}
-
-pub fn new_network_interface() -> impl NetworkInterface {
-    NetworkInterfaceImpl::new()
+pub trait PlatformAccess {
+    fn get_features(&self) -> PlatformFeatures;
+    fn new_resolver_configurator<S: AsRef<str>>(
+        &self,
+        device: S,
+    ) -> anyhow::Result<Box<dyn ResolverConfigurator + Send + Sync>>;
+    fn new_keychain(&self) -> impl Keychain + Send + Sync;
+    fn get_machine_uuid(&self) -> anyhow::Result<Uuid>;
+    fn init(&self);
+    fn new_ipsec_configurator(
+        &self,
+        name: &str,
+        ipsec_session: IpsecSession,
+        src_port: u16,
+        dest_ip: Ipv4Addr,
+        dest_port: u16,
+    ) -> anyhow::Result<impl IpsecConfigurator + use<Self> + Send + Sync>;
+    fn new_routing_configurator<S: AsRef<str>>(
+        &self,
+        device: S,
+        address: Ipv4Addr,
+    ) -> impl RoutingConfigurator + Send + Sync;
+    fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync;
+    fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance>;
 }

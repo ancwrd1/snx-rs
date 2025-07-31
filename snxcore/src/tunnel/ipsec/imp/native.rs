@@ -16,7 +16,9 @@ use tracing::debug;
 use crate::{
     ccc::CccHttpClient,
     model::{ConnectionInfo, VpnSession, params::TunnelParams},
-    platform::{self, IpsecConfigurator, ResolverConfig, RoutingConfigurator, UdpEncap, UdpSocketExt},
+    platform::{
+        IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncap, UdpSocketExt,
+    },
     server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
@@ -58,7 +60,7 @@ impl NativeIpsecTunnel {
         let ready = Arc::new(AtomicBool::new(false));
         let keepalive_runner = KeepaliveRunner::new(
             server_info.connectivity_info.server_ip,
-            if params.no_keepalive || !platform::get_features().await.ipsec_keepalive {
+            if params.no_keepalive || !Platform::get().get_features().ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
                 ready.clone()
@@ -74,7 +76,7 @@ impl NativeIpsecTunnel {
             .unwrap_or(TunnelParams::DEFAULT_IPSEC_IF_NAME)
             .to_owned();
 
-        let mut configurator = platform::new_ipsec_configurator(
+        let mut configurator = Platform::get().new_ipsec_configurator(
             &device_name,
             ipsec_session.clone(),
             natt_socket.local_addr()?.port(),
@@ -101,7 +103,7 @@ impl NativeIpsecTunnel {
     async fn setup_dns(&self, resolver_config: &ResolverConfig, cleanup: bool) -> anyhow::Result<()> {
         debug!("Configuring resolver: {:?}", resolver_config);
 
-        let resolver = platform::new_resolver_configurator(&self.device_name)?;
+        let resolver = Platform::get().new_resolver_configurator(&self.device_name)?;
 
         if cleanup {
             resolver.cleanup(resolver_config).await?;
@@ -115,7 +117,8 @@ impl NativeIpsecTunnel {
     async fn setup_routing(&self) -> anyhow::Result<()> {
         let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
 
-        let configurator = platform::new_routing_configurator(&self.device_name, session.address);
+        let platform = Platform::get();
+        let configurator = platform.new_routing_configurator(&self.device_name, session.address);
 
         let mut subnets = self.params.add_routes.clone();
 

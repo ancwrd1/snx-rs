@@ -13,7 +13,7 @@ use crate::{
         ConnectionStatus, MfaChallenge, MfaType, PromptInfo, TunnelServiceRequest, TunnelServiceResponse,
         params::TunnelParams,
     },
-    platform::{self, Keychain},
+    platform::{Keychain, Platform, PlatformAccess},
     prompt::SecurePrompt,
     server::DEFAULT_NAME,
     server_info,
@@ -140,7 +140,10 @@ where
                     && !params.no_keychain
                     && !input.is_empty()
                 {
-                    let _ = platform::new_keychain().store_password(&self.username, &input).await;
+                    let _ = Platform::get()
+                        .new_keychain()
+                        .store_password(&self.username, &input)
+                        .await;
                 }
                 result
             }
@@ -200,7 +203,7 @@ where
                 self.username = input.clone();
 
                 if !self.username.is_empty() && !params.no_keychain && params.password.is_empty() {
-                    if let Ok(password) = platform::new_keychain().acquire_password(&self.username).await {
+                    if let Ok(password) = Platform::get().new_keychain().acquire_password(&self.username).await {
                         self.password_from_keychain = password;
                     }
                 }
@@ -220,7 +223,7 @@ where
         }
 
         if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {
-            if let Ok(password) = platform::new_keychain().acquire_password(&params.user_name).await {
+            if let Ok(password) = Platform::get().new_keychain().acquire_password(&params.user_name).await {
                 self.password_from_keychain = password;
             }
         }

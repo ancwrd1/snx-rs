@@ -11,7 +11,7 @@ use tracing::{trace, warn};
 
 use crate::{
     model::proto::KeepaliveRequestData,
-    platform::{self, NetworkInterface},
+    platform::{NetworkInterface, Platform, PlatformAccess},
     tunnel::ssl::PacketSender,
 };
 
@@ -42,7 +42,7 @@ impl KeepaliveRunner {
 
         tokio::spawn(async move {
             loop {
-                if platform::new_network_interface().is_online() {
+                if Platform::get().new_network_interface().is_online() {
                     if keepalive_counter.load(Ordering::SeqCst) >= KEEPALIVE_MAX_RETRIES {
                         let msg = "No response for keepalive packets, tunnel appears stuck";
                         warn!(msg);

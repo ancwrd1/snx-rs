@@ -10,7 +10,7 @@ use snxcore::{
         MfaType, PromptInfo, SessionState,
         params::{OperationMode, TunnelParams, TunnelType},
     },
-    platform::{self, NetworkInterface, SingleInstance},
+    platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
     server_info, tunnel,
@@ -70,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
         anyhow::bail!(tr!("error-no-root-privileges"));
     }
 
-    platform::init();
+    Platform::get().init();
 
     let mode = cmdline_params.mode;
 
@@ -111,13 +111,18 @@ async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
 }
 
 async fn main_command() -> anyhow::Result<()> {
-    let instance = SingleInstance::new("/var/run/snx-rs.lock")?;
+    let platform = Platform::get();
+    let instance = platform.new_single_instance("/var/run/snx-rs.lock")?;
     if !instance.is_single() {
         eprintln!("{}", tr!("cli-another-instance-running"));
         return Ok(());
     }
 
-    if let Err(e) = platform::new_network_interface().start_network_state_monitoring().await {
+    if let Err(e) = Platform::get()
+        .new_network_interface()
+        .start_network_state_monitoring()
+        .await
+    {
         warn!("Unable to start network monitoring: {}", e);
     }
     let server = CommandServer::default();
@@ -196,7 +201,11 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
     let tunnel = connector.create_tunnel(session.clone(), command_sender).await?;
 
-    if let Err(e) = platform::new_network_interface().start_network_state_monitoring().await {
+    if let Err(e) = Platform::get()
+        .new_network_interface()
+        .start_network_state_monitoring()
+        .await
+    {
         warn!("Unable to start network monitoring: {}", e);
     }
 

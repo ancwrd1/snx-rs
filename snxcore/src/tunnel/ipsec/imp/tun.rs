@@ -27,7 +27,7 @@ use crate::{
         ConnectionInfo, VpnSession,
         params::{TransportType, TunnelParams},
     },
-    platform::{self, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
+    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
     server_info,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ipsec::keepalive::KeepaliveRunner},
     util,
@@ -104,14 +104,18 @@ impl TunIpsecTunnel {
     async fn cleanup(&mut self) {
         if let Some(device) = self.tun_device.take() {
             if let Some(session) = self.session.ipsec_session.as_ref() {
-                let configurator = platform::new_routing_configurator(device.name(), session.address);
+                let platform = Platform::get();
+                let configurator = platform.new_routing_configurator(device.name(), session.address);
                 let _ = configurator.remove_default_route(self.gateway_address).await;
                 let _ = configurator.remove_keepalive_route(self.gateway_address).await;
                 if !self.params.no_dns {
                     let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
                     let _ = self.setup_dns(&config, device.name(), true).await;
                 }
-                let _ = platform::new_network_interface().delete_device(device.name()).await;
+                let _ = Platform::get()
+                    .new_network_interface()
+                    .delete_device(device.name())
+                    .await;
             }
         }
     }
@@ -119,7 +123,8 @@ impl TunIpsecTunnel {
     pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
         let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
 
-        let configurator = platform::new_routing_configurator(dev_name, session.address);
+        let platform = Platform::get();
+        let configurator = platform.new_routing_configurator(dev_name, session.address);
 
         let mut subnets = self.params.add_routes.clone();
 
@@ -153,7 +158,7 @@ impl TunIpsecTunnel {
         dev_name: &str,
         cleanup: bool,
     ) -> anyhow::Result<()> {
-        let resolver = new_resolver_configurator(dev_name)?;
+        let resolver = Platform::get().new_resolver_configurator(dev_name)?;
 
         if cleanup {
             resolver.cleanup(resolver_config).await?;
@@ -204,7 +209,10 @@ impl VpnTunnel for TunIpsecTunnel {
             self.setup_dns(&resolver_config, &tun_name, false).await?;
         }
 
-        let _ = platform::new_network_interface().configure_device(&tun_name).await;
+        let _ = Platform::get()
+            .new_network_interface()
+            .configure_device(&tun_name)
+            .await;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 
@@ -328,7 +336,8 @@ impl VpnTunnel for TunIpsecTunnel {
                                 "IP address changed from {} to {}, replacing it for device {}",
                                 ip_address, new_address, tun_name
                             );
-                            if let Err(e) = platform::new_network_interface()
+                            if let Err(e) = Platform::get()
+                                .new_network_interface()
                                 .replace_ip_address(&tun_name, ip_address, new_address)
                                 .await
                             {
@@ -350,7 +359,7 @@ impl VpnTunnel for TunIpsecTunnel {
 
         let keepalive_runner = KeepaliveRunner::new(
             server_info.connectivity_info.server_ip,
-            if self.params.no_keepalive || !platform::get_features().await.ipsec_keepalive {
+            if self.params.no_keepalive || !Platform::get().get_features().ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
                 ready.clone()

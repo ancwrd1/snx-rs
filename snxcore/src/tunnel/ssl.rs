@@ -28,7 +28,7 @@ use crate::{
         params::{TransportType, TunnelParams},
         proto::{ClientHelloData, HelloReply, HelloReplyData, OfficeMode, OptionalRequest},
     },
-    platform::{self, NetworkInterface, ResolverConfig, RoutingConfigurator, new_resolver_configurator},
+    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
     server_info,
     sexpr::SExpression,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
@@ -190,7 +190,8 @@ impl SslTunnel {
 
         if let Some(device) = self.tun_device.take() {
             let ipaddr = self.hello_reply.office_mode.ipaddr.parse().unwrap();
-            let configurator = platform::new_routing_configurator(device.name(), ipaddr);
+            let platform = Platform::get();
+            let configurator = platform.new_routing_configurator(device.name(), ipaddr);
 
             if let Ok(info) = server_info::get(&self.params).await {
                 if let Ok(dest_ip) = self.params.server_name_to_ipv4(info.connectivity_info.tcpt_port) {
@@ -202,7 +203,10 @@ impl SslTunnel {
                 let config = self.make_resolver_config().await;
                 let _ = self.setup_dns(config, device.name(), true).await;
             }
-            let _ = platform::new_network_interface().delete_device(device.name()).await;
+            let _ = Platform::get()
+                .new_network_interface()
+                .delete_device(device.name())
+                .await;
             debug!("Signing out");
             let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
             let _ = client.signout().await;
@@ -211,7 +215,8 @@ impl SslTunnel {
 
     pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
         let ipaddr = self.hello_reply.office_mode.ipaddr.parse()?;
-        let configurator = platform::new_routing_configurator(dev_name, ipaddr);
+        let platform = Platform::get();
+        let configurator = platform.new_routing_configurator(dev_name, ipaddr);
 
         let dest_ip = self
             .params
@@ -237,7 +242,7 @@ impl SslTunnel {
     }
 
     async fn make_resolver_config(&self) -> ResolverConfig {
-        let features = platform::get_features().await;
+        let features = Platform::get().get_features();
 
         let acquired_domains = self
             .hello_reply
@@ -289,7 +294,7 @@ impl SslTunnel {
     }
 
     pub async fn setup_dns(&self, config: ResolverConfig, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
-        let resolver = new_resolver_configurator(dev_name)?;
+        let resolver = Platform::get().new_resolver_configurator(dev_name)?;
 
         if cleanup {
             resolver.cleanup(&config).await?;
@@ -335,7 +340,10 @@ impl VpnTunnel for SslTunnel {
             self.setup_dns(resolver_config.clone(), &tun_name, false).await?;
         }
 
-        let _ = platform::new_network_interface().configure_device(&tun_name).await;
+        let _ = Platform::get()
+            .new_network_interface()
+            .configure_device(&tun_name)
+            .await;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 

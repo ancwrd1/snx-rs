@@ -7,7 +7,7 @@ use tracing::{debug, trace};
 
 use crate::{
     model::{IpsecSession, params::TunnelParams},
-    platform::{self, IpsecConfigurator, NetworkInterface, RoutingConfigurator},
+    platform::{IpsecConfigurator, NetworkInterface, Platform, PlatformAccess, RoutingConfigurator},
     util,
 };
 
@@ -36,7 +36,10 @@ impl XfrmLink<'_> {
         ])
         .await?;
 
-        let _ = platform::new_network_interface().configure_device(self.name).await;
+        let _ = Platform::get()
+            .new_network_interface()
+            .configure_device(self.name)
+            .await;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
         util::run_command("sysctl", ["-qw", &opt]).await?;
@@ -342,7 +345,7 @@ impl XfrmConfigurator {
 #[async_trait::async_trait]
 impl IpsecConfigurator for XfrmConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()> {
-        self.source_ip = platform::new_network_interface().get_default_ip().await?;
+        self.source_ip = Platform::get().new_network_interface().get_default_ip().await?;
         debug!("Source IP: {}", self.source_ip);
         debug!("Target IP: {}", self.dest_ip);
 
@@ -402,7 +405,8 @@ impl IpsecConfigurator for XfrmConfigurator {
                 "IP address changed from {} to {}, replacing it for device {}",
                 old_address, link.address, link.name
             );
-            platform::new_network_interface()
+            Platform::get()
+                .new_network_interface()
                 .replace_ip_address(link.name, old_address, link.address)
                 .await?;
         }
@@ -411,7 +415,8 @@ impl IpsecConfigurator for XfrmConfigurator {
     }
 
     async fn cleanup(&mut self) {
-        let configurator = platform::new_routing_configurator(&self.name, self.ipsec_session.address);
+        let platform = Platform::get();
+        let configurator = platform.new_routing_configurator(&self.name, self.ipsec_session.address);
 
         let _ = self
             .configure_xfrm_state(

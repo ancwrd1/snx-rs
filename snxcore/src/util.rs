@@ -13,6 +13,7 @@ use crate::{
         params::TunnelParams,
         proto::{LoginOption, NetworkRange},
     },
+    platform::{Platform, PlatformAccess},
     server_info,
 };
 
@@ -175,7 +176,7 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
 
 #[cached]
 pub fn get_device_id() -> String {
-    let machine_uuid = crate::platform::get_machine_uuid().unwrap_or_else(|_| Uuid::new_v4());
+    let machine_uuid = Platform::get().get_machine_uuid().unwrap_or_else(|_| Uuid::new_v4());
     Uuid::new_v5(&Uuid::NAMESPACE_OID, machine_uuid.as_bytes())
         .braced()
         .encode_upper(&mut Uuid::encode_buffer())

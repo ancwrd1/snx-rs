@@ -12,7 +12,7 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::params::TunnelParams,
-    platform::{self, NetworkInterface, UdpSocketExt},
+    platform::{NetworkInterface, Platform, PlatformAccess, UdpSocketExt},
 };
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
@@ -57,7 +57,7 @@ impl KeepaliveRunner {
         let mut num_failures = 0;
 
         loop {
-            if platform::new_network_interface().is_online() {
+            if Platform::get().new_network_interface().is_online() {
                 if self.ready.load(Ordering::SeqCst) {
                     trace!("Sending keepalive to {}", self.dst);
 
@@ -81,7 +81,7 @@ impl KeepaliveRunner {
                 }
             } else {
                 num_failures = 0;
-                platform::new_network_interface().poll_online();
+                Platform::get().new_network_interface().poll_online();
             }
 
             let interval = if num_failures == 0 {

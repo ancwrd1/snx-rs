@@ -26,7 +26,7 @@ use crate::{
         params::{CertType, TransportType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData},
     },
-    platform::{self, NetworkInterface},
+    platform::{NetworkInterface, Platform, PlatformAccess},
     server_info,
     sexpr::SExpression,
     tunnel::{
@@ -129,7 +129,7 @@ impl IpsecTunnelConnector {
         let prober = NattProber::new(socket.peer_addr()?, params.port_knock);
 
         let esp_transport = if prober.probe().await.is_ok() {
-            if platform::get_features().await.ipsec_native {
+            if Platform::get().get_features().ipsec_native {
                 TransportType::Native
             } else {
                 TransportType::Udp
@@ -242,7 +242,7 @@ impl IpsecTunnelConnector {
             .map(Into::into)
             .collect();
 
-        let features = platform::get_features().await;
+        let features = Platform::get().get_features();
 
         self.ipsec_session.domains = get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
             .map(|v| String::from_utf8_lossy(&v).into_owned())
@@ -400,7 +400,7 @@ impl IpsecTunnelConnector {
     }
 
     async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
-        if !platform::new_network_interface().is_online() {
+        if !Platform::get().new_network_interface().is_online() {
             return Ok(());
         }
 
@@ -586,7 +586,7 @@ impl IpsecTunnelConnector {
 #[async_trait]
 impl TunnelConnector for IpsecTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
-        let my_address = platform::new_network_interface().get_default_ip().await?;
+        let my_address = Platform::get().new_network_interface().get_default_ip().await?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
 
