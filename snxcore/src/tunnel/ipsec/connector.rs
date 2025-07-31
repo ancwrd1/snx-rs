@@ -129,7 +129,7 @@ impl IpsecTunnelConnector {
         let prober = NattProber::new(socket.peer_addr()?, params.port_knock);
 
         let esp_transport = if prober.probe().await.is_ok() {
-            if Platform::get().get_features().ipsec_native {
+            if Platform::get().get_features().await.ipsec_native {
                 TransportType::Native
             } else {
                 TransportType::Udp
@@ -242,7 +242,7 @@ impl IpsecTunnelConnector {
             .map(Into::into)
             .collect();
 
-        let features = Platform::get().get_features();
+        let features = Platform::get().get_features().await;
 
         self.ipsec_session.domains = get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
             .map(|v| String::from_utf8_lossy(&v).into_owned())

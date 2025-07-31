@@ -120,7 +120,7 @@ impl Platform {
 }
 
 pub trait PlatformAccess {
-    fn get_features(&self) -> PlatformFeatures;
+    fn get_features(&self) -> impl Future<Output = PlatformFeatures> + Send;
     fn new_resolver_configurator<S: AsRef<str>>(
         &self,
         device: S,

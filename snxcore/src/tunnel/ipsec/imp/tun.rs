@@ -359,7 +359,7 @@ impl VpnTunnel for TunIpsecTunnel {
 
         let keepalive_runner = KeepaliveRunner::new(
             server_info.connectivity_info.server_ip,
-            if self.params.no_keepalive || !Platform::get().get_features().ipsec_keepalive {
+            if self.params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
                 ready.clone()

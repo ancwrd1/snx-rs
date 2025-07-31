@@ -2,7 +2,6 @@ use std::{
     fs,
     net::{Ipv4Addr, SocketAddr},
     os::fd::{AsFd, AsRawFd, OwnedFd},
-    sync::mpsc,
     time::Duration,
 };
 
@@ -142,17 +141,10 @@ pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
 }
 
 #[cached]
-fn is_xfrm_available() -> bool {
-    let (tx, rx) = mpsc::channel();
-
-    tokio::spawn(async move {
-        let _ = util::run_command("modprobe", ["xfrm_interface"]).await;
-        let modules = tokio::fs::read_to_string("/proc/modules").await.unwrap_or_default();
-        let result = modules.lines().any(|line| line.starts_with("xfrm_"));
-        tx.send(result)
-    });
-
-    let result = rx.recv().unwrap_or(false);
+async fn is_xfrm_available() -> bool {
+    let _ = util::run_command("modprobe", ["xfrm_interface"]).await;
+    let modules = tokio::fs::read_to_string("/proc/modules").await.unwrap_or_default();
+    let result = modules.lines().any(|line| line.starts_with("xfrm_"));
 
     debug!("Kernel xfrm available: {}", result);
 
@@ -162,9 +154,9 @@ fn is_xfrm_available() -> bool {
 pub struct LinuxPlatformAccess;
 
 impl PlatformAccess for LinuxPlatformAccess {
-    fn get_features(&self) -> PlatformFeatures {
+    async fn get_features(&self) -> PlatformFeatures {
         PlatformFeatures {
-            ipsec_native: is_xfrm_available(),
+            ipsec_native: is_xfrm_available().await,
             ipsec_keepalive: true,
             split_dns: true,
         }
@@ -232,8 +224,8 @@ impl PlatformAccess for LinuxPlatformAccess {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_xfrm_check() {
-        assert!(is_xfrm_available());
+    #[tokio::test]
+    async fn test_xfrm_check() {
+        assert!(is_xfrm_available().await);
     }
 }

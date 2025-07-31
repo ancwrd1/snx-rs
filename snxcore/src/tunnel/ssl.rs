@@ -242,7 +242,7 @@ impl SslTunnel {
     }
 
     async fn make_resolver_config(&self) -> ResolverConfig {
-        let features = Platform::get().get_features();
+        let features = Platform::get().get_features().await;
 
         let acquired_domains = self
             .hello_reply
