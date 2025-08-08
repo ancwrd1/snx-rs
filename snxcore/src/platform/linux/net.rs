@@ -198,6 +198,8 @@ impl NetworkInterface for LinuxNetworkInterface {
 
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
         util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
+        let opt = format!("net.ipv4.conf.{device_name}.promote_secondaries=1");
+        let _ = util::run_command("sysctl", ["-qw", &opt]).await?;
         let _ = self.set_allow_firewalld_icmp_invalid_state(device_name).await;
         Ok(())
     }
