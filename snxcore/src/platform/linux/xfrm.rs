@@ -41,14 +41,14 @@ impl XfrmLink<'_> {
             .configure_device(self.name)
             .await;
 
-        let opt = format!("net.ipv4.conf.{}.disable_policy=1", self.name);
-        util::run_command("sysctl", ["-qw", &opt]).await?;
+        let opt = format!("net.ipv4.conf.{}.disable_policy", self.name);
+        super::sysctl(opt, "1")?;
 
-        let opt = format!("net.ipv4.conf.{}.rp_filter=0", self.name);
-        util::run_command("sysctl", ["-qw", &opt]).await?;
+        let opt = format!("net.ipv4.conf.{}.rp_filter", self.name);
+        super::sysctl(opt, "0")?;
 
-        let opt = format!("net.ipv4.conf.{}.forwarding=1", self.name);
-        util::run_command("sysctl", ["-qw", &opt]).await?;
+        let opt = format!("net.ipv4.conf.{}.forwarding", self.name);
+        super::sysctl(opt, "1")?;
 
         iproute2(&[
             "link",

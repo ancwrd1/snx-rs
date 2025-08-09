@@ -7,13 +7,14 @@ use std::{
 
 use anyhow::anyhow;
 use cached::proc_macro::cached;
+use itertools::Itertools;
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
     sys::stat::Mode,
     unistd,
 };
 use tokio::net::UdpSocket;
-use tracing::debug;
+use tracing::{debug, trace, warn};
 use uuid::Uuid;
 
 use crate::{
@@ -32,6 +33,17 @@ mod routing;
 pub mod xfrm;
 
 const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
+
+pub fn sysctl<K, V>(key: K, value: V) -> anyhow::Result<()>
+where
+    K: AsRef<str>,
+    V: AsRef<str>,
+{
+    let path = format!("/proc/sys/{}", key.as_ref().split('.').join("/"));
+    trace!("Writing {} to {}", value.as_ref(), path);
+    fs::write(path, value.as_ref()).inspect_err(|e| warn!("{e}"))?;
+    Ok(())
+}
 
 #[async_trait::async_trait]
 impl UdpSocketExt for UdpSocket {

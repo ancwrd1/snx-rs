@@ -14,10 +14,6 @@ use crate::{platform::NetworkInterface, util};
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
-const SNX_RS_CHAIN_NAME: &str = "filter_SNXRS_ICMP";
-const FIREWALLD_CHAIN_NAME: &str = "filter_INPUT";
-const FIREWALLD_TABLE_NAME: &str = "firewalld";
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum NetworkManagerState {
     Unknown,
@@ -67,82 +63,6 @@ pub struct LinuxNetworkInterface;
 impl LinuxNetworkInterface {
     pub fn new() -> Self {
         Self
-    }
-
-    async fn is_firewalld_active(&self) -> bool {
-        // util::run_command("firewall-cmd", ["--state"]).await.is_ok()
-        //     && self.get_chain_rules(FIREWALLD_CHAIN_NAME).await.is_ok()
-        false
-    }
-
-    async fn get_chain_rules(&self, chain: &str) -> anyhow::Result<String> {
-        util::run_command("nft", ["list", "chain", "inet", FIREWALLD_TABLE_NAME, chain]).await
-    }
-
-    async fn add_chain(&self, chain: &str) -> anyhow::Result<()> {
-        util::run_command("nft", ["add", "chain", "inet", FIREWALLD_TABLE_NAME, chain]).await?;
-        Ok(())
-    }
-
-    async fn add_icmp_rule(&self, chain: &str, device_name: &str) -> anyhow::Result<()> {
-        util::run_command(
-            "nft",
-            [
-                "add",
-                "rule",
-                "inet",
-                FIREWALLD_TABLE_NAME,
-                chain,
-                "iifname",
-                device_name,
-                "icmp",
-                "type",
-                "destination-unreachable",
-                "icmp",
-                "code",
-                "port-unreachable",
-                "accept",
-            ],
-        )
-        .await?;
-        Ok(())
-    }
-    async fn set_allow_firewalld_icmp_invalid_state(&self, device_name: &str) -> anyhow::Result<()> {
-        if !self.is_firewalld_active().await {
-            return Ok(());
-        }
-
-        self.add_chain(SNX_RS_CHAIN_NAME).await?;
-
-        let output = self.get_chain_rules(SNX_RS_CHAIN_NAME).await?;
-        if !output.contains(device_name) {
-            debug!("Adding rule for {device_name} to {SNX_RS_CHAIN_NAME} chain");
-            self.add_icmp_rule(SNX_RS_CHAIN_NAME, device_name).await?;
-        } else {
-            debug!("Rule for {device_name} already exists");
-        }
-
-        let output = self.get_chain_rules(FIREWALLD_CHAIN_NAME).await?;
-
-        if !output.contains(SNX_RS_CHAIN_NAME) {
-            debug!("Modifying {FIREWALLD_CHAIN_NAME} chain");
-
-            util::run_command(
-                "nft",
-                [
-                    "insert",
-                    "rule",
-                    "inet",
-                    FIREWALLD_TABLE_NAME,
-                    FIREWALLD_CHAIN_NAME,
-                    "jump",
-                    SNX_RS_CHAIN_NAME,
-                ],
-            )
-            .await?;
-        }
-
-        Ok(())
     }
 }
 
@@ -198,9 +118,8 @@ impl NetworkInterface for LinuxNetworkInterface {
 
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
         util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
-        let opt = format!("net.ipv4.conf.{device_name}.promote_secondaries=1");
-        let _ = util::run_command("sysctl", ["-qw", &opt]).await?;
-        let _ = self.set_allow_firewalld_icmp_invalid_state(device_name).await;
+        let opt = format!("net.ipv4.conf.{device_name}.promote_secondaries");
+        super::sysctl(opt, "1")?;
         Ok(())
     }
 
