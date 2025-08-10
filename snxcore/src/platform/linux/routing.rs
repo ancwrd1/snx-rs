@@ -41,14 +41,22 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
         Ok(())
     }
 
-    async fn setup_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
-        debug!("Setting up default route through {}", self.device);
+    async fn setup_default_route(&self, destination: Ipv4Addr, disable_ipv6: bool) -> anyhow::Result<()> {
+        debug!(
+            "Setting up default route through {}, disable IPv6: {disable_ipv6}",
+            self.device
+        );
 
         let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
         let dst = destination.to_string();
 
         crate::util::run_command("ip", ["route", "add", "table", &port, "default", "dev", &self.device]).await?;
         crate::util::run_command("ip", ["rule", "add", "not", "to", &dst, "table", &port]).await?;
+
+        if disable_ipv6 {
+            super::sysctl("net.ipv6.conf.all.disable_ipv6", "1")?;
+            super::sysctl("net.ipv6.conf.default.disable_ipv6", "1")?;
+        }
 
         Ok(())
     }
@@ -74,11 +82,16 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
         Ok(())
     }
 
-    async fn remove_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
+    async fn remove_default_route(&self, destination: Ipv4Addr, enable_ipv6: bool) -> anyhow::Result<()> {
         let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
         let dst = destination.to_string();
 
         crate::util::run_command("ip", ["rule", "del", "not", "to", &dst, "table", &port]).await?;
+
+        if enable_ipv6 {
+            super::sysctl("net.ipv6.conf.all.disable_ipv6", "0")?;
+            super::sysctl("net.ipv6.conf.default.disable_ipv6", "0")?;
+        }
 
         Ok(())
     }

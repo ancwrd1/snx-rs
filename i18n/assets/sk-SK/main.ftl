@@ -40,6 +40,7 @@ label-system-language = Systémové predvolené
 label-username-password = Používateľské meno a heslo
 label-auto-connect = Automaticky sa pripojiť pri štarte
 label-ip-lease-time = Vlastný čas prenájmu IP, sekundy
+label-disable-ipv6 = Zakázať IPv6, keď je povolená predvolená trasa
 
 # Tabs and expanders
 tab-general = Všeobecné

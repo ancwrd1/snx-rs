@@ -40,6 +40,7 @@ label-system-language = Systemstandard
 label-username-password = Användarnamn och lösenord
 label-auto-connect = Anslut automatiskt vid start
 label-ip-lease-time = Anpassad IP-leasetid, sekunder
+label-disable-ipv6 = Inaktivera IPv6 när standardrutt är aktiverad
 
 # Tabs and expanders
 tab-general = Allmänt

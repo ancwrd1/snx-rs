@@ -72,6 +72,7 @@ struct MyWidgets {
     locale: gtk4::ComboBoxText,
     auto_connect: gtk4::Switch,
     ip_lease_time: gtk4::Entry,
+    disable_ipv6: gtk4::Switch,
 }
 
 impl MyWidgets {
@@ -347,6 +348,10 @@ impl SettingsDialog {
                     .unwrap_or_default(),
             )
             .build();
+        let disable_ipv6 = gtk4::Switch::builder()
+            .active(params.disable_ipv6)
+            .halign(Align::Start)
+            .build();
 
         let error = gtk4::Label::new(None);
         error.set_visible(false);
@@ -518,6 +523,7 @@ impl SettingsDialog {
             locale,
             auto_connect,
             ip_lease_time,
+            disable_ipv6,
         });
 
         let widgets2 = widgets.clone();
@@ -658,6 +664,7 @@ impl SettingsDialog {
         };
         params.locale = new_locale.clone();
         params.auto_connect = self.widgets.auto_connect.is_active();
+        params.disable_ipv6 = self.widgets.disable_ipv6.is_active();
 
         let ip_lease_time = self.widgets.ip_lease_time.text();
         params.ip_lease_time = if ip_lease_time.trim().is_empty() {
@@ -922,6 +929,10 @@ impl SettingsDialog {
         let ignored_routes = self.form_box(&tr!("label-ignored-routes"));
         ignored_routes.append(&self.widgets.ignored_routes);
         routing_box.append(&ignored_routes);
+
+        let disable_ipv6 = self.form_box(&tr!("label-disable-ipv6"));
+        disable_ipv6.append(&self.widgets.disable_ipv6);
+        routing_box.append(&disable_ipv6);
 
         routing_box
     }

@@ -126,7 +126,9 @@ impl NativeIpsecTunnel {
 
         if !self.params.no_routing {
             if self.params.default_route {
-                configurator.setup_default_route(self.gateway_address).await?;
+                configurator
+                    .setup_default_route(self.gateway_address, self.params.disable_ipv6)
+                    .await?;
                 default_route_set = true;
             } else {
                 subnets.extend(&self.subnets);
@@ -154,6 +156,15 @@ impl NativeIpsecTunnel {
             let _ = self.setup_dns(&config, true).await;
         }
         self.configurator.cleanup().await;
+
+        if let Some(session) = self.session.ipsec_session.as_ref() {
+            let platform = Platform::get();
+            let configurator = platform.new_routing_configurator(&self.device_name, session.address);
+            let _ = configurator.remove_keepalive_route(self.gateway_address).await;
+            let _ = configurator
+                .remove_default_route(self.gateway_address, self.params.disable_ipv6)
+                .await;
+        }
     }
 }
 

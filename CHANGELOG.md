@@ -1,3 +1,7 @@
+## Next version
+- Fixed a problem with IP address renewal for some Linux distros which have net.ipv4.conf.default.promote_secondaries set to 0.
+- Added `disable-ipv6` option to help prevent IPv6 leaks. It disables IPv6 globally when the `default-route` setting is enabled.
+
 ## v4.5.0 (2025-07-27)
 - Added a possibility to specify custom server port if it's different from 443.
 - UI labels are made selectable in the connection status dialog.

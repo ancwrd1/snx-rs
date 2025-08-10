@@ -249,6 +249,7 @@ pub struct TunnelParams {
     pub locale: Option<String>,
     pub auto_connect: bool,
     pub ip_lease_time: Option<Duration>,
+    pub disable_ipv6: bool,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -290,6 +291,7 @@ impl Default for TunnelParams {
             locale: None,
             auto_connect: false,
             ip_lease_time: None,
+            disable_ipv6: false,
             config_file: Self::default_config_path(),
         }
     }
@@ -356,6 +358,7 @@ impl TunnelParams {
                         None
                     };
                 }
+                "disable-ipv6" => params.disable_ipv6 = v.parse().unwrap_or_default(),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -463,6 +466,7 @@ impl TunnelParams {
             "ip-lease-time={}",
             self.ip_lease_time.map(|v| v.as_secs().to_string()).unwrap_or_default()
         )?;
+        writeln!(buf, "disable-ipv6={}", self.disable_ipv6)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);

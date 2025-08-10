@@ -40,6 +40,7 @@ label-system-language = Systemstandard
 label-username-password = Benutzername und Passwort
 label-auto-connect = Automatisch beim Start verbinden
 label-ip-lease-time = Benutzerdefinierte IP-Lease-Zeit, Sekunden
+label-disable-ipv6 = IPv6 deaktivieren, wenn die Standardroute aktiviert ist
 
 # Tabs and expanders
 tab-general = Allgemein

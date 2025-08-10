@@ -196,7 +196,9 @@ impl SslTunnel {
             if let Ok(info) = server_info::get(&self.params).await
                 && let Ok(dest_ip) = self.params.server_name_to_ipv4(info.connectivity_info.tcpt_port)
             {
-                let _ = configurator.remove_default_route(dest_ip).await;
+                let _ = configurator
+                    .remove_default_route(dest_ip, self.params.disable_ipv6)
+                    .await;
             }
 
             if !self.params.no_dns {
@@ -226,7 +228,9 @@ impl SslTunnel {
 
         if !self.params.no_routing {
             if self.params.default_route {
-                configurator.setup_default_route(dest_ip).await?;
+                configurator
+                    .setup_default_route(dest_ip, self.params.disable_ipv6)
+                    .await?;
             } else {
                 subnets.extend(util::ranges_to_subnets(&self.hello_reply.range));
             }

@@ -84,9 +84,9 @@ pub trait Keychain {
 #[async_trait]
 pub trait RoutingConfigurator {
     async fn add_routes(&self, routes: &[Ipv4Net], ignore_routes: &[Ipv4Net]) -> anyhow::Result<()>;
-    async fn setup_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
+    async fn setup_default_route(&self, destination: Ipv4Addr, disable_ipv6: bool) -> anyhow::Result<()>;
     async fn setup_keepalive_route(&self, destination: Ipv4Addr, with_table: bool) -> anyhow::Result<()>;
-    async fn remove_default_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
+    async fn remove_default_route(&self, destination: Ipv4Addr, enable_ipv6: bool) -> anyhow::Result<()>;
     async fn remove_keepalive_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
 }
 

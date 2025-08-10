@@ -201,6 +201,13 @@ pub struct CmdlineParams {
 
     #[clap(long = "ip-lease-time", short = 'P', help = "Custom IP lease time in seconds")]
     pub ip_lease_time: Option<u64>,
+
+    #[clap(
+        long = "disable-ipv6",
+        short = 'Q',
+        help = "Disable IPv6 when default route is enabled"
+    )]
+    pub disable_ipv6: Option<bool>,
 }
 
 impl CmdlineParams {
@@ -328,6 +335,10 @@ impl CmdlineParams {
 
         if let Some(ip_lease_time) = self.ip_lease_time {
             other.ip_lease_time = Some(Duration::from_secs(ip_lease_time));
+        }
+
+        if let Some(disable_ipv6) = self.disable_ipv6 {
+            other.disable_ipv6 = disable_ipv6;
         }
     }
 }

@@ -7,7 +7,7 @@ use tracing::{debug, trace};
 
 use crate::{
     model::{IpsecSession, params::TunnelParams},
-    platform::{IpsecConfigurator, NetworkInterface, Platform, PlatformAccess, RoutingConfigurator},
+    platform::{IpsecConfigurator, NetworkInterface, Platform, PlatformAccess},
     util,
 };
 
@@ -415,9 +415,6 @@ impl IpsecConfigurator for XfrmConfigurator {
     }
 
     async fn cleanup(&mut self) {
-        let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(&self.name, self.ipsec_session.address);
-
         let _ = self
             .configure_xfrm_state(
                 CommandType::Delete,
@@ -445,8 +442,5 @@ impl IpsecConfigurator for XfrmConfigurator {
             .await;
 
         let _ = self.new_xfrm_link().delete().await;
-
-        let _ = configurator.remove_keepalive_route(self.dest_ip).await;
-        let _ = configurator.remove_default_route(self.dest_ip).await;
     }
 }

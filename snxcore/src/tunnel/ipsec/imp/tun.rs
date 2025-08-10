@@ -107,7 +107,9 @@ impl TunIpsecTunnel {
         {
             let platform = Platform::get();
             let configurator = platform.new_routing_configurator(device.name(), session.address);
-            let _ = configurator.remove_default_route(self.gateway_address).await;
+            let _ = configurator
+                .remove_default_route(self.gateway_address, self.params.disable_ipv6)
+                .await;
             let _ = configurator.remove_keepalive_route(self.gateway_address).await;
             if !self.params.no_dns {
                 let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
@@ -132,7 +134,9 @@ impl TunIpsecTunnel {
 
         if !self.params.no_routing {
             if self.params.default_route {
-                configurator.setup_default_route(self.gateway_address).await?;
+                configurator
+                    .setup_default_route(self.gateway_address, self.params.disable_ipv6)
+                    .await?;
                 default_route_set = true;
             } else {
                 subnets.extend(&self.subnets);

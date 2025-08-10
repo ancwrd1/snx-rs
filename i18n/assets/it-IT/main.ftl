@@ -40,6 +40,7 @@ label-system-language = Predefinito di sistema
 label-username-password = Nome utente e password
 label-auto-connect = Connetti automaticamente all'avvio
 label-ip-lease-time = Tempo di lease IP personalizzato, secondi
+label-disable-ipv6 = Disattiva IPv6 quando è abilitata la route predefinita
 
 # Tabs and expanders
 tab-general = Generale
