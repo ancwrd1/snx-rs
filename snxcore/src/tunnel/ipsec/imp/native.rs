@@ -147,11 +147,11 @@ impl NativeIpsecTunnel {
     }
 
     async fn cleanup(&mut self) {
-        if !self.params.no_dns {
-            if let Some(session) = self.session.ipsec_session.as_ref() {
-                let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
-                let _ = self.setup_dns(&config, true).await;
-            }
+        if !self.params.no_dns
+            && let Some(session) = self.session.ipsec_session.as_ref()
+        {
+            let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+            let _ = self.setup_dns(&config, true).await;
         }
         self.configurator.cleanup().await;
     }

@@ -19,13 +19,13 @@ use tracing::warn;
 use crate::{get_window, set_window, tr, tray::TrayCommand};
 
 fn set_container_visible(widget: &Widget, flag: bool) {
-    if let Some(parent) = widget.parent() {
-        if let Some(parent) = parent.parent() {
-            if flag {
-                parent.show();
-            } else {
-                parent.hide();
-            }
+    if let Some(parent) = widget.parent()
+        && let Some(parent) = parent.parent()
+    {
+        if flag {
+            parent.show();
+        } else {
+            parent.hide();
         }
     }
 }
@@ -523,26 +523,26 @@ impl SettingsDialog {
         let widgets2 = widgets.clone();
 
         dialog.connect_response(move |dlg, response| {
-            if response == ResponseType::Ok || response == ResponseType::Apply {
-                if let Err(e) = widgets2.validate() {
-                    glib::spawn_future_local(clone!(
-                        #[weak]
-                        dlg,
-                        async move {
-                            let msg = gtk4::MessageDialog::new(
-                                Some(&dlg),
-                                DialogFlags::MODAL,
-                                MessageType::Error,
-                                ButtonsType::Ok,
-                                e.to_string(),
-                            );
-                            msg.set_title(Some("Validation error"));
-                            msg.run_future().await;
-                            msg.close();
-                        },
-                    ));
-                    dlg.stop_signal_emission_by_name("response");
-                }
+            if (response == ResponseType::Ok || response == ResponseType::Apply)
+                && let Err(e) = widgets2.validate()
+            {
+                glib::spawn_future_local(clone!(
+                    #[weak]
+                    dlg,
+                    async move {
+                        let msg = gtk4::MessageDialog::new(
+                            Some(&dlg),
+                            DialogFlags::MODAL,
+                            MessageType::Error,
+                            ButtonsType::Ok,
+                            e.to_string(),
+                        );
+                        msg.set_title(Some("Validation error"));
+                        msg.run_future().await;
+                        msg.close();
+                    },
+                ));
+                dlg.stop_signal_emission_by_name("response");
             }
         });
 
@@ -1111,12 +1111,12 @@ impl SettingsDialog {
             let mut index = 0;
             let mut found = false;
             model.foreach(|model, _path, iter| {
-                if let Ok(text) = model.get_value(iter, 0).get::<String>() {
-                    if text == target_text {
-                        combo_box.set_active(Some(index));
-                        found = true;
-                        return true;
-                    }
+                if let Ok(text) = model.get_value(iter, 0).get::<String>()
+                    && text == target_text
+                {
+                    combo_box.set_active(Some(index));
+                    found = true;
+                    return true;
                 }
                 index += 1;
                 false

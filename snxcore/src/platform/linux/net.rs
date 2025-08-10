@@ -90,20 +90,20 @@ impl NetworkInterface for LinuxNetworkInterface {
         let default_route = util::run_command("ip", ["-4", "route", "show", "default"]).await?;
         let mut parts = default_route.split_whitespace();
         while let Some(part) = parts.next() {
-            if part == "dev" {
-                if let Some(dev) = parts.next() {
-                    let addr = util::run_command("ip", ["-4", "-o", "addr", "show", "dev", dev]).await?;
-                    let mut parts = addr.split_whitespace();
-                    while let Some(part) = parts.next() {
-                        if part == "inet" {
-                            if let Some(ip) = parts.next() {
-                                return Ok(ip
-                                    .split_once('/')
-                                    .map_or(ip, |(before, _)| before)
-                                    .to_string()
-                                    .parse()?);
-                            }
-                        }
+            if part == "dev"
+                && let Some(dev) = parts.next()
+            {
+                let addr = util::run_command("ip", ["-4", "-o", "addr", "show", "dev", dev]).await?;
+                let mut parts = addr.split_whitespace();
+                while let Some(part) = parts.next() {
+                    if part == "inet"
+                        && let Some(ip) = parts.next()
+                    {
+                        return Ok(ip
+                            .split_once('/')
+                            .map_or(ip, |(before, _)| before)
+                            .to_string()
+                            .parse()?);
                     }
                 }
             }

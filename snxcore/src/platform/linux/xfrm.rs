@@ -260,7 +260,7 @@ impl XfrmConfigurator {
         })
     }
 
-    fn new_xfrm_link(&self) -> XfrmLink {
+    fn new_xfrm_link(&self) -> XfrmLink<'_> {
         XfrmLink {
             name: &self.name,
             if_id: self.if_id,

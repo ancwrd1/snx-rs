@@ -193,10 +193,10 @@ impl SslTunnel {
             let platform = Platform::get();
             let configurator = platform.new_routing_configurator(device.name(), ipaddr);
 
-            if let Ok(info) = server_info::get(&self.params).await {
-                if let Ok(dest_ip) = self.params.server_name_to_ipv4(info.connectivity_info.tcpt_port) {
-                    let _ = configurator.remove_default_route(dest_ip).await;
-                }
+            if let Ok(info) = server_info::get(&self.params).await
+                && let Ok(dest_ip) = self.params.server_name_to_ipv4(info.connectivity_info.tcpt_port)
+            {
+                let _ = configurator.remove_default_route(dest_ip).await;
             }
 
             if !self.params.no_dns {

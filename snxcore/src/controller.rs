@@ -202,10 +202,12 @@ where
                 let input = self.prompt.get_plain_input(prompt).await?;
                 self.username = input.clone();
 
-                if !self.username.is_empty() && !params.no_keychain && params.password.is_empty() {
-                    if let Ok(password) = Platform::get().new_keychain().acquire_password(&self.username).await {
-                        self.password_from_keychain = password;
-                    }
+                if !self.username.is_empty()
+                    && !params.no_keychain
+                    && params.password.is_empty()
+                    && let Ok(password) = Platform::get().new_keychain().acquire_password(&self.username).await
+                {
+                    self.password_from_keychain = password;
                 }
 
                 Ok(input)
@@ -222,10 +224,12 @@ where
             anyhow::bail!(tr!("error-no-login-type"));
         }
 
-        if !params.user_name.is_empty() && !params.no_keychain && params.password.is_empty() {
-            if let Ok(password) = Platform::get().new_keychain().acquire_password(&params.user_name).await {
-                self.password_from_keychain = password;
-            }
+        if !params.user_name.is_empty()
+            && !params.no_keychain
+            && params.password.is_empty()
+            && let Ok(password) = Platform::get().new_keychain().acquire_password(&params.user_name).await
+        {
+            self.password_from_keychain = password;
         }
 
         self.fill_mfa_prompts(params.clone()).await;

@@ -223,7 +223,7 @@ to perform automated translation via the AI agent of choice. Tested with Zed edi
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
 * If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
 
-NOTE: the minimal supported Rust version is 1.85.
+NOTE: the minimal supported Rust version is 1.88.
 
 ## Acknowledgements
 

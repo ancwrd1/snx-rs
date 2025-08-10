@@ -102,21 +102,21 @@ impl TunIpsecTunnel {
     }
 
     async fn cleanup(&mut self) {
-        if let Some(device) = self.tun_device.take() {
-            if let Some(session) = self.session.ipsec_session.as_ref() {
-                let platform = Platform::get();
-                let configurator = platform.new_routing_configurator(device.name(), session.address);
-                let _ = configurator.remove_default_route(self.gateway_address).await;
-                let _ = configurator.remove_keepalive_route(self.gateway_address).await;
-                if !self.params.no_dns {
-                    let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
-                    let _ = self.setup_dns(&config, device.name(), true).await;
-                }
-                let _ = Platform::get()
-                    .new_network_interface()
-                    .delete_device(device.name())
-                    .await;
+        if let Some(device) = self.tun_device.take()
+            && let Some(session) = self.session.ipsec_session.as_ref()
+        {
+            let platform = Platform::get();
+            let configurator = platform.new_routing_configurator(device.name(), session.address);
+            let _ = configurator.remove_default_route(self.gateway_address).await;
+            let _ = configurator.remove_keepalive_route(self.gateway_address).await;
+            if !self.params.no_dns {
+                let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+                let _ = self.setup_dns(&config, device.name(), true).await;
             }
+            let _ = Platform::get()
+                .new_network_interface()
+                .delete_device(device.name())
+                .await;
         }
     }
 

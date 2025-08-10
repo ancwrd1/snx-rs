@@ -46,10 +46,10 @@ pub fn spawn_otp_listener(cancel_receiver: oneshot::Receiver<()>) -> oneshot::Re
 
         let _ = stream.shutdown().await;
 
-        if let Some(captures) = OTP_RE.captures(&data) {
-            if let Some(otp) = captures.name("otp") {
-                return Ok(otp.as_str().to_owned());
-            }
+        if let Some(captures) = OTP_RE.captures(&data)
+            && let Some(otp) = captures.name("otp")
+        {
+            return Ok(otp.as_str().to_owned());
         }
         Err(anyhow!(i18n::tr!("error-invalid-otp-reply")))
     };

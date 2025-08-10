@@ -271,10 +271,10 @@ impl IpsecTunnelConnector {
 
         self.do_esp_proposal().await?;
 
-        if self.params.ike_persist {
-            if let Err(e) = self.save_ike_session() {
-                warn!("Cannot save IKE session: {}", e);
-            }
+        if self.params.ike_persist
+            && let Err(e) = self.save_ike_session()
+        {
+            warn!("Cannot save IKE session: {}", e);
         }
 
         Ok(self.new_vpn_session())
