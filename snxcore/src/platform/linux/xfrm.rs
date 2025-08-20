@@ -6,7 +6,7 @@ use rand::random;
 use tracing::{debug, trace};
 
 use crate::{
-    model::{IpsecSession, params::TunnelParams},
+    model::IpsecSession,
     platform::{IpsecConfigurator, NetworkInterface, Platform, PlatformAccess},
     util,
 };
@@ -19,6 +19,7 @@ struct XfrmLink<'a> {
     name: &'a str,
     if_id: u32,
     address: Ipv4Net,
+    mtu: u16,
 }
 
 impl XfrmLink<'_> {
@@ -50,15 +51,7 @@ impl XfrmLink<'_> {
         let opt = format!("net.ipv4.conf.{}.forwarding", self.name);
         super::sysctl(opt, "1")?;
 
-        iproute2(&[
-            "link",
-            "set",
-            self.name,
-            "mtu",
-            &TunnelParams::DEFAULT_MTU.to_string(),
-            "up",
-        ])
-        .await?;
+        iproute2(&["link", "set", self.name, "mtu", &self.mtu.to_string(), "up"]).await?;
 
         iproute2(&["addr", "add", &self.address.to_string(), "dev", self.name]).await?;
 
@@ -237,6 +230,7 @@ pub struct XfrmConfigurator {
     src_port: u16,
     dest_ip: Ipv4Addr,
     dest_port: u16,
+    mtu: u16,
 }
 
 impl XfrmConfigurator {
@@ -246,6 +240,7 @@ impl XfrmConfigurator {
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
+        mtu: u16,
     ) -> anyhow::Result<Self> {
         let if_id = random();
 
@@ -257,6 +252,7 @@ impl XfrmConfigurator {
             if_id,
             src_port,
             dest_port,
+            mtu,
         })
     }
 
@@ -266,6 +262,7 @@ impl XfrmConfigurator {
             if_id: self.if_id,
             address: Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask)
                 .unwrap_or_else(|_| Ipv4Net::from(self.ipsec_session.address)),
+            mtu: self.mtu,
         }
     }
 

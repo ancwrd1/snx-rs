@@ -41,6 +41,7 @@ label-username-password = Nome de utilizador e palavra-passe
 label-auto-connect = Ligar automaticamente ao iniciar
 label-ip-lease-time = Tempo de concessão de IP personalizado, segundos
 label-disable-ipv6 = Desativar o IPv6 quando a rota predefinida estiver ativa
+label-mtu = MTU
 
 # Tabs and expanders
 tab-general = Geral

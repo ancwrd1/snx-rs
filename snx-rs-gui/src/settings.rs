@@ -73,6 +73,7 @@ struct MyWidgets {
     auto_connect: gtk4::Switch,
     ip_lease_time: gtk4::Entry,
     disable_ipv6: gtk4::Switch,
+    mtu: gtk4::Entry,
 }
 
 impl MyWidgets {
@@ -141,6 +142,8 @@ impl MyWidgets {
         if !ip_lease_time.trim().is_empty() {
             ip_lease_time.parse::<u32>()?;
         }
+
+        self.mtu.text().parse::<u16>()?;
 
         Ok(())
     }
@@ -353,6 +356,8 @@ impl SettingsDialog {
             .halign(Align::Start)
             .build();
 
+        let mtu = gtk4::Entry::builder().text(params.mtu.to_string()).build();
+
         let error = gtk4::Label::new(None);
         error.set_visible(false);
         error.style_context().add_class("error");
@@ -524,6 +529,7 @@ impl SettingsDialog {
             auto_connect,
             ip_lease_time,
             disable_ipv6,
+            mtu,
         });
 
         let widgets2 = widgets.clone();
@@ -672,6 +678,8 @@ impl SettingsDialog {
         } else {
             Some(Duration::from_secs(ip_lease_time.parse()?))
         };
+
+        params.mtu = self.widgets.mtu.text().parse()?;
 
         i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
 
@@ -876,6 +884,10 @@ impl SettingsDialog {
         let ip_lease_time = self.form_box(&tr!("label-ip-lease-time"));
         ip_lease_time.append(&self.widgets.ip_lease_time);
         misc_box.append(&ip_lease_time);
+
+        let mtu = self.form_box(&tr!("label-mtu"));
+        mtu.append(&self.widgets.mtu);
+        misc_box.append(&mtu);
 
         misc_box
     }

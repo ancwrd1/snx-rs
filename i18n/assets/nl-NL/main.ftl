@@ -41,6 +41,7 @@ label-username-password = Gebruikersnaam en wachtwoord
 label-auto-connect = Automatisch verbinden bij opstarten
 label-ip-lease-time = Aangepaste IP-leasetijd, seconden
 label-disable-ipv6 = IPv6 uitschakelen wanneer de standaardroute is ingeschakeld
+label-mtu = MTU
 
 # Tabs and expanders
 tab-general = Algemeen

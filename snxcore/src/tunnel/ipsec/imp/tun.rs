@@ -196,7 +196,12 @@ impl VpnTunnel for TunIpsecTunnel {
             anyhow::bail!(tr!("error-no-ipsec-session"));
         };
 
-        let mut tun = TunDevice::new(name_hint, ipsec_session.address, Some(ipsec_session.netmask))?;
+        let mut tun = TunDevice::new(
+            name_hint,
+            ipsec_session.address,
+            Some(ipsec_session.netmask),
+            self.params.mtu,
+        )?;
         let tun_name = tun.name().to_owned();
 
         self.setup_routing(&tun_name).await?;

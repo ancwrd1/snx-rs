@@ -211,8 +211,9 @@ impl PlatformAccess for LinuxPlatformAccess {
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
+        mtu: u16,
     ) -> anyhow::Result<impl IpsecConfigurator + use<> + Send + Sync> {
-        xfrm::XfrmConfigurator::new(name, ipsec_session, src_port, dest_ip, dest_port)
+        xfrm::XfrmConfigurator::new(name, ipsec_session, src_port, dest_ip, dest_port, mtu)
     }
 
     fn new_routing_configurator<S: AsRef<str>>(

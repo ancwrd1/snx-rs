@@ -208,6 +208,9 @@ pub struct CmdlineParams {
         help = "Disable IPv6 when default route is enabled"
     )]
     pub disable_ipv6: Option<bool>,
+
+    #[clap(long = "mtu", short = 'M', help = "Custom MTU for the tunnel interface")]
+    pub mtu: Option<u16>,
 }
 
 impl CmdlineParams {
@@ -339,6 +342,10 @@ impl CmdlineParams {
 
         if let Some(disable_ipv6) = self.disable_ipv6 {
             other.disable_ipv6 = disable_ipv6;
+        }
+
+        if let Some(mtu) = self.mtu {
+            other.mtu = mtu;
         }
     }
 }

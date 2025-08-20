@@ -82,6 +82,7 @@ impl NativeIpsecTunnel {
             natt_socket.local_addr()?.port(),
             gateway_address,
             server_info.connectivity_info.natt_port,
+            params.mtu,
         )?;
 
         configurator.configure().await?;

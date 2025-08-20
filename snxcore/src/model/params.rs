@@ -20,6 +20,8 @@ use crate::util::{self, ipv4net_to_string, parse_ipv4_or_subnet};
 
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
 
+const DEFAULT_MTU: u16 = 1350;
+
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum OperationMode {
     #[default]
@@ -250,6 +252,7 @@ pub struct TunnelParams {
     pub auto_connect: bool,
     pub ip_lease_time: Option<Duration>,
     pub disable_ipv6: bool,
+    pub mtu: u16,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -292,6 +295,7 @@ impl Default for TunnelParams {
             auto_connect: false,
             ip_lease_time: None,
             disable_ipv6: false,
+            mtu: DEFAULT_MTU,
             config_file: Self::default_config_path(),
         }
     }
@@ -301,7 +305,6 @@ impl TunnelParams {
     pub const IPSEC_KEEPALIVE_PORT: u16 = 18234;
     pub const DEFAULT_IPSEC_IF_NAME: &'static str = "snx-xfrm";
     pub const DEFAULT_SSL_IF_NAME: &'static str = "snx-tun";
-    pub const DEFAULT_MTU: u16 = 1350;
 
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut params = Self::default();
@@ -359,6 +362,7 @@ impl TunnelParams {
                     };
                 }
                 "disable-ipv6" => params.disable_ipv6 = v.parse().unwrap_or_default(),
+                "mtu" => params.mtu = v.parse().unwrap_or(DEFAULT_MTU),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -467,6 +471,7 @@ impl TunnelParams {
             self.ip_lease_time.map(|v| v.as_secs().to_string()).unwrap_or_default()
         )?;
         writeln!(buf, "disable-ipv6={}", self.disable_ipv6)?;
+        writeln!(buf, "mtu={}", self.mtu)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);

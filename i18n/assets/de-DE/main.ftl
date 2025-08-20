@@ -41,6 +41,7 @@ label-username-password = Benutzername und Passwort
 label-auto-connect = Automatisch beim Start verbinden
 label-ip-lease-time = Benutzerdefinierte IP-Lease-Zeit, Sekunden
 label-disable-ipv6 = IPv6 deaktivieren, wenn die Standardroute aktiviert ist
+label-mtu = MTU
 
 # Tabs and expanders
 tab-general = Allgemein

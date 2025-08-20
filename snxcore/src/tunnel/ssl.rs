@@ -333,7 +333,7 @@ impl VpnTunnel for SslTunnel {
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let mut tun = TunDevice::new(name_hint, ip_address, netmask)?;
+        let mut tun = TunDevice::new(name_hint, ip_address, netmask, self.params.mtu)?;
         let tun_name = tun.name().to_owned();
 
         self.setup_routing(&tun_name).await?;

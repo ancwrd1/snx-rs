@@ -41,6 +41,7 @@ label-username-password = Brukernavn og passord
 label-auto-connect = Koble til automatisk ved oppstart
 label-ip-lease-time = Tilpasset IP-leieavtale tid, sekunder
 label-disable-ipv6 = Deaktiver IPv6 når standardrute er aktivert
+label-mtu = MTU
 
 # Tabs and expanders
 tab-general = Generelt

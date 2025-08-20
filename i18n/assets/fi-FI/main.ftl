@@ -41,6 +41,7 @@ label-username-password = Käyttäjätunnus ja salasana
 label-auto-connect = Yhdistä automaattisesti käynnistyksessä
 label-ip-lease-time = Mukautettu IP-vuokra-aika, sekuntia
 label-disable-ipv6 = Poista IPv6 käytöstä, kun oletusreitti on käytössä
+label-mtu = MTU
 
 # Tabs and expanders
 tab-general = Yleiset
