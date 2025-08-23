@@ -1,5 +1,6 @@
 ## Next version (TBD)
 - Added `mtu` option to specify the MTU size for the tunnel interface.
+- Fixed an issue with SAML SSO authentication when browser uses CORS preflight checks.
 
 ## v4.6.0 (2025-08-19)
 - Fixed a problem with IP address renewal for some Linux distros which have `net.ipv4.conf.default.promote_secondaries` set to 0.
