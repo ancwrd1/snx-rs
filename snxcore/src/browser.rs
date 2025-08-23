@@ -4,10 +4,11 @@ use anyhow::anyhow;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::{AsyncBufReadExt, AsyncWriteExt},
     net::TcpListener,
     sync::oneshot,
 };
+use tracing::debug;
 
 const OTP_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -27,31 +28,42 @@ impl BrowserController for SystemBrowser {
 }
 
 pub fn spawn_otp_listener(cancel_receiver: oneshot::Receiver<()>) -> oneshot::Receiver<anyhow::Result<String>> {
-    static OTP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^GET /(?<otp>[0-9a-f]{60}|[0-9A-F]{60}).*").unwrap());
+    static OTP_RE: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"^(?<method>[A-Z]+) /(?<otp>[0-9a-f]{60}|[0-9A-F]{60}).*").unwrap());
 
     let (sender, receiver) = oneshot::channel();
 
     let fut = async move {
         let tcp = TcpListener::bind("127.0.0.1:7779").await?;
-        let (mut stream, _) = tcp.accept().await?;
+        loop {
+            let (stream, _) = tcp.accept().await?;
+            let mut stream = tokio::io::BufReader::new(stream);
 
-        let mut buf = [0u8; 65];
-        stream.read_exact(&mut buf).await?;
+            let mut buf = Vec::new();
+            stream.read_until(b'\n', &mut buf).await?;
 
-        let mut data = String::from_utf8_lossy(&buf).into_owned();
+            let data = String::from_utf8_lossy(&buf).into_owned();
 
-        while stream.read(&mut buf[0..1]).await.is_ok() && buf[0] != b'\n' && buf[0] != b'\r' {
-            data.push(buf[0].into());
+            if let Some(captures) = OTP_RE.captures(&data)
+                && let Some(otp) = captures.name("otp")
+            {
+                let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await;
+                let _ = stream.shutdown().await;
+
+                match captures.name("method") {
+                    Some(method) if method.as_str() == "OPTIONS" => {
+                        debug!("Browser CORS preflight check detected");
+                        continue;
+                    }
+                    Some(method) if method.as_str() == "GET" => {
+                        debug!("OTP acquired from the browser");
+                        return Ok(otp.as_str().to_owned());
+                    }
+                    _ => {}
+                }
+            }
+            break Err(anyhow!(i18n::tr!("error-invalid-otp-reply")));
         }
-
-        let _ = stream.shutdown().await;
-
-        if let Some(captures) = OTP_RE.captures(&data)
-            && let Some(otp) = captures.name("otp")
-        {
-            return Ok(otp.as_str().to_owned());
-        }
-        Err(anyhow!(i18n::tr!("error-invalid-otp-reply")))
     };
 
     tokio::spawn(async move {
