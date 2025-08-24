@@ -38,10 +38,8 @@ pub fn spawn_otp_listener(cancel_receiver: oneshot::Receiver<()>) -> oneshot::Re
             let (stream, _) = tcp.accept().await?;
             let mut stream = tokio::io::BufReader::new(stream);
 
-            let mut buf = Vec::new();
-            stream.read_until(b'\n', &mut buf).await?;
-
-            let data = String::from_utf8_lossy(&buf).into_owned();
+            let mut data = String::new();
+            tokio::time::timeout(Duration::from_secs(5), stream.read_line(&mut data)).await??;
 
             if let Some(captures) = OTP_RE.captures(&data)
                 && let Some(otp) = captures.name("otp")
