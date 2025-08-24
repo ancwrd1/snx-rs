@@ -28,8 +28,7 @@ impl BrowserController for SystemBrowser {
 }
 
 pub fn spawn_otp_listener(cancel_receiver: oneshot::Receiver<()>) -> oneshot::Receiver<anyhow::Result<String>> {
-    static OTP_RE: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r"^(?<method>[A-Z]+) /(?<otp>[0-9a-f]{60}|[0-9A-F]{60}).*").unwrap());
+    static OTP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?<method>[A-Z]+) /(?<otp>\S+).*").unwrap());
 
     let (sender, receiver) = oneshot::channel();
 
