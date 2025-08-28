@@ -152,8 +152,27 @@ pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
     Ok(Uuid::try_parse(data.trim())?)
 }
 
+fn is_wsl2() -> bool {
+    if let Ok(dir) = fs::read_dir("/proc/sys/fs/binfmt_misc") {
+        dir.flatten().any(|entry| {
+            entry
+                .file_name()
+                .to_str()
+                .map(|s| s.starts_with("WSLInterop"))
+                .unwrap_or(false)
+        })
+    } else {
+        false
+    }
+}
+
 #[cached]
 async fn is_xfrm_available() -> bool {
+    if is_wsl2() {
+        debug!("WSL2 detected, skipping xfrm check");
+        return false;
+    }
+
     let _ = util::run_command("modprobe", ["xfrm_interface"]).await;
     let modules = tokio::fs::read_to_string("/proc/modules").await.unwrap_or_default();
     let result = modules.lines().any(|line| line.starts_with("xfrm_"));
