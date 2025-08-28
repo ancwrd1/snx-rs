@@ -1,4 +1,4 @@
-## Next version (TBD)
+## v4.7.0 (2025-08-28)
 - Added `mtu` option to specify the MTU size for the tunnel interface.
 - Fixed an issue with SAML SSO authentication when browser uses CORS preflight checks.
 

@@ -3,7 +3,7 @@ members = ["snxcore", "snxctl", "snx-rs", "snx-rs-gui", "i18n"]
 resolver = "2"
 
 [workspace.package]
-version = "4.6.0"
+version = "4.7.0"
 license = "AGPL-3.0"
 edition = "2024"
 authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]
@@ -14,7 +14,7 @@ keywords = ["snx", "vpn", "ipsec"]
 publish = false
 
 [workspace.dependencies]
-clap_complete = { version = "4.5.*" }
+clap_complete ="4"
 
 [profile.release]
 panic = "abort"
