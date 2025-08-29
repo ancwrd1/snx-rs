@@ -132,13 +132,13 @@ cert-type-pem = Soubor PEM
 cert-type-hw = Hardwarový token
 
 # Transport types
-transport-type-auto-detect = Automatická detekce
+transport-type-autodetect = Automatická detekce
 transport-type-kernel = Kernel XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-auto = Automaticky
+icon-theme-autodetect = Automatická detekce
 icon-theme-dark = Tmavý
 icon-theme-light = Světlý
 

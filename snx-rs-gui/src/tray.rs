@@ -107,7 +107,7 @@ impl AppTray {
         let tunnel_params = TunnelParams::load(&self.config_file).unwrap_or_default();
 
         let system_theme = match tunnel_params.icon_theme {
-            IconTheme::Auto => system_color_theme().ok().unwrap_or_default(),
+            IconTheme::AutoDetect => system_color_theme().ok().unwrap_or_default(),
             IconTheme::Dark => SystemColorTheme::Light,
             IconTheme::Light => SystemColorTheme::Dark,
         };

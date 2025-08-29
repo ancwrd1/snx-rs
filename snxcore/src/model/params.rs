@@ -148,7 +148,7 @@ impl FromStr for CertType {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum IconTheme {
     #[default]
-    Auto,
+    AutoDetect,
     Dark,
     Light,
 }
@@ -156,7 +156,7 @@ pub enum IconTheme {
 impl IconTheme {
     pub fn as_u32(&self) -> u32 {
         match self {
-            Self::Auto => 0,
+            Self::AutoDetect => 0,
             Self::Dark => 1,
             Self::Light => 2,
         }
@@ -168,7 +168,7 @@ impl From<u32> for IconTheme {
         match value {
             1 => Self::Dark,
             2 => Self::Light,
-            _ => Self::Auto,
+            _ => Self::AutoDetect,
         }
     }
 }
@@ -176,7 +176,7 @@ impl From<u32> for IconTheme {
 impl fmt::Display for IconTheme {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Auto => "auto",
+            Self::AutoDetect => "auto",
             Self::Dark => "dark",
             Self::Light => "light",
         };
@@ -189,7 +189,7 @@ impl FromStr for IconTheme {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "auto" => Ok(IconTheme::Auto),
+            "auto" => Ok(IconTheme::AutoDetect),
             "dark" => Ok(IconTheme::Dark),
             "light" => Ok(IconTheme::Light),
             _ => Err(anyhow!(tr!("error-invalid-icon-theme"))),
@@ -209,7 +209,7 @@ pub enum TransportType {
 impl TransportType {
     pub fn as_i18n(&self) -> String {
         match self {
-            Self::AutoDetect => tr!("transport-type-auto-detect"),
+            Self::AutoDetect => tr!("transport-type-autodetect"),
             Self::Kernel => tr!("transport-type-kernel"),
             Self::Udp => tr!("transport-type-udp"),
             Self::Tcpt => tr!("transport-type-tcpt"),

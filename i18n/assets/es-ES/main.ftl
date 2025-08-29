@@ -132,13 +132,13 @@ cert-type-pem = Archivo PEM
 cert-type-hw = Token de hardware
 
 # Transport types
-transport-type-auto-detect = Detección automática
+transport-type-autodetect = Detección automática
 transport-type-kernel = Kernel XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-auto = Auto
+icon-theme-autodetect = Autodetectar
 icon-theme-dark = Oscuro
 icon-theme-light = Claro
 

@@ -751,7 +751,7 @@ impl SettingsDialog {
 
     fn icon_theme_box(&self) -> gtk4::Box {
         let icon_theme_box = self.form_box(&tr!("label-icon-theme"));
-        self.widgets.icon_theme.insert_text(0, &tr!("icon-theme-auto"));
+        self.widgets.icon_theme.insert_text(0, &tr!("icon-theme-autodetect"));
         self.widgets.icon_theme.insert_text(1, &tr!("icon-theme-dark"));
         self.widgets.icon_theme.insert_text(2, &tr!("icon-theme-light"));
         self.widgets
@@ -763,9 +763,7 @@ impl SettingsDialog {
 
     fn transport_type_box(&self) -> gtk4::Box {
         let transport_type_box = self.form_box(&tr!("info-transport-type"));
-        self.widgets
-            .transport_type
-            .insert_text(0, &tr!("transport-type-auto"));
+        self.widgets.transport_type.insert_text(0, &tr!("transport-type-autodetect"));
         self.widgets
             .transport_type
             .insert_text(1, &tr!("transport-type-kernel"));

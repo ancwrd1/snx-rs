@@ -132,13 +132,13 @@ cert-type-pem = PEM-fil
 cert-type-hw = Hårdvarutoken
 
 # Transport types
-transport-type-auto-detect = Automatisk identifiering
+transport-type-autodetect = Automatisk identifiering
 transport-type-kernel = Kernel XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-auto = Automatiskt
+icon-theme-autodetect = Automatisk identifiering
 icon-theme-dark = Mörkt
 icon-theme-light = Ljust
 

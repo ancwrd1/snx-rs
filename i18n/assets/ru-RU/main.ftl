@@ -132,13 +132,13 @@ cert-type-pem = Файл PEM
 cert-type-hw = Аппаратный токен
 
 # Transport types
-transport-type-auto-detect = Автоопределение
+transport-type-autodetect = Автоопределение
 transport-type-kernel = Ядро XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-auto = Авто
+icon-theme-autodetect = Автоопределение
 icon-theme-dark = Тёмная
 icon-theme-light = Светлая
 

@@ -132,13 +132,13 @@ cert-type-pem = PEM-tiedosto
 cert-type-hw = Laiteavain
 
 # Transport types
-transport-type-auto-detect = Automaattinen tunnistus
+transport-type-autodetect = Automaattinen tunnistus
 transport-type-kernel = Kernel XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-auto = Automaattinen
+icon-theme-autodetect = Automaattinen tunnistus
 icon-theme-dark = Tumma
 icon-theme-light = Vaalea
 
