@@ -113,6 +113,7 @@ error-no-pkcs12 = Geen PKCS12-pad en wachtwoord opgegeven
 error-no-pkcs8 = Geen PKCS8 PEM-pad opgegeven
 error-no-pkcs11 = Geen PKCS11 PIN opgegeven
 error-no-ipsec-session = Geen IPSEC-sessie
+error-invalid-transport-type = Ongeldig transporttype
 
 # Placeholder texts
 placeholder-domains = Door komma's gescheiden domeinen
@@ -129,6 +130,12 @@ cert-type-none = Geen
 cert-type-pfx = PFX-bestand
 cert-type-pem = PEM-bestand
 cert-type-hw = Hardware-token
+
+# Transport types
+transport-type-auto-detect = Automatisch detecteren
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Auto

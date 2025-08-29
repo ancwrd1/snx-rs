@@ -113,6 +113,7 @@ error-unknown-packet-type = Tipo de pacote desconhecido
 error-no-sender = Sem remetente
 error-empty-ccc-session = Sessão CCC vazia
 error-identity-timeout = Timeout ao aguardar resposta de identidade, o tipo de acesso está correto?
+error-invalid-transport-type = Tipo de transporte inválido
 
 # Placeholder texts
 placeholder-domains = Domínios separados por vírgulas
@@ -129,6 +130,12 @@ cert-type-none = Nenhum
 cert-type-pfx = Arquivo PFX
 cert-type-pem = Arquivo PEM
 cert-type-hw = Token em hardware
+
+# Transport types
+transport-type-auto-detect = Detecção automática
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Automático

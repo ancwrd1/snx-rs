@@ -113,6 +113,7 @@ error-unknown-packet-type = Nieznany typ pakietu
 error-no-sender = Brak nadawcy
 error-empty-ccc-session = Pusta sesja CCC
 error-identity-timeout = Przekroczenie czasu oczekiwania na odpowiedź tożsamości, czy typ dostępu jest poprawny?
+error-invalid-transport-type = Nieprawidłowy typ transportu
 
 # Placeholder texts
 placeholder-domains = Domeny oddzielone przecinkami
@@ -129,6 +130,12 @@ cert-type-none = Brak
 cert-type-pfx = Plik PFX
 cert-type-pem = Plik PEM
 cert-type-hw = Token sprzętowy
+
+# Transport types
+transport-type-auto-detect = Automatyczne wykrywanie
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Auto

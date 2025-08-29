@@ -113,6 +113,7 @@ error-no-challenge = Nessuna sfida nel payload
 error-endless-challenges = Loop infinito di sfide del nome utente
 error-cannot-send-request = Impossibile inviare la richiesta al servizio
 error-cannot-read-reply = Impossibile leggere la risposta dal servizio
+error-invalid-transport-type = Tipo di trasporto non valido
 
 # Placeholder texts
 placeholder-domains = Domini separati da virgole
@@ -129,6 +130,12 @@ cert-type-none = Nessuno
 cert-type-pfx = File PFX
 cert-type-pem = File PEM
 cert-type-hw = Token hardware
+
+# Transport types
+transport-type-auto-detect = Rilevamento automatico
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Auto

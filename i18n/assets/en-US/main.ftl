@@ -115,6 +115,7 @@ error-unknown-packet-type = Unknown packet type
 error-no-sender = No sender
 error-empty-ccc-session = Empty CCC session
 error-identity-timeout = Timeout while waiting for identity response, is the login type correct?
+error-invalid-transport-type = Invalid transport type
 
 # Placeholder texts
 placeholder-domains = Comma-separated domains
@@ -131,6 +132,12 @@ cert-type-none = None
 cert-type-pfx = PFX file
 cert-type-pem = PEM file
 cert-type-hw = Hardware token
+
+# Transport types
+transport-type-auto-detect = Autodetect
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Auto

@@ -141,7 +141,7 @@ impl ConnectionInfo {
             ("info-user-name", self.or_empty(|| self.username.clone())),
             ("info-login-type", self.or_empty(|| self.login_type.clone())),
             ("info-tunnel-type", self.or_empty(|| self.tunnel_type.to_string())),
-            ("info-transport-type", self.or_empty(|| self.transport_type.to_string())),
+            ("info-transport-type", self.or_empty(|| self.transport_type.as_i18n())),
             ("info-ip-address", self.or_empty(|| self.ip_address.to_string())),
             ("info-dns-servers", self.or_empty(|| format!("{:?}", self.dns_servers))),
             (

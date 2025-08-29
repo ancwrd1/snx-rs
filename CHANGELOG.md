@@ -1,3 +1,7 @@
+## Next version (TBD)
+- Added `transport-type` option to specify the IPSec transport type explicitly.
+- Added WSL2 environment detection where the xfrm interface does not work.
+
 ## v4.7.0 (2025-08-28)
 - Added `mtu` option to specify the MTU size for the tunnel interface.
 - Fixed an issue with SAML SSO authentication when browser uses CORS preflight checks.

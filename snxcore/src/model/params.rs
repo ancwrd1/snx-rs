@@ -200,17 +200,64 @@ impl FromStr for IconTheme {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TransportType {
     #[default]
-    Native,
+    AutoDetect,
+    Kernel,
     Udp,
     Tcpt,
+}
+
+impl TransportType {
+    pub fn as_i18n(&self) -> String {
+        match self {
+            Self::AutoDetect => tr!("transport-type-auto-detect"),
+            Self::Kernel => tr!("transport-type-kernel"),
+            Self::Udp => tr!("transport-type-udp"),
+            Self::Tcpt => tr!("transport-type-tcpt"),
+        }
+    }
+
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::AutoDetect => 0,
+            Self::Kernel => 1,
+            Self::Udp => 2,
+            Self::Tcpt => 3,
+        }
+    }
 }
 
 impl fmt::Display for TransportType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Native => write!(f, "Native"),
-            Self::Tcpt => write!(f, "TCPT"),
-            Self::Udp => write!(f, "UDP"),
+            Self::AutoDetect => write!(f, "auto"),
+            Self::Kernel => write!(f, "kernel"),
+            Self::Udp => write!(f, "udp"),
+            Self::Tcpt => write!(f, "tcpt"),
+        }
+    }
+}
+
+impl FromStr for TransportType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(TransportType::AutoDetect),
+            "kernel" => Ok(TransportType::Kernel),
+            "tcpt" => Ok(TransportType::Tcpt),
+            "udp" => Ok(TransportType::Udp),
+            _ => Err(anyhow!(tr!("error-invalid-transport-type"))),
+        }
+    }
+}
+
+impl From<u32> for TransportType {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Kernel,
+            2 => Self::Udp,
+            3 => Self::Tcpt,
+            _ => Self::AutoDetect,
         }
     }
 }
@@ -253,6 +300,7 @@ pub struct TunnelParams {
     pub ip_lease_time: Option<Duration>,
     pub disable_ipv6: bool,
     pub mtu: u16,
+    pub transport_type: TransportType,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -296,6 +344,7 @@ impl Default for TunnelParams {
             ip_lease_time: None,
             disable_ipv6: false,
             mtu: DEFAULT_MTU,
+            transport_type: TransportType::default(),
             config_file: Self::default_config_path(),
         }
     }
@@ -363,6 +412,7 @@ impl TunnelParams {
                 }
                 "disable-ipv6" => params.disable_ipv6 = v.parse().unwrap_or_default(),
                 "mtu" => params.mtu = v.parse().unwrap_or(DEFAULT_MTU),
+                "transport-type" => params.transport_type = v.parse().unwrap_or_default(),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -472,6 +522,7 @@ impl TunnelParams {
         )?;
         writeln!(buf, "disable-ipv6={}", self.disable_ipv6)?;
         writeln!(buf, "mtu={}", self.mtu)?;
+        writeln!(buf, "transport-type={}", self.transport_type)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);

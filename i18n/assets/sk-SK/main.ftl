@@ -113,6 +113,7 @@ error-unknown-packet-type = Neznámy typ paketu
 error-no-sender = Žiadny odosielateľ
 error-empty-ccc-session = Prázdna CCC relácia
 error-identity-timeout = Časový limit pri čakaní na odpoveď identity, je typ prístupu správny?
+error-invalid-transport-type = Neplatný typ prenosu
 
 # Placeholder texts
 placeholder-domains = Domény oddelené čiarkami
@@ -129,6 +130,12 @@ cert-type-none = Žiadny
 cert-type-pfx = Súbor PFX
 cert-type-pem = Súbor PEM
 cert-type-hw = Hardvérový token
+
+# Transport types
+transport-type-auto-detect = Automatická detekcia
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Automaticky

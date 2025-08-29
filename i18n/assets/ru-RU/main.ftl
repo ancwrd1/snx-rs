@@ -113,6 +113,7 @@ error-unknown-packet-type = Неизвестный тип пакета
 error-no-sender = Нет отправителя
 error-empty-ccc-session = Пустая сессия CCC
 error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
+error-invalid-transport-type = Неверный тип транспорта
 
 # Placeholder texts
 placeholder-domains = Домены через запятую
@@ -129,6 +130,12 @@ cert-type-none = Нет
 cert-type-pfx = Файл PFX
 cert-type-pem = Файл PEM
 cert-type-hw = Аппаратный токен
+
+# Transport types
+transport-type-auto-detect = Автоопределение
+transport-type-kernel = Ядро XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Авто

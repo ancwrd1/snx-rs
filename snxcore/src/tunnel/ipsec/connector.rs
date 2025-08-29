@@ -126,19 +126,23 @@ impl IpsecTunnelConnector {
             anyhow::bail!(tr!("error-no-ipv4", server = params.server_name));
         };
 
-        let prober = NattProber::new(socket.peer_addr()?, params.port_knock);
+        let esp_transport = if params.transport_type == TransportType::AutoDetect {
+            let prober = NattProber::new(socket.peer_addr()?, params.port_knock);
 
-        let esp_transport = if prober.probe().await.is_ok() {
-            if Platform::get().get_features().await.ipsec_native {
-                TransportType::Native
+            if prober.probe().await.is_ok() {
+                if Platform::get().get_features().await.ipsec_native {
+                    TransportType::Kernel
+                } else {
+                    TransportType::Udp
+                }
             } else {
-                TransportType::Udp
+                TransportType::Tcpt
             }
         } else {
-            TransportType::Tcpt
+            params.transport_type
         };
 
-        debug!("Using ESP transport: {}", esp_transport);
+        debug!("ESP transport: {}", esp_transport);
 
         Ok(Self {
             params: params.clone(),
@@ -686,9 +690,10 @@ impl TunnelConnector for IpsecTunnelConnector {
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
         let result: anyhow::Result<Box<dyn VpnTunnel + Send>> = match self.esp_transport {
-            TransportType::Native => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::Kernel => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
             TransportType::Tcpt => Ok(Box::new(TcptIpsecTunnel::create(self.params.clone(), session).await?)),
             TransportType::Udp => Ok(Box::new(UdpIpsecTunnel::create(self.params.clone(), session).await?)),
+            _ => Err(anyhow!(tr!("error-invalid-transport-type"))),
         };
 
         if let Err(ref e) = result {

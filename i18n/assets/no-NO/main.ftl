@@ -113,6 +113,7 @@ error-unknown-packet-type = Ukjent pakketype
 error-no-sender = Ingen avsender
 error-empty-ccc-session = Tom CCC-økt
 error-identity-timeout = Timeout mens du venter på identitetssvar, er tilgangstypen korrekt?
+error-invalid-transport-type = Ugyldig transporttype
 
 # Placeholder texts
 placeholder-domains = Domener separert med komma
@@ -129,6 +130,12 @@ cert-type-none = Ingen
 cert-type-pfx = PFX-fil
 cert-type-pem = PEM-fil
 cert-type-hw = Maskinvare-token
+
+# Transport types
+transport-type-auto-detect = Automatisk oppdag
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Automatisk

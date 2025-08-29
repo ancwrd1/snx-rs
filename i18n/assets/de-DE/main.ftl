@@ -113,6 +113,7 @@ error-unknown-packet-type = Unbekannter Pakettyp
 error-no-sender = Kein Absender
 error-empty-ccc-session = Leere CCC-Sitzung
 error-identity-timeout = Timeout beim Warten auf Identitätsantwort, ist der Anmeldetyp korrekt?
+error-invalid-transport-type = Ungültiger Transporttyp
 
 # Placeholder texts
 placeholder-domains = Durch Komma getrennte Domänen
@@ -129,6 +130,12 @@ cert-type-none = Keine
 cert-type-pfx = PFX-Datei
 cert-type-pem = PEM-Datei
 cert-type-hw = Hardware-Token
+
+# Transport types
+transport-type-auto-detect = Automatisch erkennen
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Auto

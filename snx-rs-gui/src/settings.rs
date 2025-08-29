@@ -74,6 +74,7 @@ struct MyWidgets {
     ip_lease_time: gtk4::Entry,
     disable_ipv6: gtk4::Switch,
     mtu: gtk4::Entry,
+    transport_type: gtk4::ComboBoxText,
 }
 
 impl MyWidgets {
@@ -357,6 +358,7 @@ impl SettingsDialog {
             .build();
 
         let mtu = gtk4::Entry::builder().text(params.mtu.to_string()).build();
+        let transport_type = gtk4::ComboBoxText::builder().build();
 
         let error = gtk4::Label::new(None);
         error.set_visible(false);
@@ -530,6 +532,7 @@ impl SettingsDialog {
             ip_lease_time,
             disable_ipv6,
             mtu,
+            transport_type,
         });
 
         let widgets2 = widgets.clone();
@@ -662,6 +665,7 @@ impl SettingsDialog {
         params.no_keepalive = self.widgets.no_keepalive.is_active();
         params.port_knock = self.widgets.port_knock.is_active();
         params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
+        params.transport_type = self.widgets.transport_type.active().unwrap_or_default().into();
 
         let selected_locale = self.widgets.locale.active();
         let new_locale = match selected_locale {
@@ -755,6 +759,23 @@ impl SettingsDialog {
             .set_active(Some(self.params.icon_theme.as_u32()));
         icon_theme_box.append(&self.widgets.icon_theme);
         icon_theme_box
+    }
+
+    fn transport_type_box(&self) -> gtk4::Box {
+        let transport_type_box = self.form_box(&tr!("info-transport-type"));
+        self.widgets
+            .transport_type
+            .insert_text(0, &tr!("transport-type-auto"));
+        self.widgets
+            .transport_type
+            .insert_text(1, &tr!("transport-type-kernel"));
+        self.widgets.transport_type.insert_text(2, &tr!("transport-type-udp"));
+        self.widgets.transport_type.insert_text(3, &tr!("transport-type-tcpt"));
+        self.widgets
+            .transport_type
+            .set_active(Some(self.params.transport_type.as_u32()));
+        transport_type_box.append(&self.widgets.transport_type);
+        transport_type_box
     }
 
     fn locale_box(&self) -> gtk4::Box {
@@ -888,6 +909,9 @@ impl SettingsDialog {
         let mtu = self.form_box(&tr!("label-mtu"));
         mtu.append(&self.widgets.mtu);
         misc_box.append(&mtu);
+
+        let transport_type_box = self.transport_type_box();
+        misc_box.append(&transport_type_box);
 
         misc_box
     }

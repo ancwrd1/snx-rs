@@ -2,7 +2,7 @@ use std::{net::Ipv4Addr, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use ipnet::Ipv4Net;
-use snxcore::model::params::{CertType, OperationMode, TunnelParams, TunnelType};
+use snxcore::model::params::{CertType, OperationMode, TransportType, TunnelParams, TunnelType};
 use tracing::level_filters::LevelFilter;
 
 #[derive(Parser)]
@@ -211,6 +211,13 @@ pub struct CmdlineParams {
 
     #[clap(long = "mtu", short = 'M', help = "Custom MTU for the tunnel interface")]
     pub mtu: Option<u16>,
+
+    #[clap(
+        long = "transport-type",
+        short = 'T',
+        help = "IPSec transport type [auto, kernel, tcpt, udp]"
+    )]
+    pub transport_type: Option<TransportType>,
 }
 
 impl CmdlineParams {
@@ -346,6 +353,10 @@ impl CmdlineParams {
 
         if let Some(mtu) = self.mtu {
             other.mtu = mtu;
+        }
+
+        if let Some(transport_type) = self.transport_type {
+            other.transport_type = transport_type;
         }
     }
 }

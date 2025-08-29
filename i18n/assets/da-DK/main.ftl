@@ -113,6 +113,7 @@ error-empty-ccc-session = Tom CCC-session
 error-identity-timeout = Timeout ved venten på identitetssvar, er adgangstypen korrekt?
 error-probing-failed = Sondering mislykkedes, serveren er ikke tilgængelig via NATT-port!
 error-no-connector-for-challenge-code = Ingen connector til at sende challenge-koden til!
+error-invalid-transport-type = Ugyldig transporttype
 
 # Placeholder texts
 placeholder-domains = Domæner adskilt med komma
@@ -129,6 +130,12 @@ cert-type-none = Ingen
 cert-type-pfx = PFX-fil
 cert-type-pem = PEM-fil
 cert-type-hw = Hardware-token
+
+# Transport types
+transport-type-auto-detect = Automatisk registrering
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Automatisk

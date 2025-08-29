@@ -113,6 +113,7 @@ error-unknown-packet-type = Tuntematon pakettityyppi
 error-no-sender = Ei lähettäjää
 error-empty-ccc-session = Tyhjä CCC-istunto
 error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kirjautumistyyppi oikea?
+error-invalid-transport-type = Virheellinen kuljetustyyppi
 
 # Placeholder texts
 placeholder-domains = Pilkulla erotetut verkkotunnukset
@@ -129,6 +130,12 @@ cert-type-none = Ei mitään
 cert-type-pfx = PFX-tiedosto
 cert-type-pem = PEM-tiedosto
 cert-type-hw = Laiteavain
+
+# Transport types
+transport-type-auto-detect = Automaattinen tunnistus
+transport-type-kernel = Kernel XFRM
+transport-type-tcpt = TCPT TUN
+transport-type-udp = UDP TUN
 
 # Icon themes
 icon-theme-auto = Automaattinen
