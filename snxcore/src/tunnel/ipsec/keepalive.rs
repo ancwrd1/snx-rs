@@ -25,7 +25,7 @@ fn make_keepalive_packet() -> [u8; 12] {
 
     let mut data = [0u8; 12];
 
-    let counter = (KEEPALIVE_COUNTER.fetch_add(1, Ordering::SeqCst) & 0xffff_fffff) as u32;
+    let counter = (KEEPALIVE_COUNTER.fetch_add(1, Ordering::SeqCst) & 0xffff_ffff) as u32;
 
     data[0..4].copy_from_slice(&counter.to_be_bytes());
     data[4..6].copy_from_slice(&0x0003u16.to_be_bytes());
