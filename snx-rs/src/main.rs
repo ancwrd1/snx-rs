@@ -1,5 +1,4 @@
-use std::{future::Future, sync::Arc};
-
+use anyhow::anyhow;
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
@@ -16,6 +15,7 @@ use snxcore::{
     server_info, tunnel,
     tunnel::TunnelEvent,
 };
+use std::{future::Future, sync::Arc};
 use tokio::{
     signal::unix,
     sync::{mpsc, oneshot},
@@ -187,8 +187,11 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 println!("{}", tr!("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
                 let (_tx, rx) = oneshot::channel();
-                let receiver = spawn_otp_listener(rx);
-                let otp = receiver.await??;
+                let mut receiver = spawn_otp_listener(rx).await?;
+                let otp = receiver
+                    .recv()
+                    .await
+                    .ok_or(anyhow!(tr!("error-otp-browser-failed")))??;
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {

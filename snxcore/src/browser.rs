@@ -1,14 +1,16 @@
 use std::time::Duration;
 
 use anyhow::anyhow;
-use once_cell::sync::Lazy;
-use regex::Regex;
+use bytes::Bytes;
+use http_body_util::Empty;
+use hyper::{Method, Request, Response, server::conn::http1, service::service_fn};
+use hyper_util::rt::{TokioIo, TokioTimer};
+use i18n::tr;
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt},
     net::TcpListener,
-    sync::oneshot,
+    sync::{mpsc, oneshot},
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 const OTP_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -27,106 +29,113 @@ impl BrowserController for SystemBrowser {
     fn close(&self) {}
 }
 
-async fn parse_otp<R>(mut stream: R) -> anyhow::Result<Option<String>>
-where
-    R: AsyncBufReadExt + AsyncWriteExt + Unpin,
-{
-    static OTP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?<method>[A-Z]+) /(?<otp>\S+).*").unwrap());
-
-    let mut data = String::new();
-    tokio::time::timeout(Duration::from_secs(5), stream.read_line(&mut data)).await??;
-
-    if let Some(captures) = OTP_RE.captures(&data)
-        && let Some(otp) = captures.name("otp")
-    {
-        let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await;
-        let _ = stream.shutdown().await;
-
-        match captures.name("method") {
-            Some(method) if method.as_str() == "OPTIONS" => {
-                debug!("Browser CORS preflight check detected");
-                return Ok(None);
+async fn otp_handler(
+    req: Request<impl hyper::body::Body>,
+    sender: mpsc::Sender<anyhow::Result<String>>,
+) -> anyhow::Result<Response<Empty<Bytes>>> {
+    match *req.method() {
+        Method::GET | Method::OPTIONS => {
+            let otp = req.uri().path().trim_start_matches('/');
+            if otp.is_empty() {
+                warn!("OTP not present in the request");
+            } else {
+                debug!("Successfully received OTP from the browser");
+                let _ = sender.send(Ok(otp.to_owned())).await;
             }
-            Some(method) if method.as_str() == "GET" => {
-                debug!("OTP acquired from the browser");
-                return Ok(Some(otp.as_str().to_owned()));
-            }
-            _ => {}
+
+            Ok(Response::builder()
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                .body(Empty::new())?)
+        }
+
+        _ => {
+            warn!("Received unsupported request: {}", req.method());
+
+            Ok(Response::builder().status(400).body(Empty::new())?)
         }
     }
-    Err(anyhow!(i18n::tr!("error-invalid-otp-reply")))
 }
 
-pub fn spawn_otp_listener(cancel_receiver: oneshot::Receiver<()>) -> oneshot::Receiver<anyhow::Result<String>> {
-    let (sender, receiver) = oneshot::channel();
+async fn spawn_otp_listener_internal(
+    cancel_receiver: oneshot::Receiver<()>,
+    tcp: TcpListener,
+) -> mpsc::Receiver<anyhow::Result<String>> {
+    let (sender, receiver) = mpsc::channel(1);
+    let sender_copy = sender.clone();
 
     let fut = async move {
-        let tcp = TcpListener::bind("127.0.0.1:7779").await?;
-        loop {
-            let (stream, _) = tcp.accept().await?;
+        let (stream, _) = tcp.accept().await?;
 
-            if let Some(otp) = parse_otp(tokio::io::BufReader::new(stream)).await? {
-                return Ok(otp);
-            }
-        }
+        let sender = sender.clone();
+
+        http1::Builder::new()
+            .timer(TokioTimer::new())
+            .serve_connection(
+                TokioIo::new(stream),
+                service_fn(move |req| otp_handler(req, sender.clone())),
+            )
+            .await?;
+
+        Ok::<_, anyhow::Error>(())
     };
 
     tokio::spawn(async move {
         tokio::select! {
-            _ = cancel_receiver => {},
-            result = tokio::time::timeout(OTP_TIMEOUT, fut) => {
-                let _ = sender.send(result.unwrap_or_else(|e| Err(e.into())));
+            _ = cancel_receiver => {
+                debug!("OTP listener cancelled");
+            },
+            _ = tokio::time::timeout(OTP_TIMEOUT, fut) => {
+                debug!("OTP listener finished");
             }
         }
+        let _ = sender_copy.send(Err(anyhow!(tr!("error-otp-browser-failed")))).await;
     });
 
     receiver
+}
+
+pub async fn spawn_otp_listener(
+    cancel_receiver: oneshot::Receiver<()>,
+) -> anyhow::Result<mpsc::Receiver<anyhow::Result<String>>> {
+    let tcp = TcpListener::bind("127.0.0.1:7779").await?;
+    Ok(spawn_otp_listener_internal(cancel_receiver, tcp).await)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::net::SocketAddr;
-    use tokio::io::{AsyncReadExt, BufReader};
-    use tokio::net::TcpStream;
 
-    async fn send_req(addr: SocketAddr, req: &[u8]) -> anyhow::Result<Vec<u8>> {
-        let mut stream = TcpStream::connect(addr).await?;
-        stream.write_all(req).await?;
-        let mut buf = Vec::new();
-        stream.read_to_end(&mut buf).await?;
-
-        Ok(buf)
+    async fn send_req(addr: SocketAddr, method: Method, otp: &str) -> anyhow::Result<()> {
+        let req = reqwest::Request::new(method.clone(), format!("http://{}/{}", addr, otp).parse()?);
+        reqwest::Client::new().execute(req).await?.error_for_status()?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_parse_otp() {
-        let expected_otp = "b8ca70b1a762f044c2938f9ea2b5ff3db36807a53e0c6fcd3a938a7b7791".to_owned();
-        let options_req = format!("OPTIONS /{} HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n", expected_otp).into_bytes();
-        let otp_req = format!("GET /{} HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n", expected_otp).into_bytes();
+    async fn test_otp_listener() {
+        let expected_otp = "1234567890".to_owned();
 
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
 
-        tokio::spawn(async move {
-            let reply = String::from_utf8_lossy(&send_req(addr, &options_req).await.unwrap()).into_owned();
-            assert!(reply.contains("Access-Control-Allow-Origin: *"));
-            println!("{}", reply);
+        let otp = expected_otp.clone();
 
-            let reply = String::from_utf8_lossy(&send_req(addr, &otp_req).await.unwrap()).into_owned();
-            assert!(reply.contains("Access-Control-Allow-Origin: *"));
-            println!("{}", reply);
+        tokio::spawn(async move {
+            send_req(addr, Method::OPTIONS, &otp).await.unwrap();
+            send_req(addr, Method::GET, &otp).await.unwrap();
         });
 
-        let stream = listener.accept().await.unwrap().0;
-        let otp = parse_otp(BufReader::new(stream)).await.unwrap();
-        assert_eq!(otp, None);
+        let (_cancel_sender, cancel_receiver) = oneshot::channel();
 
-        let mut stream = listener.accept().await.unwrap().0;
-        let otp = parse_otp(BufReader::new(&mut stream)).await.unwrap();
-        let mut buf = Vec::new();
-        stream.read_to_end(&mut buf).await.unwrap();
+        let mut receiver = spawn_otp_listener_internal(cancel_receiver, listener).await;
 
-        assert_eq!(otp, Some(expected_otp));
+        let otp = tokio::time::timeout(Duration::from_secs(1), receiver.recv())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert_eq!(otp, expected_otp);
     }
 }

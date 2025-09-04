@@ -177,12 +177,12 @@ where
             MfaType::IdentityProvider => {
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 self.otp_cancel_sender = Some(tx);
-                let receiver = spawn_otp_listener(rx);
+                let mut receiver = spawn_otp_listener(rx).await?;
 
                 self.browser_controller.open(&mfa.prompt)?;
 
-                match receiver.await {
-                    Ok(Ok(otp)) => {
+                match receiver.recv().await {
+                    Some(Ok(otp)) => {
                         self.browser_controller.close();
                         Ok(otp)
                     }
