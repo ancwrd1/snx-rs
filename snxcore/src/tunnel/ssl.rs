@@ -215,10 +215,14 @@ impl SslTunnel {
         }
     }
 
-    pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
-        let ipaddr = self.hello_reply.office_mode.ipaddr.parse()?;
+    pub async fn setup_routing(
+        &self,
+        dev_name: &str,
+        ip_address: Ipv4Addr,
+        netmask: Option<Ipv4Addr>,
+    ) -> anyhow::Result<()> {
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(dev_name, ipaddr);
+        let configurator = platform.new_routing_configurator(dev_name, ip_address);
 
         let dest_ip = self
             .params
@@ -233,6 +237,12 @@ impl SslTunnel {
                     .await?;
             } else {
                 subnets.extend(util::ranges_to_subnets(&self.hello_reply.range));
+                if subnets.is_empty() {
+                    subnets.push(Ipv4Net::with_netmask(
+                        ip_address,
+                        netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)),
+                    )?);
+                }
             }
         }
 
@@ -336,7 +346,7 @@ impl VpnTunnel for SslTunnel {
         let mut tun = TunDevice::new(name_hint, ip_address, netmask, self.params.mtu)?;
         let tun_name = tun.name().to_owned();
 
-        self.setup_routing(&tun_name).await?;
+        self.setup_routing(&tun_name, ip_address, netmask).await?;
 
         let resolver_config = self.make_resolver_config().await;
 

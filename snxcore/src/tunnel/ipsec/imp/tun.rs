@@ -24,7 +24,7 @@ use tracing::{debug, error, warn};
 use crate::{
     ccc::CccHttpClient,
     model::{
-        ConnectionInfo, VpnSession,
+        ConnectionInfo, IpsecSession, VpnSession,
         params::{TransportType, TunnelParams},
     },
     platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
@@ -122,9 +122,7 @@ impl TunIpsecTunnel {
         }
     }
 
-    pub async fn setup_routing(&self, dev_name: &str) -> anyhow::Result<()> {
-        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
-
+    pub async fn setup_routing(&self, dev_name: &str, session: &IpsecSession) -> anyhow::Result<()> {
         let platform = Platform::get();
         let configurator = platform.new_routing_configurator(dev_name, session.address);
 
@@ -140,6 +138,9 @@ impl TunIpsecTunnel {
                 default_route_set = true;
             } else {
                 subnets.extend(&self.subnets);
+                if subnets.is_empty() {
+                    subnets.push(Ipv4Net::with_netmask(session.address, session.netmask)?);
+                }
             }
         }
 
@@ -204,13 +205,13 @@ impl VpnTunnel for TunIpsecTunnel {
         )?;
         let tun_name = tun.name().to_owned();
 
-        self.setup_routing(&tun_name).await?;
-
         let session = self
             .session
             .ipsec_session
             .as_ref()
             .context(tr!("error-no-ipsec-session"))?;
+
+        self.setup_routing(&tun_name, session).await?;
 
         let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
 
@@ -282,7 +283,11 @@ impl VpnTunnel for TunIpsecTunnel {
             Ok::<_, anyhow::Error>(())
         });
 
-        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
+        let session = self
+            .session
+            .ipsec_session
+            .as_ref()
+            .context(tr!("error-no-ipsec-session"))?;
 
         let mut ip_address = Ipv4Net::with_netmask(session.address, session.netmask)?;
 

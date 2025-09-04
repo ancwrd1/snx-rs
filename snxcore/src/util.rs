@@ -91,7 +91,11 @@ where
 }
 
 pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Net> + '_ {
-    ranges.iter().flat_map(|r| Ipv4Subnets::new(r.from, r.to, 0))
+    ranges
+        .iter()
+        // skip default route
+        .filter(|r| r.from != Ipv4Addr::new(0, 0, 0, 1))
+        .flat_map(|r| Ipv4Subnets::new(r.from, r.to, 0))
 }
 
 pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {

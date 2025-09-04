@@ -9,13 +9,14 @@ use std::{
 
 use anyhow::Context;
 use chrono::Local;
+use i18n::tr;
 use ipnet::Ipv4Net;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::debug;
 
 use crate::{
     ccc::CccHttpClient,
-    model::{ConnectionInfo, VpnSession, params::TunnelParams},
+    model::{ConnectionInfo, IpsecSession, VpnSession, params::TunnelParams},
     platform::{
         IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncap, UdpSocketExt,
     },
@@ -43,7 +44,7 @@ impl NativeIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let server_info = server_info::get(&params).await?;
 
-        let ipsec_session = session.ipsec_session.as_ref().context("No IPSEC session!")?;
+        let ipsec_session = session.ipsec_session.as_ref().context(tr!("error-no-ipsec-session"))?;
 
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
@@ -115,9 +116,7 @@ impl NativeIpsecTunnel {
         Ok(())
     }
 
-    async fn setup_routing(&self) -> anyhow::Result<()> {
-        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
-
+    async fn setup_routing(&self, session: &IpsecSession) -> anyhow::Result<()> {
         let platform = Platform::get();
         let configurator = platform.new_routing_configurator(&self.device_name, session.address);
 
@@ -133,6 +132,9 @@ impl NativeIpsecTunnel {
                 default_route_set = true;
             } else {
                 subnets.extend(&self.subnets);
+                if subnets.is_empty() {
+                    subnets.push(Ipv4Net::with_netmask(session.address, session.netmask)?);
+                }
             }
         }
 
@@ -180,9 +182,13 @@ impl VpnTunnel for NativeIpsecTunnel {
 
         let natt_stopper = start_natt_listener(self.natt_socket.clone(), event_sender.clone()).await?;
 
-        let session = self.session.ipsec_session.as_ref().context("No IPSec session!")?;
+        let session = self
+            .session
+            .ipsec_session
+            .as_ref()
+            .context(tr!("error-no-ipsec-session"))?;
 
-        self.setup_routing().await?;
+        self.setup_routing(session).await?;
 
         let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
 
