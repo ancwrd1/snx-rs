@@ -113,29 +113,34 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_otp_listener() {
-        let expected_otp = "1234567890".to_owned();
+    async fn test_otp_listener(method: Method) -> anyhow::Result<()> {
+        let expected_otp = "1234567890";
 
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
-
-        let otp = expected_otp.clone();
-
-        tokio::spawn(async move {
-            send_req(addr, Method::OPTIONS, &otp).await.unwrap();
-            send_req(addr, Method::GET, &otp).await.unwrap();
-        });
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let addr = listener.local_addr()?;
 
         let (_cancel_sender, cancel_receiver) = oneshot::channel();
 
         let mut receiver = spawn_otp_listener_internal(cancel_receiver, listener).await;
 
+        send_req(addr, method, expected_otp).await?;
+
         let otp = tokio::time::timeout(Duration::from_secs(1), receiver.recv())
-            .await
-            .unwrap()
-            .unwrap()
-            .unwrap();
+            .await?
+            .unwrap()?;
+
         assert_eq!(otp, expected_otp);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_otp_lister_get() {
+        test_otp_listener(Method::GET).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_otp_lister_options() {
+        test_otp_listener(Method::OPTIONS).await.unwrap();
     }
 }
