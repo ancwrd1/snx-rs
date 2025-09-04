@@ -57,7 +57,7 @@ async fn otp_handler(
     }
 }
 
-async fn spawn_otp_listener_internal(
+fn spawn_otp_listener_internal(
     cancel_receiver: oneshot::Receiver<()>,
     tcp: TcpListener,
 ) -> mpsc::Receiver<anyhow::Result<String>> {
@@ -99,7 +99,7 @@ pub async fn spawn_otp_listener(
     cancel_receiver: oneshot::Receiver<()>,
 ) -> anyhow::Result<mpsc::Receiver<anyhow::Result<String>>> {
     let tcp = TcpListener::bind("127.0.0.1:7779").await?;
-    Ok(spawn_otp_listener_internal(cancel_receiver, tcp).await)
+    Ok(spawn_otp_listener_internal(cancel_receiver, tcp))
 }
 
 #[cfg(test)]
@@ -121,7 +121,7 @@ mod tests {
 
         let (_cancel_sender, cancel_receiver) = oneshot::channel();
 
-        let mut receiver = spawn_otp_listener_internal(cancel_receiver, listener).await;
+        let mut receiver = spawn_otp_listener_internal(cancel_receiver, listener);
 
         send_req(addr, method, expected_otp).await?;
 
