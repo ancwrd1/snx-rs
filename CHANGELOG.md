@@ -3,6 +3,7 @@
 - Added WSL2 environment detection where the xfrm interface does not work.
 - Fixed compilation for 32-bit targets (ARMv6/ARMv7).
 - Fixed a problem with incorrectly constructed routes for some VPN servers which advertise routing policy as 0.0.0.1-255.255.255.254.
+- Improved browser OTP listener.
 
 ## v4.7.0 (2025-08-28)
 - Added `mtu` option to specify the MTU size for the tunnel interface.
