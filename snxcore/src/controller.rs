@@ -8,11 +8,12 @@ use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::warn;
 
 use crate::{
-    browser::{BrowserController, await_otp},
+    browser::BrowserController,
     model::{
         ConnectionStatus, MfaChallenge, MfaType, PromptInfo, TunnelServiceRequest, TunnelServiceResponse,
         params::TunnelParams,
     },
+    otp::OtpListener,
     platform::{Keychain, Platform, PlatformAccess},
     prompt::SecurePrompt,
     server::DEFAULT_NAME,
@@ -178,11 +179,14 @@ where
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 self.otp_cancel_sender = Some(tx);
 
+                let listener = OtpListener::new().await?;
+                self.browser_controller.open(&mfa.prompt)?;
+
                 tokio::select! {
                     _ = rx => {
                         Err(anyhow!(tr!("error-connection-cancelled")))
                     }
-                    result = await_otp(|| self.browser_controller.open(&mfa.prompt)) => {
+                    result = listener.acquire_otp() => {
                         self.browser_controller.close();
                         result.inspect_err(|e| warn!("{}", e))
                     }

@@ -4,12 +4,12 @@ use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
 use snxcore::{
-    browser::await_otp,
     ccc::CccHttpClient,
     model::{
         MfaType, PromptInfo, SessionState,
         params::{OperationMode, TunnelParams, TunnelType},
     },
+    otp::OtpListener,
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
@@ -183,7 +183,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             MfaType::IdentityProvider => {
                 println!("{}", tr!("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
-                let otp = await_otp(|| Ok(())).await?;
+                let otp = OtpListener::new().await?.acquire_otp().await?;
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {

@@ -1,11 +1,17 @@
 #!/usr/bin/bash
 
-export RUSTFLAGS="-C link-arg=-L/usr/lib64"
+BASEDIR=$(dirname $(readlink -f $0))
+REMAPDIRS="$BASEDIR=/project $HOME=/"
+
+for rd in $REMAPDIRS; do
+    export RUSTFLAGS="$RUSTFLAGS --remap-path-prefix=$rd"
+done
+
 if [ -z "$1" ]; then
     targets="x86_64-unknown-linux-gnu"
 else
     targets="$1"
 fi
 for target in $targets; do
-    cargo zigbuild --target=${target}.2.17 --profile=lto --features vendored-openssl
+    cargo build --target=${target} --profile=lto --features vendored-openssl
 done
