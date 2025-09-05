@@ -8,7 +8,7 @@ use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::warn;
 
 use crate::{
-    browser::{BrowserController, spawn_otp_listener},
+    browser::{BrowserController, await_otp},
     model::{
         ConnectionStatus, MfaChallenge, MfaType, PromptInfo, TunnelServiceRequest, TunnelServiceResponse,
         params::TunnelParams,
@@ -177,20 +177,12 @@ where
             MfaType::IdentityProvider => {
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 self.otp_cancel_sender = Some(tx);
-                let mut receiver = spawn_otp_listener(rx).await?;
-
                 self.browser_controller.open(&mfa.prompt)?;
 
-                match receiver.recv().await {
-                    Some(Ok(otp)) => {
-                        self.browser_controller.close();
-                        Ok(otp)
-                    }
-                    _ => {
-                        warn!("Unable to acquire OTP from the browser");
-                        Err(anyhow!(tr!("error-otp-browser-failed")))
-                    }
-                }
+                await_otp(rx)
+                    .await
+                    .inspect(|_| self.browser_controller.close())
+                    .inspect_err(|e| warn!("{}", e))
             }
             MfaType::UserNameInput => {
                 let mut prompt = PromptInfo::new(tr!("label-username-required"), &mfa.prompt);

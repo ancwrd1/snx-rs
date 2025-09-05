@@ -1,9 +1,8 @@
-use anyhow::anyhow;
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
 use snxcore::{
-    browser::spawn_otp_listener,
+    browser::await_otp,
     ccc::CccHttpClient,
     model::{
         MfaType, PromptInfo, SessionState,
@@ -187,11 +186,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 println!("{}", tr!("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
                 let (_tx, rx) = oneshot::channel();
-                let mut receiver = spawn_otp_listener(rx).await?;
-                let otp = receiver
-                    .recv()
-                    .await
-                    .ok_or(anyhow!(tr!("error-otp-browser-failed")))??;
+                let otp = await_otp(rx).await?;
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {

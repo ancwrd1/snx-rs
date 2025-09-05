@@ -31,7 +31,7 @@ impl BrowserController for SystemBrowser {
 
 async fn otp_handler(
     req: Request<impl hyper::body::Body>,
-    sender: mpsc::Sender<anyhow::Result<String>>,
+    sender: mpsc::Sender<String>,
 ) -> anyhow::Result<Response<Empty<Bytes>>> {
     match *req.method() {
         Method::GET | Method::OPTIONS => {
@@ -40,7 +40,7 @@ async fn otp_handler(
                 warn!("OTP not present in the request");
             } else {
                 debug!("Successfully received OTP from the browser");
-                let _ = sender.send(Ok(otp.to_owned())).await;
+                let _ = sender.send(otp.to_owned()).await;
             }
 
             Ok(Response::builder()
@@ -57,17 +57,11 @@ async fn otp_handler(
     }
 }
 
-fn spawn_otp_listener_internal(
-    cancel_receiver: oneshot::Receiver<()>,
-    tcp: TcpListener,
-) -> mpsc::Receiver<anyhow::Result<String>> {
-    let (sender, receiver) = mpsc::channel(1);
-    let sender_copy = sender.clone();
+async fn await_otp_internal(cancel_receiver: oneshot::Receiver<()>, tcp: TcpListener) -> anyhow::Result<String> {
+    let (sender, mut receiver) = mpsc::channel(1);
 
     let fut = async move {
         let (stream, _) = tcp.accept().await?;
-
-        let sender = sender.clone();
 
         http1::Builder::new()
             .timer(TokioTimer::new())
@@ -80,26 +74,26 @@ fn spawn_otp_listener_internal(
         Ok::<_, anyhow::Error>(())
     };
 
-    tokio::spawn(async move {
-        tokio::select! {
-            _ = cancel_receiver => {
-                debug!("OTP listener cancelled");
-            },
-            _ = tokio::time::timeout(OTP_TIMEOUT, fut) => {
-                debug!("OTP listener finished");
+    tokio::select! {
+        _ = cancel_receiver => {
+            warn!("OTP listener cancelled");
+        }
+        _ = fut => {
+            warn!("OTP listener finished without receiving OTP");
+        }
+        result = tokio::time::timeout(OTP_TIMEOUT, receiver.recv()) => {
+            if let Ok(Some(otp)) = result {
+                return Ok(otp);
             }
         }
-        let _ = sender_copy.send(Err(anyhow!(tr!("error-otp-browser-failed")))).await;
-    });
+    }
 
-    receiver
+    Err(anyhow!(tr!("error-otp-browser-failed")))
 }
 
-pub async fn spawn_otp_listener(
-    cancel_receiver: oneshot::Receiver<()>,
-) -> anyhow::Result<mpsc::Receiver<anyhow::Result<String>>> {
+pub async fn await_otp(cancel_receiver: oneshot::Receiver<()>) -> anyhow::Result<String> {
     let tcp = TcpListener::bind("127.0.0.1:7779").await?;
-    Ok(spawn_otp_listener_internal(cancel_receiver, tcp))
+    await_otp_internal(cancel_receiver, tcp).await
 }
 
 #[cfg(test)]
@@ -121,13 +115,9 @@ mod tests {
 
         let (_cancel_sender, cancel_receiver) = oneshot::channel();
 
-        let mut receiver = spawn_otp_listener_internal(cancel_receiver, listener);
+        tokio::spawn(async move { send_req(addr, method, expected_otp).await });
 
-        send_req(addr, method, expected_otp).await?;
-
-        let otp = tokio::time::timeout(Duration::from_secs(1), receiver.recv())
-            .await?
-            .unwrap()?;
+        let otp = tokio::time::timeout(Duration::from_secs(1), await_otp_internal(cancel_receiver, listener)).await??;
 
         assert_eq!(otp, expected_otp);
 
