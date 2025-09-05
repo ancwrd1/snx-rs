@@ -43,6 +43,7 @@ async fn otp_handler(
             Ok(Response::builder()
                 .header("Access-Control-Allow-Origin", "*")
                 .header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                .header("Connection", "close")
                 .body(Empty::new())?)
         }
 
@@ -55,11 +56,10 @@ async fn otp_handler(
 }
 
 async fn await_otp_internal(tcp: TcpListener) -> anyhow::Result<String> {
+    let (stream, _) = tcp.accept().await?;
     let (sender, mut receiver) = mpsc::channel(1);
 
-    let fut = async move {
-        let (stream, _) = tcp.accept().await?;
-
+    tokio::spawn(async move {
         http1::Builder::new()
             .timer(TokioTimer::new())
             .serve_connection(
@@ -69,20 +69,12 @@ async fn await_otp_internal(tcp: TcpListener) -> anyhow::Result<String> {
             .await?;
 
         Ok::<_, anyhow::Error>(())
-    };
+    });
 
-    tokio::select! {
-        _ = fut => {
-            warn!("OTP listener finished without receiving OTP");
-        }
-        result = tokio::time::timeout(OTP_TIMEOUT, receiver.recv()) => {
-            if let Ok(Some(otp)) = result {
-                return Ok(otp);
-            }
-        }
+    match tokio::time::timeout(OTP_TIMEOUT, receiver.recv()).await {
+        Ok(Some(otp)) => Ok(otp),
+        _ => Err(anyhow!(tr!("error-otp-browser-failed"))),
     }
-
-    Err(anyhow!(tr!("error-otp-browser-failed")))
 }
 
 pub async fn await_otp<F>(on_bind: F) -> anyhow::Result<String>
