@@ -4,6 +4,7 @@
 - Fixed compilation for 32-bit targets (ARMv6/ARMv7).
 - Fixed a problem with incorrectly constructed routes for some VPN servers which advertise routing policy as 0.0.0.1-255.255.255.254.
 - Improved browser OTP listener.
+- Added a logic to try to keep the same IP address during IP renewal. Might not work for all users, please report any issues.
 
 ## v4.7.0 (2025-08-28)
 - Added `mtu` option to specify the MTU size for the tunnel interface.

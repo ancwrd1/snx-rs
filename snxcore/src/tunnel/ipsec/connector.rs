@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use i18n::tr;
+use ipnet::Ipv4Net;
 use isakmp::{
     ikev1::{service::Ikev1Service, session::Ikev1Session},
     model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
@@ -209,7 +210,13 @@ impl IpsecTunnelConnector {
         let mac = Bytes::copy_from_slice(&util::get_device_id().as_bytes()[0..6]);
         debug!("Using dummy MAC address: {}", hex::encode(&mac));
 
-        let om_reply = self.service.send_om_request(None, Some(mac)).await?;
+        let om_reply = self
+            .service
+            .send_om_request(
+                Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask).ok(),
+                Some(mac),
+            )
+            .await?;
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
