@@ -763,7 +763,9 @@ impl SettingsDialog {
 
     fn transport_type_box(&self) -> gtk4::Box {
         let transport_type_box = self.form_box(&tr!("info-transport-type"));
-        self.widgets.transport_type.insert_text(0, &tr!("transport-type-autodetect"));
+        self.widgets
+            .transport_type
+            .insert_text(0, &tr!("transport-type-autodetect"));
         self.widgets
             .transport_type
             .insert_text(1, &tr!("transport-type-kernel"));
