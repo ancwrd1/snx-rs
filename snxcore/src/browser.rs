@@ -6,10 +6,7 @@ use http_body_util::Empty;
 use hyper::{Method, Request, Response, server::conn::http1, service::service_fn};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use i18n::tr;
-use tokio::{
-    net::TcpListener,
-    sync::{mpsc, oneshot},
-};
+use tokio::{net::TcpListener, sync::mpsc};
 use tracing::{debug, warn};
 
 const OTP_TIMEOUT: Duration = Duration::from_secs(120);
@@ -57,7 +54,7 @@ async fn otp_handler(
     }
 }
 
-async fn await_otp_internal(cancel_receiver: oneshot::Receiver<()>, tcp: TcpListener) -> anyhow::Result<String> {
+async fn await_otp_internal(tcp: TcpListener) -> anyhow::Result<String> {
     let (sender, mut receiver) = mpsc::channel(1);
 
     let fut = async move {
@@ -75,9 +72,6 @@ async fn await_otp_internal(cancel_receiver: oneshot::Receiver<()>, tcp: TcpList
     };
 
     tokio::select! {
-        _ = cancel_receiver => {
-            warn!("OTP listener cancelled");
-        }
         _ = fut => {
             warn!("OTP listener finished without receiving OTP");
         }
@@ -91,9 +85,9 @@ async fn await_otp_internal(cancel_receiver: oneshot::Receiver<()>, tcp: TcpList
     Err(anyhow!(tr!("error-otp-browser-failed")))
 }
 
-pub async fn await_otp(cancel_receiver: oneshot::Receiver<()>) -> anyhow::Result<String> {
+pub async fn await_otp() -> anyhow::Result<String> {
     let tcp = TcpListener::bind("127.0.0.1:7779").await?;
-    await_otp_internal(cancel_receiver, tcp).await
+    await_otp_internal(tcp).await
 }
 
 #[cfg(test)]
@@ -113,11 +107,9 @@ mod tests {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let addr = listener.local_addr()?;
 
-        let (_cancel_sender, cancel_receiver) = oneshot::channel();
-
         tokio::spawn(async move { send_req(addr, method, expected_otp).await });
 
-        let otp = tokio::time::timeout(Duration::from_secs(1), await_otp_internal(cancel_receiver, listener)).await??;
+        let otp = tokio::time::timeout(Duration::from_secs(1), await_otp_internal(listener)).await??;
 
         assert_eq!(otp, expected_otp);
 

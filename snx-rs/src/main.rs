@@ -1,3 +1,5 @@
+use std::{future::Future, sync::Arc};
+
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
@@ -14,11 +16,7 @@ use snxcore::{
     server_info, tunnel,
     tunnel::TunnelEvent,
 };
-use std::{future::Future, sync::Arc};
-use tokio::{
-    signal::unix,
-    sync::{mpsc, oneshot},
-};
+use tokio::{signal::unix, sync::mpsc};
 use tracing::{debug, metadata::LevelFilter, warn};
 
 use crate::cmdline::CmdlineParams;
@@ -185,8 +183,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             MfaType::IdentityProvider => {
                 println!("{}", tr!("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
-                let (_tx, rx) = oneshot::channel();
-                let otp = await_otp(rx).await?;
+                let otp = await_otp().await?;
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::UserNameInput => {

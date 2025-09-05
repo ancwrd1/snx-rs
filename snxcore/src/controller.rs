@@ -179,10 +179,15 @@ where
                 self.otp_cancel_sender = Some(tx);
                 self.browser_controller.open(&mfa.prompt)?;
 
-                await_otp(rx)
-                    .await
-                    .inspect(|_| self.browser_controller.close())
-                    .inspect_err(|e| warn!("{}", e))
+                tokio::select! {
+                    _ = rx => {
+                        Err(anyhow!(tr!("error-connection-cancelled")))
+                    }
+                    result = await_otp() => {
+                        self.browser_controller.close();
+                        result.inspect_err(|e| warn!("{}", e))
+                    }
+                }
             }
             MfaType::UserNameInput => {
                 let mut prompt = PromptInfo::new(tr!("label-username-required"), &mfa.prompt);
