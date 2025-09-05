@@ -177,13 +177,12 @@ where
             MfaType::IdentityProvider => {
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 self.otp_cancel_sender = Some(tx);
-                self.browser_controller.open(&mfa.prompt)?;
 
                 tokio::select! {
                     _ = rx => {
                         Err(anyhow!(tr!("error-connection-cancelled")))
                     }
-                    result = await_otp() => {
+                    result = await_otp(|| self.browser_controller.open(&mfa.prompt)) => {
                         self.browser_controller.close();
                         result.inspect_err(|e| warn!("{}", e))
                     }

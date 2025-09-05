@@ -85,8 +85,12 @@ async fn await_otp_internal(tcp: TcpListener) -> anyhow::Result<String> {
     Err(anyhow!(tr!("error-otp-browser-failed")))
 }
 
-pub async fn await_otp() -> anyhow::Result<String> {
+pub async fn await_otp<F>(on_bind: F) -> anyhow::Result<String>
+where
+    F: FnOnce() -> anyhow::Result<()>,
+{
     let tcp = TcpListener::bind("127.0.0.1:7779").await?;
+    on_bind()?;
     await_otp_internal(tcp).await
 }
 
