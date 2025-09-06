@@ -1,0 +1,96 @@
+name: Create Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'      # Triggers on annotated tags like v1.0.0
+      - 'test-*.*.*'  # Triggers on annotated tags like test-1.0.0
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+
+    steps:
+      # Checkout the repository at the tagged commit
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      # Install dependencies
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev
+
+      # Install Rust
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+
+      # Build the project
+      - name: Build project
+        run: |
+          chmod +x scripts/build-lto.sh
+          ./scripts/build-lto.sh
+
+      # Package the project
+      - name: Package project
+        run: |
+          chmod +x scripts/package.sh
+          ./scripts/package.sh
+
+      # Parse CHANGELOG.md and create release notes
+      - name: Extract changelog for tag
+        id: changelog
+        run: |
+          TAG_NAME=$(echo ${{ github.ref_name }} | sed 's/^v//;s/^test-//')  # Remove 'v' or 'test-' prefix
+          echo "Extracting changelog for tag: $TAG_NAME"
+
+          # Find the changelog section for this tag
+          CHANGELOG=$(awk '/^## '"$TAG_NAME"' /,/^## /{if(/^-/){print}}' CHANGELOG.md | sed 's/^- //')
+
+          if [ -z "$CHANGELOG" ]; then
+            echo "No changelog entries found for $TAG_NAME"
+            exit 1
+          fi
+
+          # Format release notes
+          RELEASE_NOTES="## Version $TAG_NAME\n\n$CHANGELOG"
+          echo "release_notes<<EOF" >> $GITHUB_ENV
+          echo "$RELEASE_NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "tag_name=$TAG_NAME" >> $GITHUB_ENV
+
+      # Create GitHub Release (skip if tag starts with test-)
+      - name: Create Release
+        if: ${{ !startsWith(github.ref_name, 'test-') }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const tagName = process.env.tag_name;
+            const releaseNotes = process.env.release_notes;
+            const artifactPath = `target/snx-rs-${tagName}-linux-x86_64.tar.xz`;
+
+            const release = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `Version ${tagName}`,
+              body: releaseNotes,
+              draft: false,
+              prerelease: false
+            });
+
+            // Upload release asset
+            const artifact = fs.readFileSync(artifactPath);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: `snx-rs-${tagName}-linux-x86_64.tar.xz`,
+              data: artifact
+            });
