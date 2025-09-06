@@ -237,11 +237,9 @@ impl SslTunnel {
                     .await?;
             } else {
                 subnets.extend(util::ranges_to_subnets(&self.hello_reply.range));
-                if subnets.is_empty() {
-                    subnets.push(Ipv4Net::with_netmask(
-                        ip_address,
-                        netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)),
-                    )?);
+                let network = Ipv4Net::with_netmask(ip_address, netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)))?;
+                if network.prefix_len() < 32 {
+                    subnets.push(network.trunc());
                 }
             }
         }

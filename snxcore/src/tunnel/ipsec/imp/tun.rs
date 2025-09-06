@@ -138,8 +138,9 @@ impl TunIpsecTunnel {
                 default_route_set = true;
             } else {
                 subnets.extend(&self.subnets);
-                if subnets.is_empty() {
-                    subnets.push(Ipv4Net::with_netmask(session.address, session.netmask)?);
+                let network = Ipv4Net::with_netmask(session.address, session.netmask)?;
+                if network.prefix_len() < 32 {
+                    subnets.push(network.trunc());
                 }
             }
         }
