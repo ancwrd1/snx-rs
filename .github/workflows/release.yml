@@ -39,7 +39,7 @@ jobs:
       - name: Extract changelog for tag
         id: changelog
         run: |
-          TAG_NAME=$(echo ${{ github.ref_name }} | sed 's/^v//;s/^test-//')  # Remove 'v' or 'test-' prefix
+          TAG_NAME=$(echo ${{ github.ref_name }})
           echo "Extracting changelog for tag: $TAG_NAME"
 
           # Find the changelog section for this tag
