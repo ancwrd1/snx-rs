@@ -6,6 +6,9 @@ on:
       - 'v*.*.*'
       - 'test-*.*.*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-22.04
@@ -63,7 +66,7 @@ jobs:
         if: ${{ !startsWith(github.ref_name, 'test-') }}
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.CI_RELEASE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const tagName = process.env.tag_name;
