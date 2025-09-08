@@ -19,26 +19,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source $HOME/.cargo/env
-
-      - name: Build project
-        run: |
-          chmod +x scripts/build-lto.sh
-          ./scripts/build-lto.sh
-
-      - name: Package project
-        run: |
-          chmod +x scripts/package.sh
-          ./scripts/package.sh
-
       - name: Extract changelog for tag
         id: changelog
         run: |
@@ -61,6 +41,26 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           echo "tag_name=$TAG_NAME" >> $GITHUB_ENV
           echo "version_name=$VERSION_NAME" >> $GITHUB_ENV
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+
+      - name: Build project
+        run: |
+          chmod +x scripts/build-lto.sh
+          ./scripts/build-lto.sh
+
+      - name: Package project
+        run: |
+          chmod +x scripts/package.sh
+          ./scripts/package.sh
 
       - name: Create Release
         if: ${{ !startsWith(github.ref_name, 'test-') }}
