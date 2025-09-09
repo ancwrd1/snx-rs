@@ -225,7 +225,6 @@ to perform automated translation via the AI agent of choice. Tested with Zed edi
   - Other distros: C compiler, OpenSSL, GTK 4 development packages
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version
-* If the GUI frontend is not needed, build it with `cargo build --release --workspace --exclude snx-rs-gui`
 
 NOTE: the minimal supported Rust version is 1.88.
 
