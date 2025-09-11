@@ -1,6 +1,15 @@
-use std::{collections::HashMap, ffi::OsStr, fmt, future::Future, net::Ipv4Addr, path::Path, process::Output};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    ffi::OsStr,
+    fmt,
+    future::Future,
+    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
+    path::Path,
+    process::Output,
+};
 
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use cached::proc_macro::cached;
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use itertools::Itertools;
@@ -220,6 +229,26 @@ pub fn ipv4net_to_string(ip: Ipv4Net) -> String {
     } else {
         ip.to_string()
     }
+}
+
+pub fn server_name_with_port<'a>(server_name: &'a str, port: u16) -> Cow<'a, str> {
+    if server_name.contains(':') {
+        Cow::Borrowed(server_name)
+    } else {
+        Cow::Owned(format!("{}:{}", server_name, port))
+    }
+}
+
+pub fn server_name_to_ipv4(server_name: &str, port: u16) -> anyhow::Result<Ipv4Addr> {
+    let address = server_name_with_port(server_name, port)
+        .to_socket_addrs()?
+        .find_map(|addr| match addr.ip() {
+            IpAddr::V4(v4) => Some(v4),
+            IpAddr::V6(_) => None,
+        })
+        .context(format!("Cannot resolve {}", server_name))?;
+
+    Ok(address)
 }
 
 #[cfg(test)]

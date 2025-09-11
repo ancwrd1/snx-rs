@@ -163,3 +163,71 @@ impl<T: TryFrom<u64>> Visitor<'_> for MaybeVisitor<T> {
         Ok(Maybe(None))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_string_list() {
+        #[derive(Serialize, Deserialize, PartialEq, Debug)]
+        struct Data {
+            field: StringList,
+        }
+
+        let data = Data {
+            field: StringList(vec!["a".to_owned(), "b".to_owned(), "c".to_owned()]),
+        };
+
+        let serialized = serde_json::to_string(&data).unwrap();
+        assert_eq!(serialized, r#"{"field":"\"a,b,c\""}"#);
+
+        let deserialized = serde_json::from_str::<Data>(&serialized).unwrap();
+        assert_eq!(deserialized, data);
+
+        let deserialized = serde_json::from_str::<Data>(r#"{"field":"\"a;b;c\""}"#).unwrap();
+        assert_eq!(deserialized, data);
+    }
+
+    #[test]
+    fn test_encrypted_string() {
+        #[derive(Serialize, Deserialize, PartialEq, Debug)]
+        struct Data {
+            field: EncryptedString,
+        }
+
+        let data = Data {
+            field: EncryptedString("foo".to_owned()),
+        };
+
+        let serialized = serde_json::to_string(&data).unwrap();
+        assert_eq!(
+            serialized,
+            format!("{{\"field\":\"{}\"}}", crate::util::snx_encrypt("foo".as_bytes()))
+        );
+
+        let deserialized = serde_json::from_str::<Data>(&serialized).unwrap();
+        assert_eq!(deserialized, data);
+    }
+
+    #[test]
+    fn test_maybe() {
+        #[derive(Serialize, Deserialize, PartialEq, Debug)]
+        struct Data {
+            field: Maybe<u64>,
+        }
+
+        let some_data = Data {
+            field: Maybe(Some(123)),
+        };
+
+        let serialized = serde_json::to_string(&some_data).unwrap();
+        assert_eq!(serialized, r#"{"field":123}"#);
+
+        let deserialized = serde_json::from_str::<Data>(&serialized).unwrap();
+        assert_eq!(deserialized, some_data);
+
+        let none = serde_json::from_str::<Data>(r#"{"field":""}"#).unwrap();
+        assert!(none.field.0.is_none());
+    }
+}

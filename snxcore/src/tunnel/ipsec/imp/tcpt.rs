@@ -20,6 +20,7 @@ use crate::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
     },
+    util,
 };
 
 const CHANNEL_SIZE: usize = 1024;
@@ -56,7 +57,7 @@ impl TcptIpsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let info = server_info::get(&params).await?;
 
-        let address = params.server_name_with_port(info.connectivity_info.tcpt_port);
+        let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
 
         let mut tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
 

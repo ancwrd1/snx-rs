@@ -1,14 +1,13 @@
 use std::{
-    borrow::Cow,
     fmt, fs,
     io::{Cursor, Write},
-    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
+    net::Ipv4Addr,
     path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
 };
 
-use anyhow::{Context, anyhow};
+use anyhow::anyhow;
 use base64::Engine;
 use directories_next::ProjectDirs;
 use i18n::tr;
@@ -262,7 +261,7 @@ impl From<u32> for TransportType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TunnelParams {
     pub server_name: String,
     pub user_name: String,
@@ -550,25 +549,59 @@ impl TunnelParams {
     pub fn default_config_path() -> PathBuf {
         Self::default_config_dir().join("snx-rs.conf")
     }
+}
 
-    pub fn server_name_with_port(&self, port: u16) -> Cow<'_, str> {
-        if self.server_name.contains(':') {
-            Cow::Borrowed(self.server_name.as_str())
-        } else {
-            Cow::Owned(format!("{}:{}", self.server_name, port))
-        }
-    }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    pub fn server_name_to_ipv4(&self, port: u16) -> anyhow::Result<Ipv4Addr> {
-        let address = self
-            .server_name_with_port(port)
-            .to_socket_addrs()?
-            .find_map(|addr| match addr.ip() {
-                IpAddr::V4(v4) => Some(v4),
-                IpAddr::V6(_) => None,
-            })
-            .context(format!("Cannot resolve {}", self.server_name))?;
+    #[test]
+    fn test_load_store_params() {
+        let temp_path = tempfile::NamedTempFile::new().unwrap().into_temp_path();
+        let params = TunnelParams {
+            server_name: "foo".to_string(),
+            user_name: "bar".to_string(),
+            password: "password".to_string(),
+            password_factor: 1,
+            log_level: "debug".to_string(),
+            search_domains: vec!["dom1".to_owned(), "dom2".to_owned()],
+            ignore_search_domains: vec!["dom3".to_owned(), "dom4".to_owned()],
+            dns_servers: vec![Ipv4Addr::new(1, 2, 3, 4), Ipv4Addr::new(5, 6, 7, 8)],
+            ignore_dns_servers: vec![Ipv4Addr::new(9, 10, 11, 12), Ipv4Addr::new(13, 14, 15, 16)],
+            default_route: true,
+            no_routing: true,
+            add_routes: vec![Ipv4Net::new(Ipv4Addr::new(17, 18, 19, 20), 24).unwrap()],
+            ignore_routes: vec![Ipv4Net::new(Ipv4Addr::new(21, 22, 23, 24), 24).unwrap()],
+            no_dns: true,
+            ignore_server_cert: true,
+            tunnel_type: TunnelType::Ssl,
+            ca_cert: vec![PathBuf::from("ca.cert")],
+            login_type: "vpn_test".to_string(),
+            cert_type: CertType::Pkcs8,
+            cert_path: Some(PathBuf::from("cert.pem")),
+            cert_password: Some("password".to_string()),
+            cert_id: Some("id".to_string()),
+            if_name: Some("ifname".to_string()),
+            no_keychain: true,
+            ike_lifetime: Duration::from_secs(100),
+            ike_persist: true,
+            client_mode: "client_mode".to_string(),
+            no_keepalive: true,
+            icon_theme: IconTheme::Light,
+            set_routing_domains: true,
+            port_knock: true,
+            locale: Some("ja_JP".to_string()),
+            auto_connect: true,
+            ip_lease_time: Some(Duration::from_secs(500)),
+            disable_ipv6: true,
+            mtu: 2000,
+            transport_type: TransportType::Tcpt,
+            config_file: temp_path.to_owned(),
+        };
 
-        Ok(address)
+        assert!(params.save().is_ok());
+
+        let loaded = TunnelParams::load(&temp_path).unwrap();
+        assert_eq!(loaded, params);
     }
 }

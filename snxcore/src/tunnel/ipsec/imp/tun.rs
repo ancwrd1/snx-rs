@@ -69,8 +69,10 @@ impl TunIpsecTunnel {
             _ => EspEncapType::None,
         };
 
-        let gateway_address =
-            params.server_name_to_ipv4(server_info::get(&params).await?.connectivity_info.tcpt_port)?;
+        let gateway_address = util::server_name_to_ipv4(
+            &params.server_name,
+            server_info::get(&params).await?.connectivity_info.tcpt_port,
+        )?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",

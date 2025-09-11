@@ -12,4 +12,3 @@ impl BrowserController for SystemBrowser {
 
     fn close(&self) {}
 }
-

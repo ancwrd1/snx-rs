@@ -16,6 +16,7 @@ use crate::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
     },
+    util,
 };
 
 const CHANNEL_SIZE: usize = 1024;
@@ -53,7 +54,7 @@ impl UdpIpsecTunnel {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         let server_info = server_info::get(&params).await?;
 
-        let address = params.server_name_with_port(server_info.connectivity_info.natt_port);
+        let address = util::server_name_with_port(&params.server_name, server_info.connectivity_info.natt_port);
 
         socket.connect(address.as_ref()).await?;
 

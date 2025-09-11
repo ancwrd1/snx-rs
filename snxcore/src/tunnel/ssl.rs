@@ -90,7 +90,7 @@ impl SslTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let info = server_info::get(&params).await?;
 
-        let address = params.server_name_with_port(info.connectivity_info.tcpt_port);
+        let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
 
         let tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
 
@@ -194,7 +194,8 @@ impl SslTunnel {
             let configurator = platform.new_routing_configurator(device.name(), ipaddr);
 
             if let Ok(info) = server_info::get(&self.params).await
-                && let Ok(dest_ip) = self.params.server_name_to_ipv4(info.connectivity_info.tcpt_port)
+                && let Ok(dest_ip) =
+                    util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
             {
                 let _ = configurator
                     .remove_default_route(dest_ip, self.params.disable_ipv6)
@@ -224,9 +225,10 @@ impl SslTunnel {
         let platform = Platform::get();
         let configurator = platform.new_routing_configurator(dev_name, ip_address);
 
-        let dest_ip = self
-            .params
-            .server_name_to_ipv4(server_info::get(&self.params).await?.connectivity_info.tcpt_port)?;
+        let dest_ip = util::server_name_to_ipv4(
+            &self.params.server_name,
+            server_info::get(&self.params).await?.connectivity_info.tcpt_port,
+        )?;
 
         let mut subnets = self.params.add_routes.clone();
 

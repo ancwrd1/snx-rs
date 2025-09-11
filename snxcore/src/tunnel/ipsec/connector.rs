@@ -551,7 +551,7 @@ impl IpsecTunnelConnector {
 
         let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
 
-        let address = params.server_name_with_port(server_info.connectivity_info.tcpt_port);
+        let address = util::server_name_with_port(&params.server_name, server_info.connectivity_info.tcpt_port);
 
         let tcpt_address = address.to_socket_addrs()?.next().context("No address!")?;
 
