@@ -14,7 +14,7 @@ impl Serialize for StringList {
     where
         S: Serializer,
     {
-        format!("\"{}\"", self.0.join(",")).serialize(serializer)
+        self.0.join(",").serialize(serializer)
     }
 }
 
@@ -25,7 +25,6 @@ impl<'de> Deserialize<'de> for StringList {
     {
         Ok(Self(
             String::deserialize(deserializer)?
-                .trim_matches('"')
                 .split([',', ';'])
                 .map(ToOwned::to_owned)
                 .collect(),
@@ -180,12 +179,12 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&data).unwrap();
-        assert_eq!(serialized, r#"{"field":"\"a,b,c\""}"#);
+        assert_eq!(serialized, r#"{"field":"a,b,c"}"#);
 
         let deserialized = serde_json::from_str::<Data>(&serialized).unwrap();
         assert_eq!(deserialized, data);
 
-        let deserialized = serde_json::from_str::<Data>(r#"{"field":"\"a;b;c\""}"#).unwrap();
+        let deserialized = serde_json::from_str::<Data>(r#"{"field":"a;b;c"}"#).unwrap();
         assert_eq!(deserialized, data);
     }
 
