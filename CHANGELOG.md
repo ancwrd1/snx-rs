@@ -1,3 +1,6 @@
+## Next version (TBD)
+- Enabled SAML SSO authentication for SSL tunnel.
+
 ## v4.8.0 (2025-09-08)
 - Added `transport-type` option to specify the IPSec transport type explicitly.
 - Added WSL2 environment detection where the xfrm interface does not work.
