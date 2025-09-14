@@ -231,7 +231,7 @@ pub fn ipv4net_to_string(ip: Ipv4Net) -> String {
     }
 }
 
-pub fn server_name_with_port<'a>(server_name: &'a str, port: u16) -> Cow<'a, str> {
+pub fn server_name_with_port(server_name: &str, port: u16) -> Cow<'_, str> {
     if server_name.contains(':') {
         Cow::Borrowed(server_name)
     } else {
