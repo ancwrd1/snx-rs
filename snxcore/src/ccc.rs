@@ -112,7 +112,7 @@ impl CccHttpClient {
                 session_id: self.session_id(),
                 protocol_version: Some(100),
             },
-            data: RequestData::Signout(SignoutRequest::default()),
+            data: RequestData::SignOut(SignOutRequest::default()),
         }
     }
 

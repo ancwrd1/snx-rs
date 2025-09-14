@@ -163,12 +163,11 @@ pub struct ClientSettingsData {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SignoutRequest {}
+pub struct SignOutRequest {}
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PoliciesAndVersions {
     pub range: Vec<NetworkRange>,
-    pub nemo_client_1: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -179,7 +178,7 @@ pub enum RequestData {
     MultiChallenge(MultiChallengeRequest),
     ClientHello { client_info: ClientInfo },
     ClientSettings(ClientSettingsRequest),
-    Signout(SignoutRequest),
+    SignOut(SignOutRequest),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -265,7 +264,6 @@ pub struct ClientInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerInfoResponse {
     pub protocol_version: ProtocolVersion,
-    pub upgrade_configuration: UpgradeConfiguration,
     pub connectivity_info: ConnectivityInfo,
     pub login_options_data: Option<LoginOptionsData>,
 }
@@ -273,13 +271,6 @@ pub struct ServerInfoResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProtocolVersion {
     pub protocol_version: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct UpgradeConfiguration {
-    pub available_client_version: u32,
-    pub client_upgrade_url: String,
-    pub upgrade_mode: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -322,8 +313,6 @@ impl LoginOption {
                 "1".to_owned(),
                 LoginFactor {
                     factor_type: "password".to_owned(),
-                    securid_card_type: String::new(),
-                    certificate_storage_type: String::new(),
                     custom_display_labels: LoginDisplayLabelSelect::Empty(String::new()),
                 },
             )]),
@@ -338,8 +327,6 @@ impl LoginOption {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginFactor {
     pub factor_type: String,
-    pub securid_card_type: String,
-    pub certificate_storage_type: String,
     pub custom_display_labels: LoginDisplayLabelSelect,
 }
 

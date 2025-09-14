@@ -297,7 +297,7 @@ fn parse_value(mut pairs: RulePairs) -> anyhow::Result<SExpression> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::proto::{CccClientRequest, CccClientRequestData, RequestData, RequestHeader, SignoutRequest};
+    use crate::model::proto::{CccClientRequest, CccClientRequestData, RequestData, RequestHeader, SignOutRequest};
 
     #[test]
     fn test_parse_client_hello() {
@@ -442,7 +442,7 @@ mod tests {
                     session_id: Some("1234".to_string()),
                     protocol_version: Some(100),
                 },
-                data: RequestData::Signout(SignoutRequest::default()),
+                data: RequestData::SignOut(SignOutRequest::default()),
             },
         };
 
