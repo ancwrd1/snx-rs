@@ -14,12 +14,12 @@ For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packa
 ## Quick Start Guide (GUI)
 
 Run the service application in command mode and start the GUI frontend which will display an icon in the taskbar.
-**GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. 
+**GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension.
 
 ```bash
-# run the service in command mode
+# run the service in command mode, requires root privileges
 sudo ./snx-rs -m command
-# run the GUI frontend
+# run the GUI frontend as a user application
 ./snx-rs-gui
 ```
 
@@ -28,9 +28,11 @@ sudo ./snx-rs -m command
 ```bash
 # get the list of supported login types
 ./snx-rs -m info -s remote.company.com
-# create the tunnel
+# run the service in standalone mode, requires root privileges
 sudo ./snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com
 ```
+
+⚠️ **Note about certificate errors**: if the connection fails with the certificate error, the `ignore-server-cert` option can be used to disable certificate checks (not recommended).
 
 👇 Keep reading for additional information and command line usage.
 
@@ -88,18 +90,19 @@ will be forwarded through the tunnel. For further explanation, please check [thi
 
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
-## Tunnel Transport Selection
+## Tunnel Type Selection
 
-IPSec is the preferred transport. By default, it will use native kernel IPSec infrastructure with a UDP-based tunnel over port 4500.
+snx-rs supports two tunnel types: IPSec and SSL. IPSec tunnel is a default option if not specified in the configuration.
+Depending on the availability of the kernel `xfrm` module, it will use either a native kernel IPSec infrastructure or a TUN device
+with userspace ESP packet encoding.
 
-In some environments this port may be blocked by the firewall; in this case the application will fall back to the proprietary Check Point TCPT
-transport via TCP port 443, which is slower than native UDP.
+IPSec ESP traffic is encapsulated in the UDP packets sent via port 4500 which may be blocked in some environments.
+In this case the application will fall back to the proprietary Check Point TCPT transport via TCP port 443, which is slower than UDP.
 
-For older kernels or if IPv6 is disabled in the kernel configuration, the native IPSec support via XFRM interface cannot be used.
-In this case the application will automatically fall back to a TUN device and userspace ESP over UDP tunneling.
+The `transport-type` option can be used to choose the IPSec transport type manually. The default value is `auto` which will perform autodetection.
 
 For older VPN servers or in case IPSec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
-SSL tunnel is slower, has no hardware token support and no MFA in combination with the certificates.
+SSL tunnel has some limitations: it is slower, has no hardware token support and no MFA in combination with the certificates.
 
 ## Command Line Usage
 
