@@ -13,6 +13,7 @@ use crate::{
         params::{CertType, TunnelParams},
         proto::AuthResponse,
     },
+    server_info,
     tunnel::{TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel, ssl::SslTunnel},
 };
 
@@ -34,10 +35,16 @@ impl CccTunnelConnector {
 
         match data.authn_status.as_str() {
             "continue" => {
+                let mfa_type = if data.prompt.as_ref().is_some_and(|p| p.0.starts_with("https://")) {
+                    MfaType::IdentityProvider
+                } else {
+                    MfaType::PasswordInput
+                };
+
                 return Ok(Arc::new(VpnSession {
                     ccc_session_id: session_id,
                     state: SessionState::PendingChallenge(MfaChallenge {
-                        mfa_type: MfaType::PasswordInput,
+                        mfa_type,
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
                     }),
                     ipsec_session: None,
@@ -80,7 +87,10 @@ impl TunnelConnector for CccTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         debug!("Authenticating to endpoint: {}", self.params.server_name);
 
-        if self.params.cert_type == CertType::None && self.params.user_name.is_empty() {
+        let option = server_info::get_login_option(&self.params).await?;
+        let is_saml = option.is_some_and(|o| o.factors.values().any(|f| f.factor_type == "identity_provider"));
+
+        if self.params.cert_type == CertType::None && self.params.user_name.is_empty() && !is_saml {
             Ok(Arc::new(VpnSession {
                 ccc_session_id: String::new(),
                 state: SessionState::PendingChallenge(MfaChallenge {

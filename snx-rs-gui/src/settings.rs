@@ -386,12 +386,7 @@ impl SettingsDialog {
                         if !is_cert {
                             cert_type.set_active(Some(0));
                         }
-                        if is_saml {
-                            tunnel_type.set_active(Some(0));
-                            tunnel_type.set_sensitive(false);
-                        } else {
-                            tunnel_type.set_sensitive(true);
-                        }
+                        tunnel_type.set_sensitive(true);
                     }
                 }
             }

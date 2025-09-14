@@ -99,7 +99,7 @@ For older kernels or if IPv6 is disabled in the kernel configuration, the native
 In this case the application will automatically fall back to a TUN device and userspace ESP over UDP tunneling.
 
 For older VPN servers or in case IPSec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
-SSL tunnel has limited support for authentication types: no browser-based SSO, no hardware token support, no MFA in combination with the certificates.  
+SSL tunnel is slower, has no hardware token support and no MFA in combination with the certificates.
 
 ## Command Line Usage
 
