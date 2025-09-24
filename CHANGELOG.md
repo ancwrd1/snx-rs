@@ -1,5 +1,7 @@
-## Next version (TBD)
+## v4.8.1 (2025-09-24)
 - Enabled SAML SSO authentication for SSL tunnel.
+- An installer is now created as part of the release pipeline, with `.run` extension.
+- Service and desktop files are modified to point to /usr/bin by default.
 
 ## v4.8.0 (2025-09-08)
 - Added `transport-type` option to specify the IPSec transport type explicitly.

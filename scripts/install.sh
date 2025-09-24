@@ -1,5 +1,10 @@
 #!/usr/bin/bash
 
+if grep -q '^ID=nixos' /etc/os-release 2>/dev/null; then
+    echo "Running on NixOS, installation aborted"
+    exit 1
+fi
+
 killall snx-rs-gui 2>/dev/null
 systemctl stop snx-rs 2>/dev/null
 
