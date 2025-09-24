@@ -18,14 +18,22 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 1. Download the installer from the releases section, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
 3. Find and run the GUI frontend from the application menu of the desktop manager.
+4. Click on the application tray icon, choose "Settings", in the opened dialog type the server address and press "Fetch info" to retrieve a list of supported login types.
 
 **GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension.
 
-## Quick Start Guide (CLI)
+## Quick Start Guide (CLI, standalone mode)
 
 1. Install as described above.
 2. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
 3. Run the tunnel: `sudo snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com`
+
+## Quick Start Guide (CLI, command mode)
+
+1. Install as described above.
+2. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
+3. Create a configuration file: `$HOME/.config/snx-rs/snx-rs.conf`, with desired [options](https://github.com/ancwrd1/snx-rs/blob/main/options.md).
+4. Connect the tunnel with `snxctl connect` command.
 
 ⚠️ **Note about certificate errors**: if the connection fails with the certificate error, add the `-X true` parameter (insecure, not recommended).
 
