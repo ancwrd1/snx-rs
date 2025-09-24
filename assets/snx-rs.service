@@ -5,7 +5,7 @@ Wants = network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/snx-rs/snx-rs -m command -l info
+ExecStart=/usr/bin/snx-rs -m command -l info
 Restart=on-failure
 RestartPreventExitStatus=1 2 255
 

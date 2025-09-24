@@ -5,7 +5,7 @@ target="$basedir/target"
 version="$(git -C "$basedir" describe)"
 arches="x86_64 aarch64"
 apps="snx-rs snxctl snx-rs-gui"
-assets="snx-rs.conf snx-rs.service snx-rs-gui.desktop"
+assets="snx-rs.service snx-rs-gui.desktop"
 
 for arch in $arches; do
     name="snx-rs-$version-linux-$arch"
@@ -29,8 +29,10 @@ for arch in $arches; do
     for asset in $assets; do
         cp "$basedir/assets/$asset" "$target/$name/"
     done
+    cp "$basedir/scripts/install.sh" "$target/$name/"
 
     cd "$target"
-    tar cJf "$name.tar.xz" "$name"
-    echo "$target/$name.tar.xz"
+    tar c "$name" | xz -9 > "$name.tar.xz"
+
+    makeself --quiet --tar-quietly --xz --needroot "$name" "$name.run" "SNX-RS VPN Client for Linux" ./install.sh
 done

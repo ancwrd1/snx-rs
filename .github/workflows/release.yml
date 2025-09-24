@@ -45,7 +45,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev
+          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev makeself
 
       - name: Install Rust
         run: |
@@ -73,6 +73,7 @@ jobs:
             const versionName = process.env.version_name;
             const releaseNotes = process.env.release_notes;
             const artifactPath = `target/snx-rs-${tagName}-linux-x86_64.tar.xz`;
+            const installerPath = `target/snx-rs-${tagName}-linux-x86_64.run`;
 
             const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
@@ -91,4 +92,13 @@ jobs:
               release_id: release.data.id,
               name: `snx-rs-${tagName}-linux-x86_64.tar.xz`,
               data: artifact
+            });
+
+            const installer = fs.readFileSync(installerPath);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: `snx-rs-${tagName}-linux-x86_64.run`,
+              data: installer
             });
