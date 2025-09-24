@@ -28,16 +28,14 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 2. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
 3. Run the tunnel: `sudo snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com`
 
+⚠️ **Note about certificate errors**: if the connection fails with the certificate error, add the `-X true` parameter (insecure and not recommended).
+
 ## Quick Start Guide (CLI, command mode)
 
 1. Install as described above.
 2. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
 3. Create a configuration file: `$HOME/.config/snx-rs/snx-rs.conf`, with desired [options](https://github.com/ancwrd1/snx-rs/blob/main/options.md).
 4. Connect the tunnel with `snxctl connect` command.
-
-⚠️ **Note about certificate errors**: if the connection fails with the certificate error, add the `-X true` parameter (insecure, not recommended).
-
-👇 Keep reading for additional information and command line usage.
 
 ## Advantages Over the Official SNX Client for Linux
 
