@@ -13,28 +13,21 @@ For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packa
 
 For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
 
-## Quick Start Guide (GUI)
+## Quick Start Guide
 
-Run the service application in command mode and start the GUI frontend which will display an icon in the taskbar.
+1. Download the installer from the releases section, then: `chmod +x snx-rs-*-linux-x86_64.run`
+2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
+3. Find and run the GUI frontend from the application menu of the desktop manager.
+
 **GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension.
-
-```bash
-# run the service in command mode, requires root privileges
-sudo ./snx-rs -m command
-# run the GUI frontend as a user application
-./snx-rs-gui
-```
 
 ## Quick Start Guide (CLI)
 
-```bash
-# get the list of supported login types
-./snx-rs -m info -s remote.company.com
-# run the service in standalone mode, requires root privileges
-sudo ./snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com
-```
+1. Install as described above.
+2. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
+3. Run the tunnel: `sudo snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com`
 
-⚠️ **Note about certificate errors**: if the connection fails with the certificate error, the `ignore-server-cert` option can be used to disable certificate checks (not recommended).
+⚠️ **Note about certificate errors**: if the connection fails with the certificate error, add the `-X true` parameter (insecure, not recommended).
 
 👇 Keep reading for additional information and command line usage.
 
