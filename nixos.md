@@ -12,7 +12,7 @@ in {
 
   systemd.services.snx-rs = {
     enable = true;
-    path = [pkgs.iproute2 pkgs.kmod]; # a required parameter to run the "ip" and "modprobe"
+    path = [pkgs.iproute2 pkgs.kmod pkgs.networkmanager]; # for ip, modprobe and nmcli commands
     description = "SNX-RS VPN client for Linux";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
