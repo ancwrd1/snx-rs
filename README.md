@@ -11,7 +11,7 @@ Download the latest binary and source release [here](https://github.com/ancwrd1/
 
 For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.
 
-For NixOS check the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
+For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
 
 ## Quick Start Guide (GUI)
 
