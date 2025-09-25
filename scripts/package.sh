@@ -34,5 +34,5 @@ for arch in $arches; do
     cd "$target"
     tar c "$name" | xz -9 > "$name.tar.xz"
 
-    makeself --quiet --tar-quietly --xz --needroot "$name" "$name.run" "SNX-RS VPN Client for Linux" ./install.sh
+    makeself --quiet --tar-quietly --xz --needroot --sha256 "$name" "$name.run" "SNX-RS VPN Client for Linux" ./install.sh
 done
