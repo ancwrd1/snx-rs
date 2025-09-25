@@ -1,0 +1,35 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yqq build-essential pkg-config libssl-dev libgtk-4-dev
+      - name: Install Rust compiler
+        run: |
+          rustup update
+          rustup default ${{ matrix.channel }}
+          rustup target add ${{ matrix.target }}
+          rustup component add clippy rustfmt
+      - name: Formatting checks
+        run: cargo fmt --check
+      - name: Clippy checks
+        run: cargo clippy --target ${{ matrix.target }} --workspace
+      - name: Tests
+        run: cargo test --target ${{ matrix.target }} --workspace
+
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [stable]
+        target:
+          - x86_64-unknown-linux-gnu
