@@ -1,6 +1,8 @@
 ## NixOS Installation and Configuration
 
-The following example from `/etc/nixos/configuration.nix` installs `snx-rs` and configures the system.
+1. Add the unstable channel: `sudo nix-channel --add https://nixos.org/channels/nixos-unstable nixos-unstable`
+2. Update channels: `sudo nix-channel --update`
+3. Modify `/etc/nixos/configuration.nix` which will install `snx-rs` and configure the system.
 
 ```nix
 { config, pkgs, ... }:
