@@ -7,10 +7,8 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ⚠️ Before creating an issue, please check the [FAQ section](#faq).
 
-Download the latest binary and source release [here](https://github.com/ancwrd1/snx-rs/releases/latest).
-
-For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.
-
+Download the latest binary and source release [here](https://github.com/ancwrd1/snx-rs/releases/latest).<br/>
+For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.<br/>
 For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
 
 ## Installation
