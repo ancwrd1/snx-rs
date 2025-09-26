@@ -1,10 +1,10 @@
 You will help me with extending the localization support in the project.
 The new locale is jp-JP, which I will further refer as $LOCALE.
 
-Directory i18n/assets contains the localization files in the Fluent format, each subdirectory representing one locale.
+Directory crates/i18n/assets contains the localization files in the Fluent format, each subdirectory representing one locale.
 Add an additional localization support for $LOCALE by doing the following:
-* create i18n/assets/$LOCALE directory.
-* copy the i18n/assets/en-US/main.ftl into this directory.
+* create crates/i18n/assets/$LOCALE directory.
+* copy the crates/i18n/assets/en-US/main.ftl into this directory.
 * translate ALL entries in the copied file to the target locale $LOCALE.
 * add an additional language-$LOCALE entry in there.
 * modify all existing localization files and add a correctly translated language-$LOCALE entry in each of them.

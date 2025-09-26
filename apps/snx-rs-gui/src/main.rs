@@ -59,8 +59,6 @@ pub fn set_window<W: Cast + IsA<Window>>(name: &str, window: Option<W>) {
     });
 }
 
-const APP_CSS: &str = include_str!("../assets/app.css");
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cmdline_params = params::CmdlineParams::parse();
@@ -166,7 +164,7 @@ async fn main() -> anyhow::Result<()> {
         let app_window = ApplicationWindow::builder().application(app).visible(false).build();
 
         let provider = gtk4::CssProvider::new();
-        provider.load_from_data(APP_CSS);
+        provider.load_from_data(assets::APP_CSS);
 
         gtk4::style_context_add_provider_for_display(
             &app_window.display(),

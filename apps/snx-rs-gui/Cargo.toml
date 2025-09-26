@@ -11,8 +11,8 @@ keywords.workspace = true
 publish.workspace = true
 
 [dependencies]
-snxcore = { path = "../snxcore" }
-i18n = { path = "../i18n" }
+snxcore = { path = "../../crates/snxcore" }
+i18n = { path = "../../crates/i18n" }
 ksni = "0.3"
 gtk4 = "0.10"
 png = "0.18"

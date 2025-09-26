@@ -1,11 +1,11 @@
 #!/bin/bash
 
-basedir="$(cd $(dirname $0)/.. && pwd -P)"
+basedir="$(dirname $(readlink -f $0))/.."
 target="$basedir/target"
 version="$(git -C "$basedir" describe)"
 arches="x86_64 aarch64"
 apps="snx-rs snxctl snx-rs-gui"
-assets="snx-rs.service snx-rs-gui.desktop"
+assets="snx-rs.service snx-rs-gui.desktop install.sh"
 
 for arch in $arches; do
     name="snx-rs-$version-linux-$arch"
@@ -27,9 +27,8 @@ for arch in $arches; do
     done
 
     for asset in $assets; do
-        cp "$basedir/assets/$asset" "$target/$name/"
+        cp "$basedir/package/$asset" "$target/$name/"
     done
-    cp "$basedir/scripts/install.sh" "$target/$name/"
 
     cd "$target"
     tar c "$name" | xz -9 > "$name.tar.xz"

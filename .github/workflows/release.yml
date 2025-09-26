@@ -54,13 +54,13 @@ jobs:
 
       - name: Build project
         run: |
-          chmod +x scripts/build-lto.sh
-          ./scripts/build-lto.sh
+          chmod +x package/build-lto.sh
+          ./package/build-lto.sh
 
       - name: Package project
         run: |
-          chmod +x scripts/package.sh
-          ./scripts/package.sh
+          chmod +x package/package.sh
+          ./package/package.sh
 
       - name: Create Release
         if: ${{ !startsWith(github.ref_name, 'test-') }}
