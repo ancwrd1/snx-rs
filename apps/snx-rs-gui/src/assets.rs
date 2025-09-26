@@ -35,8 +35,7 @@ pub static DARK_THEME_ARGB: Lazy<IconTheme> = Lazy::new(|| IconTheme {
     vpn: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn.png")).unwrap_or_default(),
     acquiring: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-acquiring.png")).unwrap_or_default(),
     error: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-error.png")).unwrap_or_default(),
-    disconnected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-disconnected.png"))
-        .unwrap_or_default(),
+    disconnected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-disconnected.png")).unwrap_or_default(),
     connected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-connected.png")).unwrap_or_default(),
 });
 
@@ -44,8 +43,7 @@ pub static LIGHT_THEME_ARGB: Lazy<IconTheme> = Lazy::new(|| IconTheme {
     vpn: png_to_argb(include_bytes!("../assets/icons/light/network-vpn.png")).unwrap_or_default(),
     acquiring: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-acquiring.png")).unwrap_or_default(),
     error: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-error.png")).unwrap_or_default(),
-    disconnected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-disconnected.png"))
-        .unwrap_or_default(),
+    disconnected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-disconnected.png")).unwrap_or_default(),
     connected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-connected.png")).unwrap_or_default(),
 });
 
