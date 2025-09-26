@@ -275,7 +275,7 @@ pub struct ProtocolVersion {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConnectivityInfo {
-    pub default_authentication_method: String,
+    pub default_authentication_method: Option<String>,
     pub client_enabled: bool,
     pub supported_data_tunnel_protocols: Vec<String>,
     pub connectivity_type: String,
