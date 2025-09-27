@@ -153,23 +153,16 @@ pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
 }
 
 fn is_wsl2() -> bool {
-    if let Ok(dir) = fs::read_dir("/proc/sys/fs/binfmt_misc") {
-        dir.flatten().any(|entry| {
-            entry
-                .file_name()
-                .to_str()
-                .map(|s| s.starts_with("WSLInterop"))
-                .unwrap_or(false)
-        })
-    } else {
-        false
-    }
+    fs::read_dir("/proc/sys/fs/binfmt_misc").is_ok_and(|dir| {
+        dir.flatten()
+            .any(|entry| entry.file_name().to_string_lossy().starts_with("WSLInterop"))
+    })
 }
 
 #[cached]
 async fn is_xfrm_available() -> bool {
     if is_wsl2() {
-        debug!("WSL2 detected, skipping xfrm check");
+        debug!("WSL2 detected, xfrm not available");
         return false;
     }
 

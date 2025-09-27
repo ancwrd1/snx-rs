@@ -12,6 +12,9 @@ use crate::{
     sexpr::SExpression,
 };
 
+const PKT_CONTROL: u32 = 1;
+const PKT_DATA: u32 = 2;
+
 pub enum SslPacketType {
     Control(SExpression),
     Data(Vec<u8>),
@@ -77,13 +80,14 @@ impl Decoder for SslPacketCodec {
         }
 
         let packet_type = u32::from_be_bytes(src[4..8].try_into()?);
+
         match packet_type {
-            1 => {
+            PKT_CONTROL => {
                 let s_data = String::from_utf8_lossy(&src[8..8 + len]).into_owned();
                 src.advance(8 + len);
                 Ok(Some(SslPacketType::Control(s_data.parse()?)))
             }
-            2 => {
+            PKT_DATA => {
                 let data = src[8..8 + len].to_vec();
                 src.advance(8 + len);
                 Ok(Some(SslPacketType::Data(data)))
@@ -101,9 +105,9 @@ impl Encoder<SslPacketType> for SslPacketCodec {
             SslPacketType::Control(expr) => {
                 let mut data = expr.to_string().into_bytes();
                 data.push(b'\x00');
-                (data, 1u32)
+                (data, PKT_CONTROL)
             }
-            SslPacketType::Data(data) => (data, 2u32),
+            SslPacketType::Data(data) => (data, PKT_DATA),
         };
 
         dst.reserve(data.len() + 8);
