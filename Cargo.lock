@@ -1511,7 +1511,7 @@ dependencies = [
 
 [[package]]
 name = "i18n"
-version = "4.8.1"
+version = "4.8.2"
 dependencies = [
  "cached",
  "fluent-templates",
@@ -2122,9 +2122,9 @@ checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
 
 [[package]]
 name = "openssl-src"
-version = "300.5.2+3.5.2"
+version = "300.5.3+3.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d270b79e2926f5150189d475bc7e9d2c69f9c4697b185fa917d5a32b792d21b4"
+checksum = "dc6bad8cd0233b63971e232cc9c5e83039375b8586d2312f31fda85db8f888c2"
 dependencies = [
  "cc",
 ]
@@ -2882,7 +2882,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "snx-rs"
-version = "4.8.1"
+version = "4.8.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -2899,7 +2899,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "4.8.1"
+version = "4.8.2"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -2926,7 +2926,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "4.8.1"
+version = "4.8.2"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -2976,7 +2976,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "4.8.1"
+version = "4.8.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -4200,9 +4200,9 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.8.1"
+version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+checksum = "b97154e67e32c85465826e8bcc1c59429aaaf107c1e4a9e53c8d8ccd5eff88d0"
 
 [[package]]
 name = "zerotrie"

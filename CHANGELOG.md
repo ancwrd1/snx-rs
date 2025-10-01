@@ -1,3 +1,7 @@
+## v4.8.2 (2025-10-01)
+- Fixed a problem with some VPN servers which do not advertise default_authentication_method field.
+- The packaging assets have been moved to `package` directory.
+
 ## v4.8.1 (2025-09-24)
 - Enabled SAML SSO authentication for SSL tunnel.
 - An installer is now created as part of the release pipeline, with `.run` extension.
