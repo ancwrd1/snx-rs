@@ -23,8 +23,9 @@ impl SecurePrompt for TtyPrompt {
                 if !prompt.header.is_empty() {
                     println!("{}", prompt.header);
                 }
+
                 Ok(passterm::prompt_password_stdin(
-                    Some(&prompt.prompt),
+                    Some(&prompt.prompt_with_colon()),
                     passterm::Stream::Stderr,
                 )?)
             } else {
@@ -40,7 +41,7 @@ impl SecurePrompt for TtyPrompt {
                 if !prompt.header.is_empty() {
                     println!("{}", prompt.header);
                 }
-                eprint!("{}", prompt.prompt);
+                eprint!("{}", prompt.prompt_with_colon());
                 stderr().flush()?;
                 let mut line = String::new();
                 stdin().read_line(&mut line)?;

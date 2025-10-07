@@ -1,9 +1,9 @@
-use std::{fmt, net::Ipv4Addr, sync::Arc, time::Duration};
-
 use chrono::{DateTime, Local};
 use ipnet::Ipv4Net;
 use isakmp::model::EspCryptMaterial;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+use std::{fmt, net::Ipv4Addr, sync::Arc, time::Duration};
 
 use crate::model::params::{TransportType, TunnelParams, TunnelType};
 
@@ -261,6 +261,14 @@ impl PromptInfo {
             header: header.as_ref().to_owned(),
             prompt: prompt.as_ref().to_owned(),
             default_entry: None,
+        }
+    }
+
+    pub fn prompt_with_colon(&self) -> Cow<'_, str> {
+        if self.prompt.trim().ends_with(':') {
+            Cow::Borrowed(self.prompt.as_ref())
+        } else {
+            Cow::Owned(format!("{}: ", self.prompt.trim()))
         }
     }
 }
