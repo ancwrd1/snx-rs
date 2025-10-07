@@ -1,9 +1,9 @@
+use std::{borrow::Cow, fmt, net::Ipv4Addr, sync::Arc, time::Duration};
+
 use chrono::{DateTime, Local};
 use ipnet::Ipv4Net;
 use isakmp::model::EspCryptMaterial;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
-use std::{fmt, net::Ipv4Addr, sync::Arc, time::Duration};
 
 use crate::model::params::{TransportType, TunnelParams, TunnelType};
 
