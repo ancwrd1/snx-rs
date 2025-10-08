@@ -19,22 +19,34 @@ pub const DEFAULT_NAME: &str = "snx-rs.sock";
 const MAX_PACKET_SIZE: usize = 1_000_000;
 
 #[derive(Default)]
+struct CancelState {
+    sender: Option<mpsc::Sender<()>>,
+}
+
+impl CancelState {
+    async fn cancel(&mut self) {
+        if let Some(sender) = self.sender.take() {
+            debug!("Disconnecting current session");
+            let _ = sender.send(()).await;
+        }
+    }
+}
+
+#[derive(Default)]
 struct ConnectionState {
     connection_status: RwLock<ConnectionStatus>,
     session: Mutex<Option<Arc<VpnSession>>>,
     connector: Mutex<Option<Box<dyn TunnelConnector + Send>>>,
+    cancel_state: Arc<Mutex<CancelState>>,
 }
 
 impl ConnectionState {
     async fn reset(&self) {
         *self.session.lock().await = None;
         *self.connector.lock().await = None;
-        *self.connection_status.write().await = ConnectionStatus::Disconnected
+        *self.connection_status.write().await = ConnectionStatus::Disconnected;
+        self.cancel_state.lock().await.sender = None;
     }
-}
-
-struct CancelState {
-    sender: Option<mpsc::Sender<()>>,
 }
 
 pub struct CommandServer {
@@ -65,8 +77,6 @@ impl CommandServer {
 
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
-        let cancel_state = Arc::new(Mutex::new(CancelState { sender: None }));
-
         loop {
             tokio::select! {
                 event = event_receiver.recv() => {
@@ -78,7 +88,6 @@ impl CommandServer {
                         };
 
                         if result.is_err() {
-                            cancel_state.lock().await.sender = None;
                             self.connection_state.reset().await;
                         }
 
@@ -87,7 +96,6 @@ impl CommandServer {
                                 *self.connection_state.connection_status.write().await = ConnectionStatus::connected(info);
                             }
                             TunnelEvent::Disconnected => {
-                                cancel_state.lock().await.sender = None;
                                 self.connection_state.reset().await;
                             }
                             TunnelEvent::Rekeyed(address) => {
@@ -105,12 +113,10 @@ impl CommandServer {
                     let sender = event_sender.clone();
                     let state = self.connection_state.clone();
 
-                    let cancel_state = cancel_state.clone();
-
                     std::thread::spawn(move || {
                         let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
                         rt.block_on(async move {
-                            let mut handler = ServerHandler::new(state, cancel_state, sender).await;
+                            let mut handler = ServerHandler::new(state, sender).await;
                             let _ = handler.handle(stream).await;
                         });
 
@@ -123,22 +129,16 @@ impl CommandServer {
 
 struct ServerHandler {
     state: Arc<ConnectionState>,
-    cancel_state: Arc<Mutex<CancelState>>,
     event_sender: mpsc::Sender<TunnelEvent>,
     cancel_sender: mpsc::Sender<()>,
     cancel_receiver: mpsc::Receiver<()>,
 }
 
 impl ServerHandler {
-    async fn new(
-        state: Arc<ConnectionState>,
-        cancel_state: Arc<Mutex<CancelState>>,
-        event_sender: mpsc::Sender<TunnelEvent>,
-    ) -> Self {
+    async fn new(state: Arc<ConnectionState>, event_sender: mpsc::Sender<TunnelEvent>) -> Self {
         let (cancel_sender, cancel_receiver) = mpsc::channel(16);
         Self {
             state,
-            cancel_state,
             event_sender,
             cancel_sender,
             cancel_receiver,
@@ -232,7 +232,7 @@ impl ServerHandler {
         } else {
             self.state.reset().await;
             *self.state.connection_status.write().await = ConnectionStatus::Connecting;
-            self.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
+            self.state.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
             let fut = if params.ike_persist {
@@ -272,10 +272,7 @@ impl ServerHandler {
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
-        if let Some(sender) = self.cancel_state.lock().await.sender.take() {
-            debug!("Disconnecting current session");
-            let _ = sender.send(()).await;
-        }
+        self.state.cancel_state.lock().await.cancel().await;
 
         if let Some(connector) = self.state.connector.lock().await.as_mut() {
             connector.delete_session().await;
