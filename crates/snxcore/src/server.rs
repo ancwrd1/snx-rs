@@ -113,13 +113,9 @@ impl CommandServer {
                     let sender = event_sender.clone();
                     let state = self.connection_state.clone();
 
-                    std::thread::spawn(move || {
-                        let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
-                        rt.block_on(async move {
-                            let mut handler = ServerHandler::new(state, sender).await;
-                            let _ = handler.handle(stream).await;
-                        });
-
+                    tokio::spawn(async move {
+                        let mut handler = ServerHandler::new(state, sender).await;
+                        handler.handle(stream).await
                     });
                 }
             }
