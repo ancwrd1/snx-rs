@@ -1,26 +1,57 @@
 use std::sync::Arc;
 
+use anyhow::{Context, anyhow};
 use futures::{FutureExt, SinkExt, StreamExt};
 use i18n::tr;
 use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Listener};
-use tokio::sync::mpsc;
+use tokio::sync::{Mutex, RwLock, mpsc};
 use tracing::{debug, warn};
 
 use crate::{
     model::{
         ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession, params::TunnelParams,
     },
-    state::{ConnectionState, ConnectionStateActor},
-    tunnel::{self, TunnelEvent},
+    tunnel::{self, TunnelConnector, TunnelEvent},
 };
 
 pub const DEFAULT_NAME: &str = "snx-rs.sock";
 
 const MAX_PACKET_SIZE: usize = 1_000_000;
 
+#[derive(Default)]
+struct CancelState {
+    sender: Option<mpsc::Sender<()>>,
+}
+
+impl CancelState {
+    async fn cancel(&mut self) {
+        if let Some(sender) = self.sender.take() {
+            debug!("Disconnecting current session");
+            let _ = sender.send(()).await;
+        }
+    }
+}
+
+#[derive(Default)]
+struct ConnectionState {
+    connection_status: RwLock<ConnectionStatus>,
+    session: Mutex<Option<Arc<VpnSession>>>,
+    connector: Mutex<Option<Box<dyn TunnelConnector + Send>>>,
+    cancel_state: Arc<Mutex<CancelState>>,
+}
+
+impl ConnectionState {
+    async fn reset(&self) {
+        *self.session.lock().await = None;
+        *self.connector.lock().await = None;
+        *self.connection_status.write().await = ConnectionStatus::Disconnected;
+        self.cancel_state.lock().await.sender = None;
+    }
+}
+
 pub struct CommandServer {
     name: String,
-    connection_state_actor: Arc<ConnectionStateActor>,
+    connection_state: Arc<ConnectionState>,
 }
 
 impl Default for CommandServer {
@@ -33,7 +64,7 @@ impl CommandServer {
     pub fn with_name<S: AsRef<str>>(name: S) -> Self {
         Self {
             name: name.as_ref().to_owned(),
-            connection_state_actor: Arc::new(ConnectionStateActor::start(ConnectionState::default())),
+            connection_state: Arc::new(ConnectionState::default()),
         }
     }
 
@@ -50,22 +81,26 @@ impl CommandServer {
             tokio::select! {
                 event = event_receiver.recv() => {
                     if let Some(event) = event {
-                        let result = self.connection_state_actor.handle_tunnel_event(event.clone()).await;
+                        let result = if let Some(connector) = self.connection_state.connector.lock().await.as_mut() {
+                            connector.handle_tunnel_event(event.clone()).await
+                        } else {
+                            Ok(())
+                        };
 
                         if result.is_err() {
-                            self.connection_state_actor.reset().await?;
+                            self.connection_state.reset().await;
                         }
 
                         match event {
                             TunnelEvent::Connected(info) => {
-                                self.connection_state_actor.set_status(ConnectionStatus::connected(info)).await?;
+                                *self.connection_state.connection_status.write().await = ConnectionStatus::connected(info);
                             }
                             TunnelEvent::Disconnected => {
-                                self.connection_state_actor.reset().await?;
+                                self.connection_state.reset().await;
                             }
                             TunnelEvent::Rekeyed(address) => {
-                                let mut status = self.connection_state_actor.get_status().await?;
-                                if let ConnectionStatus::Connected(ref mut info) = status {
+                                let mut guard = self.connection_state.connection_status.write().await;
+                                if let ConnectionStatus::Connected(ref mut info) = *guard {
                                    info.ip_address = address;
                                 }
                             }
@@ -76,10 +111,10 @@ impl CommandServer {
                 result = listener.accept() => {
                     let stream = result?;
                     let sender = event_sender.clone();
-                    let state_actor = self.connection_state_actor.clone();
+                    let state = self.connection_state.clone();
 
                     tokio::spawn(async move {
-                        let mut handler = ServerHandler::new(state_actor, sender).await;
+                        let mut handler = ServerHandler::new(state, sender).await;
                         handler.handle(stream).await
                     });
                 }
@@ -89,17 +124,17 @@ impl CommandServer {
 }
 
 struct ServerHandler {
-    state_actor: Arc<ConnectionStateActor>,
+    state: Arc<ConnectionState>,
     event_sender: mpsc::Sender<TunnelEvent>,
     cancel_sender: mpsc::Sender<()>,
     cancel_receiver: mpsc::Receiver<()>,
 }
 
 impl ServerHandler {
-    async fn new(state_actor: Arc<ConnectionStateActor>, event_sender: mpsc::Sender<TunnelEvent>) -> Self {
+    async fn new(state: Arc<ConnectionState>, event_sender: mpsc::Sender<TunnelEvent>) -> Self {
         let (cancel_sender, cancel_receiver) = mpsc::channel(16);
         Self {
-            state_actor,
+            state,
             event_sender,
             cancel_sender,
             cancel_receiver,
@@ -133,7 +168,7 @@ impl ServerHandler {
             TunnelServiceRequest::Connect(params) => match self.connect(Arc::new(params)).await {
                 Ok(response) => response,
                 Err(e) => {
-                    let _ = self.state_actor.reset().await;
+                    self.state.reset().await;
                     TunnelServiceResponse::Error(e.to_string())
                 }
             },
@@ -146,7 +181,7 @@ impl ServerHandler {
                 Ok(response) => response,
                 Err(e) => {
                     warn!("Challenge code error: {:#}", e);
-                    let _ = self.state_actor.reset().await;
+                    self.state.reset().await;
                     TunnelServiceResponse::Error(e.to_string())
                 }
             },
@@ -154,37 +189,35 @@ impl ServerHandler {
     }
 
     async fn is_connected(&self) -> bool {
-        self.state_actor
-            .get_status()
-            .await
-            .map(|status| status != ConnectionStatus::Disconnected)
-            .unwrap_or_default()
+        *self.state.connection_status.read().await != ConnectionStatus::Disconnected
     }
 
     async fn connect_for_session(&mut self, session: Arc<VpnSession>) -> anyhow::Result<TunnelServiceResponse> {
-        self.state_actor.set_session(session.clone()).await?;
+        *self.state.session.lock().await = Some(session.clone());
         if let SessionState::PendingChallenge(ref challenge) = session.state {
             debug!("Pending multi-factor, awaiting for it");
-            self.state_actor
-                .set_status(ConnectionStatus::mfa(challenge.clone()))
-                .await?;
+            *self.state.connection_status.write().await = ConnectionStatus::mfa(challenge.clone());
             return Ok(TunnelServiceResponse::Ok);
         }
 
-        self.state_actor.set_status(ConnectionStatus::Connecting).await?;
+        *self.state.connection_status.write().await = ConnectionStatus::Connecting;
 
         let (command_sender, command_receiver) = mpsc::channel(16);
 
-        let tunnel = self.state_actor.create_tunnel(session, command_sender).await?;
+        if let Some(connector) = self.state.connector.lock().await.as_mut() {
+            let tunnel = connector.create_tunnel(session, command_sender).await?;
 
-        let sender = self.event_sender.clone();
-        tokio::spawn(async move {
-            if let Err(e) = tunnel.run(command_receiver, sender).await {
-                warn!("Tunnel error: {}", e);
-            }
-        });
+            let sender = self.event_sender.clone();
+            tokio::spawn(async move {
+                if let Err(e) = tunnel.run(command_receiver, sender).await {
+                    warn!("Tunnel error: {}", e);
+                }
+            });
 
-        Ok(TunnelServiceResponse::Ok)
+            Ok(TunnelServiceResponse::Ok)
+        } else {
+            Err(anyhow!(tr!("error-no-connector")))
+        }
     }
 
     async fn connect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<TunnelServiceResponse> {
@@ -193,9 +226,9 @@ impl ServerHandler {
                 "Another connection is already in progress!".to_owned(),
             ))
         } else {
-            self.state_actor.reset().await?;
-            self.state_actor.set_status(ConnectionStatus::Connecting).await?;
-            self.state_actor.set_cancel_state(self.cancel_sender.clone()).await?;
+            self.state.reset().await;
+            *self.state.connection_status.write().await = ConnectionStatus::Connecting;
+            self.state.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
 
             let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
             let fut = if params.ike_persist {
@@ -213,32 +246,40 @@ impl ServerHandler {
                 res = fut => res?
             };
 
-            self.state_actor.set_connector(connector).await?;
+            *self.state.connector.lock().await = Some(connector);
 
             Ok(self.connect_for_session(session).await?)
         }
     }
 
     async fn challenge_code(&mut self, code: &str) -> anyhow::Result<TunnelServiceResponse> {
-        let new_session = tokio::select! {
-            _ = self.cancel_receiver.recv() => anyhow::bail!(tr!("error-connection-cancelled")),
-            res = self.state_actor.challenge_code(code) => res?
+        let session = self.state.session.lock().await.clone().context("No session")?;
+
+        let new_session = if let Some(connector) = self.state.connector.lock().await.as_mut() {
+            tokio::select! {
+                _ = self.cancel_receiver.recv() => anyhow::bail!(tr!("error-connection-cancelled")),
+                res = connector.challenge_code(session, code) => res?
+            }
+        } else {
+            anyhow::bail!(tr!("error-no-connector-for-challenge-code"))
         };
 
         self.connect_for_session(new_session).await
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
-        self.state_actor.disconnect().await?;
-        self.state_actor.cancel_connection().await?;
+        self.state.cancel_state.lock().await.cancel().await;
+
+        if let Some(connector) = self.state.connector.lock().await.as_mut() {
+            connector.delete_session().await;
+            let _ = connector.terminate_tunnel(true).await;
+        }
+        self.state.reset().await;
 
         Ok(())
     }
 
     async fn get_status(&self) -> ConnectionStatus {
-        self.state_actor
-            .get_status()
-            .await
-            .unwrap_or(ConnectionStatus::Disconnected)
+        self.state.connection_status.read().await.clone()
     }
 }
