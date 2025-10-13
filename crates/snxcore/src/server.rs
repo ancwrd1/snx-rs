@@ -77,48 +77,49 @@ impl CommandServer {
 
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
-        loop {
-            tokio::select! {
-                event = event_receiver.recv() => {
-                    if let Some(event) = event {
-                        let result = if let Some(connector) = self.connection_state.connector.lock().await.as_mut() {
-                            connector.handle_tunnel_event(event.clone()).await
-                        } else {
-                            Ok(())
-                        };
+        let state = self.connection_state.clone();
 
-                        if result.is_err() {
-                            self.connection_state.reset().await;
-                        }
+        tokio::spawn(async move {
+            while let Some(event) = event_receiver.recv().await {
+                Self::handle_tunnel_event(event, state.clone()).await;
+            }
+        });
 
-                        match event {
-                            TunnelEvent::Connected(info) => {
-                                *self.connection_state.connection_status.write().await = ConnectionStatus::connected(info);
-                            }
-                            TunnelEvent::Disconnected => {
-                                self.connection_state.reset().await;
-                            }
-                            TunnelEvent::Rekeyed(address) => {
-                                let mut guard = self.connection_state.connection_status.write().await;
-                                if let ConnectionStatus::Connected(ref mut info) = *guard {
-                                   info.ip_address = address;
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                result = listener.accept() => {
-                    let stream = result?;
-                    let sender = event_sender.clone();
-                    let state = self.connection_state.clone();
+        while let Ok(stream) = listener.accept().await {
+            let sender = event_sender.clone();
+            let state = self.connection_state.clone();
 
-                    tokio::spawn(async move {
-                        let mut handler = ServerHandler::new(state, sender).await;
-                        handler.handle(stream).await
-                    });
+            tokio::spawn(async move {
+                let mut handler = ServerHandler::new(state, sender).await;
+                handler.handle(stream).await
+            });
+        }
+
+        Ok(())
+    }
+
+    async fn handle_tunnel_event(event: TunnelEvent, state: Arc<ConnectionState>) {
+        if let Some(connector) = state.connector.lock().await.as_mut()
+            && connector.handle_tunnel_event(event.clone()).await.is_err()
+        {
+            state.reset().await;
+            return;
+        }
+
+        match event {
+            TunnelEvent::Connected(info) => {
+                *state.connection_status.write().await = ConnectionStatus::connected(info);
+            }
+            TunnelEvent::Disconnected => {
+                state.reset().await;
+            }
+            TunnelEvent::Rekeyed(address) => {
+                let mut guard = state.connection_status.write().await;
+                if let ConnectionStatus::Connected(ref mut info) = *guard {
+                    info.ip_address = address;
                 }
             }
+            _ => {}
         }
     }
 }
