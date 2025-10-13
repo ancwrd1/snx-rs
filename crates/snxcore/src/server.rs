@@ -23,15 +23,6 @@ struct CancelState {
     sender: Option<mpsc::Sender<()>>,
 }
 
-impl CancelState {
-    async fn cancel(&mut self) {
-        if let Some(sender) = self.sender.take() {
-            debug!("Disconnecting current session");
-            let _ = sender.send(()).await;
-        }
-    }
-}
-
 #[derive(Default)]
 struct ConnectionState {
     connection_status: RwLock<ConnectionStatus>,
@@ -269,7 +260,10 @@ impl ServerHandler {
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
-        self.state.cancel_state.lock().await.cancel().await;
+        if let Some(sender) = self.state.cancel_state.lock().await.sender.take() {
+            debug!("Disconnecting current session");
+            let _ = sender.send(()).await;
+        }
 
         if let Some(connector) = self.state.connector.lock().await.as_mut() {
             connector.delete_session().await;
