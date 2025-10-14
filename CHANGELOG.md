@@ -1,3 +1,6 @@
+## v4.8.3 (2025-10-14)
+- Privacy fix: disable mDNS and LLMNR for the tunnel interface.
+
 ## v4.8.2 (2025-10-01)
 - Fixed a problem with some VPN servers which do not advertise default_authentication_method field.
 - The packaging assets have been moved to `package` directory.

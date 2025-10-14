@@ -207,6 +207,7 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 | `Error sending request for url (https://IP_OR_HOSTNAME/clients/)`             | VPN server host is not reachable or certificate is untrusted. Use `ignore-server-cert` parameter to disable all HTTPS certificate checks (not recommended).                             |
 | `No session in reply`                                                         | Usually happens when Check Point server runs out of Office Mode licenses. Try the `client-mode` parameter with different values: `endpoint_security`, `secure_remote`, `secure_connect` | 
 | Unable to reach remote sites by their fully qualified names                   | VPN server does not return back the proper search domains. Use the `search-domains` option to specify DNS domains manually.                                                             | 
+| VPN tunnel is unstable and disconnects quickly                                | Set the `mtu` option to a lower value like 1280.                                                                                                                                        | 
 | Connections to remote sites are unstable, IP address changes every 10 minutes | VPN server has a short IP lease policy configured. Try the `ip-lease-time` option to manually extend it. Value must be specified in seconds.                                            | 
 
 ## Contributing
