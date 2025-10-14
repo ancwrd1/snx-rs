@@ -34,7 +34,9 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
         args.extend(search_domains);
 
         crate::util::run_command("resolvectl", args).await?;
-        crate::util::run_command("resolvectl", ["default-route", &self.device, "false"]).await?;
+        let _ = crate::util::run_command("resolvectl", ["default-route", &self.device, "false"]).await;
+        let _ = crate::util::run_command("resolvectl", ["mdns", &self.device, "false"]).await;
+        let _ = crate::util::run_command("resolvectl", ["llmnr", &self.device, "false"]).await;
 
         let mut args = vec!["dns".to_owned(), self.device.clone()];
 
