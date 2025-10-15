@@ -64,11 +64,12 @@ impl OtpListener {
         self.tcp.local_addr().unwrap()
     }
 
-    pub async fn acquire_otp(&self) -> anyhow::Result<String> {
-        let (stream, _) = self.tcp.accept().await?;
+    pub async fn acquire_otp(self) -> anyhow::Result<String> {
+        let tcp = self.tcp;
         let (sender, mut receiver) = mpsc::channel(1);
 
         tokio::spawn(async move {
+            let (stream, _) = tcp.accept().await?;
             http1::Builder::new()
                 .timer(TokioTimer::new())
                 .serve_connection(TokioIo::new(stream), service_fn(|req| otp_handler(req, sender.clone())))
