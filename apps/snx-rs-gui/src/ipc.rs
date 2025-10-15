@@ -24,13 +24,11 @@ pub fn start_ipc_listener(sender: Sender<TrayEvent>) -> anyhow::Result<()> {
         .create_tokio()?;
 
     tokio::spawn(async move {
-        debug!("Starting IPC listener");
-        loop {
-            if let Ok(conn) = listener.accept().await {
-                debug!("Accepted IPC connection");
-                let sender = sender.clone();
-                tokio::spawn(async move { handle_connection(conn, sender).await });
-            }
+        debug!("Started IPC listener");
+        while let Ok(conn) = listener.accept().await {
+            debug!("Accepted IPC connection");
+            let sender = sender.clone();
+            tokio::spawn(async move { handle_connection(conn, sender).await });
         }
     });
 
