@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
 
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
 use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Stream};
@@ -294,10 +294,7 @@ where
         request: TunnelServiceRequest,
         timeout: Duration,
     ) -> anyhow::Result<TunnelServiceResponse> {
-        let mut stream = self
-            .get_stream()
-            .await
-            .map_err(|_| anyhow!(tr!("error-no-service-connection")))?;
+        let mut stream = self.get_stream().await.context(tr!("error-no-service-connection"))?;
 
         let mut codec = LengthDelimitedCodec::new().framed(&mut stream);
 

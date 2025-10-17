@@ -1,6 +1,6 @@
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use bytes::Bytes;
 use tokio::{
     net::UdpSocket,
@@ -57,9 +57,7 @@ impl NattProber {
                 self.send_nmap_knock().await?;
             }
 
-            self.send_probe()
-                .await
-                .map_err(|_| anyhow!(i18n::tr!("error-probing-failed")))
+            self.send_probe().await.context(i18n::tr!("error-probing-failed"))
         } else {
             Ok(())
         }

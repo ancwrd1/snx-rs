@@ -1,16 +1,12 @@
-use anyhow::anyhow;
-use once_cell::sync::Lazy;
 use std::io;
+
+use anyhow::{Context, anyhow};
+use once_cell::sync::Lazy;
 
 fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     let decoder = png::Decoder::new(io::Cursor::new(data));
     let mut reader = decoder.read_info()?;
-    let mut buf = vec![
-        0;
-        reader
-            .output_buffer_size()
-            .ok_or_else(|| anyhow!("Failed to read PNG info"))?
-    ];
+    let mut buf = vec![0; reader.output_buffer_size().context("Failed to read PNG info")?];
 
     let info = reader.next_frame(&mut buf)?;
     let mut bytes = buf[..info.buffer_size()].to_vec();
