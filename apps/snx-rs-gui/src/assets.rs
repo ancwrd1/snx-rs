@@ -1,6 +1,6 @@
 use std::io;
 
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use once_cell::sync::Lazy;
 
 fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
