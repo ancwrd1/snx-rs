@@ -133,7 +133,7 @@ cert-type-hw = Аппаратный токен
 
 # Transport types
 transport-type-autodetect = Автоопределение
-transport-type-kernel = Ядро XFRM
+transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 

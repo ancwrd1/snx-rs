@@ -133,7 +133,7 @@ cert-type-hw = Jeton matériel
 
 # Transport types
 transport-type-autodetect = Détection automatique
-transport-type-kernel = Noyau XFRM
+transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 

@@ -133,7 +133,7 @@ cert-type-hw = Hardware-Token
 
 # Transport types
 transport-type-autodetect = Automatisch erkennen
-transport-type-kernel = Kernel XFRM
+transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 

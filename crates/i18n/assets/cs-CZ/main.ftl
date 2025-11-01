@@ -133,7 +133,7 @@ cert-type-hw = Hardwarový token
 
 # Transport types
 transport-type-autodetect = Automatická detekce
-transport-type-kernel = Kernel XFRM
+transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
