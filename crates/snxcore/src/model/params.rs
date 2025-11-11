@@ -1,3 +1,11 @@
+use crate::util::{self, ipv4net_to_string, parse_ipv4_or_subnet};
+use anyhow::anyhow;
+use base64::Engine;
+use directories_next::ProjectDirs;
+use i18n::tr;
+use ipnet::Ipv4Net;
+use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::{
     fmt, fs,
     io::{Cursor, Write},
@@ -6,20 +14,14 @@ use std::{
     str::FromStr,
     time::Duration,
 };
-
-use anyhow::anyhow;
-use base64::Engine;
-use directories_next::ProjectDirs;
-use i18n::tr;
-use ipnet::Ipv4Net;
-use serde::{Deserialize, Serialize};
 use tracing::warn;
-
-use crate::util::{self, ipv4net_to_string, parse_ipv4_or_subnet};
+use uuid::Uuid;
 
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
 
 const DEFAULT_MTU: u16 = 1350;
+
+pub const DEFAULT_PROFILE_UUID: Uuid = uuid::uuid!("38703862-805c-441c-922e-ee45eaf2bb5e");
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum OperationMode {
@@ -263,6 +265,8 @@ impl From<u32> for TransportType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TunnelParams {
+    pub profile_name: String,
+    pub profile_id: Uuid,
     pub server_name: String,
     pub user_name: String,
     pub password: String,
@@ -307,6 +311,8 @@ pub struct TunnelParams {
 impl Default for TunnelParams {
     fn default() -> Self {
         Self {
+            profile_name: tr!("profile-default-name"),
+            profile_id: DEFAULT_PROFILE_UUID,
             server_name: String::new(),
             user_name: String::new(),
             password: String::new(),
@@ -361,6 +367,8 @@ impl TunnelParams {
 
         for (k, v) in config.into_iter() {
             match k.as_str() {
+                "profile-name" => params.profile_name = v,
+                "profile-id" => params.profile_id = v.parse().unwrap_or_default(),
                 "server-name" => params.server_name = v,
                 "user-name" => params.user_name = v,
                 "password" => params.password = v,
@@ -425,6 +433,8 @@ impl TunnelParams {
 
     pub fn save(&self) -> anyhow::Result<()> {
         let mut buf = Cursor::new(Vec::new());
+        writeln!(buf, "profile-name={}", self.profile_name)?;
+        writeln!(buf, "profile-id={}", self.profile_id)?;
         writeln!(buf, "server-name={}", self.server_name)?;
         writeln!(buf, "user-name={}", self.user_name)?;
         writeln!(
@@ -549,6 +559,31 @@ impl TunnelParams {
     pub fn default_config_path() -> PathBuf {
         Self::default_config_dir().join("snx-rs.conf")
     }
+
+    pub fn load_all() -> Vec<Self> {
+        let mut result = Vec::new();
+
+        if let Ok(mut entries) = std::fs::read_dir(TunnelParams::default_config_dir()) {
+            while let Some(Ok(entry)) = entries.next() {
+                if entry.file_name().to_string_lossy().strip_suffix(".conf").is_some()
+                    && let Ok(params) = TunnelParams::load(entry.path())
+                {
+                    result.push(params);
+                }
+            }
+        }
+
+        result.sort_by(|a, b| {
+            if a.profile_id == DEFAULT_PROFILE_UUID {
+                Ordering::Less
+            } else if b.profile_id == DEFAULT_PROFILE_UUID {
+                Ordering::Greater
+            } else {
+                a.profile_name.cmp(&b.profile_name)
+            }
+        });
+        result
+    }
 }
 
 #[cfg(test)]
@@ -559,6 +594,8 @@ mod tests {
     fn test_load_store_params() {
         let temp_path = tempfile::NamedTempFile::new().unwrap().into_temp_path();
         let params = TunnelParams {
+            profile_name: "test".to_owned(),
+            profile_id: Uuid::new_v4(),
             server_name: "foo".to_string(),
             user_name: "bar".to_string(),
             password: "password".to_string(),

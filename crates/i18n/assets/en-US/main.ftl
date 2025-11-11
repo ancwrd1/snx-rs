@@ -42,6 +42,9 @@ label-auto-connect = Automatically connect on startup
 label-ip-lease-time = Custom IP lease time, seconds
 label-disable-ipv6 = Disable IPv6 when default route is enabled
 label-mtu = MTU
+label-connection-profile = Connection profile
+label-profile-name = Profile name
+label-confirmation = Please confirm
 
 # Tabs and expanders
 tab-general = General
@@ -226,3 +229,12 @@ login-options-preferred-protocol = Preferred protocol
 login-options-tcpt-port = TCPT port
 login-options-natt-port = NATT port
 login-options-internal-ca-fingerprint = Internal CA fingerprint
+
+# Connection profiles
+profile-new = New
+profile-rename = Rename
+profile-delete = Delete
+profile-delete-prompt = Are you sure to delete the selected profile?
+profile-default-name = Default
+profile-new-title = New connection profile
+profile-rename-title = Rename connection profile

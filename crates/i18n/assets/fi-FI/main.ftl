@@ -42,6 +42,9 @@ label-auto-connect = Yhdistä automaattisesti käynnistyksessä
 label-ip-lease-time = Mukautettu IP-vuokra-aika, sekuntia
 label-disable-ipv6 = Poista IPv6 käytöstä, kun oletusreitti on käytössä
 label-mtu = MTU
+label-connection-profile = Yhteysprofiili
+label-profile-name = Profiilin nimi
+label-confirmation = Vahvista
 
 # Tabs and expanders
 tab-general = Yleiset
@@ -224,3 +227,12 @@ login-options-preferred-protocol = Suositeltu protokolla
 login-options-tcpt-port = TCPT-portti
 login-options-natt-port = NATT-portti
 login-options-internal-ca-fingerprint = Sisäisen CA:n sormenjälki
+
+# Connection profiles
+profile-new = Uusi
+profile-rename = Nimeä uudelleen
+profile-delete = Poista
+profile-delete-prompt = Haluatko varmasti poistaa valitun profiilin?
+profile-default-name = Oletus
+profile-new-title = Uusi yhteysprofiili
+profile-rename-title = Nimeä yhteysprofiili uudelleen

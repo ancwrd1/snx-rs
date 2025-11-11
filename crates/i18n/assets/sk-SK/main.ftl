@@ -42,6 +42,9 @@ label-auto-connect = Automaticky sa pripojiť pri štarte
 label-ip-lease-time = Vlastný čas prenájmu IP, sekundy
 label-disable-ipv6 = Zakázať IPv6, keď je povolená predvolená trasa
 label-mtu = MTU
+label-connection-profile = Profil pripojenia
+label-profile-name = Názov profilu
+label-confirmation = Prosím potvrďte
 
 # Tabs and expanders
 tab-general = Všeobecné
@@ -224,3 +227,12 @@ login-options-preferred-protocol = Preferovaný protokol
 login-options-tcpt-port = Port TCPT
 login-options-natt-port = Port NATT
 login-options-internal-ca-fingerprint = Odtlačok interného CA
+
+# Connection profiles
+profile-new = Nový
+profile-rename = Premenovať
+profile-delete = Zmazať
+profile-delete-prompt = Naozaj chcete zmazať vybraný profil?
+profile-default-name = Predvolený
+profile-new-title = Nový profil pripojenia
+profile-rename-title = Premenovať profil pripojenia

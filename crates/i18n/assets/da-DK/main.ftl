@@ -42,6 +42,9 @@ label-auto-connect = Forbind automatisk ved opstart
 label-ip-lease-time = Brugerdefineret IP-leasetid, sekunder
 label-disable-ipv6 = Deaktiver IPv6, når standardrute er aktiveret
 label-mtu = MTU
+label-connection-profile = Forbindelsesprofil
+label-profile-name = Profilnavn
+label-confirmation = Bekræft venligst
 
 # Tabs and expanders
 tab-general = Generelt
@@ -224,3 +227,12 @@ login-options-preferred-protocol = Foretrukken protokol
 login-options-tcpt-port = TCPT-port
 login-options-natt-port = NATT-port
 login-options-internal-ca-fingerprint = Internt CA-fingeraftryk
+
+# Connection profiles
+profile-new = Ny
+profile-rename = Omdøb
+profile-delete = Slet
+profile-delete-prompt = Er du sikker på at slette den valgte profil?
+profile-default-name = Standard
+profile-new-title = Ny forbindelsesprofil
+profile-rename-title = Omdøb forbindelsesprofil
