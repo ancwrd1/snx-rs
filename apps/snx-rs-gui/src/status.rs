@@ -1,14 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
 use gtk4::{
-    Align, Dialog, Orientation, ResponseType,
+    Align, Dialog, Orientation, ResponseType, gio,
     glib::{self, clone},
-    prelude::{BoxExt, ButtonExt, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
+    prelude::{ActionMapExt, BoxExt, ButtonExt, Cast, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
 };
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{ConnectionInfo, ConnectionStatus, params::TunnelParams},
+    model::{ConnectionInfo, ConnectionStatus, params::DEFAULT_PROFILE_UUID, params::TunnelParams},
 };
 use tokio::sync::mpsc::Sender;
 
@@ -92,24 +92,6 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         tokio::spawn(async move { sender.send(TrayEvent::Settings).await });
     });
 
-    let connect = gtk4::Button::builder().label(tr!("status-button-connect")).build();
-
-    let sender2 = sender.clone();
-    connect.connect_clicked(move |btn| {
-        let sender = sender2.clone();
-        tokio::spawn(async move { sender.send(TrayEvent::Connect).await });
-        btn.set_sensitive(false);
-    });
-
-    let disconnect = gtk4::Button::builder().label(tr!("status-button-disconnect")).build();
-
-    let sender2 = sender.clone();
-    disconnect.connect_clicked(move |btn| {
-        let sender = sender2.clone();
-        tokio::spawn(async move { sender.send(TrayEvent::Disconnect).await });
-        btn.set_sensitive(false);
-    });
-
     let button_box = gtk4::Box::builder()
         .orientation(Orientation::Horizontal)
         .spacing(6)
@@ -119,6 +101,60 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         .homogeneous(true)
         .halign(Align::End)
         .build();
+
+    let profiles = TunnelParams::load_all();
+
+    let connect = if profiles.len() < 2 {
+        let sender2 = sender.clone();
+
+        let connect = gtk4::Button::builder().label(tr!("status-button-connect")).build();
+
+        connect.connect_clicked(move |btn| {
+            let sender = sender2.clone();
+            tokio::spawn(async move { sender.send(TrayEvent::Connect(DEFAULT_PROFILE_UUID)).await });
+            btn.set_sensitive(false);
+        });
+        connect.upcast::<gtk4::Widget>()
+    } else {
+        let menu = gio::Menu::new();
+
+        let action_group = gio::SimpleActionGroup::new();
+
+        for profile in &profiles {
+            menu.append(
+                Some(&profile.profile_name),
+                Some(&format!("connect.{}", profile.profile_id)),
+            );
+            let action = gio::SimpleAction::new(&profile.profile_id.to_string(), None);
+            action.set_enabled(true);
+            let uuid = profile.profile_id;
+            let sender2 = sender.clone();
+            action.connect_activate(move |_, _| {
+                let sender = sender2.clone();
+                tokio::spawn(async move { sender.send(TrayEvent::Connect(uuid)).await });
+            });
+            action_group.add_action(&action);
+        }
+
+        dialog.insert_action_group("connect", Some(&action_group));
+
+        let connect = gtk4::MenuButton::builder()
+            .label(tr!("status-button-connect"))
+            .always_show_arrow(true)
+            .menu_model(&menu)
+            .build();
+
+        connect.upcast::<gtk4::Widget>()
+    };
+
+    let disconnect = gtk4::Button::builder().label(tr!("status-button-disconnect")).build();
+
+    let sender2 = sender.clone();
+    disconnect.connect_clicked(move |btn| {
+        let sender = sender2.clone();
+        tokio::spawn(async move { sender.send(TrayEvent::Disconnect).await });
+        btn.set_sensitive(false);
+    });
 
     button_box.append(&connect);
     button_box.append(&disconnect);

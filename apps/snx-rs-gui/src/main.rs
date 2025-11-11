@@ -88,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
     let instance = platform.new_single_instance(format!("/tmp/snx-rs-gui-{uid}.lock"))?;
     if !instance.is_single() {
         if let Some(mut command) = cmdline_params.command {
-            if command == TrayEvent::Connect && tunnel_params.server_name.is_empty() {
+            if matches!(command, TrayEvent::Connect(_)) && tunnel_params.server_name.is_empty() {
                 command = TrayEvent::Settings;
             }
             if let Err(e) = ipc::send_event(command).await {
@@ -132,11 +132,14 @@ async fn main() -> anyhow::Result<()> {
             while let Some(v) = tray_event_receiver.recv().await {
                 let params = Arc::new(TunnelParams::load(&config_file).unwrap_or_default());
                 match v {
-                    TrayEvent::Connect => {
+                    TrayEvent::Connect(uuid) => {
                         let sender = tray_command_sender.clone();
                         let (tx, rx) = mpsc::channel(16);
                         cancel_sender = Some(tx);
-                        tokio::spawn(async move { do_connect(sender, params, rx).await });
+                        let profiles = TunnelParams::load_all();
+                        if let Some(params) = profiles.into_iter().find(|p| p.profile_id == uuid) {
+                            tokio::spawn(async move { do_connect(sender, Arc::new(params), rx).await });
+                        }
                     }
                     TrayEvent::Disconnect => {
                         let sender = tray_command_sender.clone();
@@ -177,7 +180,7 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(mut command) = cmdline_params.command {
         tokio::spawn(async move {
-            if command == TrayEvent::Connect && tunnel_params.server_name.is_empty() {
+            if matches!(command, TrayEvent::Connect(_)) && tunnel_params.server_name.is_empty() {
                 command = TrayEvent::Settings;
             }
 
@@ -257,7 +260,7 @@ async fn status_poll(
             if first_run {
                 first_run = false;
                 if tunnel_params.auto_connect && is_disconnected {
-                    let _ = event_sender.send(TrayEvent::Connect).await;
+                    let _ = event_sender.send(TrayEvent::Connect(tunnel_params.profile_id)).await;
                 }
             }
         }

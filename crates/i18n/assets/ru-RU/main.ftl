@@ -42,6 +42,9 @@ label-auto-connect = Автоматически подключаться при 
 label-ip-lease-time = Пользовательское время аренды IP, секунды
 label-disable-ipv6 = Отключать IPv6, когда включён маршрут по умолчанию
 label-mtu = MTU
+label-connection-profile = Профиль подключения
+label-profile-name = Имя профиля
+label-confirmation = Пожалуйста, подтвердите
 
 # Tabs and expanders
 tab-general = Основные
@@ -224,3 +227,12 @@ login-options-preferred-protocol = Предпочтительный проток
 login-options-tcpt-port = Порт TCPT
 login-options-natt-port = Порт NATT
 login-options-internal-ca-fingerprint = Отпечаток внутреннего CA
+
+# Connection profiles
+profile-new = Новый
+profile-rename = Переименовать
+profile-delete = Удалить
+profile-delete-prompt = Вы уверены, что хотите удалить выбранный профиль?
+profile-default-name = По умолчанию
+profile-new-title = Новый профиль подключения
+profile-rename-title = Переименовать профиль подключения

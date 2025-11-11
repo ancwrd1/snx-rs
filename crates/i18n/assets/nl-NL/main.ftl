@@ -42,6 +42,9 @@ label-auto-connect = Automatisch verbinden bij opstarten
 label-ip-lease-time = Aangepaste IP-leasetijd, seconden
 label-disable-ipv6 = IPv6 uitschakelen wanneer de standaardroute is ingeschakeld
 label-mtu = MTU
+label-connection-profile = Verbindingsprofiel
+label-profile-name = Profielnaam
+label-confirmation = Bevestig alstublieft
 
 # Tabs and expanders
 tab-general = Algemeen
@@ -224,3 +227,12 @@ login-options-preferred-protocol = Voorkeursprotocol
 login-options-tcpt-port = TCPT-poort
 login-options-natt-port = NATT-poort
 login-options-internal-ca-fingerprint = Interne CA-vingerafdruk
+
+# Connection profiles
+profile-new = Nieuw
+profile-rename = Hernoemen
+profile-delete = Verwijderen
+profile-delete-prompt = Weet u zeker dat u het geselecteerde profiel wilt verwijderen?
+profile-default-name = Standaard
+profile-new-title = Nieuw verbindingsprofiel
+profile-rename-title = Verbindingsprofiel hernoemen

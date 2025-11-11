@@ -1,22 +1,24 @@
 use std::{path::PathBuf, str::FromStr, sync::Arc};
 
-use anyhow::anyhow;
-use ksni::{Handle, Icon, MenuItem, TrayMethods, menu::StandardItem};
-use snxcore::model::{
-    ConnectionStatus,
-    params::{IconTheme, TunnelParams},
-};
-use tokio::sync::mpsc::{Receiver, Sender};
-
 use crate::{
     assets,
     params::CmdlineParams,
     theme::{SystemColorTheme, system_color_theme},
 };
+use anyhow::anyhow;
+use ksni::menu::SubMenu;
+use ksni::{Handle, Icon, MenuItem, TrayMethods, menu::StandardItem};
+use snxcore::model::params::DEFAULT_PROFILE_UUID;
+use snxcore::model::{
+    ConnectionStatus,
+    params::{IconTheme, TunnelParams},
+};
+use tokio::sync::mpsc::{Receiver, Sender};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrayEvent {
-    Connect,
+    Connect(Uuid),
     Disconnect,
     Settings,
     Status,
@@ -27,7 +29,7 @@ pub enum TrayEvent {
 impl TrayEvent {
     pub fn as_str(&self) -> &'static str {
         match self {
-            TrayEvent::Connect => "connect",
+            TrayEvent::Connect(_) => "connect",
             TrayEvent::Disconnect => "disconnect",
             TrayEvent::Settings => "settings",
             TrayEvent::Status => "status",
@@ -42,7 +44,7 @@ impl FromStr for TrayEvent {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "connect" => Ok(TrayEvent::Connect),
+            "connect" => Ok(TrayEvent::Connect(DEFAULT_PROFILE_UUID)),
             "disconnect" => Ok(TrayEvent::Disconnect),
             "settings" => Ok(TrayEvent::Settings),
             "status" => Ok(TrayEvent::Status),
@@ -254,6 +256,37 @@ impl ksni::Tray for KsniTray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
+        let profiles = TunnelParams::load_all();
+        let connect_item = if profiles.len() < 2 {
+            MenuItem::Standard(StandardItem {
+                label: crate::tr!("tray-menu-connect").to_string(),
+                enabled: self.connect_enabled,
+                activate: Box::new(|tray: &mut KsniTray| {
+                    tray.send_tray_event(TrayEvent::Connect(DEFAULT_PROFILE_UUID))
+                }),
+                ..Default::default()
+            })
+        } else {
+            MenuItem::SubMenu(SubMenu {
+                label: crate::tr!("tray-menu-connect").to_string(),
+                enabled: self.connect_enabled,
+                submenu: profiles
+                    .into_iter()
+                    .map(|profile| {
+                        MenuItem::Standard(StandardItem {
+                            label: profile.profile_name.clone(),
+                            enabled: self.connect_enabled,
+                            activate: Box::new(move |tray: &mut KsniTray| {
+                                tray.send_tray_event(TrayEvent::Connect(profile.profile_id))
+                            }),
+                            ..Default::default()
+                        })
+                    })
+                    .collect(),
+                ..Default::default()
+            })
+        };
+
         vec![
             MenuItem::Standard(StandardItem {
                 label: self.status_label.clone(),
@@ -261,12 +294,7 @@ impl ksni::Tray for KsniTray {
                 ..Default::default()
             }),
             MenuItem::Separator,
-            MenuItem::Standard(StandardItem {
-                label: crate::tr!("tray-menu-connect").to_string(),
-                enabled: self.connect_enabled,
-                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Connect)),
-                ..Default::default()
-            }),
+            connect_item,
             MenuItem::Standard(StandardItem {
                 label: crate::tr!("tray-menu-disconnect").to_string(),
                 enabled: self.disconnect_enabled,

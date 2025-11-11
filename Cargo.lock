@@ -2849,6 +2849,7 @@ dependencies = [
  "hex",
  "i18n",
  "interprocess",
+ "itertools",
  "ksni",
  "libc",
  "once_cell",
@@ -2858,6 +2859,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "uuid",
  "zbus",
 ]
 

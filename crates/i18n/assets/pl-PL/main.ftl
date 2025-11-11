@@ -42,6 +42,9 @@ label-auto-connect = Automatycznie łącz przy starcie
 label-ip-lease-time = Niestandardowy czas dzierżawy IP, sekundy
 label-disable-ipv6 = Wyłącz IPv6, gdy włączona jest trasa domyślna
 label-mtu = MTU
+label-connection-profile = Profil połączenia
+label-profile-name = Nazwa profilu
+label-confirmation = Proszę potwierdzić
 
 # Tabs and expanders
 tab-general = Ogólne
@@ -224,3 +227,12 @@ login-options-preferred-protocol = Preferowany protokół
 login-options-tcpt-port = Port TCPT
 login-options-natt-port = Port NATT
 login-options-internal-ca-fingerprint = Odcisk wewnętrznego CA
+
+# Connection profiles
+profile-new = Nowy
+profile-rename = Zmień nazwę
+profile-delete = Usuń
+profile-delete-prompt = Czy na pewno usunąć wybrany profil?
+profile-default-name = Domyślny
+profile-new-title = Nowy profil połączenia
+profile-rename-title = Zmień nazwę profilu połączenia

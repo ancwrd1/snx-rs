@@ -14,7 +14,7 @@ publish.workspace = true
 snxcore = { path = "../../crates/snxcore" }
 i18n = { path = "../../crates/i18n" }
 ksni = "0.3"
-gtk4 = "0.10"
+gtk4 = { version = "0.10", features = ["v4_4"] }
 png = "0.18"
 tracing = "0.1"
 tracing-subscriber = "0.3"
@@ -32,3 +32,5 @@ async-trait = "0.1"
 interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
 async-channel = "2"
+itertools = "0.14"
+uuid = { version = "1.18.1", features = ["v4"] }
