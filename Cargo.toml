@@ -3,7 +3,7 @@ members = ["crates/snxcore", "crates/i18n", "apps/snxctl", "apps/snx-rs", "apps/
 resolver = "2"
 
 [workspace.package]
-version = "4.8.3"
+version = "4.9.0"
 license = "AGPL-3.0"
 edition = "2024"
 authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]
