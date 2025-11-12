@@ -1,3 +1,8 @@
+## v4.9.0 (TBD)
+- Added support for multiple connection profiles in the UI.
+- Disable DNSoverTLS for the tunnel interface.
+- Fixed a few internal stability issues.
+
 ## v4.8.3 (2025-10-14)
 - Privacy fix: disable mDNS and LLMNR for the tunnel interface.
 
