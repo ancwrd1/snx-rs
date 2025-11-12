@@ -504,7 +504,7 @@ impl SettingsDialog {
                     let borrow = profiles2.borrow();
                     let params = borrow.iter().find(|p| p.profile_id.to_string() == id);
                     if let Some(params) = params {
-                        widgets.update_from_params(&*params);
+                        widgets.update_from_params(params);
                     }
                     widgets
                         .profile_delete
