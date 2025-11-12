@@ -1,4 +1,4 @@
-## v4.9.0 (TBD)
+## v4.9.0 (2025-11-12)
 - Added support for multiple connection profiles in the UI.
 - Disable DNSoverTLS for the tunnel interface.
 - Fixed a few internal stability issues.
