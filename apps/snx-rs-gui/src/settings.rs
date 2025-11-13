@@ -1488,7 +1488,7 @@ pub fn start_settings_dialog<W: IsA<Window>>(parent: W, sender: Sender<TrayComma
 }
 
 async fn show_entry_dialog(parent: &Dialog, title: &str, label: &str, value: &str) -> Option<String> {
-    let dialog = gtk4::Dialog::builder().title(title).transient_for(parent).build();
+    let dialog = Dialog::builder().title(title).transient_for(parent).modal(true).build();
 
     let ok = gtk4::Button::builder().label(tr!("button-ok")).build();
     ok.connect_clicked(clone!(
@@ -1498,6 +1498,8 @@ async fn show_entry_dialog(parent: &Dialog, title: &str, label: &str, value: &st
             dialog.response(ResponseType::Ok);
         }
     ));
+
+    ok.set_sensitive(!value.trim().is_empty());
 
     let cancel = gtk4::Button::builder().label(tr!("button-cancel")).build();
     cancel.connect_clicked(clone!(
@@ -1542,11 +1544,23 @@ async fn show_entry_dialog(parent: &Dialog, title: &str, label: &str, value: &st
         .text(value)
         .build();
 
+    entry.connect_changed(clone!(
+        #[weak]
+        ok,
+        move |entry| {
+            ok.set_sensitive(!entry.text().trim().is_empty());
+        }
+    ));
+
     entry.connect_activate(clone!(
         #[weak]
         dialog,
+        #[weak]
+        entry,
         move |_| {
-            dialog.response(ResponseType::Ok);
+            if !entry.text().trim().is_empty() {
+                dialog.response(ResponseType::Ok);
+            }
         }
     ));
 
