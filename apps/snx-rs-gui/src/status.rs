@@ -8,7 +8,10 @@ use gtk4::{
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{ConnectionInfo, ConnectionStatus, params::DEFAULT_PROFILE_UUID, params::TunnelParams},
+    model::{
+        ConnectionInfo, ConnectionStatus,
+        params::{DEFAULT_PROFILE_UUID, TunnelParams},
+    },
 };
 use tokio::sync::mpsc::Sender;
 

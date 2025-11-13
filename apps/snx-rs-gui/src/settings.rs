@@ -1,21 +1,19 @@
-use crate::{get_window, set_window, tr, tray::TrayCommand};
+use std::{cell::RefCell, net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
+
 use gtk4::{
     Align, ButtonsType, Dialog, DialogFlags, MessageType, Orientation, ResponseType, Widget, Window,
     glib::{self, clone},
     prelude::*,
 };
 use itertools::Itertools;
-use snxcore::model::params::DEFAULT_PROFILE_UUID;
 use snxcore::{
     model::{
-        params::{CertType, IconTheme, TransportType, TunnelParams, TunnelType},
+        params::{CertType, DEFAULT_PROFILE_UUID, IconTheme, TransportType, TunnelParams, TunnelType},
         proto::LoginOption,
     },
     server_info,
     util::{ipv4net_to_string, parse_ipv4_or_subnet},
 };
-use std::cell::RefCell;
-use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 use tokio::sync::mpsc::Sender;
 use tracing::warn;
 use uuid::Uuid;
@@ -31,6 +29,8 @@ fn set_container_visible(widget: &Widget, flag: bool) {
         }
     }
 }
+
+use crate::{get_window, set_window, tr, tray::TrayCommand};
 
 struct SettingsDialog {
     params: Arc<TunnelParams>,

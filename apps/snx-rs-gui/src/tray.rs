@@ -1,20 +1,22 @@
 use std::{path::PathBuf, str::FromStr, sync::Arc};
 
+use anyhow::anyhow;
+use ksni::{
+    Handle, Icon, MenuItem, TrayMethods,
+    menu::{StandardItem, SubMenu},
+};
+use snxcore::model::{
+    ConnectionStatus,
+    params::{DEFAULT_PROFILE_UUID, IconTheme, TunnelParams},
+};
+use tokio::sync::mpsc::{Receiver, Sender};
+use uuid::Uuid;
+
 use crate::{
     assets,
     params::CmdlineParams,
     theme::{SystemColorTheme, system_color_theme},
 };
-use anyhow::anyhow;
-use ksni::menu::SubMenu;
-use ksni::{Handle, Icon, MenuItem, TrayMethods, menu::StandardItem};
-use snxcore::model::params::DEFAULT_PROFILE_UUID;
-use snxcore::model::{
-    ConnectionStatus,
-    params::{IconTheme, TunnelParams},
-};
-use tokio::sync::mpsc::{Receiver, Sender};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrayEvent {
