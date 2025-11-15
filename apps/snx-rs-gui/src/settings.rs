@@ -78,10 +78,12 @@ struct MyWidgets {
     disable_ipv6: gtk4::Switch,
     mtu: gtk4::Entry,
     transport_type: gtk4::ComboBoxText,
-    profile: gtk4::ComboBoxText,
+    profile_select: gtk4::ComboBoxText,
     profile_new: gtk4::Button,
     profile_rename: gtk4::Button,
     profile_delete: gtk4::Button,
+    profiles: Rc<RefCell<Vec<TunnelParams>>>,
+    params: Arc<TunnelParams>,
 }
 
 impl MyWidgets {
@@ -208,6 +210,178 @@ impl MyWidgets {
         self.transport_type
             .set_active_id(Some(&params.transport_type.to_string()));
         self.fetch_info.activate();
+    }
+
+    fn on_auth_type_changed(&self) {
+        if let Some(id) = self.auth_type.active_id() {
+            let factors = unsafe { self.auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
+            if let Some(factors) = factors {
+                let is_saml = factors.iter().any(|f| f == "identity_provider");
+                let is_cert = factors.iter().any(|f| f == "certificate");
+                set_container_visible(self.username.as_ref(), !is_saml && !is_cert);
+                set_container_visible(self.cert_path.as_ref(), is_cert);
+                if !is_cert {
+                    self.cert_type.set_active(Some(0));
+                }
+                self.tunnel_type.set_sensitive(true);
+            }
+        }
+    }
+
+    fn on_profile_changed(&self) {
+        if let Some(id) = self.profile_select.active_id() {
+            let borrow = self.profiles.borrow();
+            let params = borrow.iter().find(|p| p.profile_id.to_string() == id);
+            if let Some(params) = params {
+                self.update_from_params(params);
+            }
+            self.profile_delete
+                .set_sensitive(id != DEFAULT_PROFILE_UUID.to_string());
+        }
+    }
+
+    async fn on_profile_delete(&self, parent: &Dialog) {
+        let msg = gtk4::MessageDialog::new(
+            Some(parent),
+            DialogFlags::MODAL,
+            MessageType::Question,
+            ButtonsType::YesNo,
+            tr!("profile-delete-prompt"),
+        );
+        msg.set_title(Some(&tr!("label-confirmation")));
+        if msg.run_future().await == ResponseType::Yes {
+            {
+                let mut borrow = self.profiles.borrow_mut();
+                let id = self.profile_select.active_id().unwrap_or_default();
+                if let Some(params) = borrow.iter_mut().find(|p| p.profile_id.to_string() == id) {
+                    let _ = std::fs::remove_file(&params.config_file);
+                }
+                *borrow = SettingsDialog::load_profiles(self.params.clone());
+            }
+            self.profile_select.remove(self.profile_select.active().unwrap() as _);
+            self.profile_select.set_active(Some(0));
+        }
+        msg.close();
+    }
+
+    async fn on_profile_new(&self, parent: &Dialog) {
+        let name = show_entry_dialog(parent, &tr!("profile-new-title"), &tr!("label-profile-name"), "").await;
+        if let Some(name) = name {
+            let profile_id = Uuid::new_v4();
+            let params = TunnelParams {
+                profile_name: name.clone(),
+                profile_id,
+                config_file: TunnelParams::default_config_dir().join(format!("{}.conf", profile_id)),
+                ..Default::default()
+            };
+            let _ = params.save();
+            self.profile_select.append(Some(&profile_id.to_string()), &name);
+            self.profile_select.set_active_id(Some(&profile_id.to_string()));
+            *self.profiles.borrow_mut() = SettingsDialog::load_profiles(self.params.clone());
+            self.update_from_params(&params);
+        }
+    }
+
+    async fn on_profile_rename(&self, parent: &Dialog) {
+        let name = show_entry_dialog(
+            parent,
+            &tr!("profile-rename-title"),
+            &tr!("label-profile-name"),
+            &self.profile_select.active_text().unwrap_or_default(),
+        )
+        .await;
+        if let Some(name) = name
+            && let Some(id) = self.profile_select.active_id()
+            && let Some(active) = self.profile_select.active()
+        {
+            self.profile_select.remove(active as _);
+            self.profile_select.insert(active as _, Some(&id), &name);
+            self.profile_select.set_active_id(Some(&id));
+
+            if let Some(profile) = self
+                .profiles
+                .borrow_mut()
+                .iter_mut()
+                .find(|p| p.profile_id.to_string() == id)
+            {
+                profile.profile_name = name;
+                let _ = profile.save();
+            }
+        }
+    }
+
+    fn on_fetch_info(self: Rc<MyWidgets>, dialog: Dialog) {
+        let params = if let Some(id) = self.profile_select.active_id()
+            && let Some(params) = self.profiles.borrow().iter().find(|p| p.profile_id.to_string() == id)
+        {
+            params.clone()
+        } else {
+            return;
+        };
+
+        let login_type = params.login_type.clone();
+
+        if self.server_name.text().is_empty() {
+            self.auth_type.remove_all();
+            self.auth_type.set_sensitive(false);
+        } else {
+            dialog.set_sensitive(false);
+            let new_params = TunnelParams {
+                server_name: self.server_name.text().into(),
+                ignore_server_cert: self.no_cert_check.is_active(),
+                ..params
+            };
+
+            let (tx, rx) = async_channel::bounded(1);
+            tokio::spawn(async move {
+                let response = server_info::get(&new_params).await;
+                let _ = tx.send(response).await;
+            });
+
+            glib::spawn_future_local(async move {
+                let response = rx.recv().await.unwrap();
+
+                self.auth_type.remove_all();
+
+                match response {
+                    Ok(server_info) => {
+                        self.error.set_label("");
+                        self.error.set_visible(false);
+                        let mut options_list = server_info
+                            .login_options_data
+                            .map(|d| d.login_options_list)
+                            .unwrap_or_default();
+                        if options_list.is_empty() {
+                            options_list.insert(String::new(), LoginOption::unspecified());
+                        }
+                        for (i, option) in options_list.into_values().filter(|opt| opt.show_realm != 0).enumerate() {
+                            let factors = option
+                                .factors
+                                .values()
+                                .map(|factor| factor.factor_type.clone())
+                                .collect::<Vec<_>>();
+                            unsafe {
+                                self.auth_type.set_data(&option.id, factors);
+                            }
+                            self.auth_type.append(Some(&option.id), &option.display_name);
+                            if login_type == option.id {
+                                self.auth_type.set_active(Some(i as _));
+                            }
+                        }
+                        self.auth_type.set_sensitive(true);
+                        if self.auth_type.active().is_none() {
+                            self.auth_type.set_active(Some(0));
+                        }
+                    }
+
+                    Err(e) => {
+                        self.error.set_label(&e.to_string());
+                        self.error.set_visible(true);
+                    }
+                }
+                dialog.set_sensitive(true);
+            });
+        }
     }
 }
 
@@ -397,7 +571,7 @@ impl SettingsDialog {
         let mtu = gtk4::Entry::builder().text(params.mtu.to_string()).build();
         let transport_type = gtk4::ComboBoxText::builder().build();
 
-        let profile = gtk4::ComboBoxText::builder().build();
+        let profile_select = gtk4::ComboBoxText::builder().build();
         let profile_new = gtk4::Button::with_label(&tr!("profile-new"));
         let profile_rename = gtk4::Button::with_label(&tr!("profile-rename"));
         let profile_delete = gtk4::Button::with_label(&tr!("profile-delete"));
@@ -405,6 +579,8 @@ impl SettingsDialog {
         let error = gtk4::Label::new(None);
         error.set_visible(false);
         error.style_context().add_class("error");
+
+        let profiles = Rc::new(RefCell::new(Self::load_profiles(params.clone())));
 
         let widgets = Rc::new(MyWidgets {
             server_name,
@@ -444,77 +620,42 @@ impl SettingsDialog {
             disable_ipv6,
             mtu,
             transport_type,
-            profile,
+            profile_select,
             profile_new,
             profile_rename,
             profile_delete,
+            profiles: profiles.clone(),
+            params: params.clone(),
         });
 
         apply_button.connect_clicked(clone!(
             #[weak]
             dialog,
-            move |_| {
-                dialog.response(ResponseType::Apply);
-            }
+            move |_| dialog.response(ResponseType::Apply)
         ));
         ok_button.connect_clicked(clone!(
             #[weak]
             dialog,
-            move |_| {
-                dialog.response(ResponseType::Ok);
-            }
+            move |_| dialog.response(ResponseType::Ok)
         ));
 
         cancel_button.connect_clicked(clone!(
             #[weak]
             dialog,
-            move |_| {
-                dialog.response(ResponseType::Cancel);
-            }
+            move |_| dialog.response(ResponseType::Cancel)
         ));
 
         widgets.auth_type.connect_active_notify(clone!(
             #[weak]
             widgets,
-            move |widget| {
-                if let Some(id) = widget.active_id() {
-                    let factors = unsafe { widgets.auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
-                    if let Some(factors) = factors {
-                        let is_saml = factors.iter().any(|f| f == "identity_provider");
-                        let is_cert = factors.iter().any(|f| f == "certificate");
-                        set_container_visible(widgets.username.as_ref(), !is_saml && !is_cert);
-                        set_container_visible(widgets.cert_path.as_ref(), is_cert);
-                        if !is_cert {
-                            widgets.cert_type.set_active(Some(0));
-                        }
-                        widgets.tunnel_type.set_sensitive(true);
-                    }
-                }
-            }
+            move |_| widgets.on_auth_type_changed()
         ));
 
-        let profiles = Rc::new(RefCell::new(Self::load_profiles(params.clone())));
-        let profiles2 = profiles.clone();
-
-        widgets.profile.connect_active_notify(clone!(
+        widgets.profile_select.connect_active_notify(clone!(
             #[weak]
             widgets,
-            move |widget| {
-                if let Some(id) = widget.active_id() {
-                    let borrow = profiles2.borrow();
-                    let params = borrow.iter().find(|p| p.profile_id.to_string() == id);
-                    if let Some(params) = params {
-                        widgets.update_from_params(params);
-                    }
-                    widgets
-                        .profile_delete
-                        .set_sensitive(id != DEFAULT_PROFILE_UUID.to_string());
-                }
-            }
+            move |_| widgets.on_profile_changed()
         ));
-
-        let params2 = params.clone();
-        let profiles2 = profiles.clone();
 
         widgets.profile_delete.connect_clicked(clone!(
             #[weak]
@@ -522,40 +663,13 @@ impl SettingsDialog {
             #[weak]
             dialog,
             move |_| {
-                let params2 = params2.clone();
-                let profiles2 = profiles2.clone();
                 glib::spawn_future_local(clone!(
                     #[weak]
                     widgets,
-                    async move {
-                        let msg = gtk4::MessageDialog::new(
-                            Some(&dialog),
-                            DialogFlags::MODAL,
-                            MessageType::Question,
-                            ButtonsType::YesNo,
-                            tr!("profile-delete-prompt"),
-                        );
-                        msg.set_title(Some(&tr!("label-confirmation")));
-                        if msg.run_future().await == ResponseType::Yes {
-                            {
-                                let mut borrow = profiles2.borrow_mut();
-                                let id = widgets.profile.active_id().unwrap_or_default();
-                                if let Some(params) = borrow.iter_mut().find(|p| p.profile_id.to_string() == id) {
-                                    let _ = std::fs::remove_file(&params.config_file);
-                                }
-                                *borrow = Self::load_profiles(params2);
-                            }
-                            widgets.profile.remove(widgets.profile.active().unwrap() as _);
-                            widgets.profile.set_active(Some(0));
-                        }
-                        msg.close();
-                    }
+                    async move { widgets.on_profile_delete(&dialog).await }
                 ));
             }
         ));
-
-        let params2 = params.clone();
-        let profiles2 = profiles.clone();
 
         widgets.profile_new.connect_clicked(clone!(
             #[weak]
@@ -563,34 +677,13 @@ impl SettingsDialog {
             #[weak]
             dialog,
             move |_| {
-                let params2 = params2.clone();
-                let profiles2 = profiles2.clone();
                 glib::spawn_future_local(clone!(
                     #[weak]
                     widgets,
-                    async move {
-                        let name =
-                            show_entry_dialog(&dialog, &tr!("profile-new-title"), &tr!("label-profile-name"), "").await;
-                        if let Some(name) = name {
-                            let profile_id = Uuid::new_v4();
-                            let params = TunnelParams {
-                                profile_name: name.clone(),
-                                profile_id,
-                                config_file: TunnelParams::default_config_dir().join(format!("{}.conf", profile_id)),
-                                ..Default::default()
-                            };
-                            let _ = params.save();
-                            widgets.profile.append(Some(&profile_id.to_string()), &name);
-                            widgets.profile.set_active_id(Some(&profile_id.to_string()));
-                            *profiles2.borrow_mut() = Self::load_profiles(params2);
-                            widgets.update_from_params(&params);
-                        }
-                    }
+                    async move { widgets.on_profile_new(&dialog).await }
                 ));
             }
         ));
-
-        let profiles2 = profiles.clone();
 
         widgets.profile_rename.connect_clicked(clone!(
             #[weak]
@@ -598,169 +691,56 @@ impl SettingsDialog {
             #[weak]
             dialog,
             move |_| {
-                let profiles2 = profiles2.clone();
                 glib::spawn_future_local(clone!(
                     #[weak]
                     widgets,
-                    async move {
-                        let name = show_entry_dialog(
-                            &dialog,
-                            &tr!("profile-rename-title"),
-                            &tr!("label-profile-name"),
-                            &widgets.profile.active_text().unwrap_or_default(),
-                        )
-                        .await;
-                        if let Some(name) = name
-                            && let Some(id) = widgets.profile.active_id()
-                            && let Some(active) = widgets.profile.active()
-                        {
-                            widgets.profile.remove(active as _);
-                            widgets.profile.insert(active as _, Some(&id), &name);
-                            widgets.profile.set_active_id(Some(&id));
-
-                            if let Some(profile) = profiles2
-                                .borrow_mut()
-                                .iter_mut()
-                                .find(|p| p.profile_id.to_string() == id)
-                            {
-                                profile.profile_name = name;
-                                let _ = profile.save();
-                            }
-                        }
-                    }
+                    async move { widgets.on_profile_rename(&dialog).await }
                 ));
             }
         ));
-
-        let profiles2 = profiles.clone();
 
         widgets.fetch_info.connect_clicked(clone!(
             #[weak]
             dialog,
             #[weak]
             widgets,
-            move |_| {
-                let params2 = if let Some(id) = widgets.profile.active_id()
-                    && let Some(params) = profiles2.borrow().iter().find(|p| p.profile_id.to_string() == id)
+            move |_| widgets.on_fetch_info(dialog.clone())
+        ));
+
+        dialog.connect_response(clone!(
+            #[weak]
+            widgets,
+            move |dialog, response| {
+                if (response == ResponseType::Ok || response == ResponseType::Apply)
+                    && let Err(e) = widgets.validate()
                 {
-                    Arc::new(params.clone())
-                } else {
-                    return;
-                };
-
-                if widgets.server_name.text().is_empty() {
-                    widgets.auth_type.remove_all();
-                    widgets.auth_type.set_sensitive(false);
-                } else {
-                    dialog.set_sensitive(false);
-                    let params = TunnelParams {
-                        server_name: widgets.server_name.text().into(),
-                        ignore_server_cert: widgets.no_cert_check.is_active(),
-                        ..(*params2).clone()
-                    };
-                    let params2 = params2.clone();
-
-                    let (tx, rx) = async_channel::bounded(1);
-                    tokio::spawn(async move {
-                        let response = server_info::get(&params).await;
-                        let _ = tx.send(response).await;
-                    });
-
-                    glib::spawn_future_local(async move {
-                        let response = rx.recv().await.unwrap();
-
-                        widgets.auth_type.remove_all();
-
-                        match response {
-                            Ok(server_info) => {
-                                widgets.error.set_label("");
-                                widgets.error.set_visible(false);
-                                let mut options_list = server_info
-                                    .login_options_data
-                                    .map(|d| d.login_options_list)
-                                    .unwrap_or_default();
-                                if options_list.is_empty() {
-                                    options_list.insert(String::new(), LoginOption::unspecified());
-                                }
-                                for (i, option) in
-                                    options_list.into_values().filter(|opt| opt.show_realm != 0).enumerate()
-                                {
-                                    let factors = option
-                                        .factors
-                                        .values()
-                                        .map(|factor| factor.factor_type.clone())
-                                        .collect::<Vec<_>>();
-                                    unsafe {
-                                        widgets.auth_type.set_data(&option.id, factors);
-                                    }
-                                    widgets.auth_type.append(Some(&option.id), &option.display_name);
-                                    if params2.login_type == option.id {
-                                        widgets.auth_type.set_active(Some(i as _));
-                                    }
-                                }
-                                widgets.auth_type.set_sensitive(true);
-                                if widgets.auth_type.active().is_none() {
-                                    widgets.auth_type.set_active(Some(0));
-                                }
-                            }
-
-                            Err(e) => {
-                                widgets.error.set_label(&e.to_string());
-                                widgets.error.set_visible(true);
-                            }
-                        }
-                        dialog.set_sensitive(true);
-                    });
+                    glib::spawn_future_local(clone!(
+                        #[weak]
+                        dialog,
+                        async move {
+                            let msg = gtk4::MessageDialog::new(
+                                Some(&dialog),
+                                DialogFlags::MODAL,
+                                MessageType::Error,
+                                ButtonsType::Ok,
+                                e.to_string(),
+                            );
+                            msg.set_title(Some("Validation error"));
+                            msg.run_future().await;
+                            msg.close();
+                        },
+                    ));
                 }
             }
         ));
 
-        // Workaround for GTK4 quirks. Without this hack, the cursor for text entries is not rendered.
         dialog.connect_show(clone!(
             #[weak]
             widgets,
-            move |dialog| {
-                dialog.add_tick_callback(move |dialog, _| {
-                    dialog.add_tick_callback(clone!(
-                        #[weak]
-                        widgets,
-                        #[upgrade_or]
-                        glib::ControlFlow::Break,
-                        move |_, _| {
-                            widgets.fetch_info.emit_clicked();
-                            glib::ControlFlow::Break
-                        }
-                    ));
-                    glib::ControlFlow::Break
-                });
+            move |_| {
+                widgets.fetch_info.activate();
             }
         ));
-
-        let widgets2 = widgets.clone();
-
-        dialog.connect_response(move |dlg, response| {
-            if (response == ResponseType::Ok || response == ResponseType::Apply)
-                && let Err(e) = widgets2.validate()
-            {
-                glib::spawn_future_local(clone!(
-                    #[weak]
-                    dlg,
-                    async move {
-                        let msg = gtk4::MessageDialog::new(
-                            Some(&dlg),
-                            DialogFlags::MODAL,
-                            MessageType::Error,
-                            ButtonsType::Ok,
-                            e.to_string(),
-                        );
-                        msg.set_title(Some("Validation error"));
-                        msg.run_future().await;
-                        msg.close();
-                    },
-                ));
-                dlg.stop_signal_emission_by_name("response");
-            }
-        });
 
         let mut result = Self {
             params,
@@ -785,7 +765,7 @@ impl SettingsDialog {
 
     pub fn save(&mut self) -> anyhow::Result<()> {
         let mut borrow = self.profiles.borrow_mut();
-        let params = if let Some(id) = self.widgets.profile.active_id()
+        let params = if let Some(id) = self.widgets.profile_select.active_id()
             && let Some(params) = borrow.iter_mut().find(|p| p.profile_id.to_string() == id)
         {
             params
@@ -1355,18 +1335,18 @@ impl SettingsDialog {
 
         for profile in &*self.profiles.borrow() {
             self.widgets
-                .profile
+                .profile_select
                 .append(Some(&profile.profile_id.to_string()), &profile.profile_name);
         }
-        self.widgets.profile.set_active(Some(0));
+        self.widgets.profile_select.set_active(Some(0));
 
-        self.widgets.profile.set_hexpand(true);
+        self.widgets.profile_select.set_hexpand(true);
         let button_box = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .spacing(2)
             .homogeneous(false)
             .build();
-        button_box.append(&self.widgets.profile);
+        button_box.append(&self.widgets.profile_select);
         button_box.append(&self.widgets.profile_new);
         button_box.append(&self.widgets.profile_rename);
         button_box.append(&self.widgets.profile_delete);
