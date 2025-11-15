@@ -1,7 +1,6 @@
-use std::io;
+use std::{io, sync::LazyLock};
 
 use anyhow::Context;
-use once_cell::sync::Lazy;
 
 fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     let decoder = png::Decoder::new(io::Cursor::new(data));
@@ -27,7 +26,7 @@ pub struct IconTheme {
     pub connected: Vec<u8>,
 }
 
-pub static DARK_THEME_ARGB: Lazy<IconTheme> = Lazy::new(|| IconTheme {
+pub static DARK_THEME_ARGB: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
     vpn: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn.png")).unwrap_or_default(),
     acquiring: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-acquiring.png")).unwrap_or_default(),
     error: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-error.png")).unwrap_or_default(),
@@ -35,7 +34,7 @@ pub static DARK_THEME_ARGB: Lazy<IconTheme> = Lazy::new(|| IconTheme {
     connected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-connected.png")).unwrap_or_default(),
 });
 
-pub static LIGHT_THEME_ARGB: Lazy<IconTheme> = Lazy::new(|| IconTheme {
+pub static LIGHT_THEME_ARGB: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
     vpn: png_to_argb(include_bytes!("../assets/icons/light/network-vpn.png")).unwrap_or_default(),
     acquiring: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-acquiring.png")).unwrap_or_default(),
     error: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-error.png")).unwrap_or_default(),
