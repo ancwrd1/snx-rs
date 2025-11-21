@@ -11,6 +11,11 @@ Download the latest binary and source release [here](https://github.com/ancwrd1/
 For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.<br/>
 For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
 
+## System Requirements
+
+* A recent Linux distribution with kernel version 4.19 or higher
+* systemd-resolved is recommended as a global DNS resolver
+
 ## Installation
 
 1. Download the installer from the releases section, then: `chmod +x snx-rs-*-linux-x86_64.run`
@@ -58,14 +63,6 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 * SSL tunnel via Linux TUN device (deprecated)
 * Store a password factor in the OS keychain using Secret Service API
 * Localization support, see i18n/assets directory for a list of supported locales
-
-## System Requirements
-
-* A recent Linux distribution with kernel version 4.19 or higher
-* systemd-resolved is recommended as a global DNS resolver
-* iproute2 (the `ip` command)
-* D-Bus
-* GTK4 for the GUI frontend
 
 ## DNS Resolver Configuration and Privacy
 
