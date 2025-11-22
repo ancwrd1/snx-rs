@@ -68,7 +68,7 @@ impl OtpListener {
         let tcp = self.tcp;
         let (sender, mut receiver) = mpsc::channel(1);
 
-        tokio::spawn(async move {
+        let fut = async move {
             let (stream, _) = tcp.accept().await?;
             http1::Builder::new()
                 .timer(TokioTimer::new())
@@ -76,10 +76,10 @@ impl OtpListener {
                 .await?;
 
             Ok::<_, anyhow::Error>(())
-        });
+        };
 
-        match tokio::time::timeout(OTP_TIMEOUT, receiver.recv()).await {
-            Ok(Some(otp)) => Ok(otp),
+        match tokio::time::timeout(OTP_TIMEOUT, futures::future::join(fut, receiver.recv())).await {
+            Ok((_, Some(otp))) => Ok(otp),
             _ => Err(anyhow!(tr!("error-otp-browser-failed"))),
         }
     }
