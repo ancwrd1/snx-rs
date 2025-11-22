@@ -1,3 +1,7 @@
+## v4.9.1 (2025-11-22)
+- Fixed several UI issues with the connection profiles.
+- Fixed a regression where the cancellation of pending browser SSO did not work correctly.
+
 ## v4.9.0 (2025-11-12)
 - Added support for multiple connection profiles in the UI.
 - Disable DNSoverTLS for the tunnel interface.
