@@ -10,7 +10,10 @@ use i18n::tr;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{ConnectionStatus, params::TunnelParams},
+    model::{
+        ConnectionStatus,
+        params::{DEFAULT_PROFILE_UUID, TunnelParams},
+    },
     platform::{Platform, PlatformAccess, SingleInstance},
     prompt::SecurePrompt,
 };
@@ -136,9 +139,14 @@ async fn main() -> anyhow::Result<()> {
                         let sender = tray_command_sender.clone();
                         let (tx, rx) = mpsc::channel(16);
                         cancel_sender = Some(tx);
-                        let profiles = TunnelParams::load_all();
-                        if let Some(params) = profiles.into_iter().find(|p| p.profile_id == uuid) {
-                            tokio::spawn(async move { do_connect(sender, Arc::new(params), rx).await });
+
+                        if uuid != DEFAULT_PROFILE_UUID {
+                            let profiles = TunnelParams::load_all();
+                            if let Some(params) = profiles.into_iter().find(|p| p.profile_id == uuid) {
+                                tokio::spawn(async move { do_connect(sender, Arc::new(params), rx).await });
+                            }
+                        } else {
+                            tokio::spawn(async move { do_connect(sender, params, rx).await });
                         }
                     }
                     TrayEvent::Disconnect => {
