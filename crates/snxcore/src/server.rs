@@ -266,7 +266,7 @@ impl ServerHandler {
         }
 
         if let Some(connector) = self.state.connector.lock().await.as_mut() {
-            connector.delete_session().await;
+            let _ = connector.delete_session().await;
             let _ = connector.terminate_tunnel(true).await;
         }
         self.state.reset().await;

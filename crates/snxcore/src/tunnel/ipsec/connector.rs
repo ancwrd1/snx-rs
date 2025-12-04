@@ -1,6 +1,5 @@
 use std::{
     net::{IpAddr, Ipv4Addr, ToSocketAddrs},
-    path::{Path, PathBuf},
     sync::Arc,
     time::{Duration, SystemTime},
 };
@@ -44,7 +43,16 @@ const ESP_LIFETIME_LEEWAY: Duration = Duration::from_secs(60);
 const ADDRESS_LIFETIME_LEEWAY: Duration = Duration::from_secs(300);
 const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 
-const SESSIONS_PATH: &str = "/var/cache/snx-rs/sessions";
+const SESSIONS_PATH: &str = "/var/cache/snx-rs/ike-sessions.db";
+
+const SQL_SCHEMA: &str = "
+CREATE TABLE IF NOT EXISTS ike_session(
+    id integer not null primary key,
+    profile_uuid text not null,
+    server_name text not null,
+    data blob not null,
+    timestamp text not null)
+";
 
 fn get_challenge_attribute_type(payload: &AttributesPayload) -> ConfigAttributeType {
     payload
@@ -472,10 +480,6 @@ impl IpsecTunnelConnector {
             .unwrap_or(true))
     }
 
-    fn session_file_name(&self) -> PathBuf {
-        Path::new(SESSIONS_PATH).join(&self.params.server_name)
-    }
-
     fn save_ike_session(&mut self) -> anyhow::Result<()> {
         let office_mode = OfficeMode {
             ccc_session: self.ccc_session.clone(),
@@ -487,24 +491,42 @@ impl IpsecTunnelConnector {
         };
 
         let data = self.service.session().save(&office_mode)?;
-        let dir = Path::new(SESSIONS_PATH);
+        let mut conn = self.new_session_db_connection()?;
+        let trans = conn.transaction()?;
+        trans.execute(
+            "DELETE FROM ike_session WHERE profile_uuid = ?1 AND server_name = ?2",
+            rusqlite::params![self.params.profile_id, &self.params.server_name],
+        )?;
+        trans.execute(
+            "INSERT INTO ike_session (profile_uuid, server_name, data, timestamp) VALUES (?1, ?2, ?3, current_timestamp)",
+            rusqlite::params![self.params.profile_id, &self.params.server_name, data],
+        )?;
+        trans.commit()?;
 
-        std::fs::create_dir_all(dir)?;
-
-        let filename = self.session_file_name();
-        std::fs::write(&filename, &data)?;
-
-        debug!("Saved IKE session to: {}", filename.display());
+        debug!(
+            "Saved IKE session: {}: {}",
+            self.params.server_name, self.params.profile_id
+        );
 
         Ok(())
     }
 
+    fn new_session_db_connection(&self) -> anyhow::Result<rusqlite::Connection> {
+        let conn = rusqlite::Connection::open(SESSIONS_PATH)?;
+        conn.execute(SQL_SCHEMA, rusqlite::params![])?;
+        Ok(conn)
+    }
+
     fn load_ike_session(&mut self) -> anyhow::Result<OfficeMode> {
-        let filename = self.session_file_name();
-        let data = std::fs::read(&filename)?;
+        let conn = self.new_session_db_connection()?;
+        let data = conn.query_row_and_then(
+            "SELECT data FROM ike_session WHERE profile_uuid = ?1 AND server_name = ?2",
+            rusqlite::params![self.params.profile_id, &self.params.server_name],
+            |row| row.get::<_, Vec<u8>>(0),
+        )?;
         let office_mode = self.service.session().load(&data)?;
 
-        debug!("Loaded IKE session from: {}: {:?}", filename.display(), office_mode);
+        debug!("Loaded IKE session from: {}: {:?}", SESSIONS_PATH, office_mode);
 
         if !office_mode.ccc_session.is_empty() {
             Ok(office_mode)
@@ -660,15 +682,24 @@ impl TunnelConnector for IpsecTunnelConnector {
         }
     }
 
-    async fn delete_session(&mut self) {
-        let _ = std::fs::remove_file(self.session_file_name());
+    async fn delete_session(&mut self) -> anyhow::Result<()> {
+        let conn = self.new_session_db_connection()?;
+        conn.execute(
+            "DELETE FROM ike_session WHERE profile_uuid = ?1 AND server_name = ?2",
+            rusqlite::params![self.params.profile_id, &self.params.server_name],
+        )?;
+        debug!(
+            "Deleted IKE session: {}: {}",
+            self.params.server_name, self.params.profile_id
+        );
+        Ok(())
     }
 
     async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         match self.do_restore_session().await {
             Ok(result) => Ok(result),
             Err(e) => {
-                self.delete_session().await;
+                let _ = self.delete_session().await;
                 self.service = Self::new_service(&self.params).await?;
                 Err(e)
             }
@@ -705,7 +736,7 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         if let Err(ref e) = result {
             warn!("Create tunnel failed: {}", e);
-            self.delete_session().await;
+            let _ = self.delete_session().await;
         }
 
         result
