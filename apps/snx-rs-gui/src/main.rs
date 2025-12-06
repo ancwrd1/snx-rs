@@ -37,7 +37,7 @@ mod status;
 mod theme;
 mod tray;
 
-const PING_DURATION: Duration = Duration::from_secs(2);
+const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 thread_local! {
     static WINDOWS: RefCell<HashMap<String, Window>> = RefCell::new(HashMap::new());
@@ -264,7 +264,7 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
             }
         }
 
-        tokio::time::sleep(PING_DURATION).await;
+        tokio::time::sleep(POLL_INTERVAL).await;
     }
 }
 
