@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use gtk4::{
     Align, Dialog, Orientation, ResponseType, gio,
     glib::{self, clone},
@@ -13,7 +11,8 @@ use snxcore::{
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    get_window, main_window, profiles::ConnectionProfilesStore, prompt::GtkPrompt, set_window, tr, tray::TrayEvent,
+    POLL_INTERVAL, get_window, main_window, profiles::ConnectionProfilesStore, prompt::GtkPrompt, set_window, tr,
+    tray::TrayEvent,
 };
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
@@ -230,7 +229,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>) {
                 }
             }
             tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(2)) => {}
+                _ = tokio::time::sleep(POLL_INTERVAL) => {}
                 _ = &mut stop_rx => break,
             }
         }

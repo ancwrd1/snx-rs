@@ -37,7 +37,7 @@ mod status;
 mod theme;
 mod tray;
 
-const POLL_INTERVAL: Duration = Duration::from_secs(1);
+pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 thread_local! {
     static WINDOWS: RefCell<HashMap<String, Window>> = RefCell::new(HashMap::new());
