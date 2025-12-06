@@ -770,7 +770,7 @@ impl SettingsDialog {
         params.auto_connect = self.widgets.auto_connect.is_active();
 
         let mut default_params = (*ConnectionProfilesStore::instance().get_default()).clone();
-        default_params.icon_theme = params.icon_theme.clone();
+        default_params.icon_theme = params.icon_theme;
         default_params.locale = params.locale.clone();
         default_params.auto_connect = params.auto_connect;
 
