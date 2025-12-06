@@ -10,10 +10,7 @@ use i18n::tr;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{
-        ConnectionStatus,
-        params::{DEFAULT_PROFILE_UUID, TunnelParams},
-    },
+    model::{ConnectionStatus, params::TunnelParams},
     platform::{Platform, PlatformAccess, SingleInstance},
     prompt::SecurePrompt,
 };
@@ -22,6 +19,7 @@ use tracing::{level_filters::LevelFilter, warn};
 
 use crate::{
     params::CmdlineParams,
+    profiles::ConnectionProfilesStore,
     prompt::GtkPrompt,
     status::show_status_dialog,
     theme::init_theme_monitoring,
@@ -32,6 +30,7 @@ mod assets;
 mod dbus;
 mod ipc;
 mod params;
+mod profiles;
 mod prompt;
 mod settings;
 mod status;
@@ -77,11 +76,11 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let tunnel_params = Arc::new(TunnelParams::load(cmdline_params.config_file()).unwrap_or_default());
+    let default_params = TunnelParams::load(TunnelParams::default_config_path()).unwrap_or_default();
 
-    init_logging(&tunnel_params);
+    init_logging(&default_params);
 
-    if let Some(locale) = tunnel_params.locale.as_ref().and_then(|v| v.parse().ok()) {
+    if let Some(locale) = default_params.locale.as_ref().and_then(|v| v.parse().ok()) {
         i18n::set_locale(Some(locale));
     }
 
@@ -91,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
     let instance = platform.new_single_instance(format!("/tmp/snx-rs-gui-{uid}.lock"))?;
     if !instance.is_single() {
         if let Some(mut command) = cmdline_params.command {
-            if matches!(command, TrayEvent::Connect(_)) && tunnel_params.server_name.is_empty() {
+            if matches!(command, TrayEvent::Connect(_)) && default_params.server_name.is_empty() {
                 command = TrayEvent::Settings;
             }
             if let Err(e) = ipc::send_event(command).await {
@@ -109,7 +108,7 @@ async fn main() -> anyhow::Result<()> {
         warn!("Failed to start IPC listener: {}", e);
     }
 
-    let mut my_tray = tray::AppTray::new(&cmdline_params, tray_event_sender.clone()).await?;
+    let mut my_tray = tray::AppTray::new(tray_event_sender.clone()).await?;
 
     let tray_command_sender = my_tray.sender();
 
@@ -117,13 +116,11 @@ async fn main() -> anyhow::Result<()> {
 
     let tray_command_sender2 = tray_command_sender.clone();
     let tray_event_sender2 = tray_event_sender.clone();
-    let cmdline_params2 = cmdline_params.clone();
 
-    tokio::spawn(async move { status_poll(tray_command_sender2, tray_event_sender2, cmdline_params2).await });
+    tokio::spawn(async move { status_poll(tray_command_sender2, tray_event_sender2).await });
 
     let app = Application::builder().application_id("com.github.snx-rs").build();
 
-    let config_file = cmdline_params.config_file();
     let tray_event_sender2 = tray_event_sender.clone();
 
     glib::spawn_future_local(clone!(
@@ -133,30 +130,28 @@ async fn main() -> anyhow::Result<()> {
             let mut cancel_sender = None;
 
             while let Some(v) = tray_event_receiver.recv().await {
-                let params = Arc::new(TunnelParams::load(&config_file).unwrap_or_default());
                 match v {
                     TrayEvent::Connect(uuid) => {
                         let sender = tray_command_sender.clone();
                         let (tx, rx) = mpsc::channel(16);
                         cancel_sender = Some(tx);
 
-                        if uuid != DEFAULT_PROFILE_UUID {
-                            let profiles = TunnelParams::load_all();
-                            if let Some(params) = profiles.into_iter().find(|p| p.profile_id == uuid) {
-                                tokio::spawn(async move { do_connect(sender, Arc::new(params), rx).await });
-                            }
-                        } else {
-                            tokio::spawn(async move { do_connect(sender, params, rx).await });
+                        if let Some(profile) = ConnectionProfilesStore::instance().get(uuid) {
+                            ConnectionProfilesStore::instance().set_connected(uuid);
+                            tokio::spawn(async move { do_connect(sender, profile, rx).await });
                         }
                     }
                     TrayEvent::Disconnect => {
                         let sender = tray_command_sender.clone();
                         let cancel_sender = cancel_sender.take();
+                        let params = ConnectionProfilesStore::instance().get_connected();
                         tokio::spawn(async move { do_disconnect(sender, params, cancel_sender).await });
                     }
-                    TrayEvent::Settings => {
-                        settings::start_settings_dialog(main_window(), tray_command_sender.clone(), params)
-                    }
+                    TrayEvent::Settings => settings::start_settings_dialog(
+                        main_window(),
+                        tray_command_sender.clone(),
+                        ConnectionProfilesStore::instance().get_connected().profile_id,
+                    ),
                     TrayEvent::Exit => {
                         let _ = tray_command_sender.send(TrayCommand::Exit).await;
                         app.quit();
@@ -164,7 +159,7 @@ async fn main() -> anyhow::Result<()> {
                     TrayEvent::About => do_about(),
 
                     TrayEvent::Status => {
-                        do_status(tray_event_sender2.clone(), params.clone());
+                        do_status(tray_event_sender2.clone());
                     }
                 }
             }
@@ -188,7 +183,8 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(mut command) = cmdline_params.command {
         tokio::spawn(async move {
-            if matches!(command, TrayEvent::Connect(_)) && tunnel_params.server_name.is_empty() {
+            let params = ConnectionProfilesStore::instance().get_default();
+            if matches!(command, TrayEvent::Connect(_)) && params.server_name.is_empty() {
                 command = TrayEvent::Settings;
             }
 
@@ -229,9 +225,9 @@ fn do_about() {
     });
 }
 
-fn do_status(sender: mpsc::Sender<TrayEvent>, params: Arc<TunnelParams>) {
+fn do_status(sender: mpsc::Sender<TrayEvent>) {
     glib::idle_add_once(move || {
-        glib::spawn_future_local(async move { show_status_dialog(sender, params).await });
+        glib::spawn_future_local(async move { show_status_dialog(sender).await });
     });
 }
 
@@ -243,20 +239,15 @@ fn init_logging(params: &TunnelParams) {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 }
 
-async fn status_poll(
-    command_sender: mpsc::Sender<TrayCommand>,
-    event_sender: mpsc::Sender<TrayEvent>,
-    params: CmdlineParams,
-) {
+async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mpsc::Sender<TrayEvent>) {
     let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
 
     let mut first_run = true;
     let mut old_status = String::new();
 
     loop {
-        let tunnel_params = Arc::new(TunnelParams::load(params.config_file()).unwrap_or_default());
-
-        let status = controller.command(ServiceCommand::Status, tunnel_params.clone()).await;
+        let params = ConnectionProfilesStore::instance().get_connected();
+        let status = controller.command(ServiceCommand::Status, params.clone()).await;
         let status_str = format!("{status:?}");
 
         if status_str != old_status {
@@ -267,8 +258,8 @@ async fn status_poll(
 
             if first_run {
                 first_run = false;
-                if tunnel_params.auto_connect && is_disconnected {
-                    let _ = event_sender.send(TrayEvent::Connect(tunnel_params.profile_id)).await;
+                if params.auto_connect && is_disconnected {
+                    let _ = event_sender.send(TrayEvent::Connect(params.profile_id)).await;
                 }
             }
         }

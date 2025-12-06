@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 
 use anyhow::anyhow;
 use ksni::{
@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     assets,
-    params::CmdlineParams,
+    profiles::ConnectionProfilesStore,
     theme::{SystemColorTheme, system_color_theme},
 };
 
@@ -72,12 +72,11 @@ pub struct AppTray {
     command_sender: Sender<TrayCommand>,
     command_receiver: Option<Receiver<TrayCommand>>,
     status: Arc<anyhow::Result<ConnectionStatus>>,
-    config_file: PathBuf,
     tray_icon: Handle<KsniTray>,
 }
 
 impl AppTray {
-    pub async fn new(params: &CmdlineParams, event_sender: Sender<TrayEvent>) -> anyhow::Result<Self> {
+    pub async fn new(event_sender: Sender<TrayEvent>) -> anyhow::Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel(16);
 
         let tray_icon = KsniTray::new(event_sender);
@@ -87,7 +86,6 @@ impl AppTray {
             command_sender: tx,
             command_receiver: Some(rx),
             status: Arc::new(Err(anyhow!(crate::tr!("error-no-service-connection")))),
-            config_file: params.config_file().clone(),
             tray_icon: handle,
         };
 
@@ -108,7 +106,7 @@ impl AppTray {
     }
 
     fn icon_theme(&self) -> &'static assets::IconTheme {
-        let tunnel_params = TunnelParams::load(&self.config_file).unwrap_or_default();
+        let tunnel_params = TunnelParams::load(TunnelParams::default_config_path()).unwrap_or_default();
 
         let system_theme = match tunnel_params.icon_theme {
             IconTheme::AutoDetect => system_color_theme().ok().unwrap_or_default(),
@@ -258,7 +256,7 @@ impl ksni::Tray for KsniTray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
-        let profiles = TunnelParams::load_all();
+        let profiles = ConnectionProfilesStore::instance().all();
         let connect_item = if profiles.len() < 2 {
             MenuItem::Standard(StandardItem {
                 label: crate::tr!("tray-menu-connect").to_string(),

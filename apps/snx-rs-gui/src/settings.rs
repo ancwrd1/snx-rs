@@ -1,4 +1,4 @@
-use std::{cell::RefCell, net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
+use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
     Align, ButtonsType, Dialog, DialogFlags, MessageType, Orientation, ResponseType, Widget, Window,
@@ -12,7 +12,7 @@ use snxcore::{
         proto::LoginOption,
     },
     server_info,
-    util::{ipv4net_to_string, parse_ipv4_or_subnet},
+    util::parse_ipv4_or_subnet,
 };
 use tokio::sync::mpsc::Sender;
 use tracing::warn;
@@ -30,14 +30,12 @@ fn set_container_visible(widget: &Widget, flag: bool) {
     }
 }
 
-use crate::{get_window, set_window, tr, tray::TrayCommand};
+use crate::{get_window, profiles::ConnectionProfilesStore, set_window, tr, tray::TrayCommand};
 
 struct SettingsDialog {
-    params: Arc<TunnelParams>,
     dialog: Dialog,
     widgets: Rc<MyWidgets>,
     revealers: Vec<gtk4::Revealer>,
-    profiles: Rc<RefCell<Vec<TunnelParams>>>,
 }
 
 struct MyWidgets {
@@ -82,8 +80,6 @@ struct MyWidgets {
     profile_new: gtk4::Button,
     profile_rename: gtk4::Button,
     profile_delete: gtk4::Button,
-    profiles: Rc<RefCell<Vec<TunnelParams>>>,
-    params: Arc<TunnelParams>,
 }
 
 impl MyWidgets {
@@ -162,7 +158,7 @@ impl MyWidgets {
         self.server_name.set_text(&params.server_name);
 
         self.auth_type.set_active_id(Some(&params.login_type));
-        self.tunnel_type.set_active_id(Some(&params.tunnel_type.to_string()));
+        self.tunnel_type.set_active_id(Some(params.tunnel_type.as_str()));
         self.username.set_text(&params.user_name);
         self.password.set_text(&params.password);
         self.password_factor.set_text(&params.password_factor.to_string());
@@ -229,14 +225,12 @@ impl MyWidgets {
     }
 
     fn on_profile_changed(&self) {
-        if let Some(id) = self.profile_select.active_id() {
-            let borrow = self.profiles.borrow();
-            let params = borrow.iter().find(|p| p.profile_id.to_string() == id);
-            if let Some(params) = params {
-                self.update_from_params(params);
-            }
-            self.profile_delete
-                .set_sensitive(id != DEFAULT_PROFILE_UUID.to_string());
+        if let Some(id) = self.profile_select.active_id()
+            && let Ok(uuid) = id.parse::<Uuid>()
+            && let Some(params) = ConnectionProfilesStore::instance().get(uuid)
+        {
+            self.update_from_params(&params);
+            self.profile_delete.set_sensitive(uuid != DEFAULT_PROFILE_UUID);
         }
     }
 
@@ -249,15 +243,11 @@ impl MyWidgets {
             tr!("profile-delete-prompt"),
         );
         msg.set_title(Some(&tr!("label-confirmation")));
-        if msg.run_future().await == ResponseType::Yes {
-            {
-                let mut borrow = self.profiles.borrow_mut();
-                let id = self.profile_select.active_id().unwrap_or_default();
-                if let Some(params) = borrow.iter_mut().find(|p| p.profile_id.to_string() == id) {
-                    let _ = std::fs::remove_file(&params.config_file);
-                }
-                *borrow = SettingsDialog::load_profiles(self.params.clone());
-            }
+        if msg.run_future().await == ResponseType::Yes
+            && let Some(id) = self.profile_select.active_id()
+            && let Ok(uuid) = id.parse::<Uuid>()
+        {
+            ConnectionProfilesStore::instance().remove(uuid);
             self.profile_select.remove(self.profile_select.active().unwrap() as _);
             self.profile_select.set_active(Some(0));
         }
@@ -268,16 +258,15 @@ impl MyWidgets {
         let name = show_entry_dialog(parent, &tr!("profile-new-title"), &tr!("label-profile-name"), "").await;
         if let Some(name) = name {
             let profile_id = Uuid::new_v4();
-            let params = TunnelParams {
+            let params = Arc::new(TunnelParams {
                 profile_name: name.clone(),
                 profile_id,
                 config_file: TunnelParams::default_config_dir().join(format!("{}.conf", profile_id)),
                 ..Default::default()
-            };
-            let _ = params.save();
+            });
+            ConnectionProfilesStore::instance().save(params.clone());
             self.profile_select.append(Some(&profile_id.to_string()), &name);
             self.profile_select.set_active_id(Some(&profile_id.to_string()));
-            *self.profiles.borrow_mut() = SettingsDialog::load_profiles(self.params.clone());
             self.update_from_params(&params);
         }
     }
@@ -293,28 +282,28 @@ impl MyWidgets {
         if let Some(name) = name
             && let Some(id) = self.profile_select.active_id()
             && let Some(active) = self.profile_select.active()
+            && let Ok(uuid) = id.parse::<Uuid>()
         {
             self.profile_select.remove(active as _);
             self.profile_select.insert(active as _, Some(&id), &name);
             self.profile_select.set_active_id(Some(&id));
 
-            if let Some(profile) = self
-                .profiles
-                .borrow_mut()
-                .iter_mut()
-                .find(|p| p.profile_id.to_string() == id)
-            {
-                profile.profile_name = name;
-                let _ = profile.save();
+            if let Some(profile) = ConnectionProfilesStore::instance().get(uuid) {
+                let new_profile = Arc::new(TunnelParams {
+                    profile_name: name,
+                    ..(*profile).clone()
+                });
+                ConnectionProfilesStore::instance().save(new_profile);
             }
         }
     }
 
     fn on_fetch_info(self: Rc<MyWidgets>, dialog: Dialog) {
         let params = if let Some(id) = self.profile_select.active_id()
-            && let Some(params) = self.profiles.borrow().iter().find(|p| p.profile_id.to_string() == id)
+            && let Ok(uuid) = id.parse::<Uuid>()
+            && let Some(params) = ConnectionProfilesStore::instance().get(uuid)
         {
-            params.clone()
+            params
         } else {
             return;
         };
@@ -329,7 +318,7 @@ impl MyWidgets {
             let new_params = TunnelParams {
                 server_name: self.server_name.text().into(),
                 ignore_server_cert: self.no_cert_check.is_active(),
-                ..params
+                ..(*params).clone()
             };
 
             let (tx, rx) = async_channel::bounded(1);
@@ -386,7 +375,7 @@ impl MyWidgets {
 }
 
 impl SettingsDialog {
-    pub fn new<W: IsA<Window>>(parent: W, params: Arc<TunnelParams>) -> Self {
+    pub fn new<W: IsA<Window>>(parent: W, profile_id: Uuid) -> Self {
         let dialog = Dialog::builder()
             .title(tr!("dialog-title"))
             .transient_for(&parent)
@@ -407,7 +396,7 @@ impl SettingsDialog {
         button_box.append(&apply_button);
         button_box.append(&cancel_button);
 
-        let server_name = gtk4::Entry::builder().text(&params.server_name).hexpand(true).build();
+        let server_name = gtk4::Entry::builder().hexpand(true).build();
 
         let fetch_info = gtk4::Button::builder()
             .label(tr!("button-fetch-info"))
@@ -416,159 +405,61 @@ impl SettingsDialog {
         let auth_type = gtk4::ComboBoxText::builder().build();
         let tunnel_type = gtk4::ComboBoxText::builder().build();
         let username = gtk4::Entry::builder()
-            .text(&params.user_name)
             .placeholder_text(std::env::var("USER").unwrap_or_default())
             .build();
-        let password = gtk4::Entry::builder().text(&params.password).visibility(false).build();
-        let password_factor = gtk4::Entry::builder().text(params.password_factor.to_string()).build();
+        let password = gtk4::Entry::builder().visibility(false).build();
+        let password_factor = gtk4::Entry::builder().build();
 
-        let no_dns = gtk4::Switch::builder()
-            .active(params.no_dns)
-            .halign(Align::Start)
-            .build();
-        let set_routing_domains = gtk4::Switch::builder()
-            .active(params.set_routing_domains)
-            .halign(Align::Start)
-            .build();
+        let no_dns = gtk4::Switch::builder().halign(Align::Start).build();
+        let set_routing_domains = gtk4::Switch::builder().halign(Align::Start).build();
 
         let search_domains = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-domains"))
-            .text(params.search_domains.join(","))
             .build();
 
         let ignored_domains = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-domains"))
-            .text(params.ignore_search_domains.join(","))
             .build();
 
         let dns_servers = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-ip-addresses"))
-            .text(
-                params
-                    .dns_servers
-                    .iter()
-                    .map(|r| r.to_string())
-                    .collect::<Vec<_>>()
-                    .join(","),
-            )
             .build();
 
         let ignored_dns_servers = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-ip-addresses"))
-            .text(
-                params
-                    .ignore_dns_servers
-                    .iter()
-                    .map(|r| r.to_string())
-                    .collect::<Vec<_>>()
-                    .join(","),
-            )
             .build();
 
-        let no_routing = gtk4::Switch::builder()
-            .active(params.no_routing)
-            .halign(Align::Start)
-            .build();
-        let default_routing = gtk4::Switch::builder()
-            .active(params.default_route)
-            .halign(Align::Start)
-            .build();
+        let no_routing = gtk4::Switch::builder().halign(Align::Start).build();
+        let default_routing = gtk4::Switch::builder().halign(Align::Start).build();
 
         let add_routes = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-routes"))
-            .text(
-                params
-                    .add_routes
-                    .iter()
-                    .map(|r| ipv4net_to_string(*r))
-                    .collect::<Vec<_>>()
-                    .join(","),
-            )
             .build();
 
         let ignored_routes = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-routes"))
-            .text(
-                params
-                    .ignore_routes
-                    .iter()
-                    .map(|r| ipv4net_to_string(*r))
-                    .collect::<Vec<_>>()
-                    .join(","),
-            )
             .build();
 
-        let no_keychain = gtk4::Switch::builder()
-            .active(params.no_keychain)
-            .halign(Align::Start)
-            .build();
-        let no_cert_check = gtk4::Switch::builder()
-            .active(params.ignore_server_cert)
-            .halign(Align::Start)
-            .build();
+        let no_keychain = gtk4::Switch::builder().halign(Align::Start).build();
+        let no_cert_check = gtk4::Switch::builder().halign(Align::Start).build();
         let cert_type = gtk4::ComboBoxText::builder().build();
-        let cert_path = gtk4::Entry::builder()
-            .text(
-                params
-                    .cert_path
-                    .as_deref()
-                    .map(|p| format!("{}", p.display()))
-                    .unwrap_or_default(),
-            )
-            .build();
-        let cert_password = gtk4::Entry::builder()
-            .text(params.cert_password.as_deref().unwrap_or_default())
-            .visibility(false)
-            .build();
-        let cert_id = gtk4::Entry::builder()
-            .text(params.cert_id.as_deref().unwrap_or_default())
-            .build();
+        let cert_path = gtk4::Entry::builder().build();
+        let cert_password = gtk4::Entry::builder().visibility(false).build();
+        let cert_id = gtk4::Entry::builder().build();
         let ca_cert = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-certs"))
-            .text(
-                params
-                    .ca_cert
-                    .iter()
-                    .map(|p| format!("{}", p.display()))
-                    .collect::<Vec<_>>()
-                    .join(","),
-            )
             .build();
-        let ike_lifetime = gtk4::Entry::builder()
-            .text(params.ike_lifetime.as_secs().to_string())
-            .build();
-        let ike_persist = gtk4::Switch::builder()
-            .active(params.ike_persist)
-            .halign(Align::Start)
-            .build();
-        let no_keepalive = gtk4::Switch::builder()
-            .active(params.no_keepalive)
-            .halign(Align::Start)
-            .build();
-        let port_knock = gtk4::Switch::builder()
-            .active(params.port_knock)
-            .halign(Align::Start)
-            .build();
+        let ike_lifetime = gtk4::Entry::builder().build();
+        let ike_persist = gtk4::Switch::builder().halign(Align::Start).build();
+        let no_keepalive = gtk4::Switch::builder().halign(Align::Start).build();
+        let port_knock = gtk4::Switch::builder().halign(Align::Start).build();
         let icon_theme = gtk4::ComboBoxText::builder().build();
         let locale = gtk4::ComboBoxText::builder().build();
-        let auto_connect = gtk4::Switch::builder()
-            .active(params.auto_connect)
-            .halign(Align::Start)
-            .build();
-        let ip_lease_time = gtk4::Entry::builder()
-            .text(
-                params
-                    .ip_lease_time
-                    .map(|v| v.as_secs().to_string())
-                    .unwrap_or_default(),
-            )
-            .build();
-        let disable_ipv6 = gtk4::Switch::builder()
-            .active(params.disable_ipv6)
-            .halign(Align::Start)
-            .build();
+        let auto_connect = gtk4::Switch::builder().halign(Align::Start).build();
+        let ip_lease_time = gtk4::Entry::builder().build();
+        let disable_ipv6 = gtk4::Switch::builder().halign(Align::Start).build();
 
-        let mtu = gtk4::Entry::builder().text(params.mtu.to_string()).build();
+        let mtu = gtk4::Entry::builder().build();
         let transport_type = gtk4::ComboBoxText::builder().build();
 
         let profile_select = gtk4::ComboBoxText::builder().build();
@@ -579,8 +470,6 @@ impl SettingsDialog {
         let error = gtk4::Label::new(None);
         error.set_visible(false);
         error.style_context().add_class("error");
-
-        let profiles = Rc::new(RefCell::new(Self::load_profiles(params.clone())));
 
         let widgets = Rc::new(MyWidgets {
             server_name,
@@ -624,8 +513,6 @@ impl SettingsDialog {
             profile_new,
             profile_rename,
             profile_delete,
-            profiles: profiles.clone(),
-            params: params.clone(),
         });
 
         apply_button.connect_clicked(clone!(
@@ -743,14 +630,17 @@ impl SettingsDialog {
         ));
 
         let mut result = Self {
-            params,
             dialog,
             widgets,
             revealers: vec![],
-            profiles,
         };
 
         result.create_layout();
+
+        result
+            .widgets
+            .profile_select
+            .set_active_id(Some(&profile_id.to_string()));
 
         result
     }
@@ -764,11 +654,11 @@ impl SettingsDialog {
     }
 
     pub fn save(&mut self) -> anyhow::Result<()> {
-        let mut borrow = self.profiles.borrow_mut();
-        let params = if let Some(id) = self.widgets.profile_select.active_id()
-            && let Some(params) = borrow.iter_mut().find(|p| p.profile_id.to_string() == id)
+        let mut params = if let Some(id) = self.widgets.profile_select.active_id()
+            && let Ok(uuid) = id.parse::<Uuid>()
+            && let Some(params) = ConnectionProfilesStore::instance().get(uuid)
         {
-            params
+            (*params).clone()
         } else {
             anyhow::bail!("No profile selected");
         };
@@ -879,13 +769,15 @@ impl SettingsDialog {
         params.locale = new_locale.clone();
         params.auto_connect = self.widgets.auto_connect.is_active();
 
+        let mut default_params = (*ConnectionProfilesStore::instance().get_default()).clone();
+        default_params.icon_theme = params.icon_theme.clone();
+        default_params.locale = params.locale.clone();
+        default_params.auto_connect = params.auto_connect;
+
+        ConnectionProfilesStore::instance().save(Arc::new(params));
+        ConnectionProfilesStore::instance().save(Arc::new(default_params));
+
         i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
-
-        params.save()?;
-
-        if params.profile_id == self.params.profile_id {
-            self.params = Arc::new(params.clone());
-        }
 
         Ok(())
     }
@@ -929,13 +821,6 @@ impl SettingsDialog {
         self.widgets
             .tunnel_type
             .append(Some(TunnelType::Ssl.as_str()), &tr!("tunnel-type-ssl"));
-        self.widgets
-            .tunnel_type
-            .set_active(if self.params.tunnel_type == TunnelType::Ipsec {
-                Some(0)
-            } else {
-                Some(1)
-            });
         tunnel_box.append(&self.widgets.tunnel_type);
         tunnel_box
     }
@@ -954,7 +839,6 @@ impl SettingsDialog {
         self.widgets
             .cert_type
             .append(Some(&CertType::Pkcs11.to_string()), &tr!("cert-type-hw"));
-        self.widgets.cert_type.set_active(Some(self.params.cert_type.as_u32()));
         cert_type_box.append(&self.widgets.cert_type);
         cert_type_box
     }
@@ -970,9 +854,9 @@ impl SettingsDialog {
         self.widgets
             .icon_theme
             .append(Some(&IconTheme::Light.to_string()), &tr!("icon-theme-light"));
-        self.widgets
-            .icon_theme
-            .set_active(Some(self.params.icon_theme.as_u32()));
+        self.widgets.icon_theme.set_active(Some(
+            ConnectionProfilesStore::instance().get_default().icon_theme.as_u32(),
+        ));
         icon_theme_box.append(&self.widgets.icon_theme);
         icon_theme_box
     }
@@ -992,9 +876,6 @@ impl SettingsDialog {
         self.widgets
             .transport_type
             .append(Some(&TransportType::Tcpt.to_string()), &tr!("transport-type-tcpt"));
-        self.widgets
-            .transport_type
-            .set_active(Some(self.params.transport_type.as_u32()));
         transport_type_box.append(&self.widgets.transport_type);
         transport_type_box
     }
@@ -1010,7 +891,7 @@ impl SettingsDialog {
             );
         }
 
-        if let Some(ref locale) = self.params.locale {
+        if let Some(ref locale) = ConnectionProfilesStore::instance().get_default().locale {
             let translated = i18n::translate(&format!("language-{locale}"));
             self.select_combo_box_item(&self.widgets.locale, &translated);
         } else {
@@ -1156,6 +1037,9 @@ impl SettingsDialog {
 
         let auto_connect = self.form_box(&tr!("label-auto-connect"));
         auto_connect.append(&self.widgets.auto_connect);
+        self.widgets
+            .auto_connect
+            .set_active(ConnectionProfilesStore::instance().get_default().auto_connect);
         ui_box.append(&auto_connect);
 
         ui_box
@@ -1333,12 +1217,11 @@ impl SettingsDialog {
     fn profile_box(&self) -> gtk4::Box {
         let profile_box = self.form_box(&tr!("label-connection-profile"));
 
-        for profile in &*self.profiles.borrow() {
+        for profile in ConnectionProfilesStore::instance().all() {
             self.widgets
                 .profile_select
                 .append(Some(&profile.profile_id.to_string()), &profile.profile_name);
         }
-        self.widgets.profile_select.set_active(Some(0));
 
         self.widgets.profile_select.set_hexpand(true);
         let button_box = gtk4::Box::builder()
@@ -1422,14 +1305,6 @@ impl SettingsDialog {
             }
         }
     }
-
-    fn load_profiles(params: Arc<TunnelParams>) -> Vec<TunnelParams> {
-        let mut result = TunnelParams::load_all();
-        if result.is_empty() {
-            result.push((*params).clone());
-        }
-        result
-    }
 }
 
 impl Drop for SettingsDialog {
@@ -1438,13 +1313,13 @@ impl Drop for SettingsDialog {
     }
 }
 
-pub fn start_settings_dialog<W: IsA<Window>>(parent: W, sender: Sender<TrayCommand>, params: Arc<TunnelParams>) {
+pub fn start_settings_dialog<W: IsA<Window>>(parent: W, sender: Sender<TrayCommand>, profile_id: Uuid) {
     if let Some(window) = get_window("settings") {
         window.present();
         return;
     }
 
-    let mut dialog = SettingsDialog::new(parent, params.clone());
+    let mut dialog = SettingsDialog::new(parent, profile_id);
     let sender = sender.clone();
     glib::spawn_future_local(async move {
         loop {

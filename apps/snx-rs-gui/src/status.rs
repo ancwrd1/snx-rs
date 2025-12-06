@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use gtk4::{
     Align, Dialog, Orientation, ResponseType, gio,
@@ -8,14 +8,13 @@ use gtk4::{
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::{
-        ConnectionInfo, ConnectionStatus,
-        params::{DEFAULT_PROFILE_UUID, TunnelParams},
-    },
+    model::{ConnectionInfo, ConnectionStatus, params::DEFAULT_PROFILE_UUID},
 };
 use tokio::sync::mpsc::Sender;
 
-use crate::{get_window, main_window, prompt::GtkPrompt, set_window, tr, tray::TrayEvent};
+use crate::{
+    get_window, main_window, profiles::ConnectionProfilesStore, prompt::GtkPrompt, set_window, tr, tray::TrayEvent,
+};
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
     let form = gtk4::Box::builder()
@@ -51,7 +50,7 @@ fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
     }
 }
 
-pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelParams>) {
+pub async fn show_status_dialog(sender: Sender<TrayEvent>) {
     if let Some(dialog) = get_window("status") {
         dialog.present();
         return;
@@ -72,12 +71,11 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
 
     let copy = gtk4::Button::builder().label(tr!("status-button-copy")).build();
 
-    let params2 = params.clone();
     copy.connect_clicked(move |_| {
-        let params2 = params2.clone();
         tokio::spawn(async move {
             let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
-            let status = controller.command(ServiceCommand::Status, params2.clone()).await;
+            let params = ConnectionProfilesStore::instance().get_connected();
+            let status = controller.command(ServiceCommand::Status, params).await;
             let info = get_info(&status);
             let text = &info.to_values().into_iter().fold(String::new(), |mut acc, (k, v)| {
                 acc.push_str(&format!("{}: {}\n", i18n::translate(k), v));
@@ -105,7 +103,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         .halign(Align::End)
         .build();
 
-    let profiles = TunnelParams::load_all();
+    let profiles = ConnectionProfilesStore::instance().all();
 
     let connect = if profiles.len() < 2 {
         let sender2 = sender.clone();
@@ -222,7 +220,8 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, params: Arc<TunnelPar
         let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
         let mut old_status = String::new();
         loop {
-            let new_status = controller.command(ServiceCommand::Status, params.clone()).await;
+            let params = ConnectionProfilesStore::instance().get_connected();
+            let new_status = controller.command(ServiceCommand::Status, params).await;
             let status_str = format!("{new_status:?}");
             if old_status != status_str {
                 old_status = status_str;
