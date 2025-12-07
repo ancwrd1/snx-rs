@@ -769,13 +769,15 @@ impl SettingsDialog {
         params.locale = new_locale.clone();
         params.auto_connect = self.widgets.auto_connect.is_active();
 
-        let mut default_params = (*ConnectionProfilesStore::instance().get_default()).clone();
-        default_params.icon_theme = params.icon_theme;
-        default_params.locale = params.locale.clone();
-        default_params.auto_connect = params.auto_connect;
+        if params.profile_id != DEFAULT_PROFILE_UUID {
+            let mut default_params = (*ConnectionProfilesStore::instance().get_default()).clone();
+            default_params.icon_theme = params.icon_theme;
+            default_params.locale = params.locale.clone();
+            default_params.auto_connect = params.auto_connect;
+            ConnectionProfilesStore::instance().save(Arc::new(default_params));
+        }
 
         ConnectionProfilesStore::instance().save(Arc::new(params));
-        ConnectionProfilesStore::instance().save(Arc::new(default_params));
 
         i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
 
