@@ -344,6 +344,7 @@ impl MyWidgets {
                         if options_list.is_empty() {
                             options_list.push(LoginOption::unspecified());
                         }
+                        #[cfg(feature = "mobile-access")]
                         options_list.push(LoginOption::mobile_access());
                         for (i, option) in options_list.into_iter().filter(|opt| opt.show_realm != 0).enumerate() {
                             let factors = option
