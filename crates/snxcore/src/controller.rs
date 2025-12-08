@@ -192,6 +192,22 @@ where
                     }
                 }
             }
+            MfaType::MobileAccess => {
+                let (tx, rx) = tokio::sync::oneshot::channel();
+                self.otp_cancel_sender = Some(tx);
+
+                let fut = self.browser_controller.acquire_access_cookie(&mfa.prompt);
+
+                tokio::select! {
+                    _ = rx => {
+                        Err(anyhow!(tr!("error-connection-cancelled")))
+                    }
+                    result = fut => {
+                        self.browser_controller.close();
+                        result.inspect_err(|e| warn!("{}", e))
+                    }
+                }
+            }
             MfaType::UserNameInput => {
                 let mut prompt = PromptInfo::new(tr!("label-username-required"), &mfa.prompt);
                 prompt.default_entry = if params.user_name.is_empty() {

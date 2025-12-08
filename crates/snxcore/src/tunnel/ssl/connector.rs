@@ -11,7 +11,7 @@ use crate::{
     model::{
         MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TunnelParams},
-        proto::AuthResponse,
+        proto::{AuthResponse, LoginOption},
     },
     server_info,
     tunnel::{TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel, ssl::SslTunnel},
@@ -87,6 +87,18 @@ impl TunnelConnector for CccTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         debug!("Authenticating to endpoint: {}", self.params.server_name);
 
+        if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
+            return Ok(Arc::new(VpnSession {
+                ccc_session_id: String::new(),
+                ipsec_session: None,
+                state: SessionState::PendingChallenge(MfaChallenge {
+                    mfa_type: MfaType::MobileAccess,
+                    prompt: format!("https://{}/sslvpn", self.params.server_name),
+                }),
+                username: None,
+            }));
+        }
+
         let option = server_info::get_login_option(&self.params).await?;
         let is_saml = option.is_some_and(|o| o.factors.values().any(|f| f.factor_type == "identity_provider"));
 
@@ -122,6 +134,15 @@ impl TunnelConnector for CccTunnelConnector {
             "Authenticating with challenge code to endpoint: {}",
             self.params.server_name
         );
+
+        if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
+            return Ok(Arc::new(VpnSession {
+                ccc_session_id: String::new(),
+                ipsec_session: None,
+                state: SessionState::Authenticated(user_input.to_owned()),
+                username: None,
+            }));
+        }
 
         let data = if session.ccc_session_id.is_empty() {
             let params = Arc::new(TunnelParams {

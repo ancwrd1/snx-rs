@@ -33,3 +33,4 @@ bytes = "1"
 async-channel = "2"
 itertools = "0.14"
 uuid = { version = "1.18.1", features = ["v4"] }
+webkit6 = "0.5"

@@ -303,6 +303,8 @@ pub struct LoginOption {
 }
 
 impl LoginOption {
+    pub const MOBILE_ACCESS_ID: &'static str = "ma";
+
     pub fn unspecified() -> Self {
         Self {
             id: "vpn_Username_Password".to_string(),
@@ -319,8 +321,28 @@ impl LoginOption {
         }
     }
 
+    pub fn mobile_access() -> Self {
+        Self {
+            id: Self::MOBILE_ACCESS_ID.to_string(),
+            secondary_realm_hash: String::new(),
+            display_name: i18n::tr!("label-mobile-access"),
+            show_realm: 1,
+            factors: BTreeMap::from([(
+                "1".to_owned(),
+                LoginFactor {
+                    factor_type: "mobile_access".to_owned(),
+                    custom_display_labels: LoginDisplayLabelSelect::Empty(String::new()),
+                },
+            )]),
+        }
+    }
+
     pub fn is_multi_factor(&self) -> bool {
         self.factors.values().any(|v| v.factor_type != "certificate")
+    }
+
+    pub fn is_mobile_access(&self) -> bool {
+        self.id == "ma"
     }
 }
 

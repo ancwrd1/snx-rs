@@ -8,7 +8,6 @@ use gtk4::{
 };
 use i18n::tr;
 use snxcore::{
-    browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionStatus, params::TunnelParams},
     platform::{Platform, PlatformAccess, SingleInstance},
@@ -24,6 +23,7 @@ use crate::{
     status::show_status_dialog,
     theme::init_theme_monitoring,
     tray::{TrayCommand, TrayEvent},
+    webkit::WebKitBrowser,
 };
 
 mod assets;
@@ -36,6 +36,7 @@ mod settings;
 mod status;
 mod theme;
 mod tray;
+mod webkit;
 
 pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -240,7 +241,10 @@ fn init_logging(params: &TunnelParams) {
 }
 
 async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mpsc::Sender<TrayEvent>) {
-    let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
+    let mut controller = ServiceController::new(
+        GtkPrompt,
+        WebKitBrowser::new(ConnectionProfilesStore::instance().get_connected()),
+    );
 
     let mut first_run = true;
     let mut old_status = String::new();
@@ -273,7 +277,7 @@ async fn do_disconnect(
     params: Arc<TunnelParams>,
     cancel_sender: Option<mpsc::Sender<()>>,
 ) {
-    let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
+    let mut controller = ServiceController::new(GtkPrompt, WebKitBrowser::new(params.clone()));
     let status = controller.command(ServiceCommand::Disconnect, params).await;
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
     if let Some(cancel_sender) = cancel_sender {
@@ -288,7 +292,7 @@ async fn do_connect(
 ) {
     let _ = sender.send(TrayCommand::Update(None)).await;
 
-    let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
+    let mut controller = ServiceController::new(GtkPrompt, WebKitBrowser::new(params.clone()));
 
     let mut status = tokio::select! {
         _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-cancelled"))),

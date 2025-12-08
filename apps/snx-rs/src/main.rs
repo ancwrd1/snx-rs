@@ -186,6 +186,13 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 let otp = OtpListener::new().await?.acquire_otp().await?;
                 session = connector.challenge_code(session, &otp).await?;
             }
+            MfaType::MobileAccess => {
+                println!("{}", tr!("cli-mobile-access-auth"));
+
+                let prompt = PromptInfo::new(challenge.prompt, tr!("label-password"));
+                let input = TtyPrompt.get_secure_input(prompt).await?;
+                session = connector.challenge_code(session, &input).await?;
+            }
             MfaType::UserNameInput => {
                 let prompt = PromptInfo::new(tr!("label-username-required"), &challenge.prompt);
                 let input = TtyPrompt.get_plain_input(prompt).await?;
