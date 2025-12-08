@@ -8,6 +8,7 @@ use tokio::sync::mpsc;
 use crate::{
     model::{
         params::{TunnelParams, TunnelType},
+        proto::LoginOption,
         *,
     },
     tunnel::{ipsec::connector::IpsecTunnelConnector, ssl::connector::CccTunnelConnector},
@@ -58,7 +59,9 @@ pub trait TunnelConnector {
 
 pub async fn new_tunnel_connector(params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
     match params.tunnel_type {
-        TunnelType::Ssl => Ok(Box::new(CccTunnelConnector::new(params).await?)),
-        TunnelType::Ipsec => Ok(Box::new(IpsecTunnelConnector::new(params).await?)),
+        TunnelType::Ipsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
+            Ok(Box::new(IpsecTunnelConnector::new(params).await?))
+        }
+        _ => Ok(Box::new(CccTunnelConnector::new(params).await?)),
     }
 }

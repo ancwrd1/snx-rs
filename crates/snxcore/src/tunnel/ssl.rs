@@ -25,7 +25,7 @@ use crate::{
     ccc::CccHttpClient,
     model::{
         ConnectionInfo, VpnSession,
-        params::{TransportType, TunnelParams},
+        params::{TransportType, TunnelParams, TunnelType},
         proto::{ClientHelloData, HelloReply, HelloReplyData, OfficeMode, OptionalRequest},
     },
     platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
@@ -404,7 +404,7 @@ impl VpnTunnel for SslTunnel {
             server_name: self.params.server_name.clone(),
             username: self.session.username.clone().unwrap_or_default(),
             login_type: self.params.login_type.clone(),
-            tunnel_type: self.params.tunnel_type,
+            tunnel_type: TunnelType::Ssl,
             transport_type: TransportType::Tcpt,
             ip_address: Ipv4Net::with_netmask(ip_address, netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)))?,
             dns_servers: resolver_config.dns_servers,

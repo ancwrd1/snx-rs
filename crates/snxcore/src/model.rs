@@ -80,6 +80,7 @@ pub enum MfaType {
     PasswordInput,
     IdentityProvider,
     UserNameInput,
+    MobileAccess,
 }
 
 impl MfaType {

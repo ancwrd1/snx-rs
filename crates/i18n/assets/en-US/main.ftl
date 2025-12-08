@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Connection profile
 label-profile-name = Profile name
 label-confirmation = Please confirm
+label-mobile-access = Mobile Access
 
 # Tabs and expanders
 tab-general = General
@@ -68,6 +69,7 @@ error-unknown-event = Unknown event: {$event}
 error-no-service-connection = No connection to service
 error-empty-input = Input cannot be empty
 error-invalid-response = Invalid response!
+error-cannot-acquire-access-cookie = Cannot acquire access cookie!
 
 # New error messages
 error-invalid-object = Invalid object
@@ -192,6 +194,7 @@ cli-tunnel-connected = Tunnel connected, press Ctrl-C to exit.
 cli-tunnel-disconnected = Tunnel disconnected
 cli-another-instance-running = Another instance of snx-rs is already running
 cli-app-terminated = Application terminated due to a signal
+cli-mobile-access-auth = For mobile access authentication, login using the following URL, then find a user password in the hex form in the page HTML source and enter it here:
 
 # Connection Messages
 connection-connected-to = Connected to {$server}

@@ -214,12 +214,13 @@ impl MyWidgets {
             if let Some(factors) = factors {
                 let is_saml = factors.iter().any(|f| f == "identity_provider");
                 let is_cert = factors.iter().any(|f| f == "certificate");
-                set_container_visible(self.username.as_ref(), !is_saml && !is_cert);
+                let is_mobile_access = factors.iter().any(|f| f == "mobile_access");
+                set_container_visible(self.username.as_ref(), !is_saml && !is_cert && !is_mobile_access);
                 set_container_visible(self.cert_path.as_ref(), is_cert);
                 if !is_cert {
                     self.cert_type.set_active(Some(0));
                 }
-                self.tunnel_type.set_sensitive(true);
+                self.tunnel_type.set_sensitive(!is_mobile_access);
             }
         }
     }
@@ -338,12 +339,13 @@ impl MyWidgets {
                         self.error.set_visible(false);
                         let mut options_list = server_info
                             .login_options_data
-                            .map(|d| d.login_options_list)
+                            .map(|d| d.login_options_list.into_values().collect::<Vec<_>>())
                             .unwrap_or_default();
                         if options_list.is_empty() {
-                            options_list.insert(String::new(), LoginOption::unspecified());
+                            options_list.push(LoginOption::unspecified());
                         }
-                        for (i, option) in options_list.into_values().filter(|opt| opt.show_realm != 0).enumerate() {
+                        options_list.push(LoginOption::mobile_access());
+                        for (i, option) in options_list.into_iter().filter(|opt| opt.show_realm != 0).enumerate() {
                             let factors = option
                                 .factors
                                 .values()
