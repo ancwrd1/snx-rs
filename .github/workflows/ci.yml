@@ -23,9 +23,9 @@ jobs:
       - name: Formatting checks
         run: cargo fmt --check
       - name: Clippy checks
-        run: cargo clippy --target ${{ matrix.target }} --workspace
+        run: cargo clippy --target ${{ matrix.target }} --workspace --features mobile-access
       - name: Tests
-        run: cargo test --target ${{ matrix.target }} --workspace
+        run: cargo test --target ${{ matrix.target }} --workspace --features mobile-access
 
     strategy:
       fail-fast: false
