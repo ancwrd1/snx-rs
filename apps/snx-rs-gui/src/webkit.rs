@@ -13,6 +13,12 @@ const COOKIE_TIMEOUT: Duration = Duration::from_secs(120);
 
 const JS_COOKIE_SCRIPT: &str = r#"
 (function() {
+  try {
+    SNXParams.prototype.FetchFromServer();
+    const cookie = SNXParams.prototype.getPassword();
+    if (cookie != undefined && cookie != "") return cookie;
+  } catch (e) {}
+
   const regex = /Extender\.password\s*=\s*"([^"]+)"/;
 
   const scripts = document.querySelectorAll("script:not([src])");
