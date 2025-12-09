@@ -7,7 +7,7 @@ use snxcore::{
     browser::{BrowserController, SystemBrowser},
     model::params::TunnelParams,
 };
-use webkit6::{LoadEvent, NetworkSession, WebView, prelude::*};
+use webkit6::{LoadEvent, NetworkSession, TLSErrorsPolicy, WebView, prelude::*};
 
 const COOKIE_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -63,12 +63,12 @@ impl BrowserController for WebKitBrowser {
                 .build();
 
             let session = NetworkSession::new_ephemeral();
+            if params.ignore_server_cert {
+                session.set_tls_errors_policy(TLSErrorsPolicy::Ignore);
+            }
             let webview = WebView::builder().network_session(&session).build();
             webview.load_uri(&url);
             window.set_child(Some(&webview));
-
-            let settings = WebViewExt::settings(&webview).unwrap();
-            settings.set_disable_web_security(params.ignore_server_cert);
 
             window.present();
 
