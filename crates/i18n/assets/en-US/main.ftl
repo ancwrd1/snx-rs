@@ -70,8 +70,6 @@ error-no-service-connection = No connection to service
 error-empty-input = Input cannot be empty
 error-invalid-response = Invalid response!
 error-cannot-acquire-access-cookie = Cannot acquire access cookie!
-
-# New error messages
 error-invalid-object = Invalid object
 error-no-connector = No tunnel connector
 error-tunnel-disconnected = Tunnel disconnected, last message: {$message}
