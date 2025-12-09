@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use anyhow::Context;
 use gtk4::{ApplicationWindow, glib, glib::clone, prelude::*};
 use i18n::tr;
 use snxcore::{
@@ -104,8 +103,9 @@ impl BrowserController for WebKitBrowser {
             glib::ControlFlow::Break
         });
 
-        Ok(tokio::time::timeout(COOKIE_TIMEOUT, rx.recv())
-            .await?
-            .context(tr!("error-cannot-acquire-access-cookie"))?)
+        match tokio::time::timeout(COOKIE_TIMEOUT, rx.recv()).await {
+            Ok(Some(cookie)) => Ok(cookie),
+            _ => anyhow::bail!(tr!("error-cannot-acquire-access-cookie")),
+        }
     }
 }
