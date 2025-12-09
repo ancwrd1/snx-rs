@@ -57,7 +57,7 @@ impl BrowserController for WebKitBrowser {
         glib::idle_add(move || {
             let window = ApplicationWindow::builder()
                 .title("Mobile Access")
-                .width_request(700)
+                .width_request(720)
                 .height_request(500)
                 .build();
 
