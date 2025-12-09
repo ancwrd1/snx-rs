@@ -7,7 +7,7 @@ use snxcore::{
     browser::{BrowserController, SystemBrowser},
     model::params::TunnelParams,
 };
-use webkit6::{LoadEvent, WebView, prelude::*};
+use webkit6::{LoadEvent, NetworkSession, WebView, prelude::*};
 
 const COOKIE_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -62,7 +62,8 @@ impl BrowserController for WebKitBrowser {
                 .height_request(500)
                 .build();
 
-            let webview = WebView::new();
+            let session = NetworkSession::new_ephemeral();
+            let webview = WebView::builder().network_session(&session).build();
             webview.load_uri(&url);
             window.set_child(Some(&webview));
 
