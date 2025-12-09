@@ -130,7 +130,7 @@ placeholder-certs = Comma-separated PEM or DER files
 
 # Tunnel types
 tunnel-type-ipsec = IPSec
-tunnel-type-ssl = SSL (deprecated)
+tunnel-type-ssl = SSL
 
 # Certificate types
 cert-type-none = None

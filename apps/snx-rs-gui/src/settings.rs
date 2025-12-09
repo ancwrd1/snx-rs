@@ -221,6 +221,7 @@ impl MyWidgets {
                     self.cert_type.set_active(Some(0));
                 }
                 self.tunnel_type.set_sensitive(!is_mobile_access);
+                self.tunnel_type.set_active(Some(is_mobile_access as _));
             }
         }
     }
