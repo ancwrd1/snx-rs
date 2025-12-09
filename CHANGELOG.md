@@ -1,3 +1,9 @@
+## v5.0.0 (TBD)
+- Added Mobile Access authentication support using the embedded WebKit browser. Requires a libwebkitgtk-6.0 package and a cargo feature flag `mobile-access`.
+- Various bugfixes and improvements for connection profiles and the UI.
+- GUI app no longer accepts a command line parameter with a configuration file.
+- Use SQLite database for storing the IKE sessions.
+
 ## v4.9.1 (2025-11-22)
 - Fixed several UI issues with the connection profiles.
 - Fixed a regression where the cancellation of pending browser SSO did not work correctly.
