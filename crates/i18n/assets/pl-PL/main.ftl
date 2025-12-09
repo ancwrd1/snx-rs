@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Profil połączenia
 label-profile-name = Nazwa profilu
 label-confirmation = Proszę potwierdzić
+label-mobile-access = Dostęp mobilny
 
 # Tabs and expanders
 tab-general = Ogólne
@@ -75,6 +76,7 @@ error-auth-failed = Uwierzytelnianie nie powiodło się
 error-no-login-type = Brak wymaganego parametru: login-type
 error-connection-timeout = Przekroczenie czasu połączenia
 error-invalid-response = Nieprawidłowa odpowiedź
+error-cannot-acquire-access-cookie = Nie można uzyskać ciasteczka dostępu!
 error-cannot-send-request = Nie można wysłać żądania do usługi
 error-cannot-read-reply = Nie można odczytać odpowiedzi z usługi
 error-no-ipv4 = Brak adresu IPv4 dla {$server}
@@ -190,6 +192,7 @@ cli-tunnel-connected = Tunel połączony, naciśnij Ctrl+C aby zakończyć.
 cli-tunnel-disconnected = Tunel rozłączony
 cli-another-instance-running = Inna instancja snx-rs jest już uruchomiona
 cli-app-terminated = Aplikacja zakończona przez sygnał
+cli-mobile-access-auth = Aby uwierzytelnić dostęp mobilny, zaloguj się przy użyciu poniższego adresu URL, następnie znajdź hasło użytkownika w formie hex w źródle HTML strony i wprowadź je tutaj:
 
 # Connection Messages
 connection-connected-to = Połączono z {$server}

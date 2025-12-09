@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Verbindungsprofil
 label-profile-name = Profilname
 label-confirmation = Bitte bestätigen
+label-mobile-access = Mobiler Zugriff
 
 # Tabs and expanders
 tab-general = Allgemein
@@ -75,6 +76,7 @@ error-auth-failed = Authentifizierung fehlgeschlagen
 error-no-login-type = Erforderlicher Parameter fehlt: login-type
 error-connection-timeout = Verbindungszeitüberschreitung
 error-invalid-response = Ungültige Antwort!
+error-cannot-acquire-access-cookie = Zugriffscookie kann nicht abgerufen werden!
 error-cannot-send-request = Anfrage kann nicht an den Dienst gesendet werden
 error-cannot-read-reply = Antwort vom Dienst kann nicht gelesen werden
 error-no-ipv4 = Keine IPv4-Adresse für {$server}
@@ -190,6 +192,7 @@ cli-tunnel-connected = Tunnel verbunden, drücken Sie Strg+C zum Beenden.
 cli-tunnel-disconnected = Tunnel getrennt
 cli-another-instance-running = Eine andere Instanz von snx-rs läuft bereits
 cli-app-terminated = Anwendung durch Signal beendet
+cli-mobile-access-auth = Für die Authentifizierung des mobilen Zugriffs melden Sie sich über die folgende URL an, suchen Sie anschließend ein Benutzerpasswort in hexadezimaler Form im HTML-Quelltext der Seite und geben Sie es hier ein:
 
 # Connection Messages
 connection-connected-to = Verbunden mit {$server}

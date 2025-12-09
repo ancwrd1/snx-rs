@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Verbindingsprofiel
 label-profile-name = Profielnaam
 label-confirmation = Bevestig alstublieft
+label-mobile-access = Mobiele toegang
 
 # Tabs and expanders
 tab-general = Algemeen
@@ -75,6 +76,7 @@ error-auth-failed = Authenticatie mislukt
 error-no-login-type = Verplichte parameter ontbreekt: login-type
 error-connection-timeout = Verbindingstimeout
 error-invalid-response = Ongeldige reactie!
+error-cannot-acquire-access-cookie = Toegangscookie kan niet worden verkregen!
 error-request-failed-error-code = Verzoek mislukt, foutcode: {$error_code}
 error-no-root-privileges = Dit programma moet als root-gebruiker worden uitgevoerd!
 error-missing-required-parameters = Verplichte parameters ontbreken: servernaam en/of toegangstype!
@@ -190,6 +192,7 @@ cli-tunnel-connected = Tunnel verbonden, druk op Ctrl+C om af te sluiten.
 cli-tunnel-disconnected = Tunnel verbroken
 cli-another-instance-running = Er draait al een andere instantie van snx-rs
 cli-app-terminated = Applicatie beëindigd door signaal
+cli-mobile-access-auth = Voor mobiele toegangsauthenticatie: log in via de volgende URL, zoek vervolgens een gebruikerswachtwoord in hexvorm in de HTML-broncode van de pagina en voer het hier in:
 
 # Connection Messages
 connection-connected-to = Verbonden met {$server}

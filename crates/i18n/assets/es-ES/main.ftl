@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Perfil de conexión
 label-profile-name = Nombre del perfil
 label-confirmation = Por favor confirme
+label-mobile-access = Acceso móvil
 
 # Tabs and expanders
 tab-general = General
@@ -68,6 +69,7 @@ error-unknown-event = Evento desconocido: {$event}
 error-no-service-connection = No hay conexión al servicio
 error-empty-input = La entrada no puede estar vacía
 error-invalid-response = ¡Respuesta inválida!
+error-cannot-acquire-access-cookie = ¡No se puede obtener la cookie de acceso!
 error-invalid-object = Objeto inválido
 error-no-connector = No hay conector de túnel
 error-tunnel-disconnected = Túnel desconectado, último mensaje: {$message}
@@ -190,6 +192,7 @@ cli-tunnel-connected = Túnel conectado, presione Ctrl+C para salir.
 cli-tunnel-disconnected = Túnel desconectado
 cli-another-instance-running = Ya hay otra instancia de snx-rs en ejecución
 cli-app-terminated = Aplicación terminada por señal
+cli-mobile-access-auth = Para la autenticación de acceso móvil, inicie sesión usando la siguiente URL, luego busque una contraseña de usuario en formato hexadecimal en el código fuente HTML de la página e introdúzcala aquí:
 
 # Connection Messages
 connection-connected-to = Conectado a {$server}

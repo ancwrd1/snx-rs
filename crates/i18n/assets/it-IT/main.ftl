@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Profilo di connessione
 label-profile-name = Nome profilo
 label-confirmation = Si prega di confermare
+label-mobile-access = Accesso mobile
 
 # Tabs and expanders
 tab-general = Generale
@@ -75,6 +76,7 @@ error-auth-failed = Autenticazione fallita
 error-no-login-type = Parametro obbligatorio mancante: login-type
 error-connection-timeout = Timeout della connessione
 error-invalid-response = Risposta non valida!
+error-cannot-acquire-access-cookie = Impossibile ottenere il cookie di accesso!
 error-request-failed-error-code = Richiesta fallita, codice di errore: {$error_code}
 error-no-root-privileges = Questo programma deve essere eseguito come utente root!
 error-missing-required-parameters = Parametri obbligatori mancanti: nome server e/o tipo di accesso!
@@ -190,6 +192,7 @@ cli-tunnel-connected = Tunnel connesso, premi Ctrl+C per uscire.
 cli-tunnel-disconnected = Tunnel disconnesso
 cli-another-instance-running = Un'altra istanza di snx-rs è già in esecuzione
 cli-app-terminated = Applicazione terminata da un segnale
+cli-mobile-access-auth = Per l’autenticazione dell’accesso mobile, accedi tramite il seguente URL, poi trova una password utente in formato esadecimale nel codice sorgente HTML della pagina e inseriscila qui:
 
 # Connection Messages
 connection-connected-to = Connesso a {$server}

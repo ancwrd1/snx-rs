@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Profil pripojenia
 label-profile-name = Názov profilu
 label-confirmation = Prosím potvrďte
+label-mobile-access = Mobilný prístup
 
 # Tabs and expanders
 tab-general = Všeobecné
@@ -75,6 +76,7 @@ error-auth-failed = Overenie zlyhalo
 error-no-login-type = Chýba povinný parameter: login-type
 error-connection-timeout = Časový limit pripojenia
 error-invalid-response = Neplatná odpoveď
+error-cannot-acquire-access-cookie = Nemožno získať prístupový cookie!
 error-cannot-send-request = Nie je možné odoslať požiadavku na službu
 error-cannot-read-reply = Nie je možné prečítať odpoveď zo služby
 error-no-ipv4 = Žiadna IPv4 adresa pre {$server}
@@ -190,6 +192,7 @@ cli-tunnel-connected = Tunel pripojený, stlačte Ctrl+C pre ukončenie.
 cli-tunnel-disconnected = Tunel odpojený
 cli-another-instance-running = Iná inštancia snx-rs už beží
 cli-app-terminated = Aplikácia ukončená signálom
+cli-mobile-access-auth = Na overenie mobilného prístupu sa prihláste pomocou nasledujúcej URL adresy, potom nájdite používateľské heslo v hexadecimálnom tvare v HTML zdrojovom kóde stránky a zadajte ho sem:
 
 # Connection Messages
 connection-connected-to = Pripojené k {$server}

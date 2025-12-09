@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Yhteysprofiili
 label-profile-name = Profiilin nimi
 label-confirmation = Vahvista
+label-mobile-access = Mobiilikäyttö
 
 # Tabs and expanders
 tab-general = Yleiset
@@ -68,6 +69,7 @@ error-unknown-event = Tuntematon tapahtuma: {$event}
 error-no-service-connection = Ei yhteyttä palveluun
 error-empty-input = Syöte ei voi olla tyhjä
 error-invalid-response = Virheellinen vastaus!
+error-cannot-acquire-access-cookie = Käyttöevästeen hankkiminen epäonnistui!
 error-invalid-object = Virheellinen objekti
 error-no-connector = Ei tunneliyhteyttä
 error-tunnel-disconnected = Tunneli katkaistu, viimeisin viesti: {$message}
@@ -190,6 +192,7 @@ cli-tunnel-connected = Tunneli yhdistetty, paina Ctrl+C lopettaaksesi.
 cli-tunnel-disconnected = Tunneli katkaistu
 cli-another-instance-running = Toinen snx-rs-esiintymä on jo käynnissä
 cli-app-terminated = Sovellus päättyi signaalin vuoksi
+cli-mobile-access-auth = Mobiilikäyttöön kirjautumista varten kirjaudu sisään seuraavan URL-osoitteen kautta, etsi sivun HTML-lähdekoodista heksamuotoinen käyttäjän salasana ja syötä se tähän:
 
 # Connection Messages
 connection-connected-to = Yhdistetty palvelimeen {$server}

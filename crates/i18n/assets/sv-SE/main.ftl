@@ -45,6 +45,7 @@ label-mtu = MTU
 label-connection-profile = Anslutningsprofil
 label-profile-name = Profilnamn
 label-confirmation = Vänligen bekräfta
+label-mobile-access = Mobilåtkomst
 
 # Tabs and expanders
 tab-general = Allmänt
@@ -75,6 +76,7 @@ error-auth-failed = Autentisering misslyckades
 error-no-login-type = Saknad obligatorisk parameter: login-type
 error-connection-timeout = Anslutningstimeout
 error-invalid-response = Ogiltigt svar!
+error-cannot-acquire-access-cookie = Kan inte hämta åtkomstcookie!
 error-cannot-send-request = Kan inte skicka förfrågan till tjänsten
 error-cannot-read-reply = Kan inte läsa svar från tjänsten
 error-no-ipv4 = Ingen IPv4-adress för {$server}
@@ -190,6 +192,7 @@ cli-tunnel-connected = Tunnel ansluten, tryck Ctrl+C för att avsluta.
 cli-tunnel-disconnected = Tunnel frånkopplad
 cli-another-instance-running = En annan instans av snx-rs körs redan
 cli-app-terminated = Applikation avslutad av signal
+cli-mobile-access-auth = För autentisering av mobil åtkomst, logga in via följande URL, leta sedan upp ett användarlösenord i hex-format i sidans HTML-källkod och skriv in det här:
 
 # Connection Messages
 connection-connected-to = Ansluten till {$server}
