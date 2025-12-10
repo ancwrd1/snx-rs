@@ -55,12 +55,18 @@ jobs:
       - name: Build project
         run: |
           chmod +x package/build-lto.sh
-          ./package/build-lto.sh
+          ./package/build-lto.sh --features=vendored-openssl
 
       - name: Package project
         run: |
           chmod +x package/package.sh
           ./package/package.sh
+
+      - name: Build project with mobile-access feature
+        run: ./package/build-lto.sh --features=vendored-openssl,mobile-access
+
+      - name: Package project with mobile-access feature
+        run: ./package/package.sh -webkit
 
       - name: Create Release
         if: ${{ !startsWith(github.ref_name, 'test-') }}
@@ -74,6 +80,8 @@ jobs:
             const releaseNotes = process.env.release_notes;
             const artifactPath = `target/snx-rs-${tagName}-linux-x86_64.tar.xz`;
             const installerPath = `target/snx-rs-${tagName}-linux-x86_64.run`;
+            const artifactPathMA = `target/snx-rs-${tagName}-webkit-linux-x86_64.tar.xz`;
+            const installerPathMA = `target/snx-rs-${tagName}-webkit-linux-x86_64.run`;
 
             const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
@@ -100,5 +108,23 @@ jobs:
               repo: context.repo.repo,
               release_id: release.data.id,
               name: `snx-rs-${tagName}-linux-x86_64.run`,
+              data: installer
+            });
+
+            const artifact = fs.readFileSync(artifactPathMA);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: `snx-rs-${tagName}-webkit-linux-x86_64.tar.xz`,
+              data: artifact
+            });
+
+            const installer = fs.readFileSync(installerPathMA);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: `snx-rs-${tagName}-webkit-linux-x86_64.run`,
               data: installer
             });

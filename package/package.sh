@@ -1,5 +1,6 @@
 #!/bin/bash
 
+suffix="$1"
 basedir="$(dirname $(readlink -f $0))/.."
 target="$basedir/target"
 version="$(git -C "$basedir" describe)"
@@ -8,7 +9,7 @@ apps="snx-rs snxctl snx-rs-gui"
 assets="snx-rs.service snx-rs-gui.desktop install.sh"
 
 for arch in $arches; do
-    name="snx-rs-$version-linux-$arch"
+    name="snx-rs-${version}${suffix}-linux-$arch"
     triple="$arch-unknown-linux-gnu"
 
     if [ ! -f "$target/$triple/lto/snx-rs" ]; then
@@ -33,5 +34,5 @@ for arch in $arches; do
     cd "$target"
     tar c "$name" | xz -9 > "$name.tar.xz"
 
-    makeself --quiet --tar-quietly --xz --needroot --sha256 "$name" "$name.run" "SNX-RS VPN Client for Linux" ./install.sh
+    makeself --quiet --tar-quietly --xz --needroot --sha256 "$name" "$name.run" "SNX-RS VPN Client version $version" ./install.sh
 done
