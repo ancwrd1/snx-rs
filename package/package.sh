@@ -4,7 +4,7 @@ suffix="$1"
 basedir="$(dirname $(readlink -f $0))/.."
 target="$basedir/target"
 version="$(git -C "$basedir" describe)"
-arches="x86_64 aarch64"
+arches="x86_64"
 apps="snx-rs snxctl snx-rs-gui"
 assets="snx-rs.service snx-rs-gui.desktop install.sh"
 
