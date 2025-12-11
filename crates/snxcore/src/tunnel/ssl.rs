@@ -9,7 +9,7 @@ use std::{
 
 use anyhow::{Context, anyhow};
 use chrono::Local;
-use codec::{SslPacketCodec, SslPacketType};
+use codec::{SlimPacketType, SlimProtocolCodec};
 use futures::{
     SinkExt, StreamExt, TryStreamExt,
     channel::mpsc::{self, Receiver, Sender},
@@ -43,14 +43,14 @@ const REAUTH_LEEWAY: Duration = Duration::from_secs(60);
 const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 const CHANNEL_SIZE: usize = 1024;
 
-pub type PacketSender = Sender<SslPacketType>;
-pub type PacketReceiver = Receiver<SslPacketType>;
+pub type PacketSender = Sender<SlimPacketType>;
+pub type PacketReceiver = Receiver<SlimPacketType>;
 
 fn make_channel<S>(stream: S) -> (PacketSender, PacketReceiver)
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let framed = tokio_util::codec::Framed::new(stream, SslPacketCodec);
+    let framed = tokio_util::codec::Framed::new(stream, SlimProtocolCodec);
 
     let (tx_in, rx_in) = mpsc::channel(CHANNEL_SIZE);
     let (tx_out, rx_out) = mpsc::channel(CHANNEL_SIZE);
@@ -157,7 +157,7 @@ impl SslTunnel {
         let reply = receiver.next().await.context("Channel closed!")?;
 
         let reply = match reply {
-            SslPacketType::Control(expr) => {
+            SlimPacketType::Control(expr) => {
                 trace!("Hello reply: {:?}", expr);
                 if matches!(&expr, SExpression::Object(Some(name), _) if name == "disconnect") {
                     anyhow::bail!(tr!("error-tunnel-disconnected", message = expr));
@@ -176,7 +176,7 @@ impl SslTunnel {
 
     async fn send<P>(&mut self, packet: P) -> anyhow::Result<()>
     where
-        P: Into<SslPacketType>,
+        P: Into<SlimPacketType>,
     {
         tokio::time::timeout(SEND_TIMEOUT, self.sender.send(packet.into())).await??;
 
@@ -373,7 +373,7 @@ impl VpnTunnel for SslTunnel {
         let fut = async move {
             while let Some(item) = snx_receiver.next().await {
                 match item {
-                    SslPacketType::Control(expr) => {
+                    SlimPacketType::Control(expr) => {
                         debug!("Control packet received");
                         match expr {
                             SExpression::Object(Some(name), _) if name == "keepalive" => {
@@ -383,7 +383,7 @@ impl VpnTunnel for SslTunnel {
                             _ => {}
                         }
                     }
-                    SslPacketType::Data(data) => {
+                    SlimPacketType::Data(data) => {
                         tun_sender.send(data).await?;
                         keepalive_counter.store(0, Ordering::SeqCst);
                     }

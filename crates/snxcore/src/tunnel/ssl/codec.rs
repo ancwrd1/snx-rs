@@ -15,57 +15,57 @@ use crate::{
 const PKT_CONTROL: u32 = 1;
 const PKT_DATA: u32 = 2;
 
-pub enum SslPacketType {
+pub enum SlimPacketType {
     Control(SExpression),
     Data(Vec<u8>),
 }
 
-impl fmt::Debug for SslPacketType {
+impl fmt::Debug for SlimPacketType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SslPacketType::Control(expr) => write!(f, "CONTROL: {}", expr.object_name().unwrap_or("???")),
-            SslPacketType::Data(data) => write!(f, "DATA: {} bytes", data.len()),
+            SlimPacketType::Control(expr) => write!(f, "CONTROL: {}", expr.object_name().unwrap_or("???")),
+            SlimPacketType::Data(data) => write!(f, "DATA: {} bytes", data.len()),
         }
     }
 }
 
-impl SslPacketType {
+impl SlimPacketType {
     pub fn control<T>(data: T) -> Self
     where
         T: Serialize + Default,
     {
-        SslPacketType::Control(data.into())
+        SlimPacketType::Control(data.into())
     }
 }
 
-impl From<Vec<u8>> for SslPacketType {
+impl From<Vec<u8>> for SlimPacketType {
     fn from(value: Vec<u8>) -> Self {
-        SslPacketType::Data(value)
+        SlimPacketType::Data(value)
     }
 }
 
-impl From<ClientHelloData> for SslPacketType {
+impl From<ClientHelloData> for SlimPacketType {
     fn from(value: ClientHelloData) -> Self {
-        SslPacketType::control(ClientHello { data: value })
+        SlimPacketType::control(ClientHello { data: value })
     }
 }
 
-impl From<KeepaliveRequestData> for SslPacketType {
+impl From<KeepaliveRequestData> for SlimPacketType {
     fn from(value: KeepaliveRequestData) -> Self {
-        SslPacketType::control(KeepaliveRequest { data: value })
+        SlimPacketType::control(KeepaliveRequest { data: value })
     }
 }
 
-impl From<DisconnectRequestData> for SslPacketType {
+impl From<DisconnectRequestData> for SlimPacketType {
     fn from(value: DisconnectRequestData) -> Self {
-        SslPacketType::control(DisconnectRequest { data: value })
+        SlimPacketType::control(DisconnectRequest { data: value })
     }
 }
 
-pub(crate) struct SslPacketCodec;
+pub(crate) struct SlimProtocolCodec;
 
-impl Decoder for SslPacketCodec {
-    type Item = SslPacketType;
+impl Decoder for SlimProtocolCodec {
+    type Item = SlimPacketType;
     type Error = anyhow::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -85,29 +85,29 @@ impl Decoder for SslPacketCodec {
             PKT_CONTROL => {
                 let s_data = String::from_utf8_lossy(&src[8..8 + len]).into_owned();
                 src.advance(8 + len);
-                Ok(Some(SslPacketType::Control(s_data.parse()?)))
+                Ok(Some(SlimPacketType::Control(s_data.parse()?)))
             }
             PKT_DATA => {
                 let data = src[8..8 + len].to_vec();
                 src.advance(8 + len);
-                Ok(Some(SslPacketType::Data(data)))
+                Ok(Some(SlimPacketType::Data(data)))
             }
             _ => Err(anyhow!(i18n::tr!("error-unknown-packet-type"))),
         }
     }
 }
 
-impl Encoder<SslPacketType> for SslPacketCodec {
+impl Encoder<SlimPacketType> for SlimProtocolCodec {
     type Error = anyhow::Error;
 
-    fn encode(&mut self, item: SslPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: SlimPacketType, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (data, packet_type) = match item {
-            SslPacketType::Control(expr) => {
+            SlimPacketType::Control(expr) => {
                 let mut data = expr.to_string().into_bytes();
                 data.push(b'\x00');
                 (data, PKT_CONTROL)
             }
-            SslPacketType::Data(data) => (data, PKT_DATA),
+            SlimPacketType::Data(data) => (data, PKT_DATA),
         };
 
         dst.reserve(data.len() + 8);
