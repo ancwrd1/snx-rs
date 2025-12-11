@@ -66,10 +66,6 @@ impl BrowserController for WebKitBrowser {
                 session.set_tls_errors_policy(TLSErrorsPolicy::Ignore);
             }
             let webview = WebView::builder().network_session(&session).build();
-            webview.load_uri(&url);
-            window.set_child(Some(&webview));
-
-            window.present();
 
             let tx = tx.clone();
             webview.connect_load_changed(clone!(
@@ -99,6 +95,10 @@ impl BrowserController for WebKitBrowser {
                     }
                 }
             ));
+
+            window.set_child(Some(&webview));
+            window.present();
+            webview.load_uri(&url);
 
             glib::ControlFlow::Break
         });
