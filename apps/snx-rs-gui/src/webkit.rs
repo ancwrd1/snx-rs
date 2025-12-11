@@ -8,14 +8,14 @@ use snxcore::{
 };
 use webkit6::{LoadEvent, NetworkSession, TLSErrorsPolicy, WebView, prelude::*};
 
-const COOKIE_TIMEOUT: Duration = Duration::from_secs(120);
+const PASSWORD_TIMEOUT: Duration = Duration::from_secs(120);
 
-const JS_COOKIE_SCRIPT: &str = r#"
+const JS_PASSWORD_SCRIPT: &str = r#"
 (function() {
   try {
     SNXParams.prototype.FetchFromServer();
-    const cookie = SNXParams.prototype.getPassword();
-    if (cookie != undefined && cookie != "") return cookie;
+    const password = SNXParams.prototype.getPassword();
+    if (password != undefined && password != "") return password;
   } catch (e) {}
 
   const regex = /Extender\.password\s*=\s*"([^"]+)"/;
@@ -48,7 +48,7 @@ impl BrowserController for WebKitBrowser {
 
     fn close(&self) {}
 
-    async fn acquire_access_cookie(&self, url: &str) -> anyhow::Result<String> {
+    async fn acquire_tunnel_password(&self, url: &str) -> anyhow::Result<String> {
         let url = url.to_owned();
         let params = self.params.clone();
 
@@ -79,7 +79,7 @@ impl BrowserController for WebKitBrowser {
                     if event == LoadEvent::Finished {
                         let tx = tx.clone();
                         webview.evaluate_javascript(
-                            JS_COOKIE_SCRIPT,
+                            JS_PASSWORD_SCRIPT,
                             None,
                             None,
                             gtk4::gio::Cancellable::NONE,
@@ -87,10 +87,10 @@ impl BrowserController for WebKitBrowser {
                                 if let Ok(value) = result
                                     && value.is_string()
                                 {
-                                    let cookie = value.to_str();
-                                    if !cookie.is_empty() {
+                                    let password = value.to_str();
+                                    if !password.is_empty() {
                                         let tx = tx.clone();
-                                        tokio::spawn(async move { tx.send(cookie.to_string()).await });
+                                        tokio::spawn(async move { tx.send(password.to_string()).await });
                                         window.close();
                                     }
                                 }
@@ -103,8 +103,8 @@ impl BrowserController for WebKitBrowser {
             glib::ControlFlow::Break
         });
 
-        match tokio::time::timeout(COOKIE_TIMEOUT, rx.recv()).await {
-            Ok(Some(cookie)) => Ok(cookie),
+        match tokio::time::timeout(PASSWORD_TIMEOUT, rx.recv()).await {
+            Ok(Some(password)) => Ok(password),
             _ => anyhow::bail!(tr!("error-cannot-acquire-access-cookie")),
         }
     }

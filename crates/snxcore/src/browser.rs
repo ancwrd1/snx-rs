@@ -11,7 +11,7 @@ pub trait BrowserController {
 
     fn close(&self);
 
-    async fn acquire_access_cookie(&self, url: &str) -> anyhow::Result<String>;
+    async fn acquire_tunnel_password(&self, url: &str) -> anyhow::Result<String>;
 }
 
 pub struct SystemBrowser;
@@ -24,7 +24,7 @@ impl BrowserController for SystemBrowser {
 
     fn close(&self) {}
 
-    async fn acquire_access_cookie(&self, url: &str) -> anyhow::Result<String> {
+    async fn acquire_tunnel_password(&self, url: &str) -> anyhow::Result<String> {
         println!("{}", tr!("cli-mobile-access-auth"));
         let prompt = PromptInfo::new(url, tr!("label-password"));
         TtyPrompt.get_secure_input(prompt).await

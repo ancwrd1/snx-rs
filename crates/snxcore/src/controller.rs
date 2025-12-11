@@ -196,7 +196,7 @@ where
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 self.otp_cancel_sender = Some(tx);
 
-                let fut = self.browser_controller.acquire_access_cookie(&mfa.prompt);
+                let fut = self.browser_controller.acquire_tunnel_password(&mfa.prompt);
 
                 tokio::select! {
                     _ = rx => {
