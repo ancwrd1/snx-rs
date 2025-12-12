@@ -17,12 +17,12 @@ use crate::{
     tunnel::{TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel, ssl::SslTunnel},
 };
 
-pub struct CccTunnelConnector {
+pub struct SslTunnelConnector {
     params: Arc<TunnelParams>,
     command_sender: Option<Sender<TunnelCommand>>,
 }
 
-impl CccTunnelConnector {
+impl SslTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
         Ok(Self {
             params,
@@ -83,7 +83,7 @@ impl CccTunnelConnector {
 }
 
 #[async_trait]
-impl TunnelConnector for CccTunnelConnector {
+impl TunnelConnector for SslTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         debug!("Authenticating to endpoint: {}", self.params.server_name);
 

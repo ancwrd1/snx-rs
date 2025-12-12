@@ -11,7 +11,7 @@ use crate::{
         proto::LoginOption,
         *,
     },
-    tunnel::{ipsec::connector::IpsecTunnelConnector, ssl::connector::CccTunnelConnector},
+    tunnel::{ipsec::connector::IpsecTunnelConnector, ssl::connector::SslTunnelConnector},
 };
 
 pub mod device;
@@ -62,6 +62,6 @@ pub async fn new_tunnel_connector(params: Arc<TunnelParams>) -> anyhow::Result<B
         TunnelType::Ipsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
             Ok(Box::new(IpsecTunnelConnector::new(params).await?))
         }
-        _ => Ok(Box::new(CccTunnelConnector::new(params).await?)),
+        _ => Ok(Box::new(SslTunnelConnector::new(params).await?)),
     }
 }
