@@ -171,6 +171,7 @@ It is helpful in cases when a DynamicID MFA code is required via the web portal 
 authentication types does not work.
 To use it, the snx-rs-gui application must be built with the `mobile-access` feature enabled. It requires the `webkit6` package to be installed.
 Depending on the distribution, it may be called `libwebkitgtk-6.0-dev`, `webkit2gtk4-devel` or similar.
+Additionally, it may require to install `libsoup-3.0-dev` and `libjavascriptcoregtk-6.0-dev`.
 
 A new login type called "Mobile Access" will be visible from the dropdown list in the GUI settings. When connecting using that method,
 the application will open a browser window and navigate to the VPN web portal. After successful authentication, the application will attempt 
@@ -234,7 +235,7 @@ to perform automated translation via the AI agent of choice. Tested with Zed edi
 ## Building from Sources
 
 * Install the required dependencies:
-  - Debian/Ubuntu: `sudo apt install build-essential libssl-dev libgtk-4-dev libwebkitgtk-6.0-dev`
+  - Debian/Ubuntu: `sudo apt install build-essential libssl-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev libjavascriptcoregtk-6.0-dev`
   - openSUSE: `sudo zypper install libopenssl-3-devel gtk4-devel webkit2gtk4-devel`
   - Other distros: C compiler, OpenSSL, GTK 4 development packages, optionally WebKit 6 development package
 * Install a recent [Rust compiler](https://rustup.rs)
