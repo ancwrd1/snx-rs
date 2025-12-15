@@ -12,18 +12,15 @@ const PASSWORD_TIMEOUT: Duration = Duration::from_secs(120);
 
 const JS_PASSWORD_SCRIPT: &str = r#"
 (function() {
-  try {
-    SNXParams.prototype.FetchFromServer();
-    const password = SNXParams.prototype.getPassword();
-    if (password != undefined && password != "") return password;
-  } catch (e) {}
-
-  const regex = /Extender\.password\s*=\s*"([^"]+)"/;
+  const regex1 = /sPropertyName = "password";\n\s*SNXParams\.addProperty\(sPropertyName, Function\.READ_WRITE, "([^"]+)"\);/;
+  const regex2 = /Extender\.password\s*=\s*"([^"]+)"/;
 
   const scripts = document.querySelectorAll("script:not([src])");
   for (const s of scripts) {
-    match = s.textContent.match(regex);
-    if (match) return match[1];
+    match1 = s.textContent.match(regex1);
+    if (match1) return match1[1];
+    match2 = s.textContent.match(regex2);
+    if (match2) return match2[1];
   }
 
   return "";
