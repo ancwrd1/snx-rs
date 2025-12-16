@@ -3,6 +3,7 @@
 - Various bugfixes and improvements for connection profiles and the UI.
 - GUI app no longer accepts a command line parameter with a configuration file.
 - Use SQLite database for storing the IKE sessions.
+- Added DEB and RPM packaging assets.
 
 ## v4.9.1 (2025-11-22)
 - Fixed several UI issues with the connection profiles.
@@ -17,11 +18,11 @@
 - Privacy fix: disable mDNS and LLMNR for the tunnel interface.
 
 ## v4.8.2 (2025-10-01)
-- Fixed a problem with some VPN servers which do not advertise default_authentication_method field.
+- Fixed a problem with some VPN servers that do not advertise the default_authentication_method field.
 - The packaging assets have been moved to `package` directory.
 
 ## v4.8.1 (2025-09-24)
-- Enabled SAML SSO authentication for SSL tunnel.
+- Enabled SAML SSO authentication for an SSL tunnel.
 - An installer is now created as part of the release pipeline, with `.run` extension.
 - Service and desktop files are modified to point to /usr/bin by default.
 
@@ -35,29 +36,29 @@
 
 ## v4.7.0 (2025-08-28)
 - Added `mtu` option to specify the MTU size for the tunnel interface.
-- Fixed an issue with SAML SSO authentication when browser uses CORS preflight checks.
+- Fixed an issue with SAML SSO authentication when the browser uses CORS preflight checks.
 
 ## v4.6.0 (2025-08-19)
 - Fixed a problem with IP address renewal for some Linux distros which have `net.ipv4.conf.default.promote_secondaries` set to 0.
 - Added `disable-ipv6` option to help prevent IPv6 leaks. It disables IPv6 globally when the `default-route` setting is enabled.
 
 ## v4.5.0 (2025-07-27)
-- Added a possibility to specify custom server port if it's different from 443.
+- Added a possibility to specify a custom server port if it's different from 443.
 - UI labels are made selectable in the connection status dialog.
 - Added a new option `ip-lease-time`, to specify the custom IP lease time.
 - Fixed a problem with wrongly constructed keepalive packets causing DNS query delays.
 
 ## v4.4.5 (2025-07-12)
-- Added a parameter to the command line tools to generate shell autocompletions.
-- For the routing options, allow to specify IP addresses without the CIDR /XX notation, in which case /32 is assumed.
+- Added a parameter to the command line tools to generate shell autocompletion.
+- For the routing options, allow specifying IP addresses without the CIDR /XX notation, in which case /32 is assumed.
 - Wrap UI labels in the status dialog if they are too long.
 - Fixed a bug for the incorrect parsing of hex-like strings in the server info response.
 
 ## v4.4.4 (2025-06-17)
-- Fixed a regression in the UI where the empty login type list is displayed when VPN server does not advertize a list of login methods.
+- Fixed a regression in the UI where the empty login type list is displayed when the VPN server does not advertise a list of login methods.
 
 ## v4.4.3 (2025-06-09)
-- Fixed a regression with default-route option which did not work correctly.
+- Fixed a regression with a default-route option which did not work correctly.
 
 ## v4.4.2 (2025-06-06)
 - Fixed a problem where a new IP address was returned after each renewal.
@@ -72,7 +73,7 @@
 ## v4.4.0 (2025-05-22)
 - Added `auto-connect` option which enables automatic tunnel connect when GUI frontend starts.
 - Added translations for .desktop file actions.
-- Added a new category in the configuration dialog, "UI Settings".
+- Added a new category in the configuration dialog, "UI Settings."
 - Send keepalive packets to the advertised server IP instead of the default public address.
 - Added automatic IP address renewal when it expires.
 - Fixed an issue with too short IP lease time.
@@ -86,16 +87,16 @@
 - Added localization support.
 - Various bugfixes for connection status, firewall and tunnel setup.
 - For older kernels or if xfrm module is not available, fall back to TUN-UDP transport.
-- Added custom actions in the .desktop file, to control the GUI frontend via context menu.
-- When showing username prompt, fill it with session username by default.
-- Show authenticated username and login type in the status information output.
-- Added "Connect", "Disconnect" and "Settings" buttons in the status dialog.
-- Always allow status dialog to be shown, and update it dynamically.
+- Added custom actions in the .desktop file to control the GUI frontend via the context menu.
+- When showing a username prompt, fill it with a session username by default.
+- Show an authenticated username and login type in the status information output.
+- Added "Connect," "Disconnect" and "Settings" buttons in the status dialog.
+- Always allow the status dialog to be shown and update it dynamically.
 - Fixed a bug with server info display when multiple fingerprints are present in the response.
 
 ## v4.2.0 (2025-05-02)
 - On desktop environments other than GNOME or KDE use standard icons instead of pixmaps.
-- Better server information output with "snxctl info" command.
+- Better server information output with the "snxctl info" command.
 - Show connection information in standalone mode.
 - Added a logic to allow invalid ICMP state packets on the tunnel interface when firewalld/nftables is active, to avoid DNS query delays.
 - Set MTU size to 1350 on the tunnel interface.
@@ -105,8 +106,8 @@
 ## v4.1.0 (2025-04-25)
 - Fixed a problem with invalid search domains sent by some VPN servers.
 - Fixed a bug with the same MFA being triggered multiple times under certain conditions.
-- Added a graphical connection status window, activated via "Connection status..." popup menu.
-- Added an extended connection information in the "snxctl status" command output.
+- Added a graphical connection status window, activated via the "Connection status..." popup menu.
+- Added extended connection information in the "snxctl status" command output.
 
 ## v4.0.0 (2025-04-22)
 
@@ -123,12 +124,12 @@
 - Fixed many issues related to a concurrent use of the GUI frontend and the snxctl utility.
 - It is now possible to cancel the pending connection, also in the MFA state.
 - Refactored internal IPSec certificate validation to use the advertised internal_ca_fingerprint.
-- Show extended server information with the 'snxctl info` command.
+- Show extended server information with the "snxctl info" command.
 - Fixed a bug with incomplete SSL tunnel shutdown.
 
 ## v3.1.2 (2025-04-13)
 - Fixed a problem with default IP address detection on some systems.
-- Removed invalid "VPN" category from the .desktop file.
+- Removed the invalid "VPN" category from the .desktop file.
 - Improved desktop theme detection on Ubuntu.
 
 ## v3.1.1 (2025-03-15)
@@ -141,7 +142,7 @@
 - Extended "-m info" to show list of factors per login type
 
 ## v3.0.6 (2025-02-16)
-- Improved authentication prompts by displaying a header retrieved from VPN server
+- Improved authentication prompts by displaying a header retrieved from the VPN server
 - Fixed IPSec over TCPT for AES encryption ciphers with key length shorter than 256 bits
 - Added 3DES support for IKE SA exchange
 - Lowered Rust compiler requirements to 1.79
@@ -155,10 +156,10 @@
 - Delete persistent IKE session if the tunnel cannot be created.
 
 ## v3.0.3 (2025-02-05)
-- Only do a signout call when manually disconnecting an IPSec tunnel
+- Only do a sign out call when manually disconnecting an IPSec tunnel
 
 ## v3.0.2 (2025-02-04)
-- Fixed a problem with persistent IKE session which wasn't restored for some VPN servers
+- Fixed a problem with a persistent IKE session which wasn't restored for some VPN servers
 
 ## v3.0.1 (2025-02-03)
 - Connectivity fixes
@@ -172,11 +173,11 @@
 
 ## v2.9.0 (2025-01-07)
 - Added `dns-servers` and `ignore-dns-servers` options
-- UI: refactored authentication settings, moved certificate authentication options to general tab
+- UI: refactored authentication settings, moved certificate authentication options to the general tab
 
 ## v2.8.3 (2024-12-18)
 - Fixed a bug with incorrect resolver detection when /etc/resolv.conf is a relative symlink.
-- Added "Apply" button in the settings dialog (validate and save settings without closing the dialog).
+- Added the "Apply" button in the settings dialog (validate and save settings without closing the dialog).
 
 ## v2.8.2 (2024-12-13)
 - Removed a superfluous title from the system tray icon (visible on some desktop environments).
@@ -184,10 +185,10 @@
 - Fixed a problem with the incorrect resolver detection when /etc/resolv.conf is a multi-level symlink.
 
 ## v2.8.1 (2024-12-02)
-- Fixed a bug with a tun device being not removed after SSL tunnel is disconnected.
+- Fixed a bug with a tun device being not removed after an SSL tunnel is disconnected.
 
 ## v2.8.0 (2024-12-01)
-- Added `icon-theme` config option and a GUI setting to choose the GUI icon theme, to workaround an issue with desktop theme autodetection on some systems.
+- Added `icon-theme` config option and a GUI setting to choose the GUI icon theme, to work around an issue with desktop theme autodetection on some systems.
 
 ## v2.7.2 (2024-11-13)
 - Added DNS resolver detection and support for the plain `/etc/resolv.conf` configuration without systemd-resolved. Note that this setup will forward all DNS requests to the corporate VPN.
@@ -195,10 +196,10 @@
 
 ## v2.6.1 (2024-10-29)
 - Fixed `default-route` option in combination with the SSL tunnel.
-- Fixed intermittent crash in the SSL tunnel due to a keepalive counter underflow.
+- Fixed an intermittent crash in the SSL tunnel due to a keepalive counter underflow.
 
 ## v2.6.0 (2024-10-13)
-- Added `no-keepalive` option to disable IPSec keepalive packets, to workaround some rare cases of tunnel disconnects.
+- Added `no-keepalive` option to disable IPSec keepalive packets, to work around some rare cases of tunnel disconnects.
 - Removed webkit from the project. It doesn't seem to bring any practical value.
 - Don't add duplicated routes.
 - When attempting to connect, don't return an error if the tunnel is already connected.
@@ -206,16 +207,16 @@
 ## v2.5.0 (2024-09-13)
 - Added experimental `ike-persist` option which will save IPSec session to disk, restore it after service or computer restart and automatically reconnect the tunnel without authentication. It works best in combination with the `ike-lifetime` option. For example, setting `ike-lifetime` to 604800 will keep the session for 7 days. Note that most IPSec servers have shorter IKE duration configured, so it may be terminated earlier. This option is also added to the GUI application under "Misc settings" category. Automatic reconnection will happen when running in the standalone mode, when GUI application starts or when `snxctl` sends the "connect" command.
 - Fixed some issues with added routes.
-- Fixed a problem with SSL connection when username is not specified.
+- Fixed a problem with SSL connection when the username is not specified.
 
 ## v2.4.2 (2024-09-03)
 - Fixed the `ignore-routes` option which wasn't working as expected.
 - Fixed a problem with the `default-route=true` option in combination with the IPSec tunnel.
 - Allow comma-separated values in the command line for the multi-value parameters.
-- Added informational message printed to stdout when the tunnel is connected in standalone mode.
+- Added an informational message printed to stdout when the tunnel is connected in standalone mode.
 - Ignore stored or specified passwords for the SAML authentication.
 
 ## v2.4.1 (2024-08-26)
-- Don't hard-fail the connection if there is IP address mismatch in the IPSec ID payload. This seems to cause issues with some users. The warning will be logged instead.
-- Don't require username to be specified for password logins. The user will be prompted for it if needed.
+- Don't hard-fail the connection if there is an IP address mismatch in the IPSec ID payload. This seems to cause issues with some users. The warning will be logged instead.
+- Don't require a username to be specified for password logins. The user will be prompted for it if needed.
 - Improved MFA prompts retrieval from the server.
