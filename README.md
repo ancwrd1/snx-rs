@@ -5,12 +5,6 @@
 
 This project contains the source code for an unofficial Linux client for Check Point VPN, written in Rust.
 
-⚠️ Before creating an issue, please check the [FAQ section](#faq).
-
-Download the latest binary and source release [here](https://github.com/ancwrd1/snx-rs/releases/latest).<br/>
-For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.<br/>
-For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
-
 * [System Requirements](#system-requirements)
 * [Installation](#installation)
 * [Quick Start Guide](#quick-start-guide)
@@ -44,6 +38,10 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 
 <!-- TOC --><a name="installation"></a>
 ## Installation
+
+Download the latest binary and source release [here](https://github.com/ancwrd1/snx-rs/releases/latest).<br/>
+For Arch Linux and derivatives, the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.<br/>
+For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
 
 1. Download the installer from the releases section, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
