@@ -11,23 +11,55 @@ Download the latest binary and source release [here](https://github.com/ancwrd1/
 For Arch Linux and derivatives the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.<br/>
 For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/nixos.md).
 
+* [System Requirements](#system-requirements)
+* [Installation](#installation)
+* [Quick Start Guide](#quick-start-guide)
+* [Quick Start Guide (CLI, standalone mode)](#quick-start-guide-cli-standalone-mode)
+* [Quick Start Guide (CLI, command mode)](#quick-start-guide-cli-command-mode)
+* [Advantages Over the Official SNX Client for Linux](#advantages-over-the-official-snx-client-for-linux)
+* [Implemented Features](#implemented-features)
+* [DNS Resolver Configuration and Privacy](#dns-resolver-configuration-and-privacy)
+* [Tunnel Type Selection](#tunnel-type-selection)
+* [Command Line Usage](#command-line-usage)
+* [Usage Examples](#usage-examples)
+* [Mobile Access Authentication](#mobile-access-authentication)
+* [Certificate Validation](#certificate-validation)
+* [Certificate Authentication](#certificate-authentication)
+* [Persistent IPSec Session](#persistent-ipsec-session)
+* [Additional Usage Notes](#additional-usage-notes)
+* [Troubleshooting Common Problems](#troubleshooting-common-problems)
+* [Contributing](#contributing)
+* [Additional Translations](#additional-translations)
+* [Building from Sources](#building-from-sources)
+* [Docker Usage](#docker-usage)
+* [Acknowledgements](#acknowledgements)
+* [License](#license)
+
+<!-- TOC --><a name="system-requirements"></a>
 ## System Requirements
 
-* A recent Linux distribution with kernel version 4.19 or higher
-* systemd-resolved is recommended as a global DNS resolver
+* A recent Linux distribution with kernel version 4.19 or higher.
+* GTK 4.0+ and WebKit 6.0+ (optional).
+* `systemd-resolved` is recommended as a global DNS resolver for the split DNS to work properly.
 
+<!-- TOC --><a name="installation"></a>
 ## Installation
 
 1. Download the installer from the releases section, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
 
+<!-- TOC --><a name="quick-start-guide"></a>
 ## Quick Start Guide
 
 1. Run the GUI frontend from the application menu of the desktop manager.
-2. Click on the application tray icon, choose "Settings", in the opened dialog type the server address and press "Fetch info" to retrieve a list of supported login types.
+2. Click on the application tray icon, choose "Settings."
+3. In the opened dialog, type the server address and press "Fetch info" to retrieve a list of supported login types.
+4. Select the login type and save settings. Username and password fields are optional.
+5. Click on the application tray icon and choose "Connect."
 
 **GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension.
 
+<!-- TOC --><a name="quick-start-guide-cli-standalone-mode"></a>
 ## Quick Start Guide (CLI, standalone mode)
 
 1. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
@@ -35,12 +67,14 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 
 ⚠️ **Note about certificate errors**: if the connection fails with the certificate error, add the `-X true` parameter (insecure and not recommended).
 
+<!-- TOC --><a name="quick-start-guide-cli-command-mode"></a>
 ## Quick Start Guide (CLI, command mode)
 
 1. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
 2. Create a configuration file: `$HOME/.config/snx-rs/snx-rs.conf`, with desired [options](https://github.com/ancwrd1/snx-rs/blob/main/options.md).
 3. Connect the tunnel with `snxctl connect` command.
 
+<!-- TOC --><a name="advantages-over-the-official-snx-client-for-linux"></a>
 ## Advantages Over the Official SNX Client for Linux
 
 * Open source
@@ -51,6 +85,7 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 * Optional integration with GNOME Keyring or KDE KWallet
 * Customizable routing and DNS settings
 
+<!-- TOC --><a name="implemented-features"></a>
 ## Implemented Features
 
 * Browser-based identity provider authentication
@@ -61,10 +96,11 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 * GTK frontend with tray icon
 * IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
 * Automatic IPSec tunnel reconnection without authentication, via optional parameter
-* SSL tunnel via Linux TUN device (deprecated)
+* SSL tunnel via Linux TUN device
 * Store a password factor in the OS keychain using Secret Service API
 * Localization support, see i18n/assets directory for a list of supported locales
 
+<!-- TOC --><a name="dns-resolver-configuration-and-privacy"></a>
 ## DNS Resolver Configuration and Privacy
 
 By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
@@ -88,6 +124,7 @@ will be forwarded through the tunnel. For further explanation, please check [thi
 
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
+<!-- TOC --><a name="tunnel-type-selection"></a>
 ## Tunnel Type Selection
 
 snx-rs supports two tunnel types: IPSec and SSL. IPSec tunnel is a default option if not specified in the configuration.
@@ -102,6 +139,7 @@ The `transport-type` option can be used to choose the IPSec transport type manua
 For older VPN servers or in case IPSec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
 SSL tunnel has some limitations: it is slower, has no hardware token support and no MFA in combination with the certificates.
 
+<!-- TOC --><a name="command-line-usage"></a>
 ## Command Line Usage
 
 Check the [Configuration Options](https://github.com/ancwrd1/snx-rs/blob/main/options.md) section for a list of all available options. Options can be specified in the configuration file
@@ -150,6 +188,7 @@ There are two ways to use the application:
   - Run it with the `--help` option to get usage help.
 * **Standalone Service Mode**: Selected by the `-m standalone` parameter. This is the default mode if no parameters are specified. Run `snx-rs --help` to get help with all command line parameters. In this mode, the application takes connection parameters either from the command line or from the specified configuration file. This mode is recommended for headless usage.
 
+<!-- TOC --><a name="usage-examples"></a>
 ## Usage Examples
 
 ```bash
@@ -160,10 +199,7 @@ sudo ./snx-rs -o vpn_Microsoft_Authenticator -s remote.company.com -e ipsec -l t
 sudo ./snx-rs -m command -l debug
 ```
 
-## Docker Usage
-
-Check [this repository](https://github.com/leleobhz/snx-rs-docker) for a docker container.
-
+<!-- TOC --><a name="mobile-access-authentication"></a>
 ## Mobile Access Authentication
 
 Mobile Access authentication is an experimental feature that replaces the official `cshell` connection method using the web access.
@@ -174,9 +210,10 @@ Depending on the distribution, it may be called `libwebkitgtk-6.0-dev`, `webkit2
 Additionally, it may require to install `libsoup-3.0-dev` and `libjavascriptcoregtk-6.0-dev`.
 
 A new login type called "Mobile Access" will be visible from the dropdown list in the GUI settings. When connecting using that method,
-the application will open a browser window and navigate to the VPN web portal. After successful authentication, the application will attempt 
+the application will open a browser window and navigate to the VPN web portal. After successful authentication, the application will attempt
 to find the password cookie in the web page. Then the browser will be closed and the tunnel will be established.
 
+<!-- TOC --><a name="certificate-validation"></a>
 ## Certificate Validation
 
 The following parameters control certificate validation during TLS and IKE exchanges:
@@ -186,6 +223,7 @@ The following parameters control certificate validation during TLS and IKE excha
 
 Note that enabling the insecure option may compromise the channel security.
 
+<!-- TOC --><a name="certificate-authentication"></a>
 ## Certificate Authentication
 
 The following parameters control certificate-based authentication:
@@ -195,6 +233,7 @@ The following parameters control certificate-based authentication:
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
 * `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of `xx:xx:xx` or `xxxxxx`.
 
+<!-- TOC --><a name="persistent-ipsec-session"></a>
 ## Persistent IPSec Session
 
 The `ike-persist` option will save IPSec session to disk and restore it after the service or computer restarts,
@@ -203,6 +242,7 @@ for example, setting `ike-lifetime` to 604800 will keep the session for 7 days.
 
 Note that most IPSec servers have shorter IKE duration configured, so it may be terminated earlier.
 
+<!-- TOC --><a name="additional-usage-notes"></a>
 ## Additional Usage Notes
 
 * If identity provider SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
@@ -210,6 +250,7 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 
 <a id="faq"></a>
 
+<!-- TOC --><a name="troubleshooting-common-problems"></a>
 ## Troubleshooting Common Problems
 
 | Problem                                                                       | Solution                                                                                                                                                                                |
@@ -221,17 +262,20 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 | VPN tunnel is unstable and disconnects quickly                                | Set the `mtu` option to a lower value like 1280.                                                                                                                                        | 
 | Connections to remote sites are unstable, IP address changes every 10 minutes | VPN server has a short IP lease policy configured. Try the `ip-lease-time` option to manually extend it. Value must be specified in seconds.                                            | 
 
+<!-- TOC --><a name="contributing"></a>
 ## Contributing
 
 Pull requests, bug reports, and suggestions are welcome. This is a hobby project I maintain in my free time.
 
 Before opening a PR, make sure to reformat the sources with the `cargo fmt` command and run it through the `cargo clippy` for any warnings.
 
+<!-- TOC --><a name="additional-translations"></a>
 ## Additional Translations
 
 The provided [sample AI prompt](https://github.com/ancwrd1/snx-rs/blob/main/llm-localization-prompt.txt) can be used
 to perform automated translation via the AI agent of choice. Tested with Zed editor and GPT-4.1 model.
 
+<!-- TOC --><a name="building-from-sources"></a>
 ## Building from Sources
 
 * Install the required dependencies:
@@ -240,14 +284,21 @@ to perform automated translation via the AI agent of choice. Tested with Zed edi
   - Other distros: C compiler, OpenSSL, GTK 4 development packages, optionally WebKit 6 development package
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version.
-* To build a version with mobile access feature and webkit integration, pass the `--features=mobile-access` parameter. 
+* To build a version with mobile access feature and webkit integration, pass the `--features=mobile-access` parameter.
 
 NOTE: the minimal supported Rust version is 1.88.
 
+<!-- TOC --><a name="docker-usage"></a>
+## Docker Usage
+
+Check [this repository](https://github.com/leleobhz/snx-rs-docker) for a docker container.
+
+<!-- TOC --><a name="acknowledgements"></a>
 ## Acknowledgements
 
 Special thanks to the [cpyvpn](https://gitlab.com/cpvpn/cpyvpn) project for inspiration around SAML and IKEv1 exchange.
 
+<!-- TOC --><a name="license"></a>
 ## License
 
 Licensed under the [GNU Affero General Public License version 3](https://opensource.org/license/agpl-v3/).
