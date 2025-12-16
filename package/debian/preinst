@@ -1,0 +1,12 @@
+#!/bin/bash
+
+case "$1" in
+	install)
+		systemctl stop snx-rs || true
+		pkill snx-rs-gui || true
+		;;
+	*)
+		;;
+esac
+
+exit 0

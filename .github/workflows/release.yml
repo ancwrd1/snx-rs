@@ -45,7 +45,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev makeself libwebkitgtk-6.0-dev
+          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev makeself libwebkitgtk-6.0-dev rpm fakeroot
 
       - name: Install Rust
         run: |
@@ -82,6 +82,8 @@ jobs:
             const installerPath = `target/snx-rs-${tagName}-linux-x86_64.run`;
             const artifactPathMA = `target/snx-rs-${tagName}-webkit-linux-x86_64.tar.xz`;
             const installerPathMA = `target/snx-rs-${tagName}-webkit-linux-x86_64.run`;
+            const debPath = `target/snx-rs-${tagName}-linux-x86_64.deb`;
+            const rpmPath = `target/snx-rs-${tagName}-linux-x86_64.rpm`;
 
             const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
@@ -127,4 +129,22 @@ jobs:
               release_id: release.data.id,
               name: `snx-rs-${tagName}-webkit-linux-x86_64.run`,
               data: installer
+            });
+
+            const artifact = fs.readFileSync(debPath);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: `snx-rs-${tagName}-linux-x86_64.deb`,
+              data: artifact
+            });
+
+            const artifact = fs.readFileSync(rpmPath);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: `snx-rs-${tagName}-linux-x86_64.rpm`,
+              data: artifact
             });

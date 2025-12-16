@@ -1,0 +1,51 @@
+Name:           snx-rs
+Version:        {{version}}
+Release:        1%{?dist}
+Summary:        SNX-RS Check Point VPN Client for Linux
+
+License:        AGPL-3.0-or-later
+URL:            https://github.com/ancwrd1/snx-rs
+BuildArch:      x86_64
+
+Requires:       glibc >= 2.35
+Requires:       libgtk-4.so.1()(64bit)
+Requires:       libwebkitgtk-6.0.so.4()(64bit)
+
+%description
+Unofficial Linux client for Check Point VPN, written in Rust.
+
+%prep
+# No prep needed, files are already in BUILDROOT
+
+%build
+# No build needed, binaries are pre-built
+
+%install
+cp -a $RPM_BUILDROOT/* %{buildroot}/
+
+%files
+/usr/bin/snx-rs
+/usr/bin/snx-rs-gui
+/usr/bin/snxctl
+/etc/systemd/system/snx-rs.service
+/usr/share/applications/snx-rs-gui.desktop
+
+%pre
+systemctl stop snx-rs 2>/dev/null >/dev/null || true
+pkill snx-rs-gui 2>/dev/null >/dev/null || true
+exit 0
+
+%post
+systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
+exit 0
+
+%preun
+systemctl disable --now snx-rs 2>/dev/null >/dev/null || true
+pkill snx-rs-gui 2>/dev/null >/dev/null || true
+exit 0
+
+%postun
+rm -rf /var/cache/snx-rs
+rm -f /etc/systemd/system/snx-rs.service 2>/dev/null >/dev/null || true
+systemctl daemon-reload
+exit 0

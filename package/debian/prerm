@@ -1,0 +1,14 @@
+#!/bin/bash
+
+case "$1" in
+	purge|remove)
+		systemctl disable --now snx-rs || true
+		rm -rf /var/cache/snx-rs || true
+		rm -f /etc/systemd/system/snx-rs.service || true
+		systemctl daemon-reload || true
+		;;
+	*)
+		;;
+esac
+
+exit 0

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+case "$1" in
+	configure)
+		systemctl start snx-rs 2>/dev/null >/dev/null || true
+		;;
+	*)
+		;;
+esac
+
+exit 0
