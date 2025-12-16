@@ -57,7 +57,7 @@ create_deb() {
     mkdir -p "$tmpdir/debian/usr/share/applications"
 
     for app in $apps; do
-      install -m 755 "$target/$name/$app" "$tmpdir/debian/usr/bin/"
+      install -m 755 "$target/$triple/lto/$app" "$tmpdir/debian/usr/bin/"
     done
 
     cp "$basedir/package/snx-rs.service" "$tmpdir/debian/etc/systemd/system/"
@@ -91,7 +91,7 @@ create_rpm() {
     mkdir -p "$RPM_BUILDROOT/usr/share/applications"
 
     for app in $apps; do
-      install -m 755 "$target/$name/$app" "$RPM_BUILDROOT/usr/bin/"
+      install -m 755 "$target/$triple/lto/$app" "$RPM_BUILDROOT/usr/bin/"
     done
 
     cp "$basedir/package/snx-rs.service" "$RPM_BUILDROOT/etc/systemd/system/"
