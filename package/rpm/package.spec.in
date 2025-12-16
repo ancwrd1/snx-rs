@@ -31,21 +31,54 @@ cp -a $RPM_BUILDROOT/* %{buildroot}/
 /usr/share/applications/snx-rs-gui.desktop
 
 %pre
-systemctl stop snx-rs 2>/dev/null >/dev/null || true
-pkill snx-rs-gui 2>/dev/null >/dev/null || true
+case "$1" in
+    1)
+        # Fresh install
+        ;;
+    2)
+        # Upgrade
+        systemctl stop snx-rs 2>/dev/null >/dev/null || true
+        pkill snx-rs-gui 2>/dev/null >/dev/null || true
+        ;;
+esac
 exit 0
 
 %post
-systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
+case "$1" in
+    1)
+        # Fresh install
+        systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
+        ;;
+    2)
+        # Upgrade
+        systemctl start snx-rs 2>/dev/null >/dev/null || true
+        ;;
+esac
 exit 0
 
 %preun
-systemctl disable --now snx-rs 2>/dev/null >/dev/null || true
-pkill snx-rs-gui 2>/dev/null >/dev/null || true
+case "$1" in
+    0)
+        # Uninstall (not upgrade)
+        systemctl disable --now snx-rs 2>/dev/null >/dev/null || true
+        pkill snx-rs-gui 2>/dev/null >/dev/null || true
+        ;;
+    1)
+        # Upgrade
+        ;;
+esac
 exit 0
 
 %postun
-rm -rf /var/cache/snx-rs
-rm -f /etc/systemd/system/snx-rs.service 2>/dev/null >/dev/null || true
-systemctl daemon-reload
+case "$1" in
+    0)
+        # Uninstall
+        rm -rf /var/cache/snx-rs
+        rm -f /etc/systemd/system/snx-rs.service 2>/dev/null >/dev/null || true
+        systemctl daemon-reload
+        ;;
+    1)
+        # Upgrade
+        ;;
+esac
 exit 0
