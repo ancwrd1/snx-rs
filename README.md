@@ -46,6 +46,8 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 1. Download the installer from the releases section, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
 
+For Ubuntu/Debian, a DEB package is provided in the release assets. For RPM-based distros (Fedora, CentOS, openSUSE) use the provided RPM package.
+
 <!-- TOC --><a name="quick-start-guide"></a>
 ## Quick Start Guide
 
