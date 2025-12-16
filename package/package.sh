@@ -63,7 +63,9 @@ create_deb() {
     cp "$basedir/package/snx-rs.service" "$tmpdir/debian/etc/systemd/system/"
     cp "$basedir/package/snx-rs-gui.desktop" "$tmpdir/debian/usr/share/applications"
 
-    fakeroot dpkg-deb --build "$tmpdir/debian" "$target/$name.deb"
+    if ! fakeroot dpkg-deb --build "$tmpdir/debian" "$target/$name.deb"; then
+        exit 1
+    fi
 
     rm -rf "$tmpdir"
 }
@@ -97,10 +99,12 @@ create_rpm() {
     cp "$basedir/package/snx-rs.service" "$RPM_BUILDROOT/etc/systemd/system/"
     cp "$basedir/package/snx-rs-gui.desktop" "$RPM_BUILDROOT/usr/share/applications"
 
-    rpmbuild --define "_topdir $rpm" \
+    if ! rpmbuild --define "_topdir $rpm" \
              --define "_buildroot $rpm/BUILDROOT" \
              --buildroot "$rpm/BUILDROOT" \
-             -bb "$rpm/SPECS/package.spec"
+             -bb "$rpm/SPECS/package.spec"; then
+      exit 1
+    fi
 
     cp "$rpm/RPMS/$arch"/*.rpm "$target/$name.rpm"
 

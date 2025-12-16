@@ -113,38 +113,38 @@ jobs:
               data: installer
             });
 
-            const artifact = fs.readFileSync(artifactPathMA);
+            const artifactMA = fs.readFileSync(artifactPathMA);
             await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.data.id,
               name: `snx-rs-${tagName}-webkit-linux-x86_64.tar.xz`,
-              data: artifact
+              data: artifactMA
             });
 
-            const installer = fs.readFileSync(installerPathMA);
+            const installerMA = fs.readFileSync(installerPathMA);
             await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.data.id,
               name: `snx-rs-${tagName}-webkit-linux-x86_64.run`,
-              data: installer
+              data: installerMA
             });
 
-            const artifact = fs.readFileSync(debPath);
+            const artifactDeb = fs.readFileSync(debPath);
             await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.data.id,
               name: `snx-rs-${tagName}-linux-x86_64.deb`,
-              data: artifact
+              data: artifactDeb
             });
 
-            const artifact = fs.readFileSync(rpmPath);
+            const artifactRpm = fs.readFileSync(rpmPath);
             await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.data.id,
               name: `snx-rs-${tagName}-linux-x86_64.rpm`,
-              data: artifact
+              data: artifactRpm
             });
