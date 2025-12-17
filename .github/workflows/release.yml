@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
-      - 'test-*.*.*'
+      - 'v*.*.*-test'
 
 permissions:
   contents: write
@@ -23,21 +23,15 @@ jobs:
         id: changelog
         run: |
           TAG_NAME=$(echo ${{ github.ref_name }})
-          VERSION_NAME=$(echo $TAG_NAME | sed 's/^v//;s/^test-//')
+          VERSION_NAME=$(echo $TAG_NAME | sed 's/^v//;s/-test//')
           echo "Extracting changelog for tag: $TAG_NAME"
 
           # Find the changelog section for this tag
           CHANGELOG=$(awk -v tag="## $TAG_NAME " '$0 ~ tag {flag=1; next} /^## / && flag {flag=0} flag && /^-/ {print}' CHANGELOG.md)
 
           if [ -z "$CHANGELOG"]; then
-            case "$TAG_NAME" in
-              test-*)
-                ;;
-              *)
-                echo "No changelog entries found for $TAG_NAME"
-                exit 1
-                ;;
-            esac
+            echo "No changelog entries found for $TAG_NAME"
+            exit 1
           fi
 
           # Format release notes
@@ -92,7 +86,7 @@ jobs:
               tag_name: tagName,
               name: `Version ${versionName}`,
               body: releaseNotes,
-              draft: tagName.startsWith("test-"),
+              draft: tagName.endsWith("-test"),
               prerelease: false
             });
 
@@ -113,7 +107,7 @@ jobs:
               }
             }
 
-            if (tagName.startsWith("test-")) {
+            if (tagName.endsWith("-test")) {
               await github.rest.repos.deleteRelease({
                 context.repo.owner,
                 context.repo.repo,
