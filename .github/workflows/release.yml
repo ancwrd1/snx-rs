@@ -55,7 +55,7 @@ jobs:
       - name: Build project
         run: |
           chmod +x package/build-lto.sh
-          ./package/build-lto.sh --features=vendored-openssl,rusqlite/bundled
+          ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite
 
       - name: Package project
         run: |
@@ -63,7 +63,7 @@ jobs:
           ./package/package.sh
 
       - name: Build project with mobile-access feature
-        run: ./package/build-lto.sh --features=vendored-openssl,rusqlite/bundled,mobile-access
+        run: ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite,mobile-access
 
       - name: Package project with mobile-access feature
         run: ./package/package.sh -webkit
