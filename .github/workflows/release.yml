@@ -29,9 +29,15 @@ jobs:
           # Find the changelog section for this tag
           CHANGELOG=$(awk -v tag="## $TAG_NAME " '$0 ~ tag {flag=1; next} /^## / && flag {flag=0} flag && /^-/ {print}' CHANGELOG.md)
 
-          if [ -z "$CHANGELOG" ]; then
-            echo "No changelog entries found for $TAG_NAME"
-            exit 1
+          if [ -z "$CHANGELOG"]; then
+            case "$TAG_NAME" in
+              test-*)
+                ;;
+              *)
+                echo "No changelog entries found for $TAG_NAME"
+                exit 1
+                ;;
+            esac
           fi
 
           # Format release notes
