@@ -95,7 +95,7 @@ jobs:
               for (const extension of extensions) {
                 if ((extension === "deb" || extension === "rpm") && suffix === "-webkit") continue;
             
-                const artifactName = `snx-rs-${tagName}{$suffix}-linux-x86_64.${extension}`;
+                const artifactName = `snx-rs-${tagName}${suffix}-linux-x86_64.${extension}`;
                 const artifactPath = `target/${artifactName}`;
                 const artifact = fs.readFileSync(artifactPath);
                 await github.rest.repos.uploadReleaseAsset({
@@ -110,8 +110,8 @@ jobs:
 
             if (tagName.endsWith("-test")) {
               await github.rest.repos.deleteRelease({
-                context.repo.owner,
-                context.repo.repo,
-                release.data.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.data.id
               });
             }
