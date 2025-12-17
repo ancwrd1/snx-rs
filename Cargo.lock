@@ -237,9 +237,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.19.0"
+version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
+checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
 
 [[package]]
 name = "byteorder"
@@ -356,9 +356,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-expr"
-version = "0.20.4"
+version = "0.20.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9acd0bdbbf4b2612d09f52ba61da432140cb10930354079d0d53fafc12968726"
+checksum = "21be0e1ce6cdb2ee7fff840f922fb04ead349e5cfb1e750b769132d44ce04720"
 dependencies = [
  "smallvec",
  "target-lexicon",
@@ -1501,7 +1501,7 @@ dependencies = [
 
 [[package]]
 name = "i18n"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
  "cached",
  "fluent-templates",
@@ -1858,9 +1858,9 @@ dependencies = [
 
 [[package]]
 name = "libredox"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "416f7e718bdb06000964960ffa43b4335ad4012ae8b99060261aa4a8088d5ccb"
+checksum = "df15f6eac291ed1cf25865b1ee60399f57e7c227e7f51bdbd4c5270396a9ed50"
 dependencies = [
  "bitflags 2.10.0",
  "libc",
@@ -2897,7 +2897,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "snx-rs"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -2914,7 +2914,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -2943,7 +2943,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -2993,7 +2993,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -4056,9 +4056,9 @@ dependencies = [
 
 [[package]]
 name = "wintun-bindings"
-version = "0.7.33"
+version = "0.7.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7aa9a8b4f13b95910be074d9511bec854656620ced2cccb6de08a75a56906b03"
+checksum = "27ae04d34b8569174e849128d2e36538329a27daa79c06ed0375f2c5d6704461"
 dependencies = [
  "blocking",
  "c2rust-bitfields",

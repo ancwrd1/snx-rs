@@ -1,4 +1,7 @@
-## v5.0.0 (TBD)
+## v5.0.1 (2025-12-17)
+- Packaging fixes: removed libsqlite3.so dependency
+
+## v5.0.0 (2025-12-16)
 - Added Mobile Access authentication support using the embedded WebKit browser. Requires a libwebkitgtk-6.0 package and a cargo feature flag `mobile-access`. This feature emulates the native Check Point 'cshell' tunnel.
 - Various bugfixes and improvements for connection profiles and the UI.
 - GUI app no longer accepts a command line parameter with a configuration file.
