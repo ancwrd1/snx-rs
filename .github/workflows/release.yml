@@ -78,13 +78,9 @@ jobs:
             const tagName = process.env.tag_name;
             const versionName = process.env.version_name;
             const releaseNotes = process.env.release_notes;
-            const artifactPath = `target/snx-rs-${tagName}-linux-x86_64.tar.xz`;
-            const installerPath = `target/snx-rs-${tagName}-linux-x86_64.run`;
-            const artifactPathMA = `target/snx-rs-${tagName}-webkit-linux-x86_64.tar.xz`;
-            const installerPathMA = `target/snx-rs-${tagName}-webkit-linux-x86_64.run`;
-            const debPath = `target/snx-rs-${tagName}-linux-x86_64.deb`;
-            const rpmPath = `target/snx-rs-${tagName}-linux-x86_64.rpm`;
-
+            const extensions = ["tar.xz", "run", "deb", "rpm"];
+            const suffixes = ["", "-webkit"];
+            
             const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -95,56 +91,19 @@ jobs:
               prerelease: false
             });
 
-            const artifact = fs.readFileSync(artifactPath);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: `snx-rs-${tagName}-linux-x86_64.tar.xz`,
-              data: artifact
-            });
-
-            const installer = fs.readFileSync(installerPath);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: `snx-rs-${tagName}-linux-x86_64.run`,
-              data: installer
-            });
-
-            const artifactMA = fs.readFileSync(artifactPathMA);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: `snx-rs-${tagName}-webkit-linux-x86_64.tar.xz`,
-              data: artifactMA
-            });
-
-            const installerMA = fs.readFileSync(installerPathMA);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: `snx-rs-${tagName}-webkit-linux-x86_64.run`,
-              data: installerMA
-            });
-
-            const artifactDeb = fs.readFileSync(debPath);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: `snx-rs-${tagName}-linux-x86_64.deb`,
-              data: artifactDeb
-            });
-
-            const artifactRpm = fs.readFileSync(rpmPath);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: `snx-rs-${tagName}-linux-x86_64.rpm`,
-              data: artifactRpm
-            });
+            for (const suffix of suffixes) {
+              for (const extension of extensions) {
+                if ((extension === "deb" || extension === "rpm") && suffix === "-webkit") continue;
+            
+                const artifactName = `snx-rs-${tagName}{$suffix}-linux-x86_64.${extension}`;
+                const artifactPath = `target/${artifactName}`;
+                const artifact = fs.readFileSync(artifactPath);
+                await github.rest.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.data.id,
+                  name: artifactName,
+                  data: artifact
+                });
+              }
+            }
