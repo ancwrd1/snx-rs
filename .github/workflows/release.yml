@@ -69,7 +69,6 @@ jobs:
         run: ./package/package.sh -webkit
 
       - name: Create Release
-        if: ${{ !startsWith(github.ref_name, 'test-') }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -87,7 +86,7 @@ jobs:
               tag_name: tagName,
               name: `Version ${versionName}`,
               body: releaseNotes,
-              draft: false,
+              draft: tagName.startsWith("test-"),
               prerelease: false
             });
 
@@ -106,4 +105,12 @@ jobs:
                   data: artifact
                 });
               }
+            }
+
+            if (tagName.startsWith("test-")) {
+              await github.rest.repos.deleteRelease({
+                context.repo.owner,
+                context.repo.repo,
+                release.data.id,
+              });
             }
