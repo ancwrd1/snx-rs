@@ -5,7 +5,7 @@ Summary:        SNX-RS Check Point VPN Client for Linux
 
 License:        AGPL-3.0-or-later
 URL:            https://github.com/ancwrd1/snx-rs
-BuildArch:      x86_64
+BuildArch:      {{arch}}
 
 Requires:       glibc >= 2.35
 Requires:       libgtk-4.so.1()(64bit)

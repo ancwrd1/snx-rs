@@ -6,7 +6,7 @@ target="$basedir/target"
 version="$(git -C "$basedir" describe)"
 deb_version="${version:1}"
 rpm_version="$(echo $version | sed 's/-/~/g')"
-arches="x86_64"
+arch="$(uname -m)"
 apps="snx-rs snxctl snx-rs-gui"
 assets="snx-rs.service snx-rs-gui.desktop install.sh"
 
@@ -40,6 +40,17 @@ create_run() {
 }
 
 create_deb() {
+    case $1 in
+      aarch64)
+        deb_arch=arm64
+        ;;
+      x86_64)
+        deb_arch=amd64
+        ;;
+      *)
+        deb_arch=$1
+        ;;
+    esac
     echo "Packaging .deb for $1"
 
     name="snx-rs-${version}-linux-$1"
@@ -47,7 +58,7 @@ create_deb() {
     debian="$tmpdir/debian/DEBIAN"
 
     mkdir -p "$debian"
-    sed "s/{{version}}/$deb_version/g" "$basedir/package/debian/control.in" > "$debian/control"
+    sed "s/{{version}}/$deb_version/;s/{{arch}}/$deb_arch/" "$basedir/package/debian/control.in" > "$debian/control"
     install -m 755 "$basedir/package/debian/postinst" "$debian/"
     install -m 755 "$basedir/package/debian/preinst" "$debian/"
     install -m 755 "$basedir/package/debian/prerm" "$debian/"
@@ -86,7 +97,7 @@ create_rpm() {
     mkdir -p "$rpm/SRPMS"
     mkdir -p "$rpm/BUILDROOT"
 
-    sed "s/{{version}}/$rpm_version/g" "$basedir/package/rpm/package.spec.in" > "$rpm/SPECS/package.spec"
+    sed "s/{{version}}/$rpm_version/;s/{{arch}}/$1/" "$basedir/package/rpm/package.spec.in" > "$rpm/SPECS/package.spec"
 
     mkdir -p "$RPM_BUILDROOT/usr/bin"
     mkdir -p "$RPM_BUILDROOT/etc/systemd/system"
@@ -112,10 +123,8 @@ create_rpm() {
     rm -rf "$tmpdir"
 }
 
-for arch in $arches; do
-    create_run "$arch"
-    if [[ -n "$suffix" ]]; then
-      create_deb "$arch"
-      create_rpm "$arch"
-    fi
-done
+create_run "$arch"
+if [[ -n "$suffix" ]]; then
+  create_deb "$arch"
+  create_rpm "$arch"
+fi

@@ -2,8 +2,8 @@ Package: snx-rs
 Version: {{version}}
 Section: net
 Priority: optional
-Installed-Size: 32000000
-Architecture: amd64
+Installed-Size: 35000000
+Architecture: {{arch}}
 Depends: libc6 (>= 2.35), libgtk-4-1 (>= 4.6), libwebkitgtk-6.0-4 (>= 2.50)
 Maintainer: Dmitry Pankratov <dmitry@pankratov.net>
 Description: SNX-RS Check Point VPN Client for Linux

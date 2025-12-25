@@ -1,7 +1,5 @@
 #!/usr/bin/bash
 
-targets="x86_64-unknown-linux-gnu"
+arch="$(uname -m)"
 
-for target in $targets; do
-    cargo build --target="$target" --profile=lto "$@"
-done
+cargo build --target="$arch-unknown-linux-gnu" --profile=lto "$@"
