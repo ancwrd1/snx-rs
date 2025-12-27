@@ -218,6 +218,13 @@ pub struct CmdlineParams {
         help = "IPSec transport type [auto, kernel, tcpt, udp]"
     )]
     pub transport_type: Option<TransportType>,
+
+    #[clap(
+        long = "mfa-code",
+        short = 'F',
+        help = "MFA code to use in the non-interactive scripts, typically a TOTP code"
+    )]
+    pub mfa_code: Option<String>,
 }
 
 impl CmdlineParams {
@@ -357,6 +364,10 @@ impl CmdlineParams {
 
         if let Some(transport_type) = self.transport_type {
             other.transport_type = transport_type;
+        }
+
+        if let Some(mfa_code) = self.mfa_code {
+            other.mfa_code = Some(mfa_code);
         }
     }
 }

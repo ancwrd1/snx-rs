@@ -167,6 +167,10 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
                 let input = if !params.password.is_empty() && mfa_index == params.password_factor {
                     Ok(params.password.clone())
+                } else if let Some(ref mfa_code) = params.mfa_code
+                    && mfa_index != params.password_factor
+                {
+                    Ok(mfa_code.clone())
                 } else {
                     TtyPrompt.get_secure_input(prompt).await
                 };

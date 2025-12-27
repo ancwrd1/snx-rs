@@ -307,6 +307,8 @@ pub struct TunnelParams {
     pub mtu: u16,
     pub transport_type: TransportType,
     #[serde(skip)]
+    pub mfa_code: Option<String>,
+    #[serde(skip)]
     pub config_file: PathBuf,
 }
 
@@ -352,6 +354,7 @@ impl Default for TunnelParams {
             disable_ipv6: false,
             mtu: DEFAULT_MTU,
             transport_type: TransportType::default(),
+            mfa_code: None,
             config_file: Self::default_config_path(),
         }
     }
@@ -635,6 +638,7 @@ mod tests {
             disable_ipv6: true,
             mtu: 2000,
             transport_type: TransportType::Tcpt,
+            mfa_code: None,
             config_file: temp_path.to_owned(),
         };
 
