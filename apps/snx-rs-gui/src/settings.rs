@@ -44,7 +44,7 @@ struct MyWidgets {
     auth_type: gtk4::ComboBoxText,
     tunnel_type: gtk4::ComboBoxText,
     username: gtk4::Entry,
-    password: gtk4::Entry,
+    password: gtk4::PasswordEntry,
     password_factor: gtk4::Entry,
     no_dns: gtk4::Switch,
     search_domains: gtk4::Entry,
@@ -60,7 +60,7 @@ struct MyWidgets {
     no_cert_check: gtk4::Switch,
     cert_type: gtk4::ComboBoxText,
     cert_path: gtk4::Entry,
-    cert_password: gtk4::Entry,
+    cert_password: gtk4::PasswordEntry,
     cert_id: gtk4::Entry,
     ca_cert: gtk4::Entry,
     ike_lifetime: gtk4::Entry,
@@ -411,7 +411,7 @@ impl SettingsDialog {
         let username = gtk4::Entry::builder()
             .placeholder_text(std::env::var("USER").unwrap_or_default())
             .build();
-        let password = gtk4::Entry::builder().visibility(false).build();
+        let password = gtk4::PasswordEntry::builder().show_peek_icon(true).build();
         let password_factor = gtk4::Entry::builder().build();
 
         let no_dns = gtk4::Switch::builder().halign(Align::Start).build();
@@ -448,7 +448,7 @@ impl SettingsDialog {
         let no_cert_check = gtk4::Switch::builder().halign(Align::Start).build();
         let cert_type = gtk4::ComboBoxText::builder().build();
         let cert_path = gtk4::Entry::builder().build();
-        let cert_password = gtk4::Entry::builder().visibility(false).build();
+        let cert_password = gtk4::PasswordEntry::builder().show_peek_icon(true).build();
         let cert_id = gtk4::Entry::builder().build();
         let ca_cert = gtk4::Entry::builder()
             .placeholder_text(tr!("placeholder-certs"))
