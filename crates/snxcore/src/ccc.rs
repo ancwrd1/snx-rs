@@ -143,7 +143,7 @@ impl CccHttpClient {
         for ca_cert in &self.params.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;
             let cert = Certificate::from_pem(&data).or_else(|_| Certificate::from_der(&data))?;
-            builder = builder.add_root_certificate(cert);
+            builder = builder.tls_certs_merge(Some(cert));
         }
 
         if self.params.ignore_server_cert {
