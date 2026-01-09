@@ -114,9 +114,10 @@ To find out whether it is already enabled, check the /etc/resolv.conf file:
 If it is a symlink pointing to `/run/systemd/resolve/stub-resolv.conf` then it is already configured on your system,
 otherwise follow these steps:
 
-1. `sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf`
-2. `sudo systemctl enable --now systemd-resolved`
-3. `sudo systemctl restart NetworkManager`
+1. Install `systemd-resolved` package if is not already installed.
+2. `sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf`
+3. `sudo systemctl enable --now systemd-resolved`
+4. `sudo systemctl restart NetworkManager`
 
 With `systemd-resolved` it is also possible to use **routing domains** (as opposed to **search domains**).
 Routing domains are prefixed with `~` character and when configured only requests for the fully qualified domains
