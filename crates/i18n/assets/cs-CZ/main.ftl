@@ -119,6 +119,7 @@ error-no-sender = Žádný odesílatel
 error-empty-ccc-session = Prázdná CCC relace
 error-identity-timeout = Časový limit při čekání na odpověď identity, je typ přístupu správný?
 error-invalid-transport-type = Neplatný typ přenosu
+error-certificate-verify-failed = Ověření TLS certifikátu selhalo. Certifikát serveru je neplatný, vypršel nebo není důvěryhodný.
 
 # Placeholder texts
 placeholder-domains = Domény oddělené čárkami

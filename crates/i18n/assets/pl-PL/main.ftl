@@ -119,6 +119,7 @@ error-no-sender = Brak nadawcy
 error-empty-ccc-session = Pusta sesja CCC
 error-identity-timeout = Przekroczenie czasu oczekiwania na odpowiedź tożsamości, czy typ dostępu jest poprawny?
 error-invalid-transport-type = Nieprawidłowy typ transportu
+error-certificate-verify-failed = Weryfikacja certyfikatu TLS nie powiodła się. Certyfikat serwera jest nieprawidłowy, wygasł lub nie jest zaufany.
 
 # Placeholder texts
 placeholder-domains = Domeny oddzielone przecinkami

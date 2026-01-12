@@ -119,6 +119,7 @@ error-no-sender = Нет отправителя
 error-empty-ccc-session = Пустая сессия CCC
 error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
 error-invalid-transport-type = Неверный тип транспорта
+error-certificate-verify-failed = Проверка TLS-сертификата не удалась. Сертификат сервера недействителен, истёк или не является доверенным.
 
 # Placeholder texts
 placeholder-domains = Домены через запятую

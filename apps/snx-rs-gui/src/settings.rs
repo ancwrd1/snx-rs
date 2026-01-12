@@ -368,7 +368,18 @@ impl MyWidgets {
                     }
 
                     Err(e) => {
-                        self.error.set_label(&e.to_string());
+                        // special case for certificate errors, as they are quite common
+                        let label = e
+                            .chain()
+                            .find_map(|error| {
+                                if error.to_string().contains("certificate verify failed") {
+                                    Some(tr!("error-certificate-verify-failed"))
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap_or_else(|| e.to_string());
+                        self.error.set_label(&label);
                         self.error.set_visible(true);
                     }
                 }

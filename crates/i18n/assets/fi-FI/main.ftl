@@ -119,6 +119,7 @@ error-no-sender = Ei lähettäjää
 error-empty-ccc-session = Tyhjä CCC-istunto
 error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kirjautumistyyppi oikea?
 error-invalid-transport-type = Virheellinen kuljetustyyppi
+error-certificate-verify-failed = TLS-varmenteen vahvistus epäonnistui. Palvelimen varmenne on virheellinen, vanhentunut tai ei luotettu.
 
 # Placeholder texts
 placeholder-domains = Pilkulla erotetut verkkotunnukset

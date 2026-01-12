@@ -119,6 +119,7 @@ error-no-sender = Sem remetente
 error-empty-ccc-session = Sessão CCC vazia
 error-identity-timeout = Timeout ao aguardar resposta de identidade, o tipo de acesso está correto?
 error-invalid-transport-type = Tipo de transporte inválido
+error-certificate-verify-failed = Validação do certificado TLS falhou. O certificado do servidor é inválido, expirou ou não é confiável.
 
 # Placeholder texts
 placeholder-domains = Domínios separados por vírgulas

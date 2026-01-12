@@ -119,6 +119,7 @@ error-no-sender = Pas d'expéditeur
 error-empty-ccc-session = Session CCC vide
 error-identity-timeout = Délai d'attente lors de l'attente de la réponse d'identité, le type de connexion est-il correct ?
 error-invalid-transport-type = Type de transport invalide
+error-certificate-verify-failed = La validation du certificat TLS a échoué. Le certificat du serveur est invalide, expiré ou non fiable.
 
 # Placeholder texts
 placeholder-domains = Domaines séparés par des virgules

@@ -119,6 +119,7 @@ error-identity-timeout = Timeout ved venten på identitetssvar, er adgangstypen 
 error-probing-failed = Sondering mislykkedes, serveren er ikke tilgængelig via NATT-port!
 error-no-connector-for-challenge-code = Ingen connector til at sende challenge-koden til!
 error-invalid-transport-type = Ugyldig transporttype
+error-certificate-verify-failed = TLS-certifikatvalidering mislykkedes. Serverens certifikat er ugyldigt, udløbet eller ikke betroet.
 
 # Placeholder texts
 placeholder-domains = Domæner adskilt med komma

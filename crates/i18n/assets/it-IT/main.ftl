@@ -119,6 +119,7 @@ error-endless-challenges = Loop infinito di sfide del nome utente
 error-cannot-send-request = Impossibile inviare la richiesta al servizio
 error-cannot-read-reply = Impossibile leggere la risposta dal servizio
 error-invalid-transport-type = Tipo di trasporto non valido
+error-certificate-verify-failed = Validazione del certificato TLS fallita. Il certificato del server è non valido, scaduto o non attendibile.
 
 # Placeholder texts
 placeholder-domains = Domini separati da virgole

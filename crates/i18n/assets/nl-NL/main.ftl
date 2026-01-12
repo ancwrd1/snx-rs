@@ -119,6 +119,7 @@ error-no-pkcs8 = Geen PKCS8 PEM-pad opgegeven
 error-no-pkcs11 = Geen PKCS11 PIN opgegeven
 error-no-ipsec-session = Geen IPSEC-sessie
 error-invalid-transport-type = Ongeldig transporttype
+error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
 
 # Placeholder texts
 placeholder-domains = Door komma's gescheiden domeinen

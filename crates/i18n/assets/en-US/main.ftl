@@ -119,6 +119,7 @@ error-no-sender = No sender
 error-empty-ccc-session = Empty CCC session
 error-identity-timeout = Timeout while waiting for identity response, is the login type correct?
 error-invalid-transport-type = Invalid transport type
+error-certificate-verify-failed = TLS certificate validation failed. The server’s certificate is invalid, expired, or not trusted.
 
 # Placeholder texts
 placeholder-domains = Comma-separated domains

@@ -119,6 +119,7 @@ error-no-sender = Kein Absender
 error-empty-ccc-session = Leere CCC-Sitzung
 error-identity-timeout = Timeout beim Warten auf Identitätsantwort, ist der Anmeldetyp korrekt?
 error-invalid-transport-type = Ungültiger Transporttyp
+error-certificate-verify-failed = TLS-Zertifikatüberprüfung fehlgeschlagen. Das Serverzertifikat ist ungültig, abgelaufen oder nicht vertrauenswürdig.
 
 # Placeholder texts
 placeholder-domains = Durch Komma getrennte Domänen

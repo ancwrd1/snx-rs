@@ -119,6 +119,7 @@ error-no-sender = Ingen avsender
 error-empty-ccc-session = Tom CCC-økt
 error-identity-timeout = Timeout mens du venter på identitetssvar, er tilgangstypen korrekt?
 error-invalid-transport-type = Ugyldig transporttype
+error-certificate-verify-failed = TLS-sertifikatvalidering mislyktes. Serverens sertifikat er ugyldig, utløpt eller ikke betrodd.
 
 # Placeholder texts
 placeholder-domains = Domener separert med komma
