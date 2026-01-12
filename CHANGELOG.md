@@ -1,3 +1,9 @@
+## v5.0.2 (2026-01-12)
+- Added `--mfa-code` command line option to specify the MFA code manually, typically a TOTP code, to be used in the scripts.
+- Use `PasswordEntry` UI element for the password input which also shows the unhide button.
+- Fixed snx-rs service being disabled by default on the Debian systems when installing from the DEB file.
+- Added a more clear error message in the settings UI when a certificate issue occurs.
+
 ## v5.0.1 (2025-12-17)
 - Packaging fixes: removed libsqlite3.so dependency
 
