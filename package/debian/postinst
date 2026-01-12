@@ -2,7 +2,7 @@
 
 case "$1" in
 	configure)
-		systemctl start snx-rs 2>/dev/null >/dev/null || true
+		systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
 		;;
 	*)
 		;;
