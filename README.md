@@ -273,8 +273,8 @@ Before opening a PR, make sure to reformat the sources with the `cargo fmt` comm
 <!-- TOC --><a name="additional-translations"></a>
 ## Additional Translations
 
-The provided [sample AI prompt](https://github.com/ancwrd1/snx-rs/blob/main/llm-localization-prompt.txt) can be used
-to perform automated translation via the AI agent of choice. Tested with Zed editor and GPT-4.1 model.
+The provided [sample AI prompt](https://github.com/ancwrd1/snx-rs/blob/main/i18n.md) can be used
+to perform automated translation via the AI agent of choice.
 
 <!-- TOC --><a name="building-from-sources"></a>
 ## Building from Sources

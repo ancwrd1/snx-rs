@@ -206,6 +206,7 @@ language-en-US = Angličtina
 language-es-ES = Španělština
 language-fi-FI = Finština
 language-fr-FR = Francouzština
+language-hr-HR = Chorvatština
 language-it-IT = Italština
 language-nl-NL = Nizozemština
 language-no-NO = Norština

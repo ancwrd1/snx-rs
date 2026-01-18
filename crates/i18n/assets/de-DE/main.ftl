@@ -206,6 +206,7 @@ language-en-US = Englisch
 language-es-ES = Spanisch
 language-fi-FI = Finnisch
 language-fr-FR = Französisch
+language-hr-HR = Kroatisch
 language-it-IT = Italienisch
 language-nl-NL = Niederländisch
 language-no-NO = Norwegisch
