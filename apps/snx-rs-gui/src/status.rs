@@ -8,12 +8,21 @@ use snxcore::{
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionInfo, ConnectionStatus, params::DEFAULT_PROFILE_UUID},
 };
+use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     POLL_INTERVAL, get_window, main_window, profiles::ConnectionProfilesStore, prompt::GtkPrompt, set_window, tr,
     tray::TrayEvent,
 };
+
+pub fn same_status(lhs: &anyhow::Result<ConnectionStatus>, rhs: &anyhow::Result<ConnectionStatus>) -> bool {
+    match (lhs, rhs) {
+        (Ok(lhs), Ok(rhs)) => lhs == rhs,
+        (Err(e1), Err(e2)) => e1.to_string() == e2.to_string(),
+        _ => false,
+    }
+}
 
 fn status_entry(label: &str, value: &str) -> gtk4::Box {
     let form = gtk4::Box::builder()
@@ -205,7 +214,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>) {
         }
     );
 
-    let (tx, rx) = async_channel::bounded(1);
+    let (tx, rx) = async_channel::bounded::<Arc<anyhow::Result<ConnectionStatus>>>(1);
 
     glib::spawn_future_local(async move {
         while let Ok(status) = rx.recv().await {
@@ -217,14 +226,13 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>) {
 
     tokio::spawn(async move {
         let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
-        let mut old_status = String::new();
+        let mut old_status = Arc::new(Ok(ConnectionStatus::Disconnected));
         loop {
             let params = ConnectionProfilesStore::instance().get_connected();
             let new_status = controller.command(ServiceCommand::Status, params).await;
-            let status_str = format!("{new_status:?}");
-            if old_status != status_str {
-                old_status = status_str;
-                if tx.send(new_status).await.is_err() {
+            if !same_status(&new_status, &old_status) {
+                old_status = Arc::new(new_status);
+                if tx.send(old_status.clone()).await.is_err() {
                     break;
                 }
             }

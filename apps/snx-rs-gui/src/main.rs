@@ -248,18 +248,18 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
     );
 
     let mut first_run = true;
-    let mut old_status = String::new();
+    let mut old_status = Arc::new(Ok(ConnectionStatus::Disconnected));
 
     loop {
         let params = ConnectionProfilesStore::instance().get_connected();
         let status = controller.command(ServiceCommand::Status, params.clone()).await;
-        let status_str = format!("{status:?}");
 
-        if status_str != old_status {
-            old_status = status_str;
+        if !status::same_status(&status, &old_status) {
             let is_disconnected = matches!(status, Ok(ConnectionStatus::Disconnected));
 
-            let _ = command_sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
+            old_status = Arc::new(status);
+
+            let _ = command_sender.send(TrayCommand::Update(Some(old_status.clone()))).await;
 
             if first_run {
                 first_run = false;
