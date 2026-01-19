@@ -5,8 +5,13 @@ use i18n::tr;
 use num_traits::Num;
 use pest::{Parser, iterators::Pairs};
 use pest_derive::Parser;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::{Serialize, de::DeserializeOwned};
+
+mod de;
+mod error;
+mod ser;
+
+pub use error::Error;
 
 type RulePairs<'a> = Pairs<'a, Rule>;
 
@@ -27,11 +32,14 @@ impl SExpression {
         self.as_object().and_then(|(n, _)| n.as_deref())
     }
 
-    pub fn try_into<D>(self) -> anyhow::Result<D>
-    where
-        for<'a> D: Deserialize<'a>,
-    {
-        Ok(serde_json::from_value(self.to_json())?)
+    /// Serialize a value directly to SExpression
+    pub fn from_serialize<T: Serialize>(value: &T) -> Result<Self, Error> {
+        ser::Serializer::serialize(value)
+    }
+
+    /// Deserialize from SExpression directly to a type
+    pub fn try_into<D: DeserializeOwned>(self) -> anyhow::Result<D> {
+        de::Deserializer::deserialize(&self).map_err(Into::into)
     }
 
     pub fn get(&self, path: &str) -> Option<&SExpression> {
@@ -127,55 +135,19 @@ impl SExpression {
 
         format!("(\n{formatted_items})")
     }
-
-    pub fn to_json(&self) -> Value {
-        match self {
-            Self::Null => Value::Null,
-            Self::Value(v) => to_json_value(v),
-            Self::Object(name, fields) => to_json_object(name.as_deref(), fields),
-            SExpression::Array(elements) => Value::Array(elements.iter().map(|v| v.to_json()).collect()),
-        }
-    }
-
-    fn from_json(json: Value) -> Self {
-        match json {
-            Value::Null => Self::Null,
-            Value::Bool(v) => Self::Value(v.to_string()),
-            Value::Number(v) => Self::Value(v.to_string()),
-            Value::String(v) => Self::Value(v.to_string()),
-            Value::Array(v) => Self::Array(v.into_iter().map(Self::from_json).collect()),
-            Value::Object(v) => match v.iter().next() {
-                Some((key, value)) if key.starts_with('(') => Self::Object(
-                    Some(key[1..].to_string()),
-                    value
-                        .as_object()
-                        .cloned()
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(|(k, v)| (k.to_string(), Self::from_json(v.clone())))
-                        .collect(),
-                ),
-                _ => Self::Object(None, v.into_iter().map(|(k, v)| (k, Self::from_json(v))).collect()),
-            },
-        }
-    }
 }
 
 impl<T: Serialize> From<T> for SExpression {
     fn from(value: T) -> Self {
-        let json = serde_json::to_value(value).unwrap_or_default();
-        Self::from_json(json)
+        Self::from_serialize(&value).unwrap_or(SExpression::Null)
     }
 }
 
-impl<T> TryFrom<SExpression> for (T,)
-where
-    for<'a> T: Deserialize<'a>,
-{
+impl<T: DeserializeOwned> TryFrom<SExpression> for (T,) {
     type Error = anyhow::Error;
 
     fn try_from(value: SExpression) -> Result<Self, Self::Error> {
-        Ok(serde_json::from_value(value.to_json())?)
+        Ok((value.try_into()?,))
     }
 }
 
@@ -194,41 +166,11 @@ impl fmt::Display for SExpression {
     }
 }
 
-fn to_json_value(v: &str) -> Value {
-    if let Ok(i) = v.parse::<u32>() {
-        Value::Number(i.into())
-    } else if v.starts_with("0x") {
-        if let Ok(h) = u32::from_str_radix(v.trim_start_matches("0x"), 16) {
-            Value::Number(h.into())
-        } else {
-            Value::String(v.to_string())
-        }
-    } else if let Ok(b) = v.parse::<bool>() {
-        Value::Bool(b)
-    } else {
-        Value::String(v.to_string())
-    }
-}
-
 fn format_value(value: &str) -> String {
     if value.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
         format!("(\"{value}\")")
     } else {
         format!("({value})")
-    }
-}
-
-fn to_json_object<N: AsRef<str>, K: AsRef<str>>(name: Option<N>, fields: &BTreeMap<K, SExpression>) -> Value {
-    let inner = Value::Object(
-        fields
-            .iter()
-            .map(|(k, v)| (k.as_ref().to_string(), v.to_json()))
-            .collect(),
-    );
-    if let Some(name) = name {
-        Value::Object([(format!("({}", name.as_ref()), inner)].into_iter().collect())
-    } else {
-        inner
     }
 }
 
@@ -298,6 +240,7 @@ fn parse_value(mut pairs: RulePairs) -> anyhow::Result<SExpression> {
 mod tests {
     use super::*;
     use crate::model::proto::{CccClientRequest, CccClientRequestData, RequestData, RequestHeader, SignOutRequest};
+    use serde::Deserialize;
 
     #[test]
     fn test_parse_client_hello() {
@@ -336,12 +279,6 @@ mod tests {
                 ])
             ))
         );
-
-        let json = expr.to_json();
-        println!("{json:#?}");
-
-        let from_json = SExpression::from_json(json);
-        assert_eq!(from_json, expr);
     }
 
     #[test]
