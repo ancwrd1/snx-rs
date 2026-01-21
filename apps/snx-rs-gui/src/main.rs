@@ -110,7 +110,22 @@ async fn main() -> anyhow::Result<()> {
         warn!("Failed to start IPC listener: {}", e);
     }
 
-    let mut my_tray = tray::AppTray::new(tray_event_sender.clone()).await?;
+    let mut retry_count = 5;
+
+    let mut my_tray = loop {
+        match tray::AppTray::new(tray_event_sender.clone()).await {
+            Ok(tray) => break tray,
+            Err(e) => {
+                if retry_count == 0 {
+                    anyhow::bail!("Failed to create tray: {}", e);
+                } else {
+                    warn!("Failed to create tray: {}, retrying in 2 seconds", e);
+                    retry_count -= 1;
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                }
+            }
+        }
+    };
 
     let tray_command_sender = my_tray.sender();
 
