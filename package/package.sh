@@ -53,7 +53,7 @@ create_deb() {
     esac
     echo "Packaging .deb for $1"
 
-    name="snx-rs-${version}-linux-$1"
+    name="snx-rs-${version}${suffix}-linux-$1"
     tmpdir="$(mktemp -d)"
     debian="$tmpdir/debian/DEBIAN"
 
@@ -84,7 +84,7 @@ create_deb() {
 create_rpm() {
     echo "Packaging .rpm for $1"
 
-    name="snx-rs-${version}-linux-$1"
+    name="snx-rs-${version}${suffix}-linux-$1"
     tmpdir="$(mktemp -d)"
     rpm="$tmpdir/rpm"
 
@@ -124,7 +124,5 @@ create_rpm() {
 }
 
 create_run "$arch"
-if [[ -n "$suffix" ]]; then
-  create_deb "$arch"
-  create_rpm "$arch"
-fi
+create_deb "$arch"
+create_rpm "$arch"

@@ -10,7 +10,56 @@ permissions:
   contents: write
 
 jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm64
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev makeself libwebkitgtk-6.0-dev rpm fakeroot
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+
+      - name: Build project
+        run: |
+          chmod +x package/build-lto.sh
+          ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite
+
+      - name: Package project
+        run: |
+          chmod +x package/package.sh
+          ./package/package.sh
+
+#      - name: Build project with mobile-access feature
+#        run: ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite,mobile-access
+#
+#      - name: Package project with mobile-access feature
+#        run: ./package/package.sh -webkit
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.arch }}
+          path: target/snx-rs-*
+
   release:
+    needs: build
     runs-on: ubuntu-22.04
 
     steps:
@@ -43,31 +92,11 @@ jobs:
           echo "tag_name=$TAG_NAME" >> $GITHUB_ENV
           echo "version_name=$VERSION_NAME" >> $GITHUB_ENV
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev makeself libwebkitgtk-6.0-dev rpm fakeroot
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source $HOME/.cargo/env
-
-      - name: Build project
-        run: |
-          chmod +x package/build-lto.sh
-          ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite
-
-      - name: Package project
-        run: |
-          chmod +x package/package.sh
-          ./package/package.sh
-
-      - name: Build project with mobile-access feature
-        run: ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite,mobile-access
-
-      - name: Package project with mobile-access feature
-        run: ./package/package.sh -webkit
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
 
       - name: Create Release
         uses: actions/github-script@v7
@@ -79,8 +108,9 @@ jobs:
             const versionName = process.env.version_name;
             const releaseNotes = process.env.release_notes;
             const extensions = ["tar.xz", "run", "deb", "rpm"];
-            const suffixes = ["", "-webkit"];
-            
+            const suffixes = [""];
+            const architectures = ["x86_64", "arm64"];
+
             const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -91,20 +121,20 @@ jobs:
               prerelease: false
             });
 
-            for (const suffix of suffixes) {
-              for (const extension of extensions) {
-                if ((extension === "deb" || extension === "rpm") && suffix === "-webkit") continue;
-            
-                const artifactName = `snx-rs-${tagName}${suffix}-linux-x86_64.${extension}`;
-                const artifactPath = `target/${artifactName}`;
-                const artifact = fs.readFileSync(artifactPath);
-                await github.rest.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: release.data.id,
-                  name: artifactName,
-                  data: artifact
-                });
+            for (const arch of architectures) {
+              for (const suffix of suffixes) {
+                for (const extension of extensions) {
+                  const artifactName = `snx-rs-${tagName}${suffix}-linux-${arch}.${extension}`;
+                  const artifactPath = `artifacts/${artifactName}`;
+                  const artifact = fs.readFileSync(artifactPath);
+                  await github.rest.repos.uploadReleaseAsset({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    release_id: release.data.id,
+                    name: artifactName,
+                    data: artifact
+                  });
+                }
               }
             }
 
