@@ -9,7 +9,6 @@ BuildArch:      {{arch}}
 
 Requires:       glibc >= 2.35
 Requires:       libgtk-4.so.1()(64bit)
-Requires:       libwebkitgtk-6.0.so.4()(64bit)
 
 %description
 Unofficial Linux client for Check Point VPN, written in Rust.
