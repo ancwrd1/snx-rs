@@ -10,11 +10,20 @@ arch="$(uname -m)"
 apps="snx-rs snxctl snx-rs-gui"
 assets="snx-rs.service snx-rs-gui.desktop install.sh"
 
-create_run() {
-    echo "Packaging .run for $1"
+case $arch in
+    aarch64)
+      build_arch=arm64
+      ;;
+    *)
+      build_arch=$arch
+      ;;
+esac
 
-    name="snx-rs-${version}${suffix}-linux-$1"
-    triple="$1-unknown-linux-gnu"
+create_run() {
+    echo "Packaging .run for $build_arch"
+
+    name="snx-rs-${version}${suffix}-linux-$build_arch"
+    triple="$arch-unknown-linux-gnu"
 
     if [ ! -f "$target/$triple/lto/snx-rs" ]; then
         return
@@ -40,18 +49,18 @@ create_run() {
 }
 
 create_deb() {
-    echo "Packaging .deb for $1"
+    echo "Packaging .deb for $build_arch"
 
-    case $1 in
+    case $build_arch in
       x86_64)
         deb_arch=amd64
         ;;
       *)
-        deb_arch=$1
+        deb_arch=$build_arch
         ;;
     esac
 
-    name="snx-rs-${version}${suffix}-linux-$1"
+    name="snx-rs-${version}${suffix}-linux-$build_arch"
     tmpdir="$(mktemp -d)"
     debian="$tmpdir/debian/DEBIAN"
 
@@ -80,9 +89,9 @@ create_deb() {
 }
 
 create_rpm() {
-    echo "Packaging .rpm for $1"
+    echo "Packaging .rpm for $build_arch"
 
-    name="snx-rs-${version}${suffix}-linux-$1"
+    name="snx-rs-${version}${suffix}-linux-$build_arch"
     tmpdir="$(mktemp -d)"
     rpm="$tmpdir/rpm"
 
@@ -121,15 +130,6 @@ create_rpm() {
     rm -rf "$tmpdir"
 }
 
-case $arch in
-    aarch64)
-      build_arch=arm64
-      ;;
-    *)
-      build_arch=$arch
-      ;;
-esac
-
-create_run "$build_arch"
-create_deb "$build_arch"
-create_rpm "$build_arch"
+create_run
+create_deb
+create_rpm
