@@ -1,3 +1,8 @@
+## v5.0.3 (TBD)
+- Added Croatian localization.
+- Retry tray icon creation for 10 seconds, to mitigate autostart race condition on some systems.
+- Webkit/mobile-access is disabled by default in the CI release build, to minimize system dependencies.
+
 ## v5.0.2 (2026-01-12)
 - Added `--mfa-code` command line option to specify the MFA code manually, typically a TOTP code, to be used in the scripts.
 - Use `PasswordEntry` UI element for the password input which also shows the unhide button.
