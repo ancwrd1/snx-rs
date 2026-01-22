@@ -40,10 +40,9 @@ create_run() {
 }
 
 create_deb() {
+    echo "Packaging .deb for $1"
+
     case $1 in
-      aarch64)
-        deb_arch=arm64
-        ;;
       x86_64)
         deb_arch=amd64
         ;;
@@ -51,7 +50,6 @@ create_deb() {
         deb_arch=$1
         ;;
     esac
-    echo "Packaging .deb for $1"
 
     name="snx-rs-${version}${suffix}-linux-$1"
     tmpdir="$(mktemp -d)"
@@ -97,7 +95,7 @@ create_rpm() {
     mkdir -p "$rpm/SRPMS"
     mkdir -p "$rpm/BUILDROOT"
 
-    sed "s/{{version}}/$rpm_version/;s/{{arch}}/$1/" "$basedir/package/rpm/package.spec.in" > "$rpm/SPECS/package.spec"
+    sed "s/{{version}}/$rpm_version/;s/{{arch}}/$arch/" "$basedir/package/rpm/package.spec.in" > "$rpm/SPECS/package.spec"
 
     mkdir -p "$RPM_BUILDROOT/usr/bin"
     mkdir -p "$RPM_BUILDROOT/etc/systemd/system"
@@ -123,6 +121,15 @@ create_rpm() {
     rm -rf "$tmpdir"
 }
 
-create_run "$arch"
-create_deb "$arch"
-create_rpm "$arch"
+case $arch in
+    aarch64)
+      build_arch=arm64
+      ;;
+    *)
+      build_arch=$arch
+      ;;
+esac
+
+create_run "$build_arch"
+create_deb "$build_arch"
+create_rpm "$build_arch"
