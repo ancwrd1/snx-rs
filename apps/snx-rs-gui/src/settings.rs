@@ -6,6 +6,7 @@ use gtk4::{
     prelude::*,
 };
 use itertools::Itertools;
+use secrecy::ExposeSecret;
 use snxcore::{
     model::{
         params::{CertType, DEFAULT_PROFILE_UUID, IconTheme, TransportType, TunnelParams, TunnelType},
@@ -160,7 +161,7 @@ impl MyWidgets {
         self.auth_type.set_active_id(Some(&params.login_type));
         self.tunnel_type.set_active_id(Some(params.tunnel_type.as_str()));
         self.username.set_text(&params.user_name);
-        self.password.set_text(&params.password);
+        self.password.set_text(params.password.expose_secret());
         self.password_factor.set_text(&params.password_factor.to_string());
         self.no_dns.set_active(params.no_dns);
         self.search_domains.set_text(&params.search_domains.join(","));
@@ -186,8 +187,13 @@ impl MyWidgets {
                 .map(|path| path.display().to_string())
                 .unwrap_or_default(),
         );
-        self.cert_password
-            .set_text(params.cert_password.as_deref().unwrap_or_default());
+        self.cert_password.set_text(
+            params
+                .cert_password
+                .as_ref()
+                .map(|s| s.expose_secret())
+                .unwrap_or_default(),
+        );
         self.cert_id.set_text(params.cert_id.as_deref().unwrap_or_default());
         self.ca_cert
             .set_text(&params.ca_cert.iter().map(|path| path.display().to_string()).join(","));
@@ -685,7 +691,7 @@ impl SettingsDialog {
             _ => TunnelType::Ssl,
         };
         params.user_name = self.widgets.username.text().into();
-        params.password = self.widgets.password.text().into();
+        params.password = self.widgets.password.text().to_string().into();
         params.password_factor = self.widgets.password_factor.text().parse()?;
         params.no_dns = self.widgets.no_dns.is_active();
         params.set_routing_domains = self.widgets.set_routing_domains.is_active();
@@ -744,7 +750,11 @@ impl SettingsDialog {
         };
         params.cert_password = {
             let text = self.widgets.cert_password.text();
-            if text.is_empty() { None } else { Some(text.into()) }
+            if text.is_empty() {
+                None
+            } else {
+                Some(text.to_string().into())
+            }
         };
         params.cert_id = {
             let text = self.widgets.cert_id.text();

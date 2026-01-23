@@ -238,7 +238,7 @@ impl CmdlineParams {
         }
 
         if let Some(password) = self.password {
-            other.password = password;
+            other.password = password.into();
             let _ = other.decode_password();
         }
 
@@ -315,7 +315,7 @@ impl CmdlineParams {
         }
 
         if let Some(cert_password) = self.cert_password {
-            other.cert_password = Some(cert_password);
+            other.cert_password = Some(cert_password.into());
         }
 
         if let Some(cert_id) = self.cert_id {

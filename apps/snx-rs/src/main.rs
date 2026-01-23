@@ -3,6 +3,7 @@ use std::{future::Future, sync::Arc};
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
+use secrecy::ExposeSecret;
 use snxcore::{
     ccc::CccHttpClient,
     model::{
@@ -165,8 +166,8 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     .pop_front()
                     .unwrap_or_else(|| PromptInfo::new("", &challenge.prompt));
 
-                let input = if !params.password.is_empty() && mfa_index == params.password_factor {
-                    Ok(params.password.clone())
+                let input = if !params.password.expose_secret().is_empty() && mfa_index == params.password_factor {
+                    Ok(params.password.expose_secret().to_owned())
                 } else if let Some(ref mfa_code) = params.mfa_code
                     && mfa_index != params.password_factor
                 {
