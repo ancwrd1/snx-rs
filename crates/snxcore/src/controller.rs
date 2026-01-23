@@ -4,6 +4,7 @@ use anyhow::{Context, anyhow};
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
 use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Stream};
+use secrecy::{ExposeSecret, SecretString};
 use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::warn;
 
@@ -52,7 +53,7 @@ impl FromStr for ServiceCommand {
 pub struct ServiceController<B, P> {
     prompt: P,
     mfa_prompts: Option<VecDeque<PromptInfo>>,
-    password_from_keychain: String,
+    password_from_keychain: SecretString,
     username: String,
     mfa_index: usize,
     browser_controller: B,
@@ -69,7 +70,7 @@ where
         Self {
             prompt,
             mfa_prompts: None,
-            password_from_keychain: String::new(),
+            password_from_keychain: SecretString::default(),
             username: String::new(),
             mfa_index: 0,
             browser_controller,
@@ -166,10 +167,12 @@ where
                     .and_then(|p| p.pop_front())
                     .unwrap_or_else(|| PromptInfo::new("", &mfa.prompt));
 
-                if !params.password.is_empty() && self.mfa_index == params.password_factor {
-                    Ok(params.password.clone())
-                } else if !self.password_from_keychain.is_empty() && self.mfa_index == params.password_factor {
-                    Ok(self.password_from_keychain.clone())
+                if !params.password.expose_secret().is_empty() && self.mfa_index == params.password_factor {
+                    Ok(params.password.expose_secret().to_owned())
+                } else if !self.password_from_keychain.expose_secret().is_empty()
+                    && self.mfa_index == params.password_factor
+                {
+                    Ok(self.password_from_keychain.expose_secret().to_owned())
                 } else {
                     let input = self.prompt.get_secure_input(prompt).await?;
                     Ok(input)
@@ -220,10 +223,10 @@ where
 
                 if !self.username.is_empty()
                     && !params.no_keychain
-                    && params.password.is_empty()
+                    && params.password.expose_secret().is_empty()
                     && let Ok(password) = Platform::get().new_keychain().acquire_password(&self.username).await
                 {
-                    self.password_from_keychain = password;
+                    self.password_from_keychain = password.into();
                 }
 
                 Ok(input)
@@ -242,10 +245,10 @@ where
 
         if !params.user_name.is_empty()
             && !params.no_keychain
-            && params.password.is_empty()
+            && params.password.expose_secret().is_empty()
             && let Ok(password) = Platform::get().new_keychain().acquire_password(&params.user_name).await
         {
-            self.password_from_keychain = password;
+            self.password_from_keychain = password.into();
         }
 
         self.fill_mfa_prompts(params.clone()).await;

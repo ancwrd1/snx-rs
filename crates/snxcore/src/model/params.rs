@@ -13,11 +13,45 @@ use base64::Engine;
 use directories_next::ProjectDirs;
 use i18n::tr;
 use ipnet::Ipv4Net;
-use serde::{Deserialize, Serialize};
+use secrecy::{ExposeSecret, SecretString};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::warn;
 use uuid::Uuid;
 
 use crate::util::{self, ipv4net_to_string, parse_ipv4_or_subnet};
+
+fn serialize_secret_string<S>(secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(secret.expose_secret())
+}
+
+fn deserialize_secret_string<'de, D>(deserializer: D) -> Result<SecretString, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(s.into())
+}
+
+fn serialize_option_secret_string<S>(secret: &Option<SecretString>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match secret {
+        Some(s) => serializer.serialize_some(s.expose_secret()),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_secret_string<'de, D>(deserializer: D) -> Result<Option<SecretString>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+    Ok(opt.map(|s| s.into()))
+}
 
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
 
@@ -265,13 +299,17 @@ impl From<u32> for TransportType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelParams {
     pub profile_name: String,
     pub profile_id: Uuid,
     pub server_name: String,
     pub user_name: String,
-    pub password: String,
+    #[serde(
+        serialize_with = "serialize_secret_string",
+        deserialize_with = "deserialize_secret_string"
+    )]
+    pub password: SecretString,
     pub password_factor: usize,
     pub log_level: String,
     pub search_domains: Vec<String>,
@@ -289,7 +327,11 @@ pub struct TunnelParams {
     pub login_type: String,
     pub cert_type: CertType,
     pub cert_path: Option<PathBuf>,
-    pub cert_password: Option<String>,
+    #[serde(
+        serialize_with = "serialize_option_secret_string",
+        deserialize_with = "deserialize_option_secret_string"
+    )]
+    pub cert_password: Option<SecretString>,
     pub cert_id: Option<String>,
     pub if_name: Option<String>,
     pub no_keychain: bool,
@@ -319,7 +361,7 @@ impl Default for TunnelParams {
             profile_id: DEFAULT_PROFILE_UUID,
             server_name: String::new(),
             user_name: String::new(),
-            password: String::new(),
+            password: SecretString::default(),
             password_factor: 1,
             log_level: "off".to_owned(),
             search_domains: Vec::new(),
@@ -360,6 +402,53 @@ impl Default for TunnelParams {
     }
 }
 
+impl PartialEq for TunnelParams {
+    fn eq(&self, other: &Self) -> bool {
+        self.profile_name == other.profile_name
+            && self.profile_id == other.profile_id
+            && self.server_name == other.server_name
+            && self.user_name == other.user_name
+            && self.password.expose_secret() == other.password.expose_secret()
+            && self.password_factor == other.password_factor
+            && self.log_level == other.log_level
+            && self.search_domains == other.search_domains
+            && self.ignore_search_domains == other.ignore_search_domains
+            && self.dns_servers == other.dns_servers
+            && self.ignore_dns_servers == other.ignore_dns_servers
+            && self.default_route == other.default_route
+            && self.no_routing == other.no_routing
+            && self.add_routes == other.add_routes
+            && self.ignore_routes == other.ignore_routes
+            && self.no_dns == other.no_dns
+            && self.ignore_server_cert == other.ignore_server_cert
+            && self.tunnel_type == other.tunnel_type
+            && self.ca_cert == other.ca_cert
+            && self.login_type == other.login_type
+            && self.cert_type == other.cert_type
+            && self.cert_path == other.cert_path
+            && self.cert_password.as_ref().map(|s| s.expose_secret())
+                == other.cert_password.as_ref().map(|s| s.expose_secret())
+            && self.cert_id == other.cert_id
+            && self.if_name == other.if_name
+            && self.no_keychain == other.no_keychain
+            && self.ike_lifetime == other.ike_lifetime
+            && self.ike_persist == other.ike_persist
+            && self.client_mode == other.client_mode
+            && self.no_keepalive == other.no_keepalive
+            && self.icon_theme == other.icon_theme
+            && self.set_routing_domains == other.set_routing_domains
+            && self.port_knock == other.port_knock
+            && self.locale == other.locale
+            && self.auto_connect == other.auto_connect
+            && self.ip_lease_time == other.ip_lease_time
+            && self.disable_ipv6 == other.disable_ipv6
+            && self.mtu == other.mtu
+            && self.transport_type == other.transport_type
+            && self.mfa_code == other.mfa_code
+            && self.config_file == other.config_file
+    }
+}
+
 impl TunnelParams {
     pub const IPSEC_KEEPALIVE_PORT: u16 = 18234;
     pub const DEFAULT_IPSEC_IF_NAME: &'static str = "snx-xfrm";
@@ -376,7 +465,7 @@ impl TunnelParams {
                 "profile-id" => params.profile_id = v.parse().unwrap_or_default(),
                 "server-name" => params.server_name = v,
                 "user-name" => params.user_name = v,
-                "password" => params.password = v,
+                "password" => params.password = v.into(),
                 "password-factor" => params.password_factor = v.parse().unwrap_or(1),
                 "log-level" => params.log_level = v,
                 "search-domains" => params.search_domains = v.split(',').map(|s| s.trim().to_owned()).collect(),
@@ -400,7 +489,7 @@ impl TunnelParams {
                 "login-type" => params.login_type = v,
                 "cert-type" => params.cert_type = v.parse().unwrap_or_default(),
                 "cert-path" => params.cert_path = Some(v.into()),
-                "cert-password" => params.cert_password = Some(v),
+                "cert-password" => params.cert_password = Some(v.into()),
                 "cert-id" => params.cert_id = Some(v),
                 "if-name" => params.if_name = Some(v),
                 "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
@@ -445,7 +534,7 @@ impl TunnelParams {
         writeln!(
             buf,
             "password={}",
-            base64::engine::general_purpose::STANDARD.encode(&self.password)
+            base64::engine::general_purpose::STANDARD.encode(self.password.expose_secret())
         )?;
         writeln!(buf, "password-factor={}", self.password_factor)?;
         writeln!(buf, "search-domains={}", self.search_domains.join(","))?;
@@ -506,7 +595,7 @@ impl TunnelParams {
             writeln!(buf, "cert-path={}", cert_path.display())?;
         }
         if let Some(ref cert_password) = self.cert_password {
-            writeln!(buf, "cert-password={cert_password}")?;
+            writeln!(buf, "cert-password={}", cert_password.expose_secret())?;
         }
         if let Some(ref cert_id) = self.cert_id {
             writeln!(buf, "cert-id={cert_id}")?;
@@ -547,9 +636,12 @@ impl TunnelParams {
     }
 
     pub fn decode_password(&mut self) -> anyhow::Result<()> {
-        if !self.password.is_empty() {
-            self.password = String::from_utf8_lossy(&base64::engine::general_purpose::STANDARD.decode(&self.password)?)
-                .into_owned();
+        if !self.password.expose_secret().is_empty() {
+            let decoded = String::from_utf8_lossy(
+                &base64::engine::general_purpose::STANDARD.decode(self.password.expose_secret())?,
+            )
+            .into_owned();
+            self.password = SecretString::from(decoded);
         }
         Ok(())
     }
@@ -603,7 +695,7 @@ mod tests {
             profile_id: Uuid::new_v4(),
             server_name: "foo".to_string(),
             user_name: "bar".to_string(),
-            password: "password".to_string(),
+            password: "password".into(),
             password_factor: 1,
             log_level: "debug".to_string(),
             search_domains: vec!["dom1".to_owned(), "dom2".to_owned()],
@@ -621,7 +713,7 @@ mod tests {
             login_type: "vpn_test".to_string(),
             cert_type: CertType::Pkcs8,
             cert_path: Some(PathBuf::from("cert.pem")),
-            cert_password: Some("password".to_string()),
+            cert_password: Some("password".into()),
             cert_id: Some("id".to_string()),
             if_name: Some("ifname".to_string()),
             no_keychain: true,

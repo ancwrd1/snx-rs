@@ -17,6 +17,7 @@ use isakmp::{
     session::{IsakmpSession, OfficeMode, SessionType},
     transport::{TcptDataType, TcptTransport},
 };
+use secrecy::ExposeSecret;
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
@@ -591,7 +592,7 @@ impl IpsecTunnelConnector {
             CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
                 (Some(path), Some(password)) => Identity::Pkcs12 {
                     data: std::fs::read(path)?,
-                    password: password.clone(),
+                    password: password.expose_secret().to_owned(),
                 },
                 _ => anyhow::bail!(tr!("error-no-pkcs12")),
             },
@@ -602,7 +603,7 @@ impl IpsecTunnelConnector {
             CertType::Pkcs11 => match params.cert_password {
                 Some(ref pin) => Identity::Pkcs11 {
                     driver_path: params.cert_path.clone().unwrap_or_else(|| "opensc-pkcs11.so".into()),
-                    pin: pin.clone(),
+                    pin: pin.expose_secret().to_owned(),
                     key_id: params
                         .cert_id
                         .as_ref()

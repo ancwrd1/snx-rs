@@ -9,6 +9,7 @@ use std::{
 use anyhow::anyhow;
 use i18n::tr;
 use reqwest::{Certificate, Identity};
+use secrecy::ExposeSecret;
 use tracing::{trace, warn};
 
 use crate::{
@@ -159,7 +160,11 @@ impl CccHttpClient {
                 CertType::Pkcs8 => Some(Identity::from_pkcs8_pem(&data, &data)?),
                 CertType::Pkcs12 => Some(Identity::from_pkcs12_der(
                     &data,
-                    self.params.cert_password.as_deref().unwrap_or_default(),
+                    self.params
+                        .cert_password
+                        .as_ref()
+                        .map(|s| s.expose_secret())
+                        .unwrap_or_default(),
                 )?),
                 _ => None,
             };
