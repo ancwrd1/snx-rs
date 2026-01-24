@@ -1,9 +1,9 @@
 ## v5.0.3 (TBD)
 - Added Croatian localization.
-- Retry tray icon creation for 10 seconds, to mitigate autostart race condition on some systems.
-- Webkit/mobile-access is disabled by default in the CI release build, to minimize system dependencies.
+- Retry tray icon creation for 10 seconds to mitigate autostart race condition on some systems.
+- Webkit/mobile-access is disabled by default in the CI release build to minimize system dependencies.
 - Added ARM64 builds to the CI release pipeline.
-- Internal: use `secrecy` crate for secure password handling
+- Internal: use `secrecy` crate for secure password handling.
 
 ## v5.0.2 (2026-01-12)
 - Added `--mfa-code` command line option to specify the MFA code manually, typically a TOTP code, to be used in the scripts.
@@ -46,7 +46,7 @@
 - Added `transport-type` option to specify the IPSec transport type explicitly.
 - Added WSL2 environment detection where the xfrm interface does not work.
 - Fixed compilation for 32-bit targets (ARMv6/ARMv7).
-- Fixed a problem with incorrectly constructed routes for some VPN servers which advertise routing policy as 0.0.0.1-255.255.255.254.
+- Fixed a problem with incorrectly constructed routes for some VPN servers that advertise routing policy as 0.0.0.1-255.255.255.254.
 - Improved browser OTP listener.
 - Added a logic to try to keep the same IP address during IP renewal. Might not work for all users, please report any issues.
 
@@ -155,7 +155,7 @@
 - Added `password-factor=N` option to determine which authentication factor is the password. Default is 1 (first).
 - Added `set-routing-domains=true|false` option to treat the received search domains as [routing domains](https://systemd.io/RESOLVED-VPNS/).
 - Return non-zero exit code from snxctl when an error is encountered.
-- Extended "-m info" to show list of factors per login type
+- Extended "-m info" to show a list of factors per login type
 
 ## v3.0.6 (2025-02-16)
 - Improved authentication prompts by displaying a header retrieved from the VPN server
@@ -172,7 +172,7 @@
 - Delete persistent IKE session if the tunnel cannot be created.
 
 ## v3.0.3 (2025-02-05)
-- Only do a sign out call when manually disconnecting an IPSec tunnel
+- Only do a sign-out call when manually disconnecting an IPSec tunnel
 
 ## v3.0.2 (2025-02-04)
 - Fixed a problem with a persistent IKE session which wasn't restored for some VPN servers
@@ -196,7 +196,7 @@
 - Added the "Apply" button in the settings dialog (validate and save settings without closing the dialog).
 
 ## v2.8.2 (2024-12-13)
-- Removed a superfluous title from the system tray icon (visible on some desktop environments).
+- Removed a superfluous title from the system tray icon (visible in some desktop environments).
 - Fixed a problem with the invalid MFA prompt shown when password is stored in the keychain and `server-prompt` option is enabled.
 - Fixed a problem with the incorrect resolver detection when /etc/resolv.conf is a multi-level symlink.
 
@@ -221,7 +221,7 @@
 - When attempting to connect, don't return an error if the tunnel is already connected.
 
 ## v2.5.0 (2024-09-13)
-- Added experimental `ike-persist` option which will save IPSec session to disk, restore it after service or computer restart and automatically reconnect the tunnel without authentication. It works best in combination with the `ike-lifetime` option. For example, setting `ike-lifetime` to 604800 will keep the session for 7 days. Note that most IPSec servers have shorter IKE duration configured, so it may be terminated earlier. This option is also added to the GUI application under "Misc settings" category. Automatic reconnection will happen when running in the standalone mode, when GUI application starts or when `snxctl` sends the "connect" command.
+- Added experimental `ike-persist` option which will save IPSec session to disk, restore it after service or computer restart and automatically reconnect the tunnel without authentication. It works best in combination with the `ike-lifetime` option. For example, setting `ike-lifetime` to 604800 will keep the session for 7 days. Note that most IPSec servers have shorter IKE duration configured, so it may be terminated earlier. This option is also added to the GUI application under the "Misc settings" category. Automatic reconnection will happen when running in the standalone mode, when GUI application starts or when `snxctl` sends the "connect" command.
 - Fixed some issues with added routes.
 - Fixed a problem with SSL connection when the username is not specified.
 

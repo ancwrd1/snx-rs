@@ -36,7 +36,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * `systemd-resolved` is highly recommended as a global DNS resolver, to avoid sending all DNS traffic to the corporate VPN servers.
 * GTK 4.0+ for the UI frontend.
 * Optional: WebKit 6.0+ for the `mobile-access` feature.
-* GNOME desktop: [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. Not needed on Ubuntu.
+* GNOME desktop: [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. Not needed for Ubuntu.
 
 <!-- TOC --><a name="installation"></a>
 ## Installation
