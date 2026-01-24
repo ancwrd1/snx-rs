@@ -40,9 +40,9 @@ use crate::{
     util,
 };
 
+const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 const ESP_LIFETIME_LEEWAY: Duration = Duration::from_secs(60);
 const ADDRESS_LIFETIME_LEEWAY: Duration = Duration::from_secs(300);
-const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 
 const SESSIONS_PATH: &str = "/var/cache/snx-rs/ike-sessions.db";
 

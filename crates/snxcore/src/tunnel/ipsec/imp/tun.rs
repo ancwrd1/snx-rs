@@ -336,10 +336,11 @@ impl VpnTunnel for TunIpsecTunnel {
                         );
                         ready.store(false, Ordering::SeqCst);
 
-                        esp_codec_in
-                            .write()
-                            .unwrap()
-                            .add_params(session.esp_in.spi, session.esp_in.clone());
+                        esp_codec_in.write().unwrap().add_params(
+                            session.esp_in.spi,
+                            session.esp_in.clone(),
+                            session.lifetime,
+                        );
 
                         esp_codec_out
                             .write()
