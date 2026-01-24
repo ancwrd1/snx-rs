@@ -1694,7 +1694,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#7b1093de4c6c7c9b54fa8c3e985f00ab80832f81"
+source = "git+https://github.com/ancwrd1/isakmp.git#08377b64d2663c9235bdfbb27627dcd0035c1af5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1713,6 +1713,7 @@ dependencies = [
  "pnet_packet",
  "rand",
  "rmp-serde",
+ "secrecy",
  "serde",
  "tokio",
  "tokio-util",
