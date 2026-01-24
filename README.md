@@ -33,8 +33,10 @@ This project contains the source code for an unofficial Linux client for Check P
 ## System Requirements
 
 * A recent Linux distribution with kernel version 4.19 or higher.
-* GTK 4.0+ and WebKit 6.0+ (optional).
-* `systemd-resolved` is recommended as a global DNS resolver for the split DNS to work properly.
+* `systemd-resolved` is highly recommended as a global DNS resolver, to avoid sending all DNS traffic to the corporate VPN servers.
+* GTK 4.0+ for the UI frontend.
+* Optional: WebKit 6.0+ for the `mobile-access` feature.
+* GNOME desktop: [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. Not needed on Ubuntu.
 
 <!-- TOC --><a name="installation"></a>
 ## Installation
@@ -56,8 +58,6 @@ For Ubuntu/Debian, a DEB package is provided in the release assets. For RPM-base
 3. In the opened dialog, type the server address and press "Fetch info" to retrieve a list of supported login types.
 4. Select the login type and save settings. Username and password fields are optional.
 5. Click on the application tray icon and choose "Connect."
-
-**GNOME environment**: if the tray icon is not displayed, install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension.
 
 <!-- TOC --><a name="quick-start-guide-cli-standalone-mode"></a>
 ## Quick Start Guide (CLI, standalone mode)
