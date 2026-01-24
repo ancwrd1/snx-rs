@@ -2,6 +2,7 @@
 - Added Croatian localization.
 - Retry tray icon creation for 10 seconds, to mitigate autostart race condition on some systems.
 - Webkit/mobile-access is disabled by default in the CI release build, to minimize system dependencies.
+- Added ARM64 builds to the CI release pipeline.
 - Internal: use `secrecy` crate for secure password handling
 
 ## v5.0.2 (2026-01-12)
