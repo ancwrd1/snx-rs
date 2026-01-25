@@ -50,7 +50,7 @@ impl fmt::Debug for StringList {
     }
 }
 
-/// Encrypted string. 'Encryption' here is a simple xor operation.
+/// An obfuscated string which is used in CheckPoint VPN protocol to send and receive secrets.
 #[derive(Default, Clone, PartialEq)]
 pub struct ObfuscatedString(pub String);
 
