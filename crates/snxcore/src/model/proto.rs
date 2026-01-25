@@ -121,8 +121,8 @@ pub struct RequestHeader {
 pub struct AuthRequest {
     pub client_type: String,
     pub endpoint_os: Option<String>,
-    pub username: Option<EncryptedString>,
-    pub password: Option<EncryptedString>,
+    pub username: Option<ObfuscatedString>,
+    pub password: Option<ObfuscatedString>,
     pub client_logging_data: Option<ClientLoggingData>,
     #[serde(rename = "selectedLoginOption")]
     pub selected_login_option: Option<String>,
@@ -132,7 +132,7 @@ pub struct AuthRequest {
 pub struct MultiChallengeRequest {
     pub client_type: String,
     pub auth_session_id: String,
-    pub user_input: EncryptedString,
+    pub user_input: ObfuscatedString,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -204,15 +204,15 @@ pub enum ResponseData {
 pub struct AuthResponse {
     pub authn_status: String,
     pub is_authenticated: Option<bool>,
-    pub active_key: Option<EncryptedString>,
+    pub active_key: Option<ObfuscatedString>,
     pub server_fingerprint: Option<String>,
     pub server_cn: Option<String>,
     pub session_id: Option<String>,
     pub active_key_timeout: Option<u64>,
-    pub error_message: Option<EncryptedString>,
-    pub error_id: Option<EncryptedString>,
+    pub error_message: Option<ObfuscatedString>,
+    pub error_id: Option<ObfuscatedString>,
     pub error_code: Option<u32>,
-    pub prompt: Option<EncryptedString>,
+    pub prompt: Option<ObfuscatedString>,
     pub username: Option<String>,
 }
 

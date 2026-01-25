@@ -649,7 +649,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             .connectivity_info
             .internal_ca_fingerprint
             .into_values()
-            .flat_map(|fp| util::snx_decrypt(fp.as_bytes()).ok())
+            .flat_map(|fp| util::snx_deobfuscate(fp.as_bytes()).ok())
             .map(|v| String::from_utf8_lossy(&v).into_owned())
             .collect();
 

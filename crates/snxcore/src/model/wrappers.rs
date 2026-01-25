@@ -52,53 +52,53 @@ impl fmt::Debug for StringList {
 
 /// Encrypted string. 'Encryption' here is a simple xor operation.
 #[derive(Default, Clone, PartialEq)]
-pub struct EncryptedString(pub String);
+pub struct ObfuscatedString(pub String);
 
-impl Serialize for EncryptedString {
+impl Serialize for ObfuscatedString {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        crate::util::snx_encrypt(self.0.as_bytes()).serialize(serializer)
+        crate::util::snx_obfuscate(self.0.as_bytes()).serialize(serializer)
     }
 }
 
-impl<'de> Deserialize<'de> for EncryptedString {
+impl<'de> Deserialize<'de> for ObfuscatedString {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let decrypted = crate::util::snx_decrypt(s.as_bytes()).map_err(Error::custom)?;
+        let decrypted = crate::util::snx_deobfuscate(s.as_bytes()).map_err(Error::custom)?;
         Ok(Self(String::from_utf8_lossy(&decrypted).into_owned()))
     }
 }
 
-impl From<String> for EncryptedString {
+impl From<String> for ObfuscatedString {
     fn from(value: String) -> Self {
         Self(value)
     }
 }
 
-impl From<EncryptedString> for String {
-    fn from(value: EncryptedString) -> Self {
+impl From<ObfuscatedString> for String {
+    fn from(value: ObfuscatedString) -> Self {
         value.0
     }
 }
 
-impl<'a> From<&'a str> for EncryptedString {
+impl<'a> From<&'a str> for ObfuscatedString {
     fn from(value: &'a str) -> Self {
         Self(value.to_owned())
     }
 }
 
-impl fmt::Display for EncryptedString {
+impl fmt::Display for ObfuscatedString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "****")
     }
 }
 
-impl fmt::Debug for EncryptedString {
+impl fmt::Debug for ObfuscatedString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "****")
     }
@@ -192,17 +192,17 @@ mod tests {
     fn test_encrypted_string() {
         #[derive(Serialize, Deserialize, PartialEq, Debug)]
         struct Data {
-            field: EncryptedString,
+            field: ObfuscatedString,
         }
 
         let data = Data {
-            field: EncryptedString("foo".to_owned()),
+            field: ObfuscatedString("foo".to_owned()),
         };
 
         let serialized = serde_json::to_string(&data).unwrap();
         assert_eq!(
             serialized,
-            format!("{{\"field\":\"{}\"}}", crate::util::snx_encrypt("foo".as_bytes()))
+            format!("{{\"field\":\"{}\"}}", crate::util::snx_obfuscate("foo".as_bytes()))
         );
 
         let deserialized = serde_json::from_str::<Data>(&serialized).unwrap();
