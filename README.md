@@ -297,6 +297,7 @@ System requirements: same as the normal build + docker or podman.
 Static build instructions:
 
 * Install `cross-rs` with `cargo install cross`
+* Add `x86_64-unknown-linux-musl` target to the Rust compiler: `rustup target add x86_64-unknown-linux-musl`
 * Build a static snx-rs executable with `cross build --target=x86_64-unknown-linux-musl --features snxcore/vendored-openssl,snxcore/vendored-sqlite -p snx-rs --profile lto`
 
 <!-- TOC --><a name="docker-usage"></a>
