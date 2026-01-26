@@ -129,8 +129,6 @@ async fn main_command() -> anyhow::Result<()> {
 }
 
 async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
-    // TODO: reuse code from CommandServer and ServiceController
-
     let (command_sender, command_receiver) = mpsc::channel(16);
 
     if params.server_name.is_empty() || params.login_type.is_empty() {
