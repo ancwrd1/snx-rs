@@ -1,4 +1,5 @@
 ## v5.0.3 (TBD)
+- Better xfrm detection for custom monolithic kernels.
 - Added Croatian localization.
 - Retry tray icon creation for 10 seconds to mitigate autostart race condition on some systems.
 - Webkit/mobile-access is disabled by default in the CI release build to minimize system dependencies.
