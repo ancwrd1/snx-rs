@@ -159,6 +159,10 @@ fn is_wsl2() -> bool {
     })
 }
 
+async fn check_for_xfrm_state() -> bool {
+    util::run_command("ip", ["xfrm", "state", "count"]).await.is_ok()
+}
+
 #[cached]
 async fn is_xfrm_available() -> bool {
     if is_wsl2() {
@@ -166,9 +170,15 @@ async fn is_xfrm_available() -> bool {
         return false;
     }
 
-    let _ = util::run_command("modprobe", ["xfrm_interface"]).await;
-    let modules = tokio::fs::read_to_string("/proc/modules").await.unwrap_or_default();
-    let result = modules.lines().any(|line| line.starts_with("xfrm_"));
+    let result = if !check_for_xfrm_state().await {
+        debug!("Attempting to load xfrm_interface kernel module");
+        let _ = util::run_command("modprobe", ["xfrm_interface"])
+            .await
+            .inspect_err(|e| warn!("{e}"));
+        check_for_xfrm_state().await
+    } else {
+        true
+    };
 
     debug!("Kernel xfrm available: {}", result);
 
