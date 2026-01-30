@@ -229,7 +229,7 @@ Note that enabling the insecure option may compromise the channel security.
 
 The following parameters control certificate-based authentication:
 
-* `cert-type`: One of `none`, `pkcs12`, `pkcs8` or `pkcs11`. Choose `pkcs12` to read the certificate from an external PFX file. Choose `pkcs8` to read the certificate from an external PEM file (containing both private key and x509 cert). Choose `pkcs11` to use a hardware token via a PKCS11 driver.
+* `cert-type`: One of `none`, `pkcs12`, `pkcs8` or `pkcs11`. Choose `pkcs12` to read the certificate from an external PFX file. Choose `pkcs8` to read the certificate from an external PEM file (containing both private key and x509 cert). Private key must come first in this file. Choose `pkcs11` to use a hardware token via a PKCS11 driver.
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed.
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
 * `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of `xx:xx:xx` or `xxxxxx`.
