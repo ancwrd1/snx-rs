@@ -226,7 +226,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>) {
 
     tokio::spawn(async move {
         let mut controller = ServiceController::new(GtkPrompt, SystemBrowser);
-        let mut old_status = Arc::new(Ok(ConnectionStatus::Disconnected));
+        let mut old_status = Arc::new(Err(anyhow::anyhow!(tr!("app-connection-error"))));
         loop {
             let params = ConnectionProfilesStore::instance().get_connected();
             let new_status = controller.command(ServiceCommand::Status, params).await;

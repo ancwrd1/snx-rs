@@ -1,7 +1,5 @@
-## v5.0.4 (2026-02-01)
+## v5.0.5 (2026-02-01)
 - Bugfix for IKE session storage.
-
-## v5.0.3 (2026-02-01)
 - Better xfrm detection for custom monolithic kernels.
 - Added Croatian localization.
 - Retry tray icon creation for 10 seconds to mitigate autostart race condition on some systems.

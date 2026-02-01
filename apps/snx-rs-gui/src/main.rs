@@ -263,7 +263,7 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
     );
 
     let mut first_run = true;
-    let mut old_status = Arc::new(Ok(ConnectionStatus::Disconnected));
+    let mut old_status = Arc::new(Err(anyhow::anyhow!(tr!("app-connection-error"))));
 
     loop {
         let params = ConnectionProfilesStore::instance().get_connected();
