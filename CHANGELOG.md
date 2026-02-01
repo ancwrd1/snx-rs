@@ -1,4 +1,4 @@
-## v5.0.3 (TBD)
+## v5.0.3 (2026-02-01)
 - Better xfrm detection for custom monolithic kernels.
 - Added Croatian localization.
 - Retry tray icon creation for 10 seconds to mitigate autostart race condition on some systems.
