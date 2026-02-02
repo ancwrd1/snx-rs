@@ -49,14 +49,14 @@ fn translate<P: AsRef<[u8]>>(data: P) -> Vec<u8> {
         .collect::<Vec<u8>>()
 }
 
-/// Obfuscate secret string using Checkpoint algorithm
+/// Obfuscate secret string
 pub fn snx_obfuscate<P: AsRef<[u8]>>(data: P) -> String {
     hex::encode(translate(data))
 }
 
-/// Deobfuscate secret string using Checkpoint algorithm
-pub fn snx_deobfuscate<D: AsRef<[u8]>>(data: D) -> anyhow::Result<Vec<u8>> {
-    let mut unhexed = hex::decode(data)?;
+/// Deobfuscate secret string
+pub fn snx_deobfuscate<S: AsRef<str>>(data: S) -> anyhow::Result<Vec<u8>> {
+    let mut unhexed = hex::decode(data.as_ref().as_bytes())?;
     unhexed.reverse();
 
     let mut decoded = translate(unhexed);
@@ -146,7 +146,7 @@ pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
     for fingerprint in info.connectivity_info.internal_ca_fingerprint.values() {
         values.push((
             "login-options-internal-ca-fingerprint".to_owned(),
-            String::from_utf8_lossy(&snx_deobfuscate(fingerprint.as_bytes())?).into_owned(),
+            String::from_utf8_lossy(&snx_deobfuscate(fingerprint)?).into_owned(),
         ));
     }
 
@@ -266,7 +266,7 @@ mod tests {
         let secret = snx_obfuscate(username.as_bytes());
         assert_eq!(secret, "36203a333d372a59");
 
-        let decoded = snx_deobfuscate(secret.as_bytes()).unwrap();
+        let decoded = snx_deobfuscate(secret).unwrap();
         assert_eq!(decoded, b"testuser");
     }
 
