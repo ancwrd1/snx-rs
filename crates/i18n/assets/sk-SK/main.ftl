@@ -99,6 +99,11 @@ error-udp-request-failed = Chyba pri odosielaní UDP požiadavky
 error-no-tty = Žiadny TTY pripojený pre vstup používateľa
 error-invalid-auth-response = Neplatná odpoveď overenia
 error-invalid-client-settings = Neplatné nastavenia klienta
+error-invalid-cert-response = Neplatná odpoveď certifikátu
+error-certificate-enrollment-failed = Registrácia certifikátu zlyhala, kód chyby: {$code}
+error-missing-cert-path = Chýba cesta k súboru PKCS12!
+error-missing-cert-password = Chýba heslo PKCS12!
+error-missing-reg-key = Chýba registračný kľúč!
 error-invalid-otp-reply = Neplatná odpoveď OTP
 error-udp-encap-failed = Nie je možné nastaviť možnosť soketu UDP_ENCAP, kód chyby: {$code}
 error-so-no-check-failed = Nie je možné nastaviť možnosť soketu SO_NO_CHECK, kód chyby: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunel odpojený
 cli-another-instance-running = Iná inštancia snx-rs už beží
 cli-app-terminated = Aplikácia ukončená signálom
 cli-mobile-access-auth = Na overenie mobilného prístupu sa prihláste pomocou nasledujúcej URL adresy, potom nájdite používateľské heslo v hexadecimálnom tvare v HTML zdrojovom kóde stránky a zadajte ho sem:
+cli-certificate-enrolled = Certifikát bol úspešne zaregistrovaný.
 
 # Connection Messages
 connection-connected-to = Pripojené k {$server}

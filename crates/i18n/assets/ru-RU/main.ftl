@@ -99,6 +99,11 @@ error-udp-request-failed = Ошибка отправки UDP-запроса
 error-no-tty = Нет подключенного TTY для получения ввода пользователя
 error-invalid-auth-response = Недопустимый ответ аутентификации
 error-invalid-client-settings = Недопустимый ответ настроек клиента
+error-invalid-cert-response = Недопустимый ответ сертификата
+error-certificate-enrollment-failed = Регистрация сертификата не удалась, код ошибки: {$code}
+error-missing-cert-path = Отсутствует путь к файлу PKCS12!
+error-missing-cert-password = Отсутствует пароль PKCS12!
+error-missing-reg-key = Отсутствует ключ регистрации!
 error-invalid-otp-reply = Недопустимый ответ OTP
 error-udp-encap-failed = Не удалось установить опцию сокета UDP_ENCAP, код ошибки: {$code}
 error-so-no-check-failed = Не удалось установить опцию сокета SO_NO_CHECK, код ошибки: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Туннель отключен
 cli-another-instance-running = Другая копия snx-rs уже запущена
 cli-app-terminated = Приложение завершено по сигналу
 cli-mobile-access-auth = Для аутентификации мобильного доступа войдите по следующему URL, затем найдите пароль пользователя в шестнадцатеричном виде в исходном коде HTML страницы и введите его здесь:
+cli-certificate-enrolled = Сертификат успешно зарегистрирован.
 
 # Connection Messages
 connection-connected-to = Подключено к {$server}

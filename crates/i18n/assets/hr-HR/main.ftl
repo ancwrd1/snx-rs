@@ -99,6 +99,11 @@ error-udp-request-failed = Greška pri slanju UDP zahtjeva
 error-no-tty = Nema priključenog TTY-a za korisnički unos
 error-invalid-auth-response = Nevažeći odgovor autentifikacije
 error-invalid-client-settings = Nevažeći odgovor postavki klijenta
+error-invalid-cert-response = Nevažeći odgovor certifikata
+error-certificate-enrollment-failed = Registracija certifikata nije uspjela, kod greške: {$code}
+error-missing-cert-path = Nedostaje putanja certifikata do PKCS12 datoteke!
+error-missing-cert-password = Nedostaje PKCS12 lozinka!
+error-missing-reg-key = Nedostaje ključ za registraciju!
 error-invalid-otp-reply = Nevažeći OTP odgovor
 error-udp-encap-failed = Nije moguće postaviti UDP_ENCAP opciju socketa, kod greške: {$code}
 error-so-no-check-failed = Nije moguće postaviti SO_NO_CHECK opciju socketa, kod greške: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunel prekinut
 cli-another-instance-running = Druga instanca snx-rs već je pokrenuta
 cli-app-terminated = Aplikacija prekinuta zbog signala
 cli-mobile-access-auth = Za autentifikaciju mobilnog pristupa, prijavite se putem sljedeće URL adrese, zatim pronađite korisničku lozinku u hex obliku u HTML izvoru stranice i unesite je ovdje:
+cli-certificate-enrolled = Certifikat je uspješno registriran.
 
 # Connection Messages
 connection-connected-to = Povezano na {$server}
