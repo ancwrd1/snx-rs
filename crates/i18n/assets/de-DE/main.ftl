@@ -99,6 +99,11 @@ error-udp-request-failed = Fehler beim Senden der UDP-Anfrage
 error-no-tty = Kein angeschlossenes TTY für Benutzereingabe
 error-invalid-auth-response = Ungültige Authentifizierungsantwort
 error-invalid-client-settings = Ungültige Client-Einstellungsantwort
+error-invalid-cert-response = Ungültige Zertifikatantwort
+error-certificate-enrollment-failed = Zertifikatregistrierung fehlgeschlagen, Fehlercode: {$code}
+error-missing-cert-path = Fehlender Pfad zum PKCS12-Zertifikat!
+error-missing-cert-password = Fehlendes PKCS12-Passwort!
+error-missing-reg-key = Fehlender Registrierungsschlüssel!
 error-invalid-otp-reply = Ungültige OTP-Antwort
 error-udp-encap-failed = Socket-Option UDP_ENCAP konnte nicht gesetzt werden, Fehlercode: {$code}
 error-so-no-check-failed = Socket-Option SO_NO_CHECK konnte nicht gesetzt werden, Fehlercode: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunnel getrennt
 cli-another-instance-running = Eine andere Instanz von snx-rs läuft bereits
 cli-app-terminated = Anwendung durch Signal beendet
 cli-mobile-access-auth = Für die Authentifizierung des mobilen Zugriffs melden Sie sich über die folgende URL an, suchen Sie anschließend ein Benutzerpasswort in hexadezimaler Form im HTML-Quelltext der Seite und geben Sie es hier ein:
+cli-certificate-enrolled = Zertifikat wurde erfolgreich registriert.
 
 # Connection Messages
 connection-connected-to = Verbunden mit {$server}

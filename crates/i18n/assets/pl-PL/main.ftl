@@ -99,6 +99,11 @@ error-udp-request-failed = Błąd podczas wysyłania żądania UDP
 error-no-tty = Brak podłączonego TTY do wprowadzania danych przez użytkownika
 error-invalid-auth-response = Nieprawidłowa odpowiedź uwierzytelniania
 error-invalid-client-settings = Nieprawidłowe ustawienia klienta
+error-invalid-cert-response = Nieprawidłowa odpowiedź certyfikatu
+error-certificate-enrollment-failed = Rejestracja certyfikatu nie powiodła się, kod błędu: {$code}
+error-missing-cert-path = Brak ścieżki do pliku PKCS12!
+error-missing-cert-password = Brak hasła PKCS12!
+error-missing-reg-key = Brak klucza rejestracyjnego!
 error-invalid-otp-reply = Nieprawidłowa odpowiedź OTP
 error-udp-encap-failed = Nie można ustawić opcji gniazda UDP_ENCAP, kod błędu: {$code}
 error-so-no-check-failed = Nie można ustawić opcji gniazda SO_NO_CHECK, kod błędu: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunel rozłączony
 cli-another-instance-running = Inna instancja snx-rs jest już uruchomiona
 cli-app-terminated = Aplikacja zakończona przez sygnał
 cli-mobile-access-auth = Aby uwierzytelnić dostęp mobilny, zaloguj się przy użyciu poniższego adresu URL, następnie znajdź hasło użytkownika w formie hex w źródle HTML strony i wprowadź je tutaj:
+cli-certificate-enrolled = Certyfikat został pomyślnie zarejestrowany.
 
 # Connection Messages
 connection-connected-to = Połączono z {$server}

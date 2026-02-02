@@ -97,6 +97,11 @@ error-udp-request-failed = Fejl ved afsendelse af UDP-anmodning
 error-no-tty = Ingen TTY tilsluttet til brugerinput
 error-invalid-auth-response = Ugyldigt godkendelsessvar
 error-invalid-client-settings = Ugyldige klientindstillinger
+error-invalid-cert-response = Ugyldigt certifikatsvar
+error-certificate-enrollment-failed = Certifikatregistrering mislykkedes, fejlkode: {$code}
+error-missing-cert-path = Manglende sti til PKCS12-certifikat!
+error-missing-cert-password = Manglende PKCS12-adgangskode!
+error-missing-reg-key = Manglende registreringsnøgle!
 error-invalid-otp-reply = Ugyldigt OTP-svar
 error-udp-encap-failed = Kan ikke indstille UDP_ENCAP socket-option, feilkode: {$code}
 error-so-no-check-failed = Kan ikke indstille SO_NO_CHECK socket-option, feilkode: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunnel forbindelse afbrudt
 cli-another-instance-running = En anden forekomst af snx-rs kører allerede
 cli-app-terminated = Applikation afsluttet af signal
 cli-mobile-access-auth = Til mobiladgangsautentificering skal du logge ind via følgende URL, finde en brugeradgangskode i hex-formatet i sidens HTML-kilde og indtaste den her:
+cli-certificate-enrolled = Certifikatet er blevet registreret.
 
 # Connection Messages
 connection-connected-to = Forbundet til {$server}
