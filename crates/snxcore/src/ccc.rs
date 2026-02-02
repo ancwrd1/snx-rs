@@ -135,6 +135,39 @@ impl CccHttpClient {
         }
     }
 
+    fn new_enroll_certificate_request(&self, registration_key: &str, password: &str) -> CccClientRequestData {
+        CccClientRequestData {
+            header: RequestHeader {
+                id: new_request_id(),
+                request_type: "CertEnrollmentRequest".to_string(),
+                session_id: None,
+                protocol_version: Some(100),
+            },
+            data: RequestData::CertEnrollment(CertEnrollmentRequest {
+                regkey: registration_key.into(),
+                password: password.into(),
+                device_type: String::new(),
+                device_id: String::new(),
+                device_name: String::new(),
+            }),
+        }
+    }
+
+    fn new_renew_certificate_request<T: AsRef<[u8]>>(&self, pkcs12: T, password: &str) -> CccClientRequestData {
+        CccClientRequestData {
+            header: RequestHeader {
+                id: new_request_id(),
+                request_type: "CertRenewalRequest".to_string(),
+                session_id: None,
+                protocol_version: Some(100),
+            },
+            data: RequestData::CertRenewal(CertRenewalRequest {
+                binary: hex::encode(pkcs12.as_ref().iter().rev().cloned().collect::<Vec<_>>()),
+                password: password.into(),
+            }),
+        }
+    }
+
     async fn send_request(&self, request: CccClientRequestData, timeout: Duration) -> anyhow::Result<SExpression> {
         let with_cert = matches!(request.data, RequestData::Auth(_));
         let expr = SExpression::from(CccClientRequest { data: request });
@@ -231,6 +264,32 @@ impl CccHttpClient {
 
     pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
         self.send_request(self.new_client_hello_request(), INFO_TIMEOUT).await
+    }
+
+    pub async fn enroll_certificate(
+        &self,
+        registration_key: &str,
+        password: &str,
+    ) -> anyhow::Result<CertificateResponse> {
+        let req = self.new_enroll_certificate_request(registration_key, password);
+
+        match self.send_ccc_request(req).await? {
+            ResponseData::Certificate(data) => Ok(data),
+            _ => Err(anyhow!(tr!("error-invalid-cert-response"))),
+        }
+    }
+
+    pub async fn renew_certificate<T: AsRef<[u8]>>(
+        &self,
+        pkcs12: T,
+        password: &str,
+    ) -> anyhow::Result<CertificateResponse> {
+        let req = self.new_renew_certificate_request(pkcs12, password);
+
+        match self.send_ccc_request(req).await? {
+            ResponseData::Certificate(data) => Ok(data),
+            _ => Err(anyhow!(tr!("error-invalid-cert-response"))),
+        }
     }
 
     pub async fn signout(&self) -> anyhow::Result<()> {

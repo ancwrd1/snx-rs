@@ -65,6 +65,14 @@ pub enum OperationMode {
     Standalone,
     Command,
     Info,
+    Enroll,
+    Renew,
+}
+
+impl OperationMode {
+    pub fn requires_root(&self) -> bool {
+        matches!(self, Self::Standalone | Self::Command)
+    }
 }
 
 impl FromStr for OperationMode {
@@ -75,6 +83,8 @@ impl FromStr for OperationMode {
             "standalone" => Ok(Self::Standalone),
             "command" => Ok(Self::Command),
             "info" => Ok(Self::Info),
+            "enroll" => Ok(Self::Enroll),
+            "renew" => Ok(Self::Renew),
             _ => Err(anyhow!(tr!("error-invalid-operation-mode"))),
         }
     }
@@ -351,6 +361,8 @@ pub struct TunnelParams {
     #[serde(skip)]
     pub mfa_code: Option<String>,
     #[serde(skip)]
+    pub reg_key: Option<String>,
+    #[serde(skip)]
     pub config_file: PathBuf,
 }
 
@@ -397,6 +409,7 @@ impl Default for TunnelParams {
             mtu: DEFAULT_MTU,
             transport_type: TransportType::default(),
             mfa_code: None,
+            reg_key: None,
             config_file: Self::default_config_path(),
         }
     }
@@ -731,6 +744,7 @@ mod tests {
             mtu: 2000,
             transport_type: TransportType::Tcpt,
             mfa_code: None,
+            reg_key: None,
             config_file: temp_path.to_owned(),
         };
 
