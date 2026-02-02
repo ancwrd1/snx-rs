@@ -225,6 +225,9 @@ pub struct CmdlineParams {
         help = "MFA code to use in the non-interactive scripts, typically a TOTP code"
     )]
     pub mfa_code: Option<String>,
+
+    #[clap(long = "reg-key", short = 'b', help = "Registration key for certificate enrollment")]
+    pub reg_key: Option<String>,
 }
 
 impl CmdlineParams {
@@ -368,6 +371,10 @@ impl CmdlineParams {
 
         if let Some(mfa_code) = self.mfa_code {
             other.mfa_code = Some(mfa_code);
+        }
+
+        if let Some(reg_key) = self.reg_key {
+            other.reg_key = Some(reg_key);
         }
     }
 }
