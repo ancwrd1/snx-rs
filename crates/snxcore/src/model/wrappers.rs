@@ -69,7 +69,7 @@ impl<'de> Deserialize<'de> for ObfuscatedString {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let decrypted = crate::util::snx_deobfuscate(s.as_bytes()).map_err(Error::custom)?;
+        let decrypted = crate::util::snx_deobfuscate(s).map_err(Error::custom)?;
         Ok(Self(String::from_utf8_lossy(&decrypted).into_owned()))
     }
 }

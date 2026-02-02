@@ -167,7 +167,7 @@ fn process_cert_response(path: &Path, resp: CertificateResponse) -> anyhow::Resu
     if resp.error_code == 0
         && let Some(binary) = resp.binary
     {
-        std::fs::write(path, util::snx_deobfuscate(binary.as_bytes())?)?;
+        std::fs::write(path, util::snx_deobfuscate(binary)?)?;
         println!("{}", tr!("cli-certificate-enrolled"));
         Ok(())
     } else {
