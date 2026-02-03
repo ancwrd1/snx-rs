@@ -1,3 +1,6 @@
+## v5.1.0 (TBD)
+- Added certificate enrollment and renewal operations via `snx-rs` command line interface. See the [documentation](https://github.com/ancwrd1/snx-rs#certificate-enrollment) on how to use this feature.
+
 ## v5.0.5 (2026-02-01)
 - Bugfix for IKE session storage.
 - Better xfrm detection for custom monolithic kernels.
