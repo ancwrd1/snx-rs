@@ -199,7 +199,7 @@ cli-tunnel-disconnected = Tunnel disconnected
 cli-another-instance-running = Another instance of snx-rs is already running
 cli-app-terminated = Application terminated due to a signal
 cli-mobile-access-auth = For mobile access authentication, login using the following URL, then find a user password in the hex form in the page HTML source and enter it here:
-cli-certificate-enrolled = Certificate has been enrolled successfully.
+cli-certificate-enrolled = Certificate enrolled successfully.
 
 # Connection Messages
 connection-connected-to = Connected to {$server}
