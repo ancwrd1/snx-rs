@@ -15,7 +15,7 @@ pub struct CmdlineParams {
         long = "mode",
         short = 'm',
         default_value = "standalone",
-        help = "Operation mode, one of: standalone, command, info"
+        help = "Operation mode, one of: standalone, command, info, enroll, renew"
     )]
     pub mode: OperationMode,
 
