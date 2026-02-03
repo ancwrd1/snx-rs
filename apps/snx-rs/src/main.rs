@@ -1,14 +1,15 @@
-use crate::cmdline::CmdlineParams;
+use std::{future::Future, path::Path, sync::Arc};
+
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
 use secrecy::ExposeSecret;
-use snxcore::model::proto::CertificateResponse;
 use snxcore::{
     ccc::CccHttpClient,
     model::{
         MfaType, PromptInfo, SessionState,
         params::{OperationMode, TunnelParams, TunnelType},
+        proto::CertificateResponse,
     },
     otp::OtpListener,
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
@@ -18,10 +19,10 @@ use snxcore::{
     tunnel::TunnelEvent,
     util,
 };
-use std::path::Path;
-use std::{future::Future, sync::Arc};
 use tokio::{signal::unix, sync::mpsc};
 use tracing::{debug, metadata::LevelFilter, warn};
+
+use crate::cmdline::CmdlineParams;
 
 mod cmdline;
 
