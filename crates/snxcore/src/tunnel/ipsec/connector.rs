@@ -1,3 +1,10 @@
+use std::{
+    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
+    path::Path,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
+
 use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
@@ -10,12 +17,6 @@ use isakmp::{
     payload::AttributesPayload,
     session::{IsakmpSession, OfficeMode, SessionType},
     transport::{TcptDataType, TcptTransport},
-};
-use std::path::Path;
-use std::{
-    net::{IpAddr, Ipv4Addr, ToSocketAddrs},
-    sync::Arc,
-    time::{Duration, SystemTime},
 };
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
@@ -653,7 +654,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             .connectivity_info
             .internal_ca_fingerprint
             .into_values()
-            .flat_map(|fp| util::snx_deobfuscate(fp.as_bytes()).ok())
+            .flat_map(|fp| util::snx_deobfuscate(fp).ok())
             .map(|v| String::from_utf8_lossy(&v).into_owned())
             .collect();
 

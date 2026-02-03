@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc};
+use std::{future::Future, path::Path, sync::Arc};
 
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
@@ -9,6 +9,7 @@ use snxcore::{
     model::{
         MfaType, PromptInfo, SessionState,
         params::{OperationMode, TunnelParams, TunnelType},
+        proto::CertificateResponse,
     },
     otp::OtpListener,
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
@@ -16,6 +17,7 @@ use snxcore::{
     server::CommandServer,
     server_info, tunnel,
     tunnel::TunnelEvent,
+    util,
 };
 use tokio::{signal::unix, sync::mpsc};
 use tracing::{debug, metadata::LevelFilter, warn};
@@ -64,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if cmdline_params.mode != OperationMode::Info && !is_root() {
+    if cmdline_params.mode.requires_root() && !is_root() {
         anyhow::bail!(tr!("error-no-root-privileges"));
     }
 
@@ -96,6 +98,8 @@ async fn main() -> anyhow::Result<()> {
             main_command().await
         }
         OperationMode::Info => main_info(params).await,
+        OperationMode::Enroll => main_enroll(params).await,
+        OperationMode::Renew => main_renew(params).await,
     }
 }
 
@@ -106,6 +110,70 @@ async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
     snxcore::util::print_login_options(&params).await?;
 
     Ok(())
+}
+
+async fn main_enroll(params: TunnelParams) -> anyhow::Result<()> {
+    let params = Arc::new(params);
+
+    if params.server_name.is_empty() {
+        anyhow::bail!(tr!("error-missing-server-name"));
+    }
+
+    let Some(ref cert_path) = params.cert_path else {
+        anyhow::bail!(tr!("error-missing-cert-path"));
+    };
+
+    let Some(ref cert_password) = params.cert_password else {
+        anyhow::bail!(tr!("error-missing-cert-password"));
+    };
+
+    let Some(ref reg_key) = params.reg_key else {
+        anyhow::bail!(tr!("error-missing-reg-key"));
+    };
+
+    let client = CccHttpClient::new(params.clone(), None);
+
+    let resp = client
+        .enroll_certificate(reg_key, cert_password.expose_secret())
+        .await?;
+
+    process_cert_response(cert_path, resp)
+}
+
+async fn main_renew(params: TunnelParams) -> anyhow::Result<()> {
+    let params = Arc::new(params);
+
+    if params.server_name.is_empty() {
+        anyhow::bail!(tr!("error-missing-server-name"));
+    }
+
+    let Some(ref cert_path) = params.cert_path else {
+        anyhow::bail!(tr!("error-missing-cert-path"));
+    };
+
+    let Some(ref cert_password) = params.cert_password else {
+        anyhow::bail!(tr!("error-missing-cert-password"));
+    };
+
+    let pkcs12 = std::fs::read(cert_path)?;
+
+    let client = CccHttpClient::new(params.clone(), None);
+
+    let resp = client.renew_certificate(&pkcs12, cert_password.expose_secret()).await?;
+
+    process_cert_response(cert_path, resp)
+}
+
+fn process_cert_response(path: &Path, resp: CertificateResponse) -> anyhow::Result<()> {
+    if resp.error_code == 0
+        && let Some(binary) = resp.binary
+    {
+        std::fs::write(path, util::snx_deobfuscate(binary)?)?;
+        println!("{}", tr!("cli-certificate-enrolled"));
+        Ok(())
+    } else {
+        anyhow::bail!(tr!("error-certificate-enrollment-failed", code = resp.error_code));
+    }
 }
 
 async fn main_command() -> anyhow::Result<()> {

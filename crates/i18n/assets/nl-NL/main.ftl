@@ -89,6 +89,11 @@ error-udp-request-failed = Fout bij het verzenden van UDP-verzoek
 error-no-tty = Geen TTY aangesloten voor gebruikersinvoer
 error-invalid-auth-response = Ongeldige authenticatierespons
 error-invalid-client-settings = Ongeldige clientinstellingen
+error-invalid-cert-response = Ongeldige certificaatreactie
+error-certificate-enrollment-failed = Certificaatregistratie mislukt, foutcode: {$code}
+error-missing-cert-path = Pad naar PKCS12-bestand ontbreekt!
+error-missing-cert-password = PKCS12-wachtwoord ontbreekt!
+error-missing-reg-key = Registratiesleutel ontbreekt!
 error-invalid-otp-reply = Ongeldige OTP-reactie
 error-udp-encap-failed = Kan UDP_ENCAP socketoptie niet instellen, foutcode: {$code}
 error-so-no-check-failed = Kan SO_NO_CHECK socketoptie niet instellen, foutcode: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunnel verbroken
 cli-another-instance-running = Er draait al een andere instantie van snx-rs
 cli-app-terminated = Applicatie beëindigd door signaal
 cli-mobile-access-auth = Voor mobiele toegangsauthenticatie: log in via de volgende URL, zoek vervolgens een gebruikerswachtwoord in hexvorm in de HTML-broncode van de pagina en voer het hier in:
+cli-certificate-enrolled = Certificaat is succesvol geregistreerd.
 
 # Connection Messages
 connection-connected-to = Verbonden met {$server}

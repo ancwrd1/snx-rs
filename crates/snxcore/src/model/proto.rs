@@ -136,6 +136,21 @@ pub struct MultiChallengeRequest {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CertEnrollmentRequest {
+    pub regkey: ObfuscatedString,
+    pub password: ObfuscatedString,
+    pub device_type: String,
+    pub device_id: String,
+    pub device_name: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CertRenewalRequest {
+    pub binary: String,
+    pub password: ObfuscatedString,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientLoggingData {
     pub client_name: Option<String>,
     pub client_ver: Option<String>,
@@ -179,6 +194,8 @@ pub enum RequestData {
     ClientHello { client_info: ClientInfo },
     ClientSettings(ClientSettingsRequest),
     SignOut(SignOutRequest),
+    CertEnrollment(CertEnrollmentRequest),
+    CertRenewal(CertRenewalRequest),
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -197,6 +214,7 @@ pub enum ResponseData {
     Auth(AuthResponse),
     ClientSettings(ClientSettingsResponse),
     ServerInfo(ServerInfoResponse),
+    Certificate(CertificateResponse),
     Generic(serde_json::Value),
 }
 
@@ -220,6 +238,12 @@ pub struct AuthResponse {
 pub struct ClientSettingsResponse {
     pub gw_internal_ip: Ipv4Addr,
     pub updated_policies: UpdatedPolicies,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CertificateResponse {
+    pub error_code: u32,
+    pub binary: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

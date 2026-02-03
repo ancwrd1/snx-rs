@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use gtk4::{
     Align, Dialog, Orientation, ResponseType, gio,
     glib::{self, clone},
@@ -8,7 +10,6 @@ use snxcore::{
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionInfo, ConnectionStatus, params::DEFAULT_PROFILE_UUID},
 };
-use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 
 use crate::{

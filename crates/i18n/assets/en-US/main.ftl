@@ -99,6 +99,11 @@ error-udp-request-failed = Error sending UDP request
 error-no-tty = No attached TTY to get user input
 error-invalid-auth-response = Invalid authentication response
 error-invalid-client-settings = Invalid client settings response
+error-invalid-cert-response = Invalid certificate response
+error-certificate-enrollment-failed = Certificate enrollment failed, error code: {$code}
+error-missing-cert-path = Missing a certificate path to the PKCS12 file!
+error-missing-cert-password = Missing a PKCS12 password!
+error-missing-reg-key = Missing enrollment registration key!
 error-invalid-otp-reply = Invalid OTP reply
 error-udp-encap-failed = Cannot set UDP_ENCAP socket option, error code: {$code}
 error-so-no-check-failed = Cannot set SO_NO_CHECK socket option, error code: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunnel disconnected
 cli-another-instance-running = Another instance of snx-rs is already running
 cli-app-terminated = Application terminated due to a signal
 cli-mobile-access-auth = For mobile access authentication, login using the following URL, then find a user password in the hex form in the page HTML source and enter it here:
+cli-certificate-enrolled = Certificate enrolled successfully.
 
 # Connection Messages
 connection-connected-to = Connected to {$server}

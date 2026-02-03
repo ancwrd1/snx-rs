@@ -99,6 +99,11 @@ error-udp-request-failed = Virhe UDP-pyynnön lähetyksessä
 error-no-tty = Ei TTY-yhteyttä käyttäjän syötteeseen
 error-invalid-auth-response = Virheellinen tunnistusvastaus
 error-invalid-client-settings = Virheelliset asiakasasetukset
+error-invalid-cert-response = Virheellinen varmennevastaus
+error-certificate-enrollment-failed = Varmenteen rekisteröinti epäonnistui, virhekoodi: {$code}
+error-missing-cert-path = PKCS12-varmenteen polku puuttuu!
+error-missing-cert-password = PKCS12-salasana puuttuu!
+error-missing-reg-key = Rekisteröintiavain puuttuu!
 error-invalid-otp-reply = Virheellinen OTP-vastaus
 error-udp-encap-failed = UDP_ENCAP-soketin asetusta ei voi asettaa, virhekoodi: {$code}
 error-so-no-check-failed = SO_NO_CHECK-soketin asetusta ei voi asettaa, virhekoodi: {$code}
@@ -194,6 +199,7 @@ cli-tunnel-disconnected = Tunneli katkaistu
 cli-another-instance-running = Toinen snx-rs-esiintymä on jo käynnissä
 cli-app-terminated = Sovellus päättyi signaalin vuoksi
 cli-mobile-access-auth = Mobiilikäyttöön kirjautumista varten kirjaudu sisään seuraavan URL-osoitteen kautta, etsi sivun HTML-lähdekoodista heksamuotoinen käyttäjän salasana ja syötä se tähän:
+cli-certificate-enrolled = Varmenne on rekisteröity onnistuneesti.
 
 # Connection Messages
 connection-connected-to = Yhdistetty palvelimeen {$server}
