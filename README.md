@@ -261,7 +261,7 @@ snx-rs --mode renew \
        --server-name=remote.company.com
 ```
 
-After enrollment of renewal, the obtained PKCS12 keystore can be used for tunnel authentication.
+After enrollment or renewal, the obtained PKCS12 keystore can be used for tunnel authentication.
 
 <!-- TOC --><a name="persistent-ipsec-session"></a>
 ## Persistent IPSec Session
