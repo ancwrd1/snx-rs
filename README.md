@@ -19,6 +19,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * [Mobile Access Authentication](#mobile-access-authentication)
 * [Certificate Validation](#certificate-validation)
 * [Certificate Authentication](#certificate-authentication)
+* [Certificate Enrollment](#certificate-enrollment)
 * [Persistent IPSec Session](#persistent-ipsec-session)
 * [Additional Usage Notes](#additional-usage-notes)
 * [Troubleshooting Common Problems](#troubleshooting-common-problems)
@@ -233,6 +234,34 @@ The following parameters control certificate-based authentication:
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed.
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
 * `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of `xx:xx:xx` or `xxxxxx`.
+
+<!-- TOC --><a name="certificate-enrollment"></a>
+## Certificate Enrollment
+
+`snx-rs` supports certificate enrollment and renewal for those configurations which require certificate-based authentication.
+It is implemented as a command-line interface, with two additional operation modes of the `snx-rs` application: `enroll` and `renew`.
+Enrollment operation requires a registration key which the user should receive from the IT department. Renewal requires an existing certificate in PKCS12 format.
+
+Usage:
+
+```bash
+# Enrollment into identity.p12 file using registration key 12345678
+snx-rs --mode enroll \
+       --reg-key=12345678 \
+       --cert-path=identity.p12 \
+       --cert-password=password \
+       --server-name=remote.company.com
+```
+
+```bash
+# Renewal using existing identity.p12
+snx-rs --mode renew \
+       --cert-path=identity.p12 \
+       --cert-password=password \
+       --server-name=remote.company.com
+```
+
+After enrollment of renewal, the obtained PKCS12 keystore can be used for tunnel authentication.
 
 <!-- TOC --><a name="persistent-ipsec-session"></a>
 ## Persistent IPSec Session
