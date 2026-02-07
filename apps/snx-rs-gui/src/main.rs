@@ -113,7 +113,7 @@ async fn main() -> anyhow::Result<()> {
     let mut retry_count = 5;
 
     let mut my_tray = loop {
-        match tray::AppTray::new(tray_event_sender.clone()).await {
+        match tray::AppTray::new(tray_event_sender.clone(), cmdline_params.no_tray).await {
             Ok(tray) => break tray,
             Err(e) => {
                 if retry_count == 0 {
@@ -176,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
                     TrayEvent::About => do_about(),
 
                     TrayEvent::Status => {
-                        do_status(tray_event_sender2.clone());
+                        do_status(tray_event_sender2.clone(), cmdline_params.no_tray);
                     }
                 }
             }
@@ -205,8 +205,10 @@ async fn main() -> anyhow::Result<()> {
                 command = TrayEvent::Settings;
             }
 
-            tray_event_sender.send(command).await
+            let _ = tray_event_sender.send(command).await;
         });
+    } else if cmdline_params.no_tray {
+        let _ = tray_event_sender.send(TrayEvent::Status).await;
     }
 
     app.run_with_args::<&str>(&[]);
@@ -242,9 +244,9 @@ fn do_about() {
     });
 }
 
-fn do_status(sender: mpsc::Sender<TrayEvent>) {
+fn do_status(sender: mpsc::Sender<TrayEvent>, exit_on_close: bool) {
     glib::idle_add_once(move || {
-        glib::spawn_future_local(async move { show_status_dialog(sender).await });
+        glib::spawn_future_local(async move { show_status_dialog(sender, exit_on_close).await });
     });
 }
 

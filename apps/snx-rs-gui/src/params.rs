@@ -11,6 +11,14 @@ pub struct CmdlineParams {
         help = "Send command to the application [connect, disconnect, settings, status, exit, about]"
     )]
     pub command: Option<TrayEvent>,
+
+    #[clap(
+        long = "no-tray",
+        short = 'n',
+        help = "Do not create tray icon and open a status window"
+    )]
+    pub no_tray: bool,
+
     #[clap(long = "completions", help = "Generate shell completions for the given shell")]
     pub completions: Option<clap_complete::Shell>,
 }
