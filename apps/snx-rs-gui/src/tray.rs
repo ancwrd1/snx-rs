@@ -72,15 +72,19 @@ pub struct AppTray {
     command_sender: Sender<TrayCommand>,
     command_receiver: Option<Receiver<TrayCommand>>,
     status: Arc<anyhow::Result<ConnectionStatus>>,
-    tray_icon: Handle<KsniTray>,
+    tray_icon: Option<Handle<KsniTray>>,
 }
 
 impl AppTray {
-    pub async fn new(event_sender: Sender<TrayEvent>) -> anyhow::Result<Self> {
+    pub async fn new(event_sender: Sender<TrayEvent>, no_tray: bool) -> anyhow::Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel(16);
 
-        let tray_icon = KsniTray::new(event_sender);
-        let handle = tray_icon.spawn().await?;
+        let handle = if !no_tray {
+            let tray_icon = KsniTray::new(event_sender);
+            Some(tray_icon.spawn().await?)
+        } else {
+            None
+        };
 
         let app_tray = AppTray {
             command_sender: tx,
@@ -170,14 +174,16 @@ impl AppTray {
             .as_ref()
             .is_ok_and(|status| *status != ConnectionStatus::Disconnected);
 
-        self.tray_icon
-            .update(|tray| {
-                tray.status_label = status_label;
-                tray.icon = icon;
-                tray.connect_enabled = connect_enabled;
-                tray.disconnect_enabled = disconnect_enabled;
-            })
-            .await;
+        if let Some(ref tray_icon) = self.tray_icon {
+            tray_icon
+                .update(|tray| {
+                    tray.status_label = status_label;
+                    tray.icon = icon;
+                    tray.connect_enabled = connect_enabled;
+                    tray.disconnect_enabled = disconnect_enabled;
+                })
+                .await;
+        }
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
