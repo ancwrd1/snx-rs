@@ -34,11 +34,11 @@ base64 = "0.22"
 tracing = { version = "0.1", features = [] }
 async-trait = "0.1"
 async-recursion = "1"
-rand = "0.9"
+rand = "0.10"
 directories-next = "2"
 chrono = { version = "0.4", features = ["serde"] }
 passterm = "2"
-enum-as-inner = "0.6"
+enum-as-inner = "0.7"
 num-traits = "0.2"
 parse_int = "0.9"
 byteorder = "1"
