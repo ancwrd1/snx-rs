@@ -60,6 +60,8 @@ For Ubuntu/Debian, a DEB package is provided in the release assets. For RPM-base
 4. Select the login type and save settings. Username and password fields are optional.
 5. Click on the application tray icon and choose "Connect."
 
+If the desktop environment does not have a dbus SNI interface, use the `--no-tray` command line parameter to the snx-rs-gui application to show the status window instead of the notification icon.
+
 <!-- TOC --><a name="quick-start-guide-cli-standalone-mode"></a>
 ## Quick Start Guide (CLI, standalone mode)
 

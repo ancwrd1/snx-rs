@@ -1,5 +1,6 @@
 ## v5.1.0 (TBD)
 - Added certificate enrollment and renewal operations via `snx-rs` command line interface. See the [documentation](https://github.com/ancwrd1/snx-rs?tab=readme-ov-file#certificate-enrollment) on how to use this feature.
+- Added `--no-tray` option to the GUI application to disable tray notification icon for the desktop environments which do not have dbus SNI interface. The connection status window will be shown instead.
 
 ## v5.0.5 (2026-02-01)
 - Bugfix for IKE session storage.
