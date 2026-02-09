@@ -72,17 +72,10 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
 
     let ok = gtk4::Button::builder().label(tr!("button-ok")).build();
 
-    let sender2 = sender.clone();
     ok.connect_clicked(clone!(
         #[weak]
         dialog,
-        move |_| {
-            if exit_on_close {
-                let sender2 = sender2.clone();
-                tokio::spawn(async move { sender2.send(TrayEvent::Exit).await });
-            }
-            dialog.response(ResponseType::Ok)
-        }
+        move |_| dialog.response(ResponseType::Ok)
     ));
 
     let copy = gtk4::Button::builder().label(tr!("status-button-copy")).build();
@@ -261,4 +254,9 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
     set_window("status", None::<Dialog>);
     dialog.close();
     let _ = stop_tx.send(());
+
+    if exit_on_close {
+        let sender2 = sender.clone();
+        tokio::spawn(async move { sender2.send(TrayEvent::Exit).await });
+    }
 }
