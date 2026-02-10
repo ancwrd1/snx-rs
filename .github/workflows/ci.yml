@@ -23,7 +23,7 @@ jobs:
       - name: Formatting checks
         run: cargo fmt --check
       - name: Clippy checks
-        run: cargo clippy --target ${{ matrix.target }} --workspace --features mobile-access
+        run: cargo clippy --target ${{ matrix.target }} --workspace --features mobile-access -- -D warnings
       - name: Tests
         run: cargo test --target ${{ matrix.target }} --workspace --features mobile-access
 
