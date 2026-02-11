@@ -65,7 +65,6 @@ create_deb() {
     debian="$tmpdir/debian/DEBIAN"
 
     mkdir -p "$debian"
-    sed "s/{{version}}/$deb_version/;s/{{arch}}/$deb_arch/" "$basedir/package/debian/control.in" > "$debian/control"
     install -m 755 "$basedir/package/debian/postinst" "$debian/"
     install -m 755 "$basedir/package/debian/preinst" "$debian/"
     install -m 755 "$basedir/package/debian/prerm" "$debian/"
@@ -77,6 +76,10 @@ create_deb() {
     for app in $apps; do
       install -m 755 "$target/$triple/lto/$app" "$tmpdir/debian/usr/bin/"
     done
+
+    size=$(du -sk $tmpdir/debian/usr/bin | cut -f1)
+
+    sed "s/{{version}}/$deb_version/;s/{{arch}}/$deb_arch/;s/{{size}}/$size/" "$basedir/package/debian/control.in" > "$debian/control"
 
     cp "$basedir/package/snx-rs.service" "$tmpdir/debian/etc/systemd/system/"
     cp "$basedir/package/snx-rs-gui.desktop" "$tmpdir/debian/usr/share/applications"

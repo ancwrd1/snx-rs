@@ -2,7 +2,7 @@ Package: snx-rs
 Version: {{version}}
 Section: net
 Priority: optional
-Installed-Size: 37000
+Installed-Size: {{size}}
 Architecture: {{arch}}
 Depends: libc6 (>= 2.35), libgtk-4-1 (>= 4.6)
 Maintainer: Dmitry Pankratov <dmitry@pankratov.net>
