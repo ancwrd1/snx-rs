@@ -65,6 +65,9 @@ impl BrowserController for WebKitBrowser {
                 session.set_tls_errors_policy(TLSErrorsPolicy::Ignore);
             }
             let webview = WebView::builder().network_session(&session).build();
+            if let Some(settings) = WebViewExt::settings(&webview) {
+                settings.set_enable_developer_extras(true);
+            }
 
             let tx = tx.clone();
             webview.connect_load_changed(clone!(
