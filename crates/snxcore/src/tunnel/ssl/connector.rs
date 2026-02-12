@@ -93,7 +93,7 @@ impl TunnelConnector for SslTunnelConnector {
                 ipsec_session: None,
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::MobileAccess,
-                    prompt: format!("https://{}/sslvpn", self.params.server_name),
+                    prompt: format!("https://{}/", self.params.server_name),
                 }),
                 username: None,
             }));
