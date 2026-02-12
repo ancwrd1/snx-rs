@@ -12,15 +12,17 @@ const PASSWORD_TIMEOUT: Duration = Duration::from_secs(120);
 
 const JS_PASSWORD_SCRIPT: &str = r#"
 (function() {
-  const regex1 = /sPropertyName = "password";\n\s*SNXParams\.addProperty\(sPropertyName, Function\.READ_WRITE, "([^"]+)"\);/;
-  const regex2 = /Extender\.password\s*=\s*"([^"]+)"/;
+  const regexes = [
+    /sPropertyName = "password";\n\s*SNXParams\.addProperty\(sPropertyName, Function\.READ_WRITE, "([^"]+)"\);/,
+    /Extender\.password\s*=\s*"([^"]+)"/,
+  ];
 
   const scripts = document.querySelectorAll("script:not([src])");
   for (const s of scripts) {
-    match1 = s.textContent.match(regex1);
-    if (match1) return match1[1];
-    match2 = s.textContent.match(regex2);
-    if (match2) return match2[1];
+    for (const regex of regexes) {
+      const match = s.textContent.match(regex);
+      if (match) return match[1];
+    }
   }
 
   return "";
@@ -53,7 +55,7 @@ impl BrowserController for WebKitBrowser {
 
         glib::idle_add(move || {
             let window = ApplicationWindow::builder()
-                .title("Mobile Access")
+                .title(tr!("label-mobile-access"))
                 .width_request(720)
                 .height_request(500)
                 .build();
