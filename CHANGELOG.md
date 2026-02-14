@@ -2,7 +2,7 @@
 - Added certificate enrollment and renewal operations via `snx-rs` command line interface. See the [documentation](https://github.com/ancwrd1/snx-rs/blob/main/README.md#certificate-enrollment) on how to use this feature.
 - Added `--no-tray` option to the GUI application to disable tray notification icon for the desktop environments which do not have dbus SNI interface. The connection status window will be shown instead.
 - Fixed a wrong Installed-Size field for deb package.
-- Mobile Access: removed `/sslvpn` path from the browser url.
+- Mobile Access: fixed a problem with wrong URL of the VPN access portal.
 
 ## v5.0.5 (2026-02-01)
 - Bugfix for IKE session storage.
