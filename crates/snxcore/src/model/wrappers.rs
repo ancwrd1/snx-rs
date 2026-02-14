@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encrypted_string() {
+    fn test_obfuscated_string() {
         #[derive(Serialize, Deserialize, PartialEq, Debug)]
         struct Data {
             field: ObfuscatedString,

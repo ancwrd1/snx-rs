@@ -261,7 +261,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_encode_decode() {
+    fn test_obfuscation() {
         let username = "testuser";
         let secret = snx_obfuscate(username.as_bytes());
         assert_eq!(secret, "36203a333d372a59");
