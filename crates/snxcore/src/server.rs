@@ -11,11 +11,10 @@ use crate::{
     model::{
         ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession, params::TunnelParams,
     },
-    tunnel::{self, TunnelConnector, TunnelEvent},
+    tunnel::{TunnelConnector, TunnelConnectorFactory, TunnelEvent},
 };
 
 pub const DEFAULT_NAME: &str = "snx-rs.sock";
-
 const MAX_PACKET_SIZE: usize = 1_000_000;
 
 #[derive(Default)]
@@ -40,22 +39,18 @@ impl ConnectionState {
     }
 }
 
-pub struct CommandServer {
+pub struct CommandServer<F> {
     name: String,
     connection_state: Arc<ConnectionState>,
+    connector_factory: F,
 }
 
-impl Default for CommandServer {
-    fn default() -> Self {
-        Self::with_name(DEFAULT_NAME)
-    }
-}
-
-impl CommandServer {
-    pub fn with_name<S: AsRef<str>>(name: S) -> Self {
+impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
+    pub fn with_name<S: AsRef<str>>(name: S, connector_factory: F) -> Self {
         Self {
             name: name.as_ref().to_owned(),
             connection_state: Arc::new(ConnectionState::default()),
+            connector_factory,
         }
     }
 
@@ -80,8 +75,10 @@ impl CommandServer {
             let sender = event_sender.clone();
             let state = self.connection_state.clone();
 
+            let factory = self.connector_factory.clone();
+
             tokio::spawn(async move {
-                let mut handler = ServerHandler::new(state, sender).await;
+                let mut handler = ServerHandler::new(state, sender, factory).await;
                 handler.handle(stream).await
             });
         }
@@ -115,21 +112,23 @@ impl CommandServer {
     }
 }
 
-struct ServerHandler {
+struct ServerHandler<F> {
     state: Arc<ConnectionState>,
     event_sender: mpsc::Sender<TunnelEvent>,
     cancel_sender: mpsc::Sender<()>,
     cancel_receiver: mpsc::Receiver<()>,
+    connector_factory: F,
 }
 
-impl ServerHandler {
-    async fn new(state: Arc<ConnectionState>, event_sender: mpsc::Sender<TunnelEvent>) -> Self {
+impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
+    async fn new(state: Arc<ConnectionState>, event_sender: mpsc::Sender<TunnelEvent>, factory: F) -> Self {
         let (cancel_sender, cancel_receiver) = mpsc::channel(16);
         Self {
             state,
             event_sender,
             cancel_sender,
             cancel_receiver,
+            connector_factory: factory,
         }
     }
 
@@ -222,7 +221,7 @@ impl ServerHandler {
             *self.state.connection_status.write().await = ConnectionStatus::Connecting;
             self.state.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
 
-            let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
+            let mut connector = self.connector_factory.create(params.clone()).await?;
             let fut = if params.ike_persist {
                 debug!("Attempting to load IKE session");
                 match connector.restore_session().await {

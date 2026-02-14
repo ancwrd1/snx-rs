@@ -14,9 +14,10 @@ use snxcore::{
     otp::OtpListener,
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
+    server,
     server::CommandServer,
-    server_info, tunnel,
-    tunnel::TunnelEvent,
+    server_info,
+    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory, TunnelEvent},
     util,
 };
 use tokio::{signal::unix, sync::mpsc};
@@ -191,7 +192,7 @@ async fn main_command() -> anyhow::Result<()> {
     {
         warn!("Unable to start network monitoring: {}", e);
     }
-    let server = CommandServer::default();
+    let server = CommandServer::with_name(server::DEFAULT_NAME, CheckPointTunnelConnectorFactory);
 
     await_termination(server.run()).await
 }
@@ -206,14 +207,14 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     let mut mfa_prompts = server_info::get_login_prompts(&params).await.unwrap_or_default();
 
     let params = Arc::new(params);
-    let mut connector = tunnel::new_tunnel_connector(params.clone()).await?;
+    let mut connector = CheckPointTunnelConnectorFactory.create(params.clone()).await?;
 
     let mut session = if params.ike_persist {
         debug!("Attempting to load IKE session");
         match connector.restore_session().await {
             Ok(session) => session,
             Err(_) => {
-                connector = tunnel::new_tunnel_connector(params.clone()).await?;
+                connector = CheckPointTunnelConnectorFactory.create(params.clone()).await?;
                 connector.authenticate().await?
             }
         }

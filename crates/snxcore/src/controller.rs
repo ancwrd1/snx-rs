@@ -17,8 +17,7 @@ use crate::{
     otp::OtpListener,
     platform::{Keychain, Platform, PlatformAccess},
     prompt::SecurePrompt,
-    server::DEFAULT_NAME,
-    server_info,
+    server, server_info,
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -83,7 +82,7 @@ where
         match self.stream.take() {
             Some(stream) => Ok(self.stream.insert(stream)),
             None => {
-                let name = DEFAULT_NAME.to_ns_name::<GenericNamespaced>()?;
+                let name = server::DEFAULT_NAME.to_ns_name::<GenericNamespaced>()?;
                 Ok(self.stream.insert(
                     tokio::time::timeout(
                         SERVICE_CONNECT_TIMEOUT,

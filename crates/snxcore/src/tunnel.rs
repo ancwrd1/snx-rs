@@ -57,11 +57,22 @@ pub trait TunnelConnector {
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }
 
-pub async fn new_tunnel_connector(params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
-    match params.tunnel_type {
-        TunnelType::Ipsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
-            Ok(Box::new(IpsecTunnelConnector::new(params).await?))
+#[async_trait]
+pub trait TunnelConnectorFactory: Clone {
+    async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>;
+}
+
+#[derive(Clone)]
+pub struct CheckPointTunnelConnectorFactory;
+
+#[async_trait]
+impl TunnelConnectorFactory for CheckPointTunnelConnectorFactory {
+    async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
+        match params.tunnel_type {
+            TunnelType::Ipsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
+                Ok(Box::new(IpsecTunnelConnector::new(params).await?))
+            }
+            _ => Ok(Box::new(SslTunnelConnector::new(params).await?)),
         }
-        _ => Ok(Box::new(SslTunnelConnector::new(params).await?)),
     }
 }
