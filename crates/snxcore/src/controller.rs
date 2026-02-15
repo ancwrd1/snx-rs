@@ -320,7 +320,7 @@ where
     ) -> anyhow::Result<TunnelServiceResponse> {
         let mut aux_stream;
 
-        // for long-lived polling requests, re-use the existing connection.
+        // for frequent polling requests, re-use the existing connection.
         let mut stream = if request.is_polling() {
             self.get_stream().await?
         } else {
