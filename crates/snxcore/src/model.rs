@@ -238,6 +238,12 @@ pub enum TunnelServiceRequest {
     GetStatus,
 }
 
+impl TunnelServiceRequest {
+    pub fn is_polling(&self) -> bool {
+        matches!(self, Self::GetStatus)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TunnelServiceResponse {
     Ok,

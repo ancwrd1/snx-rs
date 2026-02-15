@@ -25,6 +25,21 @@ const SEND_TIMEOUT: Duration = Duration::from_secs(2);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(120);
 const SERVICE_CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
 
+async fn new_stream() -> anyhow::Result<interprocess::local_socket::tokio::Stream> {
+    async {
+        let name = server::DEFAULT_NAME.to_ns_name::<GenericNamespaced>()?;
+        Ok::<_, anyhow::Error>(
+            tokio::time::timeout(
+                SERVICE_CONNECT_TIMEOUT,
+                interprocess::local_socket::tokio::Stream::connect(name),
+            )
+            .await??,
+        )
+    }
+    .await
+    .context(tr!("error-no-service-connection"))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ServiceCommand {
     Status,
@@ -81,16 +96,7 @@ where
     async fn get_stream(&mut self) -> anyhow::Result<&mut interprocess::local_socket::tokio::Stream> {
         match self.stream.take() {
             Some(stream) => Ok(self.stream.insert(stream)),
-            None => {
-                let name = server::DEFAULT_NAME.to_ns_name::<GenericNamespaced>()?;
-                Ok(self.stream.insert(
-                    tokio::time::timeout(
-                        SERVICE_CONNECT_TIMEOUT,
-                        interprocess::local_socket::tokio::Stream::connect(name),
-                    )
-                    .await??,
-                ))
-            }
+            None => Ok(self.stream.insert(new_stream().await?)),
         }
     }
 
@@ -312,7 +318,15 @@ where
         request: TunnelServiceRequest,
         timeout: Duration,
     ) -> anyhow::Result<TunnelServiceResponse> {
-        let mut stream = self.get_stream().await.context(tr!("error-no-service-connection"))?;
+        let mut aux_stream;
+
+        // for long-lived polling requests, re-use the existing connection.
+        let mut stream = if request.is_polling() {
+            self.get_stream().await?
+        } else {
+            aux_stream = new_stream().await?;
+            &mut aux_stream
+        };
 
         let mut codec = LengthDelimitedCodec::new().framed(&mut stream);
 
