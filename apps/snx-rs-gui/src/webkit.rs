@@ -1,4 +1,10 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicU32, Ordering},
+    },
+    time::Duration,
+};
 
 use gtk4::{ApplicationWindow, glib, glib::clone, prelude::*};
 use i18n::tr;
@@ -13,8 +19,8 @@ const PASSWORD_TIMEOUT: Duration = Duration::from_secs(120);
 const JS_PASSWORD_SCRIPT: &str = r#"
 (function() {
   const regexes = [
-    /sPropertyName = "password";\n\s*SNXParams\.addProperty\(sPropertyName, Function\.READ_WRITE, "([^"]+)"\);/,
-    /Extender\.password\s*=\s*"([^"]+)"/,
+    /sPropertyName = "password";\n\s*SNXParams\.addProperty\(sPropertyName, Function\.READ_WRITE, "([^"]*)"\);/,
+    /Extender\.password\s*=\s*"([^"]*)"/,
   ];
 
   const scripts = document.querySelectorAll("script:not([src])");
@@ -25,7 +31,7 @@ const JS_PASSWORD_SCRIPT: &str = r#"
     }
   }
 
-  return "";
+  return null;
 })();
 "#;
 
@@ -70,29 +76,40 @@ impl BrowserController for WebKitBrowser {
             }
 
             let tx = tx.clone();
+            let reload_counter = Arc::new(AtomicU32::new(0));
+
             webview.connect_load_changed(clone!(
                 #[weak]
                 window,
                 move |webview, event| {
                     if event == LoadEvent::Finished {
                         let tx = tx.clone();
+                        let reload_counter = reload_counter.clone();
                         webview.evaluate_javascript(
                             JS_PASSWORD_SCRIPT,
                             None,
                             None,
                             gtk4::gio::Cancellable::NONE,
-                            move |result| {
-                                if let Ok(value) = result
-                                    && value.is_string()
-                                {
-                                    let password = value.to_str();
-                                    if !password.is_empty() {
-                                        let tx = tx.clone();
-                                        tokio::spawn(async move { tx.send(password.to_string()).await });
-                                        window.close();
+                            clone!(
+                                #[weak]
+                                webview,
+                                move |result| {
+                                    if let Ok(value) = result
+                                        && value.is_string()
+                                    {
+                                        let password = value.to_str();
+                                        if !password.is_empty() {
+                                            let tx = tx.clone();
+                                            tokio::spawn(async move { tx.send(password.to_string()).await });
+                                            window.close();
+                                        } else if reload_counter.fetch_add(1, Ordering::SeqCst) < 3 {
+                                            webview.reload();
+                                        } else {
+                                            window.close();
+                                        }
                                     }
-                                }
-                            },
+                                },
+                            ),
                         );
                     }
                 }
