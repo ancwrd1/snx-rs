@@ -73,7 +73,9 @@ impl BrowserController for WebKitBrowser {
             let webview = WebView::builder().network_session(&session).build();
             if let Some(settings) = WebViewExt::settings(&webview) {
                 settings.set_enable_developer_extras(true);
-                settings.set_user_agent(Some("Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0"));
+                settings.set_user_agent(Some(
+                    "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0",
+                ));
             }
 
             let tx = tx.clone();
