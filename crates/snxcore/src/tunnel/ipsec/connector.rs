@@ -18,6 +18,7 @@ use isakmp::{
     session::{IsakmpSession, OfficeMode, SessionType},
     transport::{TcptDataType, TcptTransport},
 };
+use openssl::{nid::Nid, x509::X509};
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
@@ -630,6 +631,27 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         let login_option = server_info::get_login_option(&self.params).await?;
 
+        let machine_name = if self.service.session().hybrid_auth()
+            && let Some(cert) = self.service.session().client_certificate()
+        {
+            cert.certs()
+                .first()
+                .and_then(|der| X509::from_der(der.as_ref()).ok())
+                .and_then(|cert| {
+                    cert.subject_name().entries().find_map(|entry| {
+                        if entry.object().nid() == Nid::COMMONNAME {
+                            entry.data().as_utf8().map(|s| s.to_string()).ok()
+                        } else {
+                            None
+                        }
+                    })
+                })
+        } else {
+            None
+        };
+
+        debug!("Machine name: {:?}", machine_name);
+
         let realm = AuthenticationRealm {
             client_type: self.params.tunnel_type.as_client_type().to_owned(),
             old_session_id: String::new(),
@@ -640,6 +662,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             client_logging_data: Some(ClientLoggingData {
                 os_name: Some("Windows".to_owned()),
                 device_id: Some(util::get_device_id()),
+                machine_name,
                 ..Default::default()
             }),
         };
