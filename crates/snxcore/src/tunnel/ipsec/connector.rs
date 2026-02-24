@@ -474,8 +474,8 @@ impl IpsecTunnelConnector {
         self.service.delete_sa().await
     }
 
-    async fn is_multi_factor_login_type(&self) -> anyhow::Result<bool> {
-        Ok(server_info::get_login_option(&self.params)
+    async fn is_multi_factor_login_type(params: &TunnelParams) -> anyhow::Result<bool> {
+        Ok(server_info::get_login_option(params)
             .await?
             .map(|opt| opt.is_multi_factor())
             .unwrap_or(true))
@@ -574,7 +574,7 @@ impl IpsecTunnelConnector {
     async fn new_service(params: &TunnelParams) -> anyhow::Result<Ikev1Service> {
         let server_info = server_info::get(params).await?;
 
-        let identity = Self::new_identity(params)?;
+        let identity = Self::new_identity(params).await?;
 
         let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
 
@@ -591,17 +591,23 @@ impl IpsecTunnelConnector {
         Ikev1Service::new(transport, ikev1_session)
     }
 
-    fn new_identity(params: &TunnelParams) -> anyhow::Result<Identity> {
+    async fn new_identity(params: &TunnelParams) -> anyhow::Result<Identity> {
+        let with_mfa = Self::is_multi_factor_login_type(params).await?;
+
         let identity = match params.cert_type {
             CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
                 (Some(path), Some(password)) => Identity::Pkcs12 {
                     data: std::fs::read(path)?,
                     password: password.clone(),
+                    hybrid_auth: with_mfa,
                 },
                 _ => anyhow::bail!(tr!("error-no-pkcs12")),
             },
             CertType::Pkcs8 => match params.cert_path {
-                Some(ref path) => Identity::Pkcs8 { path: path.clone() },
+                Some(ref path) => Identity::Pkcs8 {
+                    path: path.clone(),
+                    hybrid_auth: with_mfa,
+                },
                 None => anyhow::bail!(tr!("error-no-pkcs8")),
             },
             CertType::Pkcs11 => match params.cert_password {
@@ -612,6 +618,7 @@ impl IpsecTunnelConnector {
                         .cert_id
                         .as_ref()
                         .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
+                    hybrid_auth: with_mfa,
                 },
                 None => anyhow::bail!(tr!("error-no-pkcs11")),
             },
@@ -660,7 +667,7 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         let identity_request = IdentityRequest {
             auth_blob: realm_expr.to_string(),
-            with_mfa: self.is_multi_factor_login_type().await.unwrap_or(true),
+            with_mfa: Self::is_multi_factor_login_type(&self.params).await.unwrap_or(true),
             internal_ca_fingerprints,
         };
 
