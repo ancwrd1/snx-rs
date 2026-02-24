@@ -46,6 +46,7 @@ label-connection-profile = Tilkoblingsprofil
 label-profile-name = Profilnavn
 label-confirmation = Vennligst bekreft
 label-mobile-access = Mobiltilgang
+label-machine-cert-auth = Maskinsertifikat-autentisering
 
 # Tabs and expanders
 tab-general = Generelt

@@ -46,6 +46,7 @@ label-connection-profile = Yhteysprofiili
 label-profile-name = Profiilin nimi
 label-confirmation = Vahvista
 label-mobile-access = Mobiilikäyttö
+label-machine-cert-auth = Koneen varmenteen todennus
 
 # Tabs and expanders
 tab-general = Yleiset

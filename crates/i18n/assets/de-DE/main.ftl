@@ -46,6 +46,7 @@ label-connection-profile = Verbindungsprofil
 label-profile-name = Profilname
 label-confirmation = Bitte bestätigen
 label-mobile-access = Mobiler Zugriff
+label-machine-cert-auth = Maschinenzertifikat-Authentifizierung
 
 # Tabs and expanders
 tab-general = Allgemein

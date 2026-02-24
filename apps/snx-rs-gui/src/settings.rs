@@ -33,6 +33,16 @@ fn set_container_visible(widget: &Widget, flag: bool) {
 
 use crate::{get_window, profiles::ConnectionProfilesStore, set_window, tr, tray::TrayCommand};
 
+fn is_multi_factor_login_type(params: &TunnelParams) -> bool {
+    let (tx, rx) = async_channel::bounded(1);
+    let params = params.clone();
+    tokio::spawn(async move {
+        let result = server_info::is_multi_factor_login_type(&params).await.unwrap_or(true);
+        let _ = tx.send(result).await;
+    });
+    rx.recv_blocking().unwrap_or(true)
+}
+
 struct SettingsDialog {
     dialog: Dialog,
     widgets: Rc<MyWidgets>,
@@ -46,6 +56,7 @@ struct MyWidgets {
     tunnel_type: gtk4::ComboBoxText,
     username: gtk4::Entry,
     password: gtk4::PasswordEntry,
+    machine_cert: gtk4::Switch,
     password_factor: gtk4::Entry,
     no_dns: gtk4::Switch,
     search_domains: gtk4::Entry,
@@ -162,6 +173,8 @@ impl MyWidgets {
         self.tunnel_type.set_active_id(Some(params.tunnel_type.as_str()));
         self.username.set_text(&params.user_name);
         self.password.set_text(params.password.expose_secret());
+        self.machine_cert
+            .set_active(params.cert_type != CertType::None && is_multi_factor_login_type(params));
         self.password_factor.set_text(&params.password_factor.to_string());
         self.no_dns.set_active(params.no_dns);
         self.search_domains.set_text(&params.search_domains.join(","));
@@ -222,12 +235,16 @@ impl MyWidgets {
                 let is_cert = factors.iter().any(|f| f == "certificate");
                 let is_mobile_access = factors.iter().any(|f| f == "mobile_access");
                 set_container_visible(self.username.as_ref(), !is_saml && !is_cert && !is_mobile_access);
-                set_container_visible(self.cert_path.as_ref(), is_cert);
-                if !is_cert {
+                set_container_visible(self.cert_path.as_ref(), is_cert | self.machine_cert.is_active());
+                if !is_cert && !self.machine_cert.is_active() {
                     self.cert_type.set_active(Some(0));
                 }
                 self.tunnel_type.set_sensitive(!is_mobile_access);
                 self.tunnel_type.set_active(Some(is_mobile_access as _));
+                self.machine_cert.set_sensitive(!is_cert && !is_mobile_access);
+                if is_cert || is_mobile_access {
+                    self.machine_cert.set_active(false);
+                }
             }
         }
     }
@@ -429,6 +446,8 @@ impl SettingsDialog {
             .placeholder_text(std::env::var("USER").unwrap_or_default())
             .build();
         let password = gtk4::PasswordEntry::builder().show_peek_icon(true).build();
+        let machine_cert = gtk4::Switch::builder().halign(Align::Start).build();
+
         let password_factor = gtk4::Entry::builder().build();
 
         let no_dns = gtk4::Switch::builder().halign(Align::Start).build();
@@ -499,6 +518,7 @@ impl SettingsDialog {
             tunnel_type,
             username,
             password,
+            machine_cert,
             password_factor,
             no_dns,
             search_domains,
@@ -557,6 +577,17 @@ impl SettingsDialog {
             #[weak]
             widgets,
             move |_| widgets.on_auth_type_changed()
+        ));
+
+        widgets.machine_cert.connect_state_set(clone!(
+            #[weak]
+            widgets,
+            #[upgrade_or]
+            glib::Propagation::Proceed,
+            move |_, _| {
+                widgets.on_auth_type_changed();
+                glib::Propagation::Proceed
+            }
         ));
 
         widgets.profile_select.connect_active_notify(clone!(
@@ -837,6 +868,12 @@ impl SettingsDialog {
     fn auth_box(&self) -> gtk4::Box {
         let auth_box = self.form_box(&tr!("label-auth-method"));
         auth_box.append(&self.widgets.auth_type);
+        auth_box
+    }
+
+    fn machine_cert_box(&self) -> gtk4::Box {
+        let auth_box = self.form_box(&tr!("label-machine-cert-auth"));
+        auth_box.append(&self.widgets.machine_cert);
         auth_box
     }
 
@@ -1164,6 +1201,7 @@ impl SettingsDialog {
         tab.append(&self.server_box());
         tab.append(&self.auth_box());
         tab.append(&self.tunnel_box());
+        tab.append(&self.machine_cert_box());
         tab.append(&self.user_auth_box());
         tab.append(&self.cert_auth_box());
         tab

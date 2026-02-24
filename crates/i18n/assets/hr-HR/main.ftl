@@ -46,6 +46,7 @@ label-connection-profile = Profil veze
 label-profile-name = Naziv profila
 label-confirmation = Molimo potvrdite
 label-mobile-access = Mobilni pristup
+label-machine-cert-auth = Provjera autentičnosti strojnim certifikatom
 
 # Tabs and expanders
 tab-general = Općenito

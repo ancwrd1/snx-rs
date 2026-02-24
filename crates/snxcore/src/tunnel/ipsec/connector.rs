@@ -474,13 +474,6 @@ impl IpsecTunnelConnector {
         self.service.delete_sa().await
     }
 
-    async fn is_multi_factor_login_type(params: &TunnelParams) -> anyhow::Result<bool> {
-        Ok(server_info::get_login_option(params)
-            .await?
-            .map(|opt| opt.is_multi_factor())
-            .unwrap_or(true))
-    }
-
     fn save_ike_session(&mut self) -> anyhow::Result<()> {
         let office_mode = OfficeMode {
             ccc_session: self.ccc_session.clone(),
@@ -592,7 +585,7 @@ impl IpsecTunnelConnector {
     }
 
     async fn new_identity(params: &TunnelParams) -> anyhow::Result<Identity> {
-        let with_mfa = Self::is_multi_factor_login_type(params).await?;
+        let with_mfa = server_info::is_multi_factor_login_type(params).await?;
 
         let identity = match params.cert_type {
             CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
@@ -667,7 +660,9 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         let identity_request = IdentityRequest {
             auth_blob: realm_expr.to_string(),
-            with_mfa: Self::is_multi_factor_login_type(&self.params).await.unwrap_or(true),
+            with_mfa: server_info::is_multi_factor_login_type(&self.params)
+                .await
+                .unwrap_or(true),
             internal_ca_fingerprints,
         };
 
