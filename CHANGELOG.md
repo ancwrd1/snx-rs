@@ -1,3 +1,7 @@
+## v5.2.0 (TBD)
+- Added [machine certificate authentication](https://github.com/ancwrd1/snx-rs/blob/main/README.md#machine-certificate-authentication) support.
+- Fixed a problem with the browser-based authenticaion and OTP which may occur for some users.
+
 ## v5.1.0 (2026-02-17)
 - Added certificate enrollment and renewal operations via `snx-rs` command line interface. See the [documentation](https://github.com/ancwrd1/snx-rs/blob/main/README.md#certificate-enrollment) on how to use this feature.
 - Added `--no-tray` option to the GUI application to disable tray notification icon for the desktop environments which do not have dbus SNI interface. The connection status window will be shown instead.

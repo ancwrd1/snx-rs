@@ -242,8 +242,8 @@ The following parameters control certificate-based authentication:
 ## Machine Certificate Authentication
 
 With the machine certificate authentication it is possible to combine the certificate with the normal authentication methods.
-In order to enable it, specify the certificate authentication options as described in the previous section,
-and use one of the normal vpn_XXX login types. The machine certificate authentication must be enabled on the VPN server side.
+To enable it, specify the certificate authentication options as described in the previous section and use one of the normal
+vpn_XXX login types. The machine certificate authentication must be enabled on the VPN server side.
 The certificate subject must have an entry for the machine name: `CN=<machinename>`. It does not have to match the Linux hostname.
 
 When using a GUI frontend, there is a switch in the settings dialog to enable this option.
