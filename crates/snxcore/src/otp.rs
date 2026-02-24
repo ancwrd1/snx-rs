@@ -16,16 +16,17 @@ const OTP_TIMEOUT: Duration = Duration::from_secs(120);
 
 async fn otp_handler(
     req: Request<impl hyper::body::Body>,
-    sender: mpsc::Sender<String>,
+    sender: mpsc::Sender<Option<String>>,
 ) -> anyhow::Result<Response<Empty<Bytes>>> {
     match *req.method() {
         Method::GET | Method::OPTIONS => {
             let otp = req.uri().path().trim_start_matches('/');
             if otp.is_empty() {
                 warn!("OTP not present in the request");
+                let _ = sender.send(None).await;
             } else {
                 debug!("Successfully received OTP from the browser");
-                let _ = sender.send(otp.to_owned()).await;
+                let _ = sender.send(Some(otp.to_owned())).await;
             }
 
             Ok(Response::builder()
@@ -38,6 +39,7 @@ async fn otp_handler(
         _ => {
             warn!("Received unsupported request: {}", req.method());
 
+            let _ = sender.send(None).await;
             Ok(Response::builder().status(400).body(Empty::new())?)
         }
     }
@@ -69,18 +71,37 @@ impl OtpListener {
         let (sender, mut receiver) = mpsc::channel(1);
 
         let fut = async move {
-            let (stream, _) = tcp.accept().await?;
-            http1::Builder::new()
-                .timer(TokioTimer::new())
-                .serve_connection(TokioIo::new(stream), service_fn(|req| otp_handler(req, sender.clone())))
-                .await?;
+            loop {
+                let Ok((stream, _)) = tcp.accept().await else {
+                    break;
+                };
 
+                let _ = http1::Builder::new()
+                    .timer(TokioTimer::new())
+                    .serve_connection(TokioIo::new(stream), service_fn(|req| otp_handler(req, sender.clone())))
+                    .await;
+            }
             Ok::<_, anyhow::Error>(())
         };
 
-        match tokio::time::timeout(OTP_TIMEOUT, futures::future::join(fut, receiver.recv())).await {
-            Ok((_, Some(otp))) => Ok(otp),
-            _ => Err(anyhow!(tr!("error-otp-browser-failed"))),
+        tokio::select! {
+            _ = tokio::time::sleep(OTP_TIMEOUT) => {
+                warn!("OTP listener timed out");
+                Err(anyhow!(tr!("error-otp-browser-failed")))
+            }
+            _ = fut => {
+                warn!("OTP listener failed");
+                Err(anyhow!(tr!("error-otp-browser-failed")))
+            }
+            otp = receiver.recv() => {
+                match otp {
+                    Some(Some(otp)) => Ok(otp),
+                    _ => {
+                        warn!("Invalid OTP request received from the browser");
+                        Err(anyhow!(tr!("error-otp-browser-failed")))
+                    },
+                }
+            }
         }
     }
 }
@@ -94,6 +115,8 @@ mod tests {
     use super::OtpListener;
 
     async fn send_req(addr: SocketAddr, method: Method, otp: &str) -> anyhow::Result<()> {
+        let socket = std::net::TcpStream::connect(addr)?;
+        drop(socket);
         let req = reqwest::Request::new(method.clone(), format!("http://{}/{}", addr, otp).parse()?);
         reqwest::Client::new().execute(req).await?.error_for_status()?;
         Ok(())
