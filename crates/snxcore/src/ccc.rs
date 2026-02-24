@@ -45,15 +45,16 @@ impl CccHttpClient {
     }
 
     fn new_auth_request(&self) -> CccClientRequestData {
-        let (request_type, username, password) = if self.params.cert_type == CertType::None {
-            (
-                "UserPass",
-                Some(self.params.user_name.as_str().into()),
-                Some(Default::default()),
-            )
-        } else {
-            ("CertAuth", None, None)
-        };
+        let (request_type, username, password) =
+            if self.params.cert_type == CertType::None || !self.params.user_name.is_empty() {
+                (
+                    "UserPass",
+                    Some(self.params.user_name.as_str().into()),
+                    Some(Default::default()),
+                )
+            } else {
+                ("CertAuth", None, None)
+            };
 
         CccClientRequestData {
             header: RequestHeader {
