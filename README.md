@@ -19,6 +19,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * [Mobile Access Authentication](#mobile-access-authentication)
 * [Certificate Validation](#certificate-validation)
 * [Certificate Authentication](#certificate-authentication)
+* [Machine Certificate Authentication](#machine-certificate-authentication)
 * [Certificate Enrollment](#certificate-enrollment)
 * [Persistent IPSec Session](#persistent-ipsec-session)
 * [Additional Usage Notes](#additional-usage-notes)
@@ -236,6 +237,16 @@ The following parameters control certificate-based authentication:
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed.
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
 * `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of `xx:xx:xx` or `xxxxxx`.
+
+<!-- TOC --><a name="machine-certificate-authentication"></a>
+## Machine Certificate Authentication
+
+With the machine certificate authentication it is possible to combine the certificate with the normal authentication methods.
+In order to enable it, specify the certificate authentication options as described in the previous section,
+and use one of the normal vpn_XXX login types. The machine certificate authentication must be enabled on the VPN server side.
+The certificate subject must have an entry for the machine name: `CN=<machinename>`. It does not have to match the Linux hostname.
+
+When using a GUI frontend, there is a switch in the settings dialog to enable this option.
 
 <!-- TOC --><a name="certificate-enrollment"></a>
 ## Certificate Enrollment
