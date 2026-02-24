@@ -71,17 +71,12 @@ impl OtpListener {
         let (sender, mut receiver) = mpsc::channel(1);
 
         let fut = async move {
-            loop {
-                let Ok((stream, _)) = tcp.accept().await else {
-                    break;
-                };
-
+            while let Ok((stream, _)) = tcp.accept().await {
                 let _ = http1::Builder::new()
                     .timer(TokioTimer::new())
                     .serve_connection(TokioIo::new(stream), service_fn(|req| otp_handler(req, sender.clone())))
                     .await;
             }
-            Ok::<_, anyhow::Error>(())
         };
 
         tokio::select! {
