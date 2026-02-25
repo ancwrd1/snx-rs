@@ -1721,7 +1721,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#94910b477107b048cda2d3f21b329d59a3748bf2"
+source = "git+https://github.com/ancwrd1/isakmp.git#4d5dec6143305ff2ab9569e9c884f0146c03258b"
 dependencies = [
  "anyhow",
  "async-trait",
