@@ -238,6 +238,8 @@ The following parameters control certificate-based authentication:
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
 * `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of `xx:xx:xx` or `xxxxxx`.
 
+Certificate authentication should be used with the appropriate vpn_XXX login type which has a "certificate" as it's authentication factor.
+
 <!-- TOC --><a name="machine-certificate-authentication"></a>
 ## Machine Certificate Authentication
 
