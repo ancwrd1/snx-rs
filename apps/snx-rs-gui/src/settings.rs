@@ -1,8 +1,7 @@
-use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
+use std::{cell::RefCell, net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
-    Align, ButtonsType, Dialog, DialogFlags, FileChooserAction, FileChooserDialog, MessageType, Orientation,
-    ResponseType, Widget, Window,
+    Align, Orientation, ResponseType, Widget, Window,
     glib::{self, clone},
     prelude::*,
 };
@@ -10,7 +9,7 @@ use itertools::Itertools;
 use secrecy::ExposeSecret;
 use snxcore::{
     model::{
-        params::{CertType, DEFAULT_PROFILE_UUID, IconTheme, TransportType, TunnelParams, TunnelType},
+        params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
         proto::LoginOption,
     },
     server_info,
@@ -68,65 +67,84 @@ fn create_file_picker_widget_with_filter(
                 return;
             };
 
-            let dialog = FileChooserDialog::new(
-                Some(&tr!("label-select-file")),
-                Some(window),
-                FileChooserAction::Open,
-                &[
-                    (&tr!("label-cancel"), ResponseType::Cancel),
-                    (&tr!("label-open"), ResponseType::Accept),
-                ],
-            );
-
-            dialog.set_select_multiple(multiple);
-
+            let filter_store = gtk4::gio::ListStore::new::<gtk4::FileFilter>();
             for (name, pats) in &patterns {
                 let filter = gtk4::FileFilter::new();
                 filter.set_name(Some(name));
                 for pat in pats {
                     filter.add_pattern(pat);
                 }
-                dialog.add_filter(&filter);
+                filter_store.append(&filter);
             }
 
-            dialog.connect_response(glib::clone!(
-                #[weak]
-                entry,
-                move |dialog, response| {
-                    if response == ResponseType::Accept {
-                        let files = dialog.files();
-                        let paths: Vec<String> = (0..files.n_items())
-                            .filter_map(|i| files.item(i))
-                            .filter_map(|obj| obj.downcast::<gtk4::gio::File>().ok())
-                            .filter_map(|file| file.path())
-                            .map(|path| path.to_string_lossy().into_owned())
-                            .collect();
+            let file_dialog = gtk4::FileDialog::builder()
+                .title(tr!("label-select-file"))
+                .accept_label(tr!("label-open"))
+                .filters(&filter_store)
+                .build();
 
-                        entry.set_text(&paths.join(","));
-                    }
-
-                    dialog.close();
-                }
-            ));
-
-            dialog.show();
+            if multiple {
+                file_dialog.open_multiple(
+                    Some(window),
+                    None::<&gtk4::gio::Cancellable>,
+                    glib::clone!(
+                        #[weak]
+                        entry,
+                        move |result| {
+                            if let Ok(files) = result {
+                                let paths: Vec<String> = (0..files.n_items())
+                                    .filter_map(|i| files.item(i))
+                                    .filter_map(|obj| obj.downcast::<gtk4::gio::File>().ok())
+                                    .filter_map(|file| file.path())
+                                    .map(|path| path.to_string_lossy().into_owned())
+                                    .collect();
+                                entry.set_text(&paths.join(","));
+                            }
+                        }
+                    ),
+                );
+            } else {
+                file_dialog.open(
+                    Some(window),
+                    None::<&gtk4::gio::Cancellable>,
+                    glib::clone!(
+                        #[weak]
+                        entry,
+                        move |result| {
+                            if let Ok(file) = result
+                                && let Some(path) = file.path()
+                            {
+                                entry.set_text(&path.to_string_lossy());
+                            }
+                        }
+                    ),
+                );
+            }
         }
     ));
 
     hbox
 }
 
+fn get_string_list(dropdown: &gtk4::DropDown) -> gtk4::StringList {
+    dropdown
+        .model()
+        .and_then(|model| model.downcast::<gtk4::StringList>().ok())
+        .unwrap_or_default()
+}
+
 struct SettingsDialog {
-    dialog: Dialog,
+    window: Window,
     widgets: Rc<MyWidgets>,
     revealers: Vec<gtk4::Revealer>,
+    response_rx: async_channel::Receiver<ResponseType>,
 }
 
 struct MyWidgets {
     server_name: gtk4::Entry,
     fetch_info: gtk4::Button,
-    auth_type: gtk4::ComboBoxText,
-    tunnel_type: gtk4::ComboBoxText,
+    auth_type: gtk4::DropDown,
+    tunnel_type: gtk4::DropDown,
     username: gtk4::Entry,
     password: gtk4::PasswordEntry,
     machine_cert: gtk4::Switch,
@@ -143,7 +161,7 @@ struct MyWidgets {
     ignored_routes: gtk4::Entry,
     keychain: gtk4::Switch,
     no_cert_check: gtk4::Switch,
-    cert_type: gtk4::ComboBoxText,
+    cert_type: gtk4::DropDown,
     cert_path: gtk4::Entry,
     cert_password: gtk4::PasswordEntry,
     cert_id: gtk4::Entry,
@@ -152,19 +170,23 @@ struct MyWidgets {
     ike_persist: gtk4::Switch,
     no_keepalive: gtk4::Switch,
     port_knock: gtk4::Switch,
-    icon_theme: gtk4::ComboBoxText,
+    icon_theme: gtk4::DropDown,
     error: gtk4::Label,
     button_box: gtk4::Box,
-    locale: gtk4::ComboBoxText,
+    locale: gtk4::DropDown,
     auto_connect: gtk4::Switch,
     ip_lease_time: gtk4::Entry,
     disable_ipv6: gtk4::Switch,
     mtu: gtk4::Entry,
-    transport_type: gtk4::ComboBoxText,
-    profile_select: gtk4::ComboBoxText,
+    transport_type: gtk4::DropDown,
+    profile_select: gtk4::DropDown,
     profile_new: gtk4::Button,
     profile_rename: gtk4::Button,
     profile_delete: gtk4::Button,
+    // ID/factor tracking for dynamic dropdowns
+    auth_ids: RefCell<Vec<String>>,
+    auth_factors: RefCell<Vec<Vec<String>>>,
+    profile_ids: RefCell<Vec<String>>,
 }
 
 impl MyWidgets {
@@ -173,7 +195,7 @@ impl MyWidgets {
             anyhow::bail!(tr!("error-no-server-name"));
         }
 
-        if self.auth_type.active().is_none() {
+        if self.auth_type.selected() == gtk4::INVALID_LIST_POSITION {
             anyhow::bail!(tr!("error-no-auth"));
         }
 
@@ -242,8 +264,12 @@ impl MyWidgets {
     fn update_from_params(&self, params: &TunnelParams) {
         self.server_name.set_text(&params.server_name);
 
-        self.auth_type.set_active_id(Some(&params.login_type));
-        self.tunnel_type.set_active_id(Some(params.tunnel_type.as_str()));
+        let login_type: &str = &params.login_type;
+        if let Some(i) = self.auth_ids.borrow().iter().position(|id| id.as_str() == login_type) {
+            self.auth_type.set_selected(i as u32);
+        }
+
+        self.tunnel_type.set_selected(params.tunnel_type.as_u32());
         self.username.set_text(&params.user_name);
         self.password.set_text(params.password.expose_secret());
         self.machine_cert
@@ -265,7 +291,7 @@ impl MyWidgets {
             .set_text(&params.ignore_routes.iter().map(|ip| ip.to_string()).join(","));
         self.keychain.set_active(params.keychain);
         self.no_cert_check.set_active(params.ignore_server_cert);
-        self.cert_type.set_active_id(Some(&params.cert_type.to_string()));
+        self.cert_type.set_selected(params.cert_type as u32);
         self.cert_path.set_text(
             &params
                 .cert_path
@@ -295,39 +321,43 @@ impl MyWidgets {
         );
         self.disable_ipv6.set_active(params.disable_ipv6);
         self.mtu.set_text(&params.mtu.to_string());
-        self.transport_type
-            .set_active_id(Some(&params.transport_type.to_string()));
+        self.transport_type.set_selected(params.transport_type.as_u32());
         self.fetch_info.activate();
     }
 
     fn on_auth_type_changed(&self) {
-        if let Some(id) = self.auth_type.active_id() {
-            let factors = unsafe { self.auth_type.data::<Vec<String>>(&id).map(|p| p.as_ref()) };
-            if let Some(factors) = factors {
-                let is_saml = factors.iter().any(|f| f == "identity_provider");
-                let is_cert = factors.iter().any(|f| f == "certificate");
-                let is_mobile_access = factors.iter().any(|f| f == "mobile_access");
-                set_container_visible(self.username.as_ref(), !is_saml && !is_cert && !is_mobile_access, 1);
-                set_container_visible(self.cert_path.as_ref(), is_cert | self.machine_cert.is_active(), 2);
-                if !is_cert && !self.machine_cert.is_active() {
-                    self.cert_type.set_active(Some(0));
-                }
+        let sel = self.auth_type.selected();
+        let factors = if sel != gtk4::INVALID_LIST_POSITION {
+            self.auth_factors
+                .borrow()
+                .get(sel as usize)
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            vec![]
+        };
+        let is_saml = factors.iter().any(|f| f == "identity_provider");
+        let is_cert = factors.iter().any(|f| f == "certificate");
+        let is_mobile_access = factors.iter().any(|f| f == "mobile_access");
+        set_container_visible(self.username.as_ref(), !is_saml && !is_cert && !is_mobile_access, 1);
+        set_container_visible(self.cert_path.as_ref(), is_cert | self.machine_cert.is_active(), 2);
+        if !is_cert && !self.machine_cert.is_active() {
+            self.cert_type.set_selected(CertType::None.as_u32());
+        }
 
-                self.tunnel_type.set_sensitive(!is_mobile_access);
-                if is_mobile_access {
-                    self.tunnel_type.set_active_id(Some(TunnelType::Ssl.as_str()));
-                }
+        self.tunnel_type.set_sensitive(!is_mobile_access);
+        if is_mobile_access {
+            self.tunnel_type.set_selected(TunnelType::Ssl.as_u32());
+        }
 
-                self.machine_cert.set_sensitive(!is_cert && !is_mobile_access);
-                if is_cert || is_mobile_access {
-                    self.machine_cert.set_active(false);
-                }
-            }
+        self.machine_cert.set_sensitive(!is_cert && !is_mobile_access);
+        if is_cert || is_mobile_access {
+            self.machine_cert.set_active(false);
         }
     }
 
     fn on_profile_changed(&self) {
-        if let Some(id) = self.profile_select.active_id()
+        if let Some(id) = profile_active_id(self)
             && let Ok(uuid) = id.parse::<Uuid>()
             && let Some(params) = ConnectionProfilesStore::instance().get(uuid)
         {
@@ -336,27 +366,28 @@ impl MyWidgets {
         }
     }
 
-    async fn on_profile_delete(&self, parent: &Dialog) {
-        let msg = gtk4::MessageDialog::new(
-            Some(parent),
-            DialogFlags::MODAL,
-            MessageType::Question,
-            ButtonsType::YesNo,
-            tr!("profile-delete-prompt"),
-        );
-        msg.set_title(Some(&tr!("label-confirmation")));
-        if msg.run_future().await == ResponseType::Yes
-            && let Some(id) = self.profile_select.active_id()
+    async fn on_profile_delete(&self, parent: &Window) {
+        let no_label = tr!("button-cancel");
+        let yes_label = tr!("button-ok");
+        let alert = gtk4::AlertDialog::builder()
+            .message(tr!("profile-delete-prompt"))
+            .buttons([no_label.as_str(), yes_label.as_str()].as_slice())
+            .cancel_button(0)
+            .default_button(0)
+            .build();
+        if let Ok(1) = alert.choose_future(Some(parent)).await
+            && let Some(id) = profile_active_id(self)
             && let Ok(uuid) = id.parse::<Uuid>()
         {
             ConnectionProfilesStore::instance().remove(uuid);
-            self.profile_select.remove(self.profile_select.active().unwrap() as _);
-            self.profile_select.set_active(Some(0));
+            let active = self.profile_select.selected();
+            get_string_list(&self.profile_select).splice(active, 1, &[]);
+            self.profile_ids.borrow_mut().remove(active as usize);
+            self.profile_select.set_selected(0);
         }
-        msg.close();
     }
 
-    async fn on_profile_new(&self, parent: &Dialog) {
+    async fn on_profile_new(&self, parent: &Window) {
         let name = show_entry_dialog(parent, &tr!("profile-new-title"), &tr!("label-profile-name"), "").await;
         if let Some(name) = name {
             let profile_id = Uuid::new_v4();
@@ -367,28 +398,37 @@ impl MyWidgets {
                 ..Default::default()
             });
             ConnectionProfilesStore::instance().save(params.clone());
-            self.profile_select.append(Some(&profile_id.to_string()), &name);
-            self.profile_select.set_active_id(Some(&profile_id.to_string()));
+            get_string_list(&self.profile_select).append(&name);
+            self.profile_ids.borrow_mut().push(profile_id.to_string());
+            self.profile_select
+                .set_selected((self.profile_ids.borrow().len() - 1) as u32);
             self.update_from_params(&params);
         }
     }
 
-    async fn on_profile_rename(&self, parent: &Dialog) {
+    async fn on_profile_rename(&self, parent: &Window) {
+        let active_text = {
+            let active = self.profile_select.selected();
+            get_string_list(&self.profile_select)
+                .string(active)
+                .map(|s| s.to_string())
+                .unwrap_or_default()
+        };
         let name = show_entry_dialog(
             parent,
             &tr!("profile-rename-title"),
             &tr!("label-profile-name"),
-            &self.profile_select.active_text().unwrap_or_default(),
+            &active_text,
         )
         .await;
         if let Some(name) = name
-            && let Some(id) = self.profile_select.active_id()
-            && let Some(active) = self.profile_select.active()
+            && let Some(id) = profile_active_id(self)
             && let Ok(uuid) = id.parse::<Uuid>()
         {
-            self.profile_select.remove(active as _);
-            self.profile_select.insert(active as _, Some(&id), &name);
-            self.profile_select.set_active_id(Some(&id));
+            let active = self.profile_select.selected();
+            get_string_list(&self.profile_select).splice(active, 1, &[name.as_str()]);
+            // Re-select since splice may have changed selection
+            self.profile_select.set_selected(active);
 
             if let Some(profile) = ConnectionProfilesStore::instance().get(uuid) {
                 let new_profile = Arc::new(TunnelParams {
@@ -400,8 +440,8 @@ impl MyWidgets {
         }
     }
 
-    fn on_fetch_info(self: Rc<MyWidgets>, dialog: Dialog) {
-        let params = if let Some(id) = self.profile_select.active_id()
+    fn on_fetch_info(self: Rc<MyWidgets>, window: Window) {
+        let params = if let Some(id) = profile_active_id(&self)
             && let Ok(uuid) = id.parse::<Uuid>()
             && let Some(params) = ConnectionProfilesStore::instance().get(uuid)
         {
@@ -413,10 +453,13 @@ impl MyWidgets {
         let login_type = params.login_type.clone();
 
         if self.server_name.text().is_empty() {
-            self.auth_type.remove_all();
+            let model = get_string_list(&self.auth_type);
+            model.splice(0, model.n_items(), &[]);
+            self.auth_ids.borrow_mut().clear();
+            self.auth_factors.borrow_mut().clear();
             self.auth_type.set_sensitive(false);
         } else {
-            dialog.set_sensitive(false);
+            window.set_sensitive(false);
             let new_params = TunnelParams {
                 server_name: self.server_name.text().into(),
                 ignore_server_cert: self.no_cert_check.is_active(),
@@ -431,8 +474,10 @@ impl MyWidgets {
 
             glib::spawn_future_local(async move {
                 let response = rx.recv().await.unwrap();
-
-                self.auth_type.remove_all();
+                let model = get_string_list(&self.auth_type);
+                model.splice(0, model.n_items(), &[]);
+                self.auth_ids.borrow_mut().clear();
+                self.auth_factors.borrow_mut().clear();
 
                 match response {
                     Ok(server_info) => {
@@ -447,23 +492,23 @@ impl MyWidgets {
                         }
                         #[cfg(feature = "mobile-access")]
                         options_list.push(LoginOption::mobile_access());
-                        for (i, option) in options_list.into_iter().filter(|opt| opt.show_realm != 0).enumerate() {
+                        for option in options_list.into_iter().filter(|opt| opt.show_realm != 0) {
                             let factors = option
                                 .factors
                                 .values()
                                 .map(|factor| factor.factor_type.clone())
                                 .collect::<Vec<_>>();
-                            unsafe {
-                                self.auth_type.set_data(&option.id, factors);
-                            }
-                            self.auth_type.append(Some(&option.id), &option.display_name);
+                            let model = get_string_list(&self.auth_type);
+                            model.append(&option.display_name);
+                            self.auth_ids.borrow_mut().push(option.id.clone());
+                            self.auth_factors.borrow_mut().push(factors);
                             if login_type == option.id {
-                                self.auth_type.set_active(Some(i as _));
+                                self.auth_type.set_selected((self.auth_ids.borrow().len() - 1) as u32);
                             }
                         }
                         self.auth_type.set_sensitive(true);
-                        if self.auth_type.active().is_none() {
-                            self.auth_type.set_active(Some(0));
+                        if self.auth_type.selected() == gtk4::INVALID_LIST_POSITION {
+                            self.auth_type.set_selected(0);
                         }
                     }
 
@@ -483,17 +528,29 @@ impl MyWidgets {
                         self.error.set_visible(true);
                     }
                 }
-                dialog.set_sensitive(true);
+                window.set_sensitive(true);
             });
         }
     }
 }
 
+fn profile_active_id(widgets: &MyWidgets) -> Option<String> {
+    let sel = widgets.profile_select.selected();
+    if sel == gtk4::INVALID_LIST_POSITION {
+        None
+    } else {
+        widgets.profile_ids.borrow().get(sel as usize).cloned()
+    }
+}
+
 impl SettingsDialog {
     pub fn new<W: IsA<Window>>(parent: W, profile_id: Uuid) -> Self {
-        let dialog = Dialog::builder()
+        let (response_tx, response_rx) = async_channel::unbounded::<ResponseType>();
+
+        let window = Window::builder()
             .title(tr!("dialog-title"))
             .transient_for(&parent)
+            .modal(true)
             .build();
 
         let button_box = gtk4::Box::builder()
@@ -517,8 +574,8 @@ impl SettingsDialog {
             .label(tr!("button-fetch-info"))
             .halign(Align::End)
             .build();
-        let auth_type = gtk4::ComboBoxText::builder().build();
-        let tunnel_type = gtk4::ComboBoxText::builder().build();
+        let auth_type = gtk4::DropDown::builder().model(&gtk4::StringList::new(&[])).build();
+        let tunnel_type = gtk4::DropDown::builder().build();
         let username = gtk4::Entry::builder()
             .placeholder_text(std::env::var("USER").unwrap_or_default())
             .build();
@@ -559,7 +616,7 @@ impl SettingsDialog {
 
         let keychain = gtk4::Switch::builder().halign(Align::Start).build();
         let no_cert_check = gtk4::Switch::builder().halign(Align::Start).build();
-        let cert_type = gtk4::ComboBoxText::builder().build();
+        let cert_type = gtk4::DropDown::builder().build();
         let cert_path = gtk4::Entry::builder().build();
         let cert_password = gtk4::PasswordEntry::builder().show_peek_icon(true).build();
         let cert_id = gtk4::Entry::builder().build();
@@ -570,23 +627,23 @@ impl SettingsDialog {
         let ike_persist = gtk4::Switch::builder().halign(Align::Start).build();
         let no_keepalive = gtk4::Switch::builder().halign(Align::Start).build();
         let port_knock = gtk4::Switch::builder().halign(Align::Start).build();
-        let icon_theme = gtk4::ComboBoxText::builder().build();
-        let locale = gtk4::ComboBoxText::builder().build();
+        let icon_theme = gtk4::DropDown::builder().build();
+        let locale = gtk4::DropDown::builder().build();
         let auto_connect = gtk4::Switch::builder().halign(Align::Start).build();
         let ip_lease_time = gtk4::Entry::builder().build();
         let disable_ipv6 = gtk4::Switch::builder().halign(Align::Start).build();
 
         let mtu = gtk4::Entry::builder().build();
-        let transport_type = gtk4::ComboBoxText::builder().build();
+        let transport_type = gtk4::DropDown::builder().build();
 
-        let profile_select = gtk4::ComboBoxText::builder().build();
+        let profile_select = gtk4::DropDown::builder().model(&gtk4::StringList::new(&[])).build();
         let profile_new = gtk4::Button::with_label(&tr!("profile-new"));
         let profile_rename = gtk4::Button::with_label(&tr!("profile-rename"));
         let profile_delete = gtk4::Button::with_label(&tr!("profile-delete"));
 
         let error = gtk4::Label::new(None);
         error.set_visible(false);
-        error.style_context().add_class("error");
+        error.add_css_class("error");
 
         let widgets = Rc::new(MyWidgets {
             server_name,
@@ -631,26 +688,102 @@ impl SettingsDialog {
             profile_new,
             profile_rename,
             profile_delete,
+            auth_ids: RefCell::new(vec![]),
+            auth_factors: RefCell::new(vec![]),
+            profile_ids: RefCell::new(vec![]),
         });
 
-        apply_button.connect_clicked(clone!(
-            #[weak]
-            dialog,
-            move |_| dialog.response(ResponseType::Apply)
-        ));
+        let tx_ok = response_tx.clone();
         ok_button.connect_clicked(clone!(
             #[weak]
-            dialog,
-            move |_| dialog.response(ResponseType::Ok)
-        ));
-
-        cancel_button.connect_clicked(clone!(
+            widgets,
             #[weak]
-            dialog,
-            move |_| dialog.response(ResponseType::Cancel)
+            window,
+            move |_| {
+                match widgets.validate() {
+                    Ok(()) => {
+                        let _ = tx_ok.try_send(ResponseType::Ok);
+                    }
+                    Err(e) => {
+                        glib::spawn_future_local(clone!(
+                            #[weak]
+                            window,
+                            async move {
+                                let ok_label = tr!("button-ok");
+                                let alert = gtk4::AlertDialog::builder()
+                                    .message(e.to_string())
+                                    .buttons([ok_label.as_str()].as_slice())
+                                    .default_button(0)
+                                    .build();
+                                alert.choose_future(Some(&window)).await.ok();
+                            }
+                        ));
+                    }
+                }
+            }
         ));
 
-        widgets.auth_type.connect_active_notify(clone!(
+        let tx_apply = response_tx.clone();
+        apply_button.connect_clicked(clone!(
+            #[weak]
+            widgets,
+            #[weak]
+            window,
+            move |_| {
+                match widgets.validate() {
+                    Ok(()) => {
+                        let _ = tx_apply.try_send(ResponseType::Apply);
+                    }
+                    Err(e) => {
+                        glib::spawn_future_local(clone!(
+                            #[weak]
+                            window,
+                            async move {
+                                let ok_label = tr!("button-ok");
+                                let alert = gtk4::AlertDialog::builder()
+                                    .message(e.to_string())
+                                    .buttons([ok_label.as_str()].as_slice())
+                                    .default_button(0)
+                                    .build();
+                                alert.choose_future(Some(&window)).await.ok();
+                            }
+                        ));
+                    }
+                }
+            }
+        ));
+
+        let tx_cancel = response_tx.clone();
+        cancel_button.connect_clicked(move |_| {
+            let _ = tx_cancel.try_send(ResponseType::Cancel);
+        });
+
+        let tx_close = response_tx.clone();
+        window.connect_close_request(move |_| {
+            let _ = tx_close.try_send(ResponseType::Cancel);
+            glib::Propagation::Proceed
+        });
+
+        {
+            let key_controller = gtk4::EventControllerKey::new();
+            key_controller.connect_key_pressed(clone!(
+                #[weak]
+                window,
+                #[upgrade_or]
+                glib::Propagation::Proceed,
+                move |_, key, _, _| {
+                    if key == gtk4::gdk::Key::Escape {
+                        window.close();
+                        glib::Propagation::Stop
+                    } else {
+                        glib::Propagation::Proceed
+                    }
+                }
+            ));
+            window.add_controller(key_controller);
+        }
+
+        widgets.auth_type.connect_selected_notify(clone!(
             #[weak]
             widgets,
             move |_| widgets.on_auth_type_changed()
@@ -667,7 +800,7 @@ impl SettingsDialog {
             }
         ));
 
-        widgets.profile_select.connect_active_notify(clone!(
+        widgets.profile_select.connect_selected_notify(clone!(
             #[weak]
             widgets,
             move |_| widgets.on_profile_changed()
@@ -677,12 +810,12 @@ impl SettingsDialog {
             #[weak]
             widgets,
             #[weak]
-            dialog,
+            window,
             move |_| {
                 glib::spawn_future_local(clone!(
                     #[weak]
                     widgets,
-                    async move { widgets.on_profile_delete(&dialog).await }
+                    async move { widgets.on_profile_delete(&window).await }
                 ));
             }
         ));
@@ -691,12 +824,12 @@ impl SettingsDialog {
             #[weak]
             widgets,
             #[weak]
-            dialog,
+            window,
             move |_| {
                 glib::spawn_future_local(clone!(
                     #[weak]
                     widgets,
-                    async move { widgets.on_profile_new(&dialog).await }
+                    async move { widgets.on_profile_new(&window).await }
                 ));
             }
         ));
@@ -705,52 +838,25 @@ impl SettingsDialog {
             #[weak]
             widgets,
             #[weak]
-            dialog,
+            window,
             move |_| {
                 glib::spawn_future_local(clone!(
                     #[weak]
                     widgets,
-                    async move { widgets.on_profile_rename(&dialog).await }
+                    async move { widgets.on_profile_rename(&window).await }
                 ));
             }
         ));
 
         widgets.fetch_info.connect_clicked(clone!(
             #[weak]
-            dialog,
+            window,
             #[weak]
             widgets,
-            move |_| widgets.on_fetch_info(dialog.clone())
+            move |_| widgets.on_fetch_info(window.clone())
         ));
 
-        dialog.connect_response(clone!(
-            #[weak]
-            widgets,
-            move |dialog, response| {
-                if (response == ResponseType::Ok || response == ResponseType::Apply)
-                    && let Err(e) = widgets.validate()
-                {
-                    glib::spawn_future_local(clone!(
-                        #[weak]
-                        dialog,
-                        async move {
-                            let msg = gtk4::MessageDialog::new(
-                                Some(&dialog),
-                                DialogFlags::MODAL,
-                                MessageType::Error,
-                                ButtonsType::Ok,
-                                e.to_string(),
-                            );
-                            msg.set_title(Some("Validation error"));
-                            msg.run_future().await;
-                            msg.close();
-                        },
-                    ));
-                }
-            }
-        ));
-
-        dialog.connect_show(clone!(
+        window.connect_show(clone!(
             #[weak]
             widgets,
             move |_| {
@@ -759,31 +865,34 @@ impl SettingsDialog {
         ));
 
         let mut result = Self {
-            dialog,
+            window,
             widgets,
             revealers: vec![],
+            response_rx,
         };
 
         result.create_layout();
 
-        result
-            .widgets
-            .profile_select
-            .set_active_id(Some(&profile_id.to_string()));
+        // Select the matching profile
+        let id_str = profile_id.to_string();
+        if let Some(idx) = result.widgets.profile_ids.borrow().iter().position(|i| i == &id_str) {
+            result.widgets.profile_select.set_selected(idx as u32);
+            result.widgets.on_profile_changed();
+        }
 
         result
     }
 
     pub async fn run(&self) -> ResponseType {
-        set_window("settings", Some(self.dialog.clone()));
-        self.dialog.present();
-        let result = self.dialog.run_future().await;
-        set_window("settings", None::<Dialog>);
+        set_window("settings", Some(self.window.clone()));
+        self.window.present();
+        let result = self.response_rx.recv().await.unwrap_or(ResponseType::Cancel);
+        set_window("settings", None::<Window>);
         result
     }
 
     pub fn save(&mut self) -> anyhow::Result<()> {
-        let mut params = if let Some(id) = self.widgets.profile_select.active_id()
+        let mut params = if let Some(id) = profile_active_id(&self.widgets)
             && let Ok(uuid) = id.parse::<Uuid>()
             && let Some(params) = ConnectionProfilesStore::instance().get(uuid)
         {
@@ -793,11 +902,14 @@ impl SettingsDialog {
         };
 
         params.server_name = self.widgets.server_name.text().into();
-        params.login_type = self.widgets.auth_type.active_id().unwrap_or_default().into();
-        params.tunnel_type = match self.widgets.tunnel_type.active().unwrap_or_default() {
-            0 => TunnelType::Ipsec,
-            _ => TunnelType::Ssl,
-        };
+        params.login_type = self
+            .widgets
+            .auth_ids
+            .borrow()
+            .get(self.widgets.auth_type.selected() as usize)
+            .cloned()
+            .unwrap_or_default();
+        params.tunnel_type = self.widgets.tunnel_type.selected().into();
         params.user_name = self.widgets.username.text().into();
         params.password = self.widgets.password.text().to_string().into();
         params.password_factor = self.widgets.password_factor.text().parse()?;
@@ -851,7 +963,14 @@ impl SettingsDialog {
             .collect();
         params.keychain = self.widgets.keychain.is_active();
         params.ignore_server_cert = self.widgets.no_cert_check.is_active();
-        params.cert_type = self.widgets.cert_type.active().unwrap_or_default().into();
+        params.cert_type = {
+            let sel = self.widgets.cert_type.selected();
+            if sel == gtk4::INVALID_LIST_POSITION {
+                Default::default()
+            } else {
+                sel.into()
+            }
+        };
         params.cert_path = {
             let text = self.widgets.cert_path.text();
             if text.is_empty() { None } else { Some(text.into()) }
@@ -880,8 +999,7 @@ impl SettingsDialog {
         params.ike_persist = self.widgets.ike_persist.is_active();
         params.no_keepalive = self.widgets.no_keepalive.is_active();
         params.port_knock = self.widgets.port_knock.is_active();
-        params.transport_type = self.widgets.transport_type.active().unwrap_or_default().into();
-
+        params.transport_type = self.widgets.transport_type.selected().into();
         params.disable_ipv6 = self.widgets.disable_ipv6.is_active();
 
         let ip_lease_time = self.widgets.ip_lease_time.text();
@@ -892,12 +1010,12 @@ impl SettingsDialog {
         };
 
         params.mtu = self.widgets.mtu.text().parse()?;
+        params.icon_theme = self.widgets.icon_theme.selected().into();
 
-        params.icon_theme = self.widgets.icon_theme.active().unwrap_or_default().into();
-        let selected_locale = self.widgets.locale.active();
+        let selected_locale = self.widgets.locale.selected();
         let new_locale = match selected_locale {
-            None | Some(0) => None,
-            Some(index) => i18n::get_locales().get(index as usize - 1).map(|l| l.to_string()),
+            0 | gtk4::INVALID_LIST_POSITION => None,
+            index => i18n::get_locales().get(index as usize - 1).map(|l| l.to_string()),
         };
         params.locale = new_locale.clone();
         params.auto_connect = self.widgets.auto_connect.is_active();
@@ -956,67 +1074,49 @@ impl SettingsDialog {
 
     fn tunnel_box(&self) -> gtk4::Box {
         let tunnel_box = self.form_box(&tr!("label-tunnel-type"));
-        self.widgets
-            .tunnel_type
-            .append(Some(TunnelType::Ipsec.as_str()), &tr!("tunnel-type-ipsec"));
-        self.widgets
-            .tunnel_type
-            .append(Some(TunnelType::Ssl.as_str()), &tr!("tunnel-type-ssl"));
+        let model = gtk4::StringList::new(&[&tr!("tunnel-type-ipsec"), &tr!("tunnel-type-ssl")]);
+        self.widgets.tunnel_type.set_model(Some(&model));
         tunnel_box.append(&self.widgets.tunnel_type);
         tunnel_box
     }
 
     fn cert_type_box(&self) -> gtk4::Box {
         let cert_type_box = self.form_box(&tr!("label-cert-auth-type"));
-        self.widgets
-            .cert_type
-            .append(Some(&CertType::None.to_string()), &tr!("cert-type-none"));
-        self.widgets
-            .cert_type
-            .append(Some(&CertType::Pkcs12.to_string()), &tr!("cert-type-pfx"));
-        self.widgets
-            .cert_type
-            .append(Some(&CertType::Pkcs8.to_string()), &tr!("cert-type-pem"));
-        self.widgets
-            .cert_type
-            .append(Some(&CertType::Pkcs11.to_string()), &tr!("cert-type-hw"));
+        let model = gtk4::StringList::new(&[
+            &tr!("cert-type-none"),
+            &tr!("cert-type-pfx"),
+            &tr!("cert-type-pem"),
+            &tr!("cert-type-hw"),
+        ]);
+        self.widgets.cert_type.set_model(Some(&model));
         cert_type_box.append(&self.widgets.cert_type);
         cert_type_box
     }
 
     fn icon_theme_box(&self) -> gtk4::Box {
         let icon_theme_box = self.form_box(&tr!("label-icon-theme"));
+        let model = gtk4::StringList::new(&[
+            &tr!("icon-theme-autodetect"),
+            &tr!("icon-theme-dark"),
+            &tr!("icon-theme-light"),
+        ]);
+        self.widgets.icon_theme.set_model(Some(&model));
         self.widgets
             .icon_theme
-            .append(Some(&IconTheme::AutoDetect.to_string()), &tr!("icon-theme-autodetect"));
-        self.widgets
-            .icon_theme
-            .append(Some(&IconTheme::Dark.to_string()), &tr!("icon-theme-dark"));
-        self.widgets
-            .icon_theme
-            .append(Some(&IconTheme::Light.to_string()), &tr!("icon-theme-light"));
-        self.widgets.icon_theme.set_active(Some(
-            ConnectionProfilesStore::instance().get_default().icon_theme.as_u32(),
-        ));
+            .set_selected(ConnectionProfilesStore::instance().get_default().icon_theme.as_u32());
         icon_theme_box.append(&self.widgets.icon_theme);
         icon_theme_box
     }
 
     fn transport_type_box(&self) -> gtk4::Box {
         let transport_type_box = self.form_box(&tr!("info-transport-type"));
-        self.widgets.transport_type.append(
-            Some(&TransportType::AutoDetect.to_string()),
+        let model = gtk4::StringList::new(&[
             &tr!("transport-type-autodetect"),
-        );
-        self.widgets
-            .transport_type
-            .append(Some(&TransportType::Kernel.to_string()), &tr!("transport-type-kernel"));
-        self.widgets
-            .transport_type
-            .append(Some(&TransportType::Udp.to_string()), &tr!("transport-type-udp"));
-        self.widgets
-            .transport_type
-            .append(Some(&TransportType::Tcpt.to_string()), &tr!("transport-type-tcpt"));
+            &tr!("transport-type-kernel"),
+            &tr!("transport-type-udp"),
+            &tr!("transport-type-tcpt"),
+        ]);
+        self.widgets.transport_type.set_model(Some(&model));
         transport_type_box.append(&self.widgets.transport_type);
         transport_type_box
     }
@@ -1024,24 +1124,24 @@ impl SettingsDialog {
     fn locale_box(&self) -> gtk4::Box {
         let locale_box = self.form_box(&tr!("label-language"));
 
-        self.widgets.locale.append_text(&tr!("label-system-language"));
+        let model = gtk4::StringList::new(&[]);
+        self.widgets.locale.set_model(Some(&model));
+
+        model.append(&tr!("label-system-language"));
         for locale in i18n::get_locales() {
             let message = format!("language-{locale}");
-            self.widgets.locale.append(
-                Some(&locale.to_string()),
-                &format!(
-                    "{} ({})",
-                    i18n::translate_for_locale(&locale, &message),
-                    i18n::translate(&message)
-                ),
-            );
+            model.append(&format!(
+                "{} ({})",
+                i18n::translate_for_locale(&locale, &message),
+                i18n::translate(&message)
+            ));
         }
 
         if let Some(ref locale) = ConnectionProfilesStore::instance().get_default().locale {
             let translated = i18n::translate(&format!("language-{locale}"));
-            self.select_combo_box_item(&self.widgets.locale, &translated);
+            self.select_dropdown_item(&self.widgets.locale, &translated);
         } else {
-            self.widgets.locale.set_active(Some(0));
+            self.widgets.locale.set_selected(0);
         }
         locale_box.append(&self.widgets.locale);
         locale_box
@@ -1379,9 +1479,11 @@ impl SettingsDialog {
         let profile_box = self.form_box(&tr!("label-connection-profile"));
 
         for profile in ConnectionProfilesStore::instance().all() {
+            get_string_list(&self.widgets.profile_select).append(&profile.profile_name);
             self.widgets
-                .profile_select
-                .append(Some(&profile.profile_id.to_string()), &profile.profile_name);
+                .profile_ids
+                .borrow_mut()
+                .push(profile.profile_id.to_string());
         }
 
         self.widgets.profile_select.set_hexpand(true);
@@ -1400,10 +1502,14 @@ impl SettingsDialog {
     }
 
     fn create_layout(&mut self) {
-        let content_area = self.dialog.content_area();
-        content_area.set_margin_top(6);
-        content_area.set_margin_start(6);
-        content_area.set_margin_end(6);
+        let content_area = gtk4::Box::builder()
+            .orientation(Orientation::Vertical)
+            .margin_top(6)
+            .margin_start(6)
+            .margin_end(6)
+            .margin_bottom(6)
+            .build();
+        self.window.set_child(Some(&content_area));
 
         let notebook = gtk4::Notebook::new();
         notebook.set_vexpand(true);
@@ -1417,8 +1523,6 @@ impl SettingsDialog {
             Some(&gtk4::Label::new(Some(&tr!("tab-advanced")))),
         );
 
-        // self.dialog
-        //     .set_default_size(SettingsDialog::DEFAULT_WIDTH, SettingsDialog::DEFAULT_HEIGHT);
         self.resize_dialog_to_fit_revealers();
     }
 
@@ -1438,39 +1542,27 @@ impl SettingsDialog {
 
         max_width += 50;
 
-        let current_size = self.dialog.default_size();
+        let current_size = self.window.default_size();
         let height = current_size.1.max(400);
 
-        // Set the dialog's default size
-        self.dialog.set_default_size(max_width, height);
+        self.window.set_default_size(max_width, height);
     }
 
-    fn select_combo_box_item(&self, combo_box: &gtk4::ComboBoxText, target_text: &str) {
-        if let Some(model) = combo_box.model() {
-            let mut index = 0;
-            let mut found = false;
-            model.foreach(|model, _path, iter| {
-                if let Ok(text) = model.get_value(iter, 0).get::<String>()
-                    && text == target_text
-                {
-                    combo_box.set_active(Some(index));
-                    found = true;
-                    return true;
-                }
-                index += 1;
-                false
-            });
-
-            if !found {
-                combo_box.set_active(Some(0));
+    fn select_dropdown_item(&self, dropdown: &gtk4::DropDown, target_text: &str) {
+        let list = get_string_list(dropdown);
+        for i in 0..list.n_items() {
+            if list.string(i).as_deref() == Some(target_text) {
+                dropdown.set_selected(i);
+                return;
             }
         }
+        dropdown.set_selected(0);
     }
 }
 
 impl Drop for SettingsDialog {
     fn drop(&mut self) {
-        self.dialog.close();
+        self.window.close();
     }
 }
 
@@ -1503,28 +1595,14 @@ pub fn start_settings_dialog<W: IsA<Window>>(parent: W, sender: Sender<TrayComma
     });
 }
 
-async fn show_entry_dialog(parent: &Dialog, title: &str, label: &str, value: &str) -> Option<String> {
-    let dialog = Dialog::builder().title(title).transient_for(parent).modal(true).build();
+async fn show_entry_dialog(parent: &Window, title: &str, label: &str, value: &str) -> Option<String> {
+    let window = Window::builder().title(title).transient_for(parent).modal(true).build();
 
     let ok = gtk4::Button::builder().label(tr!("button-ok")).build();
-    ok.connect_clicked(clone!(
-        #[weak]
-        dialog,
-        move |_| {
-            dialog.response(ResponseType::Ok);
-        }
-    ));
 
     ok.set_sensitive(!value.trim().is_empty());
 
     let cancel = gtk4::Button::builder().label(tr!("button-cancel")).build();
-    cancel.connect_clicked(clone!(
-        #[weak]
-        dialog,
-        move |_| {
-            dialog.response(ResponseType::Cancel);
-        }
-    ));
 
     let button_box = gtk4::Box::builder()
         .orientation(Orientation::Horizontal)
@@ -1532,6 +1610,7 @@ async fn show_entry_dialog(parent: &Dialog, title: &str, label: &str, value: &st
         .margin_top(6)
         .margin_start(6)
         .margin_end(6)
+        .margin_bottom(6)
         .homogeneous(true)
         .halign(Align::End)
         .valign(Align::End)
@@ -1540,9 +1619,10 @@ async fn show_entry_dialog(parent: &Dialog, title: &str, label: &str, value: &st
     button_box.append(&ok);
     button_box.append(&cancel);
 
-    dialog.set_default_response(ResponseType::Ok);
+    let content = gtk4::Box::builder().orientation(Orientation::Vertical).build();
+    window.set_child(Some(&content));
+    window.set_default_widget(Some(&ok));
 
-    let content = dialog.content_area();
     let inner = gtk4::Box::builder()
         .orientation(Orientation::Vertical)
         .margin_bottom(6)
@@ -1568,34 +1648,79 @@ async fn show_entry_dialog(parent: &Dialog, title: &str, label: &str, value: &st
         }
     ));
 
-    entry.connect_activate(clone!(
+    inner.append(&entry);
+    content.append(&inner);
+    content.append(&button_box);
+
+    let (tx, rx) = async_channel::bounded::<bool>(1);
+
+    let tx_ok = tx.clone();
+    ok.connect_clicked(clone!(
         #[weak]
-        dialog,
+        window,
         #[weak]
         entry,
         move |_| {
             if !entry.text().trim().is_empty() {
-                dialog.response(ResponseType::Ok);
+                let _ = tx_ok.try_send(true);
+                window.close();
             }
         }
     ));
 
-    inner.append(&entry);
+    let tx_cancel = tx.clone();
+    cancel.connect_clicked(clone!(
+        #[weak]
+        window,
+        move |_| {
+            let _ = tx_cancel.try_send(false);
+            window.close();
+        }
+    ));
 
-    content.append(&inner);
-    content.append(&button_box);
+    let tx_entry = tx.clone();
+    entry.connect_activate(clone!(
+        #[weak]
+        window,
+        #[weak]
+        entry,
+        move |_| {
+            if !entry.text().trim().is_empty() {
+                let _ = tx_entry.try_send(true);
+                window.close();
+            }
+        }
+    ));
 
-    dialog.show();
-    let current_size = dialog.default_size();
-    let new_width = current_size.0.max(400);
-    dialog.set_default_size(new_width, current_size.1);
+    window.connect_close_request(move |_| {
+        let _ = tx.try_send(false);
+        glib::Propagation::Proceed
+    });
 
-    let response = dialog.run_future().await;
-    dialog.close();
-
-    if response == ResponseType::Ok {
-        Some(entry.text().into())
-    } else {
-        None
+    {
+        let key_controller = gtk4::EventControllerKey::new();
+        key_controller.connect_key_pressed(clone!(
+            #[weak]
+            window,
+            #[upgrade_or]
+            glib::Propagation::Proceed,
+            move |_, key, _, _| {
+                if key == gtk4::gdk::Key::Escape {
+                    window.close();
+                    glib::Propagation::Stop
+                } else {
+                    glib::Propagation::Proceed
+                }
+            }
+        ));
+        window.add_controller(key_controller);
     }
+
+    window.present();
+    let current_size = window.default_size();
+    let new_width = current_size.0.max(400);
+    window.set_default_size(new_width, current_size.1);
+
+    let ok_clicked = rx.recv().await.unwrap_or(false);
+    if ok_clicked { Some(entry.text().into()) } else { None }
 }

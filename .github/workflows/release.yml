@@ -15,19 +15,19 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
             suffix: ""
             features: vendored-openssl,vendored-sqlite
           - arch: x86_64
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
             suffix: "-webkit"
             features: vendored-openssl,vendored-sqlite,mobile-access
           - arch: arm64
-            runner: ubuntu-22.04-arm
+            runner: ubuntu-24.04-arm
             suffix: ""
             features: vendored-openssl,vendored-sqlite
           - arch: arm64
-            runner: ubuntu-22.04-arm
+            runner: ubuntu-24.04-arm
             suffix: "-webkit"
             features: vendored-openssl,vendored-sqlite,mobile-access
     runs-on: ${{ matrix.runner }}
