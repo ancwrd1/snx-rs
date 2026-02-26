@@ -1,7 +1,7 @@
 use std::{cell::RefCell, net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
-    Align, Orientation, ResponseType, Widget, Window, FileChooserAction, FileChooserDialog,
+    Align, Orientation, ResponseType, Widget, Window,
     glib::{self, clone},
     prelude::*,
 };
@@ -19,11 +19,13 @@ use tokio::sync::mpsc::Sender;
 use tracing::warn;
 use uuid::Uuid;
 
-fn set_container_visible(widget: &Widget, flag: bool) {
-    if let Some(parent) = widget.parent()
-        && let Some(parent) = parent.parent()
-    {
+fn set_container_visible(widget: &Widget, flag: bool, level: u32) {
+    let Some(parent) = widget.parent() else { return };
+
+    if level == 0 {
         parent.set_visible(flag);
+    } else {
+        set_container_visible(&parent, flag, level - 1);
     }
 }
 
@@ -65,48 +67,59 @@ fn create_file_picker_widget_with_filter(
                 return;
             };
 
-            let dialog = FileChooserDialog::new(
-                Some(&tr!("label-select-file")),
-                Some(window),
-                FileChooserAction::Open,
-                &[
-                    (&tr!("label-cancel"), ResponseType::Cancel),
-                    (&tr!("label-open"), ResponseType::Accept),
-                ],
-            );
-
-            dialog.set_select_multiple(multiple);
-
+            let filter_store = gtk4::gio::ListStore::new::<gtk4::FileFilter>();
             for (name, pats) in &patterns {
                 let filter = gtk4::FileFilter::new();
                 filter.set_name(Some(name));
                 for pat in pats {
                     filter.add_pattern(pat);
                 }
-                dialog.add_filter(&filter);
+                filter_store.append(&filter);
             }
 
-            dialog.connect_response(glib::clone!(
-                #[weak]
-                entry,
-                move |dialog, response| {
-                    if response == ResponseType::Accept {
-                        let files = dialog.files();
-                        let paths: Vec<String> = (0..files.n_items())
-                            .filter_map(|i| files.item(i))
-                            .filter_map(|obj| obj.downcast::<gtk4::gio::File>().ok())
-                            .filter_map(|file| file.path())
-                            .map(|path| path.to_string_lossy().into_owned())
-                            .collect();
+            let file_dialog = gtk4::FileDialog::builder()
+                .title(tr!("label-select-file"))
+                .accept_label(tr!("label-open"))
+                .filters(&filter_store)
+                .build();
 
-                        entry.set_text(&paths.join(","));
-                    }
-
-                    dialog.close();
-                }
-            ));
-
-            dialog.show();
+            if multiple {
+                file_dialog.open_multiple(
+                    Some(window),
+                    None::<&gtk4::gio::Cancellable>,
+                    glib::clone!(
+                        #[weak]
+                        entry,
+                        move |result| {
+                            if let Ok(files) = result {
+                                let paths: Vec<String> = (0..files.n_items())
+                                    .filter_map(|i| files.item(i))
+                                    .filter_map(|obj| obj.downcast::<gtk4::gio::File>().ok())
+                                    .filter_map(|file| file.path())
+                                    .map(|path| path.to_string_lossy().into_owned())
+                                    .collect();
+                                entry.set_text(&paths.join(","));
+                            }
+                        }
+                    ),
+                );
+            } else {
+                file_dialog.open(
+                    Some(window),
+                    None::<&gtk4::gio::Cancellable>,
+                    glib::clone!(
+                        #[weak]
+                        entry,
+                        move |result| {
+                            if let Ok(file) = result
+                                && let Some(path) = file.path()
+                            {
+                                entry.set_text(&path.to_string_lossy());
+                            }
+                        }
+                    ),
+                );
+            }
         }
     ));
 
@@ -118,6 +131,7 @@ fn get_string_list(dropdown: &gtk4::DropDown) -> gtk4::StringList {
         .model()
         .and_then(|model| model.downcast::<gtk4::StringList>().ok())
         .unwrap_or_default()
+}
 
 struct SettingsDialog {
     window: Window,
