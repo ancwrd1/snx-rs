@@ -4,6 +4,6 @@ Section: net
 Priority: optional
 Installed-Size: {{size}}
 Architecture: {{arch}}
-Depends: libc6 (>= 2.35), libgtk-4-1 (>= 4.6)
+Depends: libc6 (>= 2.35), libgtk-4-1 (>= 4.10)
 Maintainer: Dmitry Pankratov <dmitry@pankratov.net>
 Description: SNX-RS Check Point VPN Client for Linux

@@ -1,6 +1,6 @@
 use anyhow::{Context, anyhow};
 use gtk4::{
-    Align, Orientation, ResponseType,
+    Align, Orientation,
     glib::{self, clone},
     prelude::*,
 };
@@ -17,28 +17,14 @@ impl GtkPrompt {
 
         glib::idle_add_once(move || {
             glib::spawn_future_local(async move {
-                let dialog = gtk4::Dialog::builder()
+                let window = gtk4::Window::builder()
                     .title(tr!("auth-dialog-title"))
                     .transient_for(&main_window())
+                    .modal(true)
                     .build();
 
                 let ok = gtk4::Button::builder().label(tr!("button-ok")).build();
-                ok.connect_clicked(clone!(
-                    #[weak]
-                    dialog,
-                    move |_| {
-                        dialog.response(ResponseType::Ok);
-                    }
-                ));
-
                 let cancel = gtk4::Button::builder().label(tr!("button-cancel")).build();
-                cancel.connect_clicked(clone!(
-                    #[weak]
-                    dialog,
-                    move |_| {
-                        dialog.response(ResponseType::Cancel);
-                    }
-                ));
 
                 let button_box = gtk4::Box::builder()
                     .orientation(Orientation::Horizontal)
@@ -46,6 +32,7 @@ impl GtkPrompt {
                     .margin_top(6)
                     .margin_start(6)
                     .margin_end(6)
+                    .margin_bottom(6)
                     .homogeneous(true)
                     .halign(Align::End)
                     .valign(Align::End)
@@ -54,15 +41,12 @@ impl GtkPrompt {
                 button_box.append(&ok);
                 button_box.append(&cancel);
 
-                dialog.set_default_response(ResponseType::Ok);
-
-                let content = dialog.content_area();
                 let inner = gtk4::Box::builder()
                     .orientation(Orientation::Vertical)
-                    .margin_bottom(6)
                     .margin_top(6)
                     .margin_start(6)
                     .margin_end(6)
+                    .margin_bottom(6)
                     .spacing(6)
                     .build();
 
@@ -88,32 +72,77 @@ impl GtkPrompt {
                     .text(prompt.default_entry.unwrap_or_default())
                     .build();
 
-                entry.connect_activate(clone!(
+                inner.append(&entry);
+
+                let outer_box = gtk4::Box::builder().orientation(Orientation::Vertical).build();
+                outer_box.append(&inner);
+                outer_box.append(&button_box);
+
+                window.set_child(Some(&outer_box));
+                window.set_default_widget(Some(&ok));
+
+                let tx_ok = tx.clone();
+                ok.connect_clicked(clone!(
                     #[weak]
-                    dialog,
+                    window,
+                    #[weak]
+                    entry,
                     move |_| {
-                        dialog.response(ResponseType::Ok);
+                        let _ = tx_ok.try_send(Ok(entry.text().to_string()));
+                        window.close();
                     }
                 ));
 
-                inner.append(&entry);
+                let tx_cancel = tx.clone();
+                cancel.connect_clicked(clone!(
+                    #[weak]
+                    window,
+                    move |_| {
+                        let _ = tx_cancel.try_send(Err(anyhow!(tr!("error-user-input-canceled"))));
+                        window.close();
+                    }
+                ));
 
-                content.append(&inner);
-                content.append(&button_box);
+                let tx_entry = tx.clone();
+                entry.connect_activate(clone!(
+                    #[weak]
+                    window,
+                    #[weak]
+                    entry,
+                    move |_| {
+                        let _ = tx_entry.try_send(Ok(entry.text().to_string()));
+                        window.close();
+                    }
+                ));
 
-                dialog.show();
-                let current_size = dialog.default_size();
-                let new_width = current_size.0.max(400);
-                dialog.set_default_size(new_width, current_size.1);
+                window.connect_close_request(move |_| {
+                    let _ = tx.try_send(Err(anyhow!(tr!("error-user-input-canceled"))));
+                    glib::Propagation::Proceed
+                });
 
-                let response = dialog.run_future().await;
-                dialog.close();
-
-                if response == ResponseType::Ok {
-                    let _ = tx.send(Ok(entry.text().to_string())).await;
-                } else {
-                    let _ = tx.send(Err(anyhow!(tr!("error-user-input-canceled")))).await;
+                {
+                    let key_controller = gtk4::EventControllerKey::new();
+                    key_controller.connect_key_pressed(clone!(
+                        #[weak]
+                        window,
+                        #[upgrade_or]
+                        glib::Propagation::Proceed,
+                        move |_, key, _, _| {
+                            if key == gtk4::gdk::Key::Escape {
+                                window.close();
+                                glib::Propagation::Stop
+                            } else {
+                                glib::Propagation::Proceed
+                            }
+                        }
+                    ));
+                    window.add_controller(key_controller);
                 }
+
+                window.present();
+                let current_size = window.default_size();
+                let new_width = current_size.0.max(400);
+                window.set_default_size(new_width, current_size.1);
             });
         });
 
