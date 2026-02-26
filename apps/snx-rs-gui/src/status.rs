@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use gtk4::{
-    Align, ArrowType, Dialog, Orientation, ResponseType, gio,
+    Align, ArrowType, Orientation, gio,
     glib::{self, clone},
-    prelude::{ActionMapExt, BoxExt, ButtonExt, Cast, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
+    prelude::{ActionMapExt, BoxExt, ButtonExt, Cast, DisplayExt, GtkWindowExt, WidgetExt},
 };
 use snxcore::{
     browser::SystemBrowser,
@@ -60,12 +60,12 @@ fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
 }
 
 pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) {
-    if let Some(dialog) = get_window("status") {
-        dialog.present();
+    if let Some(window) = get_window("status") {
+        window.present();
         return;
     }
 
-    let dialog = Dialog::builder()
+    let window = gtk4::Window::builder()
         .title(tr!("status-dialog-title"))
         .transient_for(&main_window())
         .build();
@@ -74,8 +74,8 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
 
     ok.connect_clicked(clone!(
         #[weak]
-        dialog,
-        move |_| dialog.response(ResponseType::Ok)
+        window,
+        move |_| window.close()
     ));
 
     let copy = gtk4::Button::builder().label(tr!("status-button-copy")).build();
@@ -108,6 +108,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
         .margin_top(6)
         .margin_start(6)
         .margin_end(6)
+        .margin_bottom(6)
         .homogeneous(true)
         .halign(Align::End)
         .build();
@@ -146,7 +147,7 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
             action_group.add_action(&action);
         }
 
-        dialog.insert_action_group("connect", Some(&action_group));
+        window.insert_action_group("connect", Some(&action_group));
 
         let connect_label = tr!("status-button-connect");
         let connect_box = gtk4::Box::new(Orientation::Horizontal, 4);
@@ -177,9 +178,11 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
     button_box.append(&copy);
     button_box.append(&ok);
 
-    dialog.set_default_response(ResponseType::Ok);
-
-    let content = dialog.content_area();
+    let content = gtk4::Box::builder()
+        .orientation(Orientation::Vertical)
+        .spacing(6)
+        .build();
+    window.set_child(Some(&content));
 
     let inner = gtk4::Box::builder()
         .orientation(Orientation::Vertical)
@@ -252,12 +255,38 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
     content.append(&inner);
     content.append(&button_box);
 
-    GtkWindowExt::set_focus(&dialog, Some(&ok));
+    window.set_default_widget(Some(&ok));
+    GtkWindowExt::set_focus(&window, Some(&ok));
 
-    set_window("status", Some(dialog.clone()));
-    dialog.run_future().await;
-    set_window("status", None::<Dialog>);
-    dialog.close();
+    let (close_tx, close_rx) = async_channel::bounded::<()>(1);
+    window.connect_close_request(move |_| {
+        let _ = close_tx.try_send(());
+        glib::Propagation::Proceed
+    });
+
+    if !exit_on_close {
+        let key_controller = gtk4::EventControllerKey::new();
+        key_controller.connect_key_pressed(clone!(
+            #[weak]
+            window,
+            #[upgrade_or]
+            glib::Propagation::Proceed,
+            move |_, key, _, _| {
+                if key == gtk4::gdk::Key::Escape {
+                    window.close();
+                    glib::Propagation::Stop
+                } else {
+                    glib::Propagation::Proceed
+                }
+            }
+        ));
+        window.add_controller(key_controller);
+    }
+
+    set_window("status", Some(window.clone()));
+    window.present();
+    close_rx.recv().await.ok();
+    set_window("status", None::<gtk4::Window>);
     let _ = stop_tx.send(());
 
     if exit_on_close {

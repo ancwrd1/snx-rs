@@ -112,6 +112,13 @@ impl TunnelType {
             TunnelType::Ssl => "ssl",
         }
     }
+
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            TunnelType::Ipsec => 0,
+            TunnelType::Ssl => 1,
+        }
+    }
 }
 
 impl FromStr for TunnelType {
@@ -131,6 +138,15 @@ impl fmt::Display for TunnelType {
         match self {
             Self::Ssl => write!(f, "SSL"),
             Self::Ipsec => write!(f, "IPSec"),
+        }
+    }
+}
+
+impl From<u32> for TunnelType {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => Self::Ipsec,
+            _ => Self::Ssl,
         }
     }
 }

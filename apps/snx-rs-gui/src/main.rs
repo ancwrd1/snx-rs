@@ -237,7 +237,7 @@ fn do_about() {
         set_window("about", Some(dialog.clone()));
 
         dialog.connect_close_request(|_| {
-            set_window("about", None::<gtk4::Dialog>);
+            set_window("about", None::<gtk4::Window>);
             glib::signal::Propagation::Proceed
         });
         dialog.present();
