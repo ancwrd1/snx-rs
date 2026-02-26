@@ -47,6 +47,13 @@ label-profile-name = Profielnaam
 label-confirmation = Bevestig alstublieft
 label-mobile-access = Mobiele toegang
 label-machine-cert-auth = Computercertificaat-authenticatie
+label-browse = Bladeren...
+label-keychain-files = Sleutelhanger-bestanden
+label-all-files = Alle bestanden
+label-cancel = Annuleren
+label-open = Openen
+label-select-file = Selecteer een bestand
+label-ca-cert-files = X.509-certificaten
 
 # Tabs and expanders
 tab-general = Algemeen

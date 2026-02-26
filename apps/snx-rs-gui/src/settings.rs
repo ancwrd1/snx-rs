@@ -1,7 +1,8 @@
 use std::{net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
 
 use gtk4::{
-    Align, ButtonsType, Dialog, DialogFlags, MessageType, Orientation, ResponseType, Widget, Window,
+    Align, ButtonsType, Dialog, DialogFlags, FileChooserAction, FileChooserDialog, MessageType, Orientation,
+    ResponseType, Widget, Window,
     glib::{self, clone},
     prelude::*,
 };
@@ -19,15 +20,13 @@ use tokio::sync::mpsc::Sender;
 use tracing::warn;
 use uuid::Uuid;
 
-fn set_container_visible(widget: &Widget, flag: bool) {
-    if let Some(parent) = widget.parent()
-        && let Some(parent) = parent.parent()
-    {
-        if flag {
-            parent.show();
-        } else {
-            parent.hide();
-        }
+fn set_container_visible(widget: &Widget, flag: bool, level: u32) {
+    let Some(parent) = widget.parent() else { return };
+
+    if level == 0 {
+        parent.set_visible(flag);
+    } else {
+        set_container_visible(&parent, flag, level - 1);
     }
 }
 
@@ -41,6 +40,80 @@ fn is_multi_factor_login_type(params: &TunnelParams) -> bool {
         let _ = tx.send(result).await;
     });
     rx.recv_blocking().unwrap_or(true)
+}
+
+fn create_file_picker_widget_with_filter(
+    entry: &gtk4::Entry,
+    patterns: &[(&str, &[&str])],
+    multiple: bool,
+) -> gtk4::Box {
+    let hbox = gtk4::Box::new(gtk4::Orientation::Horizontal, 6);
+    let button = gtk4::Button::with_label(&tr!("label-browse"));
+
+    entry.set_hexpand(true);
+    hbox.append(entry);
+    hbox.append(&button);
+
+    let patterns: Vec<(String, Vec<String>)> = patterns
+        .iter()
+        .map(|(name, pats)| (name.to_string(), pats.iter().map(|s| s.to_string()).collect()))
+        .collect();
+
+    button.connect_clicked(glib::clone!(
+        #[weak]
+        entry,
+        move |btn| {
+            let Some(root) = btn.root() else { return };
+            let Some(window) = root.downcast_ref::<Window>() else {
+                return;
+            };
+
+            let dialog = FileChooserDialog::new(
+                Some(&tr!("label-select-file")),
+                Some(window),
+                FileChooserAction::Open,
+                &[
+                    (&tr!("label-cancel"), ResponseType::Cancel),
+                    (&tr!("label-open"), ResponseType::Accept),
+                ],
+            );
+
+            dialog.set_select_multiple(multiple);
+
+            for (name, pats) in &patterns {
+                let filter = gtk4::FileFilter::new();
+                filter.set_name(Some(name));
+                for pat in pats {
+                    filter.add_pattern(pat);
+                }
+                dialog.add_filter(&filter);
+            }
+
+            dialog.connect_response(glib::clone!(
+                #[weak]
+                entry,
+                move |dialog, response| {
+                    if response == ResponseType::Accept {
+                        let files = dialog.files();
+                        let paths: Vec<String> = (0..files.n_items())
+                            .filter_map(|i| files.item(i))
+                            .filter_map(|obj| obj.downcast::<gtk4::gio::File>().ok())
+                            .filter_map(|file| file.path())
+                            .map(|path| path.to_string_lossy().into_owned())
+                            .collect();
+
+                        entry.set_text(&paths.join(","));
+                    }
+
+                    dialog.close();
+                }
+            ));
+
+            dialog.show();
+        }
+    ));
+
+    hbox
 }
 
 struct SettingsDialog {
@@ -234,8 +307,8 @@ impl MyWidgets {
                 let is_saml = factors.iter().any(|f| f == "identity_provider");
                 let is_cert = factors.iter().any(|f| f == "certificate");
                 let is_mobile_access = factors.iter().any(|f| f == "mobile_access");
-                set_container_visible(self.username.as_ref(), !is_saml && !is_cert && !is_mobile_access);
-                set_container_visible(self.cert_path.as_ref(), is_cert | self.machine_cert.is_active());
+                set_container_visible(self.username.as_ref(), !is_saml && !is_cert && !is_mobile_access, 1);
+                set_container_visible(self.cert_path.as_ref(), is_cert | self.machine_cert.is_active(), 2);
                 if !is_cert && !self.machine_cert.is_active() {
                     self.cert_type.set_active(Some(0));
                 }
@@ -1029,7 +1102,14 @@ impl SettingsDialog {
             .build();
 
         let ca_cert = self.form_box(&tr!("label-ca-cert"));
-        ca_cert.append(&self.widgets.ca_cert);
+        ca_cert.append(&create_file_picker_widget_with_filter(
+            &self.widgets.ca_cert,
+            &[
+                (&tr!("label-ca-cert-files"), &["*.pem", "*.der", "*.cer", "*.crt"]),
+                (&tr!("label-all-files"), &["*"]),
+            ],
+            true,
+        ));
         certs_box.append(&ca_cert);
 
         let no_cert_check = self.form_box(&tr!("label-no-cert-check"));
@@ -1178,7 +1258,14 @@ impl SettingsDialog {
         certs_box.append(&cert_type_box);
 
         let cert_path = self.form_box(&tr!("label-client-cert"));
-        cert_path.append(&self.widgets.cert_path);
+        cert_path.append(&create_file_picker_widget_with_filter(
+            &self.widgets.cert_path,
+            &[
+                (&tr!("label-keychain-files"), &["*.pfx", "*.p12", "*.pem", "*.so"]),
+                (&tr!("label-all-files"), &["*"]),
+            ],
+            false,
+        ));
         certs_box.append(&cert_path);
 
         let cert_password = self.form_box(&tr!("label-cert-password"));

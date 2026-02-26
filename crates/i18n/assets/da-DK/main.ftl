@@ -47,6 +47,13 @@ label-profile-name = Profilnavn
 label-confirmation = Bekræft venligst
 label-mobile-access = Mobiladgang
 label-machine-cert-auth = Maskincertifikatgodkendelse
+label-browse = Gennemse...
+label-keychain-files = Nøglering-filer
+label-all-files = Alle filer
+label-cancel = Annuller
+label-open = Åbn
+label-select-file = Vælg en fil
+label-ca-cert-files = X.509-certifikater
 
 # Tabs and expanders
 tab-general = Generelt

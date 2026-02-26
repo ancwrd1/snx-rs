@@ -47,6 +47,13 @@ label-profile-name = Název profilu
 label-confirmation = Potvrďte prosím
 label-mobile-access = Mobilní přístup
 label-machine-cert-auth = Ověřování strojovým certifikátem
+label-browse = Procházet...
+label-keychain-files = Soubory klíčenky
+label-all-files = Všechny soubory
+label-cancel = Zrušit
+label-open = Otevřít
+label-select-file = Vyberte soubor
+label-ca-cert-files = Certifikáty X.509
 
 # Tabs and expanders
 tab-general = Obecné

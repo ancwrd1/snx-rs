@@ -47,6 +47,13 @@ label-profile-name = Profile name
 label-confirmation = Please confirm
 label-mobile-access = Mobile Access
 label-machine-cert-auth = Machine certificate authentication
+label-browse = Browse...
+label-keychain-files = Keychain files
+label-all-files = All files
+label-cancel = Cancel
+label-open = Open
+label-select-file = Select a file
+label-ca-cert-files = X.509 certificates
 
 # Tabs and expanders
 tab-general = General

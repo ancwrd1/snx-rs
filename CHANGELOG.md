@@ -1,13 +1,14 @@
 ## v5.2.0 (TBD)
 - Added [machine certificate authentication](https://github.com/ancwrd1/snx-rs/blob/main/README.md#machine-certificate-authentication) support.
-- Fixed a problem with the browser-based authenticaion and OTP which may occur for some users.
+- Added a file browser for the UI fields which require a file path. 
+- Fixed a problem reported by some users where OTP could not be acquired from the browser.
 
 ## v5.1.0 (2026-02-17)
 - Added certificate enrollment and renewal operations via `snx-rs` command line interface. See the [documentation](https://github.com/ancwrd1/snx-rs/blob/main/README.md#certificate-enrollment) on how to use this feature.
 - Added `--no-tray` option to the GUI application to disable tray notification icon for the desktop environments which do not have dbus SNI interface. The connection status window will be shown instead.
-- Fixed a wrong Installed-Size field for deb package.
+- Fixed a wrong Installed-Size field for the deb package.
 - Fixed a problem with a potential UI deadlock under some conditions.
-- Mobile Access: fixed a problem with wrong URL of the VPN access portal.
+- Mobile Access: fixed a problem with the wrong URL of the VPN access portal.
 
 ## v5.0.5 (2026-02-01)
 - Bugfix for IKE session storage.
