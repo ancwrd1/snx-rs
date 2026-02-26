@@ -1,6 +1,6 @@
 ## v5.2.0 (TBD)
 - Added [machine certificate authentication](https://github.com/ancwrd1/snx-rs/blob/main/README.md#machine-certificate-authentication) support.
-- Added a file browser for the UI fields which require a file path. 
+- Added a file chooser dialog for the UI fields which require a file path. 
 - Fixed a problem reported by some users where OTP could not be acquired from the browser.
 
 ## v5.1.0 (2026-02-17)
