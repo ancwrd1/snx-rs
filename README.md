@@ -95,14 +95,16 @@ If the desktop environment does not have a dbus SNI interface, use the `--no-tra
 * Browser-based identity provider authentication
 * Username/password authentication with MFA support
 * Certificate authentication via provided client certificate (PFX, PEM, or HW token)
+* Hybrid authentication using machine certificate and user credentials
 * Mobile Access authentication using VPN web portal (experimental)
-* HW token support via PKCS11
+* HSM token authentication
 * GTK frontend with tray icon
 * IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
 * Automatic IPSec tunnel reconnection without authentication, via optional parameter
 * SSL tunnel via Linux TUN device
 * Store a password factor in the OS keychain using Secret Service API
-* Localization support, see i18n/assets directory for a list of supported locales
+* Multiple connection profiles
+* Certificate enrollment and renewal using command line interface
 
 <!-- TOC --><a name="dns-resolver-configuration-and-privacy"></a>
 ## DNS Resolver Configuration and Privacy
