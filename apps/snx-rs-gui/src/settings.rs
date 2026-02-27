@@ -1026,9 +1026,14 @@ impl SettingsDialog {
 
         self.widgets.locale.append_text(&tr!("label-system-language"));
         for locale in i18n::get_locales() {
+            let message = format!("language-{locale}");
             self.widgets.locale.append(
                 Some(&locale.to_string()),
-                &i18n::translate(&format!("language-{locale}")),
+                &format!(
+                    "{} ({})",
+                    i18n::translate_for_locale(&locale, &message),
+                    i18n::translate(&format!("language-{locale}"))
+                ),
             );
         }
 

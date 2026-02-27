@@ -36,6 +36,10 @@ pub fn translate(key: &str) -> String {
     LOCALES.lookup(&get_locale(), key)
 }
 
+pub fn translate_for_locale(locale: &LanguageIdentifier, key: &str) -> String {
+    LOCALES.lookup(locale, key)
+}
+
 pub fn translate_with_args<I>(key: &str, args: I) -> String
 where
     I: IntoIterator<Item = (Cow<'static, str>, FluentValue<'static>)>,
