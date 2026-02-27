@@ -53,7 +53,7 @@ impl BrowserController for WebKitBrowser {
 
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
-        glib::idle_add(move || {
+        glib::idle_add_once(move || {
             let window = ApplicationWindow::builder()
                 .title(tr!("label-mobile-access"))
                 .width_request(720)
@@ -101,8 +101,6 @@ impl BrowserController for WebKitBrowser {
             window.set_child(Some(&webview));
             window.present();
             webview.load_uri(&url);
-
-            glib::ControlFlow::Break
         });
 
         match tokio::time::timeout(PASSWORD_TIMEOUT, rx.recv()).await {
