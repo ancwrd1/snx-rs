@@ -1130,13 +1130,11 @@ impl SettingsDialog {
         model.append(&tr!("label-system-language"));
         for locale in i18n::get_locales() {
             let message = format!("language-{locale}");
-            model.append(
-                &format!(
-                    "{} ({})",
-                    i18n::translate_for_locale(&locale, &message),
-                    i18n::translate(&message)
-                ),
-            );
+            model.append(&format!(
+                "{} ({})",
+                i18n::translate_for_locale(&locale, &message),
+                i18n::translate(&message)
+            ));
         }
 
         if let Some(ref locale) = ConnectionProfilesStore::instance().get_default().locale {
