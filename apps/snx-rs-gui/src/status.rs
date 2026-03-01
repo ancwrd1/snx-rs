@@ -1,10 +1,6 @@
 use std::sync::Arc;
 
-use gtk4::{
-    Align, Dialog, Orientation, ResponseType, gio,
-    glib::{self, clone},
-    prelude::{ActionMapExt, BoxExt, ButtonExt, Cast, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
-};
+use gtk4::{Align, Dialog, Orientation, ResponseType, gio, glib::{self, clone}, prelude::{ActionMapExt, BoxExt, ButtonExt, Cast, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt}, ArrowType};
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
@@ -148,10 +144,15 @@ pub async fn show_status_dialog(sender: Sender<TrayEvent>, exit_on_close: bool) 
 
         dialog.insert_action_group("connect", Some(&action_group));
 
+        let connect_label = tr!("status-button-connect");
+        let connect_box = gtk4::Box::new(Orientation::Horizontal, 4);
+        connect_box.append(&gtk4::Label::new(Some(&connect_label)));
+        connect_box.append(&gtk4::Image::from_icon_name("go-next-symbolic"));
+
         let connect = gtk4::MenuButton::builder()
-            .label(tr!("status-button-connect"))
-            .always_show_arrow(true)
+            .child(&connect_box)
             .menu_model(&menu)
+            .direction(ArrowType::Right)
             .build();
 
         connect.upcast::<gtk4::Widget>()
