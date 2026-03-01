@@ -17,6 +17,12 @@ fn png_to_argb(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     Ok(bytes)
 }
 
+macro_rules! argb {
+    ($path:literal) => {
+        png_to_argb(include_bytes!($path)).unwrap_or_default()
+    };
+}
+
 pub struct IconTheme {
     #[allow(unused)]
     pub vpn: Vec<u8>,
@@ -27,19 +33,19 @@ pub struct IconTheme {
 }
 
 pub static DARK_THEME_ARGB: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
-    vpn: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn.png")).unwrap_or_default(),
-    acquiring: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-acquiring.png")).unwrap_or_default(),
-    error: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-error.png")).unwrap_or_default(),
-    disconnected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-disconnected.png")).unwrap_or_default(),
-    connected: png_to_argb(include_bytes!("../assets/icons/dark/network-vpn-connected.png")).unwrap_or_default(),
+    vpn: argb!("../assets/icons/dark/network-vpn.png"),
+    acquiring: argb!("../assets/icons/dark/network-vpn-acquiring.png"),
+    error: argb!("../assets/icons/dark/network-vpn-error.png"),
+    disconnected: argb!("../assets/icons/dark/network-vpn-disconnected.png"),
+    connected: argb!("../assets/icons/dark/network-vpn-connected.png"),
 });
 
 pub static LIGHT_THEME_ARGB: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
-    vpn: png_to_argb(include_bytes!("../assets/icons/light/network-vpn.png")).unwrap_or_default(),
-    acquiring: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-acquiring.png")).unwrap_or_default(),
-    error: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-error.png")).unwrap_or_default(),
-    disconnected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-disconnected.png")).unwrap_or_default(),
-    connected: png_to_argb(include_bytes!("../assets/icons/light/network-vpn-connected.png")).unwrap_or_default(),
+    vpn: argb!("../assets/icons/light/network-vpn.png"),
+    acquiring: argb!("../assets/icons/light/network-vpn-acquiring.png"),
+    error: argb!("../assets/icons/light/network-vpn-error.png"),
+    disconnected: argb!("../assets/icons/light/network-vpn-disconnected.png"),
+    connected: argb!("../assets/icons/light/network-vpn-connected.png"),
 });
 
 pub const APP_CSS: &str = include_str!("../assets/app.css");
