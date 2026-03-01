@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use gtk4::{Align, Dialog, Orientation, ResponseType, gio, glib::{self, clone}, prelude::{ActionMapExt, BoxExt, ButtonExt, Cast, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt}, ArrowType};
+use gtk4::{
+    Align, ArrowType, Dialog, Orientation, ResponseType, gio,
+    glib::{self, clone},
+    prelude::{ActionMapExt, BoxExt, ButtonExt, Cast, DialogExt, DialogExtManual, DisplayExt, GtkWindowExt, WidgetExt},
+};
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
