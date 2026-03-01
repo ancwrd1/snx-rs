@@ -119,9 +119,9 @@ impl AppTray {
         };
 
         if system_theme.is_dark() {
-            &assets::DARK_THEME_ARGB
+            &assets::DARK_THEME
         } else {
-            &assets::LIGHT_THEME_ARGB
+            &assets::LIGHT_THEME
         }
     }
 

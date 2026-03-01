@@ -24,24 +24,20 @@ macro_rules! argb {
 }
 
 pub struct IconTheme {
-    #[allow(unused)]
-    pub vpn: Vec<u8>,
     pub acquiring: Vec<u8>,
     pub error: Vec<u8>,
     pub disconnected: Vec<u8>,
     pub connected: Vec<u8>,
 }
 
-pub static DARK_THEME_ARGB: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
-    vpn: argb!("../assets/icons/dark/network-vpn.png"),
+pub static DARK_THEME: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
     acquiring: argb!("../assets/icons/dark/network-vpn-acquiring.png"),
     error: argb!("../assets/icons/dark/network-vpn-error.png"),
     disconnected: argb!("../assets/icons/dark/network-vpn-disconnected.png"),
     connected: argb!("../assets/icons/dark/network-vpn-connected.png"),
 });
 
-pub static LIGHT_THEME_ARGB: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
-    vpn: argb!("../assets/icons/light/network-vpn.png"),
+pub static LIGHT_THEME: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
     acquiring: argb!("../assets/icons/light/network-vpn-acquiring.png"),
     error: argb!("../assets/icons/light/network-vpn-error.png"),
     disconnected: argb!("../assets/icons/light/network-vpn-disconnected.png"),
