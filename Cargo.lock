@@ -1721,7 +1721,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#4d5dec6143305ff2ab9569e9c884f0146c03258b"
+source = "git+https://github.com/ancwrd1/isakmp.git#38ae6d8a40c5d12d25c6338ef79869edcd71d609"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3167,9 +3167,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-macros"
-version = "2.6.0"
+version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af407857209536a95c8e56f8231ef2c2e2aff839b22e07a1ffcbc617e9db9fa5"
+checksum = "5c55a2eff8b69ce66c84f85e1da1c233edc36ceb85a2058d11b0d6a3c7e7569c"
 dependencies = [
  "proc-macro2",
  "quote",
