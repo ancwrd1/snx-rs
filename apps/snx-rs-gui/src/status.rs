@@ -42,7 +42,7 @@ fn status_entry(label: &str, value: &str) -> gtk4::Box {
     form.append(
         &gtk4::Label::builder()
             .label(value)
-            .max_width_chars(60)
+            .max_width_chars(50)
             .wrap(true)
             .halign(Align::Start)
             .selectable(true)
