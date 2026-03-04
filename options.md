@@ -37,3 +37,33 @@
 | `disable-ipv6=true\|false`                | Disable IPv6 in the kernel when default route is enabled, to prevent IPv6 leaks.                                                                      |
 | `mtu=<MTU>`                               | Set MTU for the tunnel interface. Default is 1350.                                                                                                    |
 | `transport-type=<type>`                   | Set IPSec transport type. Possible values are: auto, kernel, udp, tcpt. Default is auto.                                                              |
+| `client-logging-data=<path>`              | A path to a json file which contains a custom client_logging_data structure (*). Used to mimick the behavior of the official Check Point client.      |
+
+
+(*) client_logging_data structure, all fields are optional:
+
+```json
+{
+    "device_id": "{A0FCE543-DB44-4EEF-803D-4F017361442A}",
+    "client_name": "Endpoint Security VPN",
+    "client_ver": "E88.30",
+    "client_build_number": "986105506",
+    "os_name": "Windows",
+    "os_version": "11",
+    "os_edition": "Professional",
+    "os_build": "26200",
+    "os_bits": "64bit",
+    "device_type": "PC",
+    "machine_domain": "mydomain.corp.local",
+    "machine_name": "DESKTOP-XXXX",
+    "mac_address": "01:02:03:04:05:06",
+    "physical_ip": "192.168.1.100"
+}
+
+```
+
+If client-logging-data is not specified, the following default values are used:
+ 
+* `device_id` - UUID derived from /etc/machine-id file
+* `os_name` - set to "Windows"
+* `machine_name` - used together with machine certificate authentication and set to the CN of the certificate

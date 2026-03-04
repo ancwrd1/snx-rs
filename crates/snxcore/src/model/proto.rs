@@ -157,6 +157,10 @@ pub struct ClientLoggingData {
     pub client_build_number: Option<String>,
     pub os_name: Option<String>,
     pub os_version: Option<String>,
+    pub os_edition: Option<String>,
+    pub os_service_pack: Option<String>,
+    pub os_build: Option<String>,
+    pub os_bits: Option<String>,
     pub device_type: Option<String>,
     pub hardware_model: Option<String>,
     pub machine_name: Option<String>,
@@ -165,6 +169,14 @@ pub struct ClientLoggingData {
     pub mac_address: Option<StringList>,
     pub physical_ip: Option<Ipv4Addr>,
     pub is_compliant: Option<String>,
+}
+
+impl ClientLoggingData {
+    pub fn load<P: AsRef<std::path::Path>>(path: P) -> anyhow::Result<Self> {
+        let data = std::fs::read(path)?;
+        let data: ClientLoggingData = serde_json::from_slice(&data)?;
+        Ok(data)
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

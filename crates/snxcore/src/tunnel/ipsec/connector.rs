@@ -652,6 +652,21 @@ impl TunnelConnector for IpsecTunnelConnector {
 
         debug!("Machine name: {:?}", machine_name);
 
+        let mut client_logging_data = self
+            .params
+            .client_logging_data
+            .as_ref()
+            .and_then(|path| ClientLoggingData::load(path).ok())
+            .unwrap_or_default();
+
+        client_logging_data.os_name.get_or_insert_with(|| "Windows".to_owned());
+        client_logging_data.device_id.get_or_insert_with(util::get_device_id);
+        if client_logging_data.machine_name.is_none() {
+            client_logging_data.machine_name = machine_name;
+        }
+
+        debug!("Client logging data: {:?}", client_logging_data);
+
         let realm = AuthenticationRealm {
             client_type: self.params.tunnel_type.as_client_type().to_owned(),
             old_session_id: String::new(),
@@ -659,12 +674,7 @@ impl TunnelConnector for IpsecTunnelConnector {
             client_mode: self.params.client_mode.clone(),
             selected_realm_id: self.params.login_type.clone(),
             secondary_realm_hash: login_option.map(|o| o.secondary_realm_hash),
-            client_logging_data: Some(ClientLoggingData {
-                os_name: Some("Windows".to_owned()),
-                device_id: Some(util::get_device_id()),
-                machine_name,
-                ..Default::default()
-            }),
+            client_logging_data: Some(client_logging_data),
         };
 
         let realm_expr = SExpression::from(&realm);

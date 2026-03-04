@@ -228,6 +228,13 @@ pub struct CmdlineParams {
 
     #[clap(long = "reg-key", short = 'b', help = "Registration key for certificate enrollment")]
     pub reg_key: Option<String>,
+
+    #[clap(
+        long = "client-logging-data",
+        id = "client_logging_data.json",
+        help = "Path to a custom client logging data file in json format"
+    )]
+    pub client_logging_data: Option<PathBuf>,
 }
 
 impl CmdlineParams {
@@ -375,6 +382,10 @@ impl CmdlineParams {
 
         if let Some(reg_key) = self.reg_key {
             other.reg_key = Some(reg_key);
+        }
+
+        if let Some(client_logging_data) = self.client_logging_data {
+            other.client_logging_data = Some(client_logging_data);
         }
     }
 }

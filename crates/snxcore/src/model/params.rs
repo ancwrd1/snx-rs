@@ -362,6 +362,7 @@ pub struct TunnelParams {
     pub mfa_code: Option<String>,
     #[serde(skip)]
     pub reg_key: Option<String>,
+    pub client_logging_data: Option<PathBuf>,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -410,6 +411,7 @@ impl Default for TunnelParams {
             transport_type: TransportType::default(),
             mfa_code: None,
             reg_key: None,
+            client_logging_data: None,
             config_file: Self::default_config_path(),
         }
     }
@@ -527,6 +529,7 @@ impl TunnelParams {
                 "disable-ipv6" => params.disable_ipv6 = v.parse().unwrap_or_default(),
                 "mtu" => params.mtu = v.parse().unwrap_or(DEFAULT_MTU),
                 "transport-type" => params.transport_type = v.parse().unwrap_or_default(),
+                "client-logging-data" => params.client_logging_data = Some(v.into()),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
@@ -745,6 +748,7 @@ mod tests {
             transport_type: TransportType::Tcpt,
             mfa_code: None,
             reg_key: None,
+            client_logging_data: None,
             config_file: temp_path.to_owned(),
         };
 
