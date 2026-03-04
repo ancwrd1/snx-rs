@@ -640,7 +640,12 @@ impl TunnelConnector for IpsecTunnelConnector {
                 .and_then(|cert| {
                     cert.subject_name().entries().find_map(|entry| {
                         if entry.object().nid() == Nid::COMMONNAME {
-                            entry.data().as_utf8().map(|s| s.to_string()).ok()
+                            entry
+                                .data()
+                                .as_utf8()
+                                .map(|s| s.to_string())
+                                .ok()
+                                .and_then(|s| s.split('.').next().map(String::from))
                         } else {
                             None
                         }

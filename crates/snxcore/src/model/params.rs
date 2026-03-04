@@ -460,6 +460,8 @@ impl PartialEq for TunnelParams {
             && self.mtu == other.mtu
             && self.transport_type == other.transport_type
             && self.mfa_code == other.mfa_code
+            && self.reg_key == other.reg_key
+            && self.client_logging_data == other.client_logging_data
             && self.config_file == other.config_file
     }
 }
@@ -642,6 +644,10 @@ impl TunnelParams {
         writeln!(buf, "disable-ipv6={}", self.disable_ipv6)?;
         writeln!(buf, "mtu={}", self.mtu)?;
         writeln!(buf, "transport-type={}", self.transport_type)?;
+
+        if let Some(ref client_logging_data) = self.client_logging_data {
+            writeln!(buf, "client-logging-data={}", client_logging_data.display())?;
+        }
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);
