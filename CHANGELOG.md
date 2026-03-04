@@ -1,3 +1,7 @@
+## v5.2.1 (2026-03-04)
+- Fixed a reported issue with machine certiicates where the wrong machine name was extracted from the certificate subject.
+- Added `client-logging-data` parameter to fully impersonate the official Check Point client, documented [here](https://github.com/ancwrd1/snx-rs/blob/main/options.md).
+
 ## v5.2.0 (2026-03-02)
 - Added experimental support for [machine certificate authentication](https://github.com/ancwrd1/snx-rs/blob/main/README.md#machine-certificate-authentication).
 - Added a file chooser dialog for the UI fields which require a file path. 
