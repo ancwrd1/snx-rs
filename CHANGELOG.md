@@ -1,5 +1,6 @@
 ## v5.2.1 (2026-03-04)
 - Fixed a reported issue with machine certiicates where the wrong machine name was extracted from the certificate subject.
+- Fixed a problem with non-responsive service when TCPT packet sending stalls.
 - Added `client-logging-data` parameter to fully impersonate the official Check Point client, documented [here](https://github.com/ancwrd1/snx-rs/blob/main/options.md).
 
 ## v5.2.0 (2026-03-02)
