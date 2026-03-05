@@ -1,3 +1,6 @@
+## v5.2.2 (2026-03-05)
+- Fixed a deadlock in the service when tunnel rekeying fails, requiring service restart.
+
 ## v5.2.1 (2026-03-04)
 - Fixed a reported issue with machine certiicates where the wrong machine name was extracted from the certificate subject.
 - Fixed a problem with non-responsive service when TCPT packet sending stalls.
