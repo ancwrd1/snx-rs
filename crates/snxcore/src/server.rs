@@ -87,9 +87,15 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
     }
 
     async fn handle_tunnel_event(event: TunnelEvent, state: Arc<ConnectionState>) {
+        let mut tunnel_error = false;
         if let Some(connector) = state.connector.lock().await.as_mut()
-            && connector.handle_tunnel_event(event.clone()).await.is_err()
+            && let Err(e) = connector.handle_tunnel_event(event.clone()).await
         {
+            warn!("Tunnel error: {}", e);
+            tunnel_error = true;
+        }
+
+        if tunnel_error {
             state.reset().await;
             return;
         }
