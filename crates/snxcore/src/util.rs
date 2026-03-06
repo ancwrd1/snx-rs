@@ -205,7 +205,9 @@ pub fn parse_config<S: AsRef<str>>(config: S) -> anyhow::Result<HashMap<String, 
     let mut result = HashMap::new();
 
     for line in config.as_ref().lines() {
-        let (line, _) = line.split_once('#').unwrap_or((line, ""));
+        if line.trim().starts_with('#') {
+            continue;
+        }
 
         let parts = line
             .split_once('=')
