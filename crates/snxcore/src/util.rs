@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    collections::HashMap,
+    collections::BTreeMap,
     ffi::OsStr,
     fmt,
     future::Future,
@@ -201,8 +201,8 @@ pub fn get_device_id() -> String {
         .to_owned()
 }
 
-pub fn parse_config<S: AsRef<str>>(config: S) -> anyhow::Result<HashMap<String, String>> {
-    let mut result = HashMap::new();
+pub fn parse_config<S: AsRef<str>>(config: S) -> anyhow::Result<BTreeMap<String, String>> {
+    let mut result = BTreeMap::new();
 
     for line in config.as_ref().lines() {
         if line.trim().starts_with('#') {
@@ -278,7 +278,7 @@ mod tests {
         let parsed = parse_config(config).unwrap();
         assert_eq!(
             parsed,
-            HashMap::from([
+            BTreeMap::from([
                 ("foo".to_owned(), "bar".to_owned()),
                 ("par1".to_owned(), "val1".to_owned())
             ])
