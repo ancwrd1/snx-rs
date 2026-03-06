@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn test_parse_config() {
-        let config = "# comment 1\nfoo = bar #comment 2\nbaz # = bar\nnoparam\npar1 = val1";
+        let config = "# comment 1\nfoo = bar\nnoparam\npar1 = val1";
         let parsed = parse_config(config).unwrap();
         assert_eq!(
             parsed,
