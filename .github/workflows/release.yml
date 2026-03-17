@@ -16,8 +16,20 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-22.04
+            suffix: ""
+            features: vendored-openssl,vendored-sqlite
+          - arch: x86_64
+            runner: ubuntu-22.04
+            suffix: "-webkit"
+            features: vendored-openssl,vendored-sqlite,mobile-access
           - arch: arm64
             runner: ubuntu-22.04-arm
+            suffix: ""
+            features: vendored-openssl,vendored-sqlite
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+            suffix: "-webkit"
+            features: vendored-openssl,vendored-sqlite,mobile-access
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -39,23 +51,17 @@ jobs:
       - name: Build project
         run: |
           chmod +x package/build-lto.sh
-          ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite
+          ./package/build-lto.sh --features=${{ matrix.features }}
 
       - name: Package project
         run: |
           chmod +x package/package.sh
-          ./package/package.sh
-
-#      - name: Build project with mobile-access feature
-#        run: ./package/build-lto.sh --features=vendored-openssl,vendored-sqlite,mobile-access
-#
-#      - name: Package project with mobile-access feature
-#        run: ./package/package.sh -webkit
+          ./package/package.sh ${{ matrix.suffix }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-${{ matrix.arch }}
+          name: artifacts-${{ matrix.arch }}${{ matrix.suffix }}
           path: target/snx-rs-*
 
   release:
@@ -108,7 +114,7 @@ jobs:
             const versionName = process.env.version_name;
             const releaseNotes = process.env.release_notes;
             const extensions = ["tar.xz", "run", "deb", "rpm"];
-            const suffixes = [""];
+            const suffixes = ["", "-webkit"];
             const architectures = ["x86_64", "arm64"];
 
             const release = await github.rest.repos.createRelease({
