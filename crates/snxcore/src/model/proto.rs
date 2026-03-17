@@ -378,6 +378,10 @@ impl LoginOption {
         self.factors.values().any(|v| v.factor_type != "certificate")
     }
 
+    pub fn is_certificate(&self) -> bool {
+        self.factors.values().any(|v| v.factor_type == "certificate")
+    }
+
     pub fn is_mobile_access(&self) -> bool {
         self.id == "ma"
     }

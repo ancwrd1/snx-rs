@@ -76,3 +76,10 @@ pub async fn is_multi_factor_login_type(params: &TunnelParams) -> anyhow::Result
         .map(|opt| opt.is_multi_factor())
         .unwrap_or(true))
 }
+
+pub async fn is_certificate_login_type(params: &TunnelParams) -> anyhow::Result<bool> {
+    Ok(get_login_option(params)
+        .await?
+        .map(|opt| opt.is_certificate())
+        .unwrap_or(true))
+}

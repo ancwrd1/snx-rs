@@ -586,21 +586,21 @@ impl IpsecTunnelConnector {
     }
 
     async fn new_identity(params: &TunnelParams) -> anyhow::Result<Identity> {
-        let with_mfa = server_info::is_multi_factor_login_type(params).await?;
+        let hybrid_auth = !server_info::is_certificate_login_type(params).await?;
 
         let identity = match params.cert_type {
             CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
                 (Some(path), Some(password)) => Identity::Pkcs12 {
                     data: std::fs::read(path)?,
                     password: password.clone(),
-                    hybrid_auth: with_mfa,
+                    hybrid_auth,
                 },
                 _ => anyhow::bail!(tr!("error-no-pkcs12")),
             },
             CertType::Pkcs8 => match params.cert_path {
                 Some(ref path) => Identity::Pkcs8 {
                     path: path.clone(),
-                    hybrid_auth: with_mfa,
+                    hybrid_auth,
                 },
                 None => anyhow::bail!(tr!("error-no-pkcs8")),
             },
@@ -612,7 +612,7 @@ impl IpsecTunnelConnector {
                         .cert_id
                         .as_ref()
                         .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
-                    hybrid_auth: with_mfa,
+                    hybrid_auth,
                 },
                 None => anyhow::bail!(tr!("error-no-pkcs11")),
             },
