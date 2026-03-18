@@ -1,3 +1,6 @@
+## v5.2.3 (2026-03-18)
+- Fixed a regression where the user certificate authentication stopped working when it is supplemented with 2FA.
+
 ## v5.2.2 (2026-03-05)
 - Fixed a deadlock in the service when tunnel rekeying fails, requiring service restart.
 
