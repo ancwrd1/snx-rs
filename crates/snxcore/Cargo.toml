@@ -45,14 +45,14 @@ byteorder = "1"
 nix = { version = "0.31", features = ["fs", "user"] }
 uuid = { version = "1", features = ["v4", "v5"] }
 opener = { version = "0.8"}
-cached = {  version = "0.56",  features = ["async"] }
+cached = {  version = "0.59",  features = ["async"] }
 openssl = "0.10"
 itertools = "0.14"
 interprocess = { version = "2", features = ["tokio"] }
 hyper = { version = "1", default-features = false, features = ["server", "http1"] }
 hyper-util = "0.1"
 http-body-util = "0.1"
-rusqlite = { version = "0.38" , features = ["uuid"] }
+rusqlite = { version = "0.39" , features = ["uuid"] }
 
 # necessary for build.rs and DEP_OPENSSL_VERSION_NUMBER
 openssl-sys = "0.9"
