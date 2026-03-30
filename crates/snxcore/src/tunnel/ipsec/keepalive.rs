@@ -17,6 +17,7 @@ use crate::{
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
 const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(2);
+const LOOP_INTERVAL: Duration = Duration::from_secs(1);
 const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(2);
 const KEEPALIVE_MAX_RETRIES: u32 = 5;
 
@@ -57,8 +58,8 @@ impl KeepaliveRunner {
         let mut num_failures = 0;
 
         loop {
-            if Platform::get().new_network_interface().is_online() {
-                if self.ready.load(Ordering::SeqCst) {
+            let sleep_interval =
+                if Platform::get().new_network_interface().is_online() && self.ready.load(Ordering::SeqCst) {
                     trace!("Sending keepalive to {}", self.dst);
 
                     let data = make_keepalive_packet();
@@ -78,19 +79,17 @@ impl KeepaliveRunner {
                             KEEPALIVE_RETRY_INTERVAL.as_secs()
                         );
                     }
-                }
-            } else {
-                num_failures = 0;
-                Platform::get().new_network_interface().poll_online();
-            }
+                    if num_failures == 0 {
+                        KEEPALIVE_INTERVAL
+                    } else {
+                        KEEPALIVE_RETRY_INTERVAL
+                    }
+                } else {
+                    num_failures = 0;
+                    LOOP_INTERVAL
+                };
 
-            let interval = if num_failures == 0 {
-                KEEPALIVE_INTERVAL
-            } else {
-                KEEPALIVE_RETRY_INTERVAL
-            };
-
-            tokio::time::sleep(interval).await;
+            tokio::time::sleep(sleep_interval).await;
         }
 
         debug!("Keepalive failed!");

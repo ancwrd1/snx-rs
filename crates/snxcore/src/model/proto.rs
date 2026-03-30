@@ -27,7 +27,7 @@ pub struct ClientHello {
 pub struct ClientHelloData {
     pub client_version: u32,
     pub protocol_version: u32,
-    pub protocol_minor_version: u32,
+    pub protocol_minor_version: Option<u32>,
     #[serde(rename = "OM")]
     pub office_mode: OfficeMode,
     pub optional: Option<OptionalRequest>,
@@ -46,7 +46,7 @@ pub struct HelloReplyData {
     pub protocol_version: u32,
     #[serde(rename = "OM")]
     pub office_mode: OfficeMode,
-    pub range: Vec<NetworkRange>,
+    pub range: Option<Vec<NetworkRange>>,
     pub timeouts: Timeouts,
     pub optional: Option<OptionalResponse>,
 }
