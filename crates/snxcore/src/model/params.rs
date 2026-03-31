@@ -468,6 +468,7 @@ impl PartialEq for TunnelParams {
 
 impl TunnelParams {
     pub const IPSEC_KEEPALIVE_PORT: u16 = 18234;
+    pub const IPSEC_SCV_PORT: u16 = 18233;
     pub const DEFAULT_IPSEC_IF_NAME: &'static str = "snx-xfrm";
     pub const DEFAULT_SSL_IF_NAME: &'static str = "snx-tun";
 

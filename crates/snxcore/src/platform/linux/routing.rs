@@ -6,6 +6,8 @@ use tracing::debug;
 
 use crate::{model::params::TunnelParams, platform::RoutingConfigurator};
 
+const IP_RULE_TABLE: &str = "18000";
+
 pub struct LinuxRoutingConfigurator {
     device: String,
 }
@@ -47,11 +49,15 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
             self.device
         );
 
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
         let dst = destination.to_string();
 
-        crate::util::run_command("ip", ["route", "add", "table", &port, "default", "dev", &self.device]).await?;
-        crate::util::run_command("ip", ["rule", "add", "not", "to", &dst, "table", &port]).await?;
+        crate::util::run_command(
+            "ip",
+            ["route", "add", "table", IP_RULE_TABLE, "default", "dev", &self.device],
+        )
+        .await?;
+
+        crate::util::run_command("ip", ["rule", "add", "not", "to", &dst, "table", IP_RULE_TABLE]).await?;
 
         if disable_ipv6 {
             super::sysctl("net.ipv6.conf.all.disable_ipv6", "1")?;
@@ -64,29 +70,44 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
     async fn setup_keepalive_route(&self, destination: Ipv4Addr, with_table: bool) -> anyhow::Result<()> {
         debug!("Setting up keepalive route through {}", self.device);
 
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
         let dst = destination.to_string();
 
         if with_table {
-            crate::util::run_command("ip", &["route", "add", "table", &port, &dst, "dev", &self.device]).await?;
+            crate::util::run_command(
+                "ip",
+                &["route", "add", "table", IP_RULE_TABLE, &dst, "dev", &self.device],
+            )
+            .await?;
         }
 
-        crate::util::run_command(
-            "ip",
-            &[
-                "rule", "add", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-            ],
-        )
-        .await?;
-
+        for dest_port in [
+            TunnelParams::IPSEC_SCV_PORT.to_string(),
+            TunnelParams::IPSEC_KEEPALIVE_PORT.to_string(),
+        ] {
+            crate::util::run_command(
+                "ip",
+                &[
+                    "rule",
+                    "add",
+                    "to",
+                    &dst,
+                    "ipproto",
+                    "udp",
+                    "dport",
+                    &dest_port,
+                    "table",
+                    IP_RULE_TABLE,
+                ],
+            )
+            .await?;
+        }
         Ok(())
     }
 
     async fn remove_default_route(&self, destination: Ipv4Addr, enable_ipv6: bool) -> anyhow::Result<()> {
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
         let dst = destination.to_string();
 
-        crate::util::run_command("ip", ["rule", "del", "not", "to", &dst, "table", &port]).await?;
+        crate::util::run_command("ip", ["rule", "del", "not", "to", &dst, "table", IP_RULE_TABLE]).await?;
 
         if enable_ipv6 {
             super::sysctl("net.ipv6.conf.all.disable_ipv6", "0")?;
@@ -97,16 +118,29 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
     }
 
     async fn remove_keepalive_route(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
-        let port = TunnelParams::IPSEC_KEEPALIVE_PORT.to_string();
         let dst = destination.to_string();
 
-        crate::util::run_command(
-            "ip",
-            &[
-                "rule", "del", "to", &dst, "ipproto", "udp", "dport", &port, "table", &port,
-            ],
-        )
-        .await?;
+        for dest_port in [
+            TunnelParams::IPSEC_SCV_PORT.to_string(),
+            TunnelParams::IPSEC_KEEPALIVE_PORT.to_string(),
+        ] {
+            crate::util::run_command(
+                "ip",
+                &[
+                    "rule",
+                    "del",
+                    "to",
+                    &dst,
+                    "ipproto",
+                    "udp",
+                    "dport",
+                    &dest_port,
+                    "table",
+                    IP_RULE_TABLE,
+                ],
+            )
+            .await?;
+        }
 
         Ok(())
     }

@@ -26,7 +26,7 @@ use crate::{
     model::{
         ConnectionInfo, VpnSession,
         params::{TransportType, TunnelParams, TunnelType},
-        proto::{ClientHelloData, HelloReply, HelloReplyData, OfficeMode, OptionalRequest},
+        proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
     },
     platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
     server_info,
@@ -130,10 +130,10 @@ impl SslTunnel {
     }
 
     fn new_hello_request(&self, keep_address: bool) -> ClientHelloData {
-        ClientHelloData {
-            client_version: 1,
-            protocol_version: 1,
-            protocol_minor_version: 1,
+        let data = ClientHelloData {
+            client_version: 2,
+            protocol_version: 2,
+            protocol_minor_version: None,
             office_mode: OfficeMode {
                 ipaddr: self.ip_address.clone(),
                 keep_address: Some(keep_address),
@@ -144,6 +144,18 @@ impl SslTunnel {
                 client_type: "4".to_string(),
             }),
             cookie: self.session.active_key().to_owned(),
+        };
+
+        if self.params.login_type != LoginOption::MOBILE_ACCESS_ID {
+            data
+        } else {
+            // Use SLIM v1 for mobile access
+            ClientHelloData {
+                client_version: 1,
+                protocol_version: 1,
+                protocol_minor_version: Some(1),
+                ..data
+            }
         }
     }
 
@@ -238,7 +250,16 @@ impl SslTunnel {
                     .setup_default_route(dest_ip, self.params.disable_ipv6)
                     .await?;
             } else {
-                subnets.extend(util::ranges_to_subnets(&self.hello_reply.range));
+                let range = if let Some(ref range) = self.hello_reply.range {
+                    range.clone()
+                } else {
+                    let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+                    let client_settings = client.get_client_settings().await?;
+                    client_settings.updated_policies.range.settings
+                };
+
+                subnets.extend(util::ranges_to_subnets(&range));
+
                 let network = Ipv4Net::with_netmask(ip_address, netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)))?;
                 if network.prefix_len() < 32 {
                     subnets.push(network.trunc());

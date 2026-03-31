@@ -12,7 +12,7 @@ use chrono::Local;
 use i18n::tr;
 use ipnet::Ipv4Net;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
     ccc::CccHttpClient,
@@ -23,7 +23,7 @@ use crate::{
     server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
-        ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener},
+        ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener, scv::ScvRunner},
     },
     util,
 };
@@ -31,6 +31,7 @@ use crate::{
 pub(crate) struct NativeIpsecTunnel {
     configurator: Box<dyn IpsecConfigurator + Send + Sync>,
     keepalive_runner: KeepaliveRunner,
+    scv_runner: ScvRunner,
     natt_socket: Arc<UdpSocket>,
     ready: Arc<AtomicBool>,
     params: Arc<TunnelParams>,
@@ -59,6 +60,7 @@ impl NativeIpsecTunnel {
         );
 
         let ready = Arc::new(AtomicBool::new(false));
+
         let keepalive_runner = KeepaliveRunner::new(
             server_info.connectivity_info.server_ip,
             if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
@@ -67,6 +69,8 @@ impl NativeIpsecTunnel {
                 ready.clone()
             },
         );
+
+        let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
@@ -92,6 +96,7 @@ impl NativeIpsecTunnel {
         Ok(Self {
             configurator: Box::new(configurator),
             keepalive_runner,
+            scv_runner,
             natt_socket: Arc::new(natt_socket),
             ready,
             params,
@@ -260,6 +265,10 @@ impl VpnTunnel for NativeIpsecTunnel {
 
             err = self.keepalive_runner.run() => {
                 debug!("Terminating IPSec tunnel due to keepalive failure");
+                err
+            }
+            err = self.scv_runner.run() => {
+                warn!("SCV runner exited unexpectedly");
                 err
             }
         };

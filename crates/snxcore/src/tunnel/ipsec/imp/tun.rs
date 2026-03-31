@@ -29,7 +29,11 @@ use crate::{
     },
     platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
     server_info,
-    tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ipsec::keepalive::KeepaliveRunner},
+    tunnel::{
+        TunnelCommand, TunnelEvent, VpnTunnel,
+        device::TunDevice,
+        ipsec::{keepalive::KeepaliveRunner, scv::ScvRunner},
+    },
     util,
 };
 
@@ -377,7 +381,7 @@ impl VpnTunnel for TunIpsecTunnel {
 
         let keepalive_runner = KeepaliveRunner::new(
             server_info.connectivity_info.server_ip,
-            if self.params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
+            if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
                 ready.clone()
@@ -386,6 +390,11 @@ impl VpnTunnel for TunIpsecTunnel {
 
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);
+
+        let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
+
+        let scv_run = scv_runner.run();
+        pin_mut!(scv_run);
 
         let result = loop {
             tokio::select! {
@@ -397,6 +406,10 @@ impl VpnTunnel for TunIpsecTunnel {
                 err = &mut ka_run => {
                     debug!("Terminating IPSec tunnel due to keepalive failure");
                     break err;
+                }
+
+                _ = &mut scv_run => {
+                    warn!("SCV runner exited unexpectedly");
                 }
 
                 result = tun_receiver.next() => {

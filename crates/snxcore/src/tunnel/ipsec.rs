@@ -7,6 +7,7 @@ pub mod connector;
 pub mod imp;
 pub mod keepalive;
 pub mod natt;
+pub mod scv;
 
 pub fn make_resolver_config(session: &IpsecSession, params: &TunnelParams) -> ResolverConfig {
     let search_domains = session
