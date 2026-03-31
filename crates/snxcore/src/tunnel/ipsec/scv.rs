@@ -1,4 +1,3 @@
-use crate::platform::{NetworkInterface, Platform, PlatformAccess};
 use std::{
     net::Ipv4Addr,
     sync::{
@@ -7,10 +6,15 @@ use std::{
     },
     time::Duration,
 };
+use tracing::trace;
+
+use crate::{
+    model::params::TunnelParams,
+    platform::{NetworkInterface, Platform, PlatformAccess},
+};
 
 const SCV_INTERVAL: Duration = Duration::from_secs(20);
 const LOOP_INTERVAL: Duration = Duration::from_secs(1);
-const SCV_PORT: u16 = 18233;
 
 const SCV_COMPLIANCE_DATA: &[u8] = &[
     0x44, 0x56, 0x10, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x7, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x45,
@@ -19,12 +23,12 @@ const SCV_COMPLIANCE_DATA: &[u8] = &[
 ];
 
 pub struct ScvRunner {
-    dst: Vec<Ipv4Addr>,
+    dst: Ipv4Addr,
     ready: Arc<AtomicBool>,
 }
 
 impl ScvRunner {
-    pub fn new(dst: Vec<Ipv4Addr>, ready: Arc<AtomicBool>) -> Self {
+    pub fn new(dst: Ipv4Addr, ready: Arc<AtomicBool>) -> Self {
         Self { dst, ready }
     }
 
@@ -33,9 +37,10 @@ impl ScvRunner {
 
         loop {
             if Platform::get().new_network_interface().is_online() && self.ready.load(Ordering::SeqCst) {
-                for addr in &self.dst {
-                    let _ = udp.send_to(SCV_COMPLIANCE_DATA, (*addr, SCV_PORT)).await;
-                }
+                trace!("Sending SCV data to {}", self.dst);
+                let _ = udp
+                    .send_to(SCV_COMPLIANCE_DATA, (self.dst, TunnelParams::IPSEC_SCV_PORT))
+                    .await;
                 tokio::time::sleep(SCV_INTERVAL).await;
             } else {
                 tokio::time::sleep(LOOP_INTERVAL).await;

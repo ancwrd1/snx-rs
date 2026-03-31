@@ -391,7 +391,7 @@ impl VpnTunnel for TunIpsecTunnel {
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);
 
-        let scv_runner = ScvRunner::new(ipsec_session.dns.clone(), ready.clone());
+        let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
 
         let scv_run = scv_runner.run();
         pin_mut!(scv_run);

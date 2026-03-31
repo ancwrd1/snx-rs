@@ -70,7 +70,7 @@ impl NativeIpsecTunnel {
             },
         );
 
-        let scv_runner = ScvRunner::new(ipsec_session.dns.clone(), ready.clone());
+        let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encap(UdpEncap::EspInUdp)?;
