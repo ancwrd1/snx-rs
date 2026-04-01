@@ -1,3 +1,7 @@
+## v5.2.4 (2026-04-01)
+- Added SCV policy emulation which may fix the long-standing issue of blocked access to Intranet resources.
+- Fixed a potential problem with SSL tunnel when connecting to gateway version R82.
+
 ## v5.2.3 (2026-03-18)
 - Fixed a regression where the user certificate authentication stopped working when it is supplemented with 2FA.
 
