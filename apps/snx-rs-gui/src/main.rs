@@ -7,6 +7,7 @@ use gtk4::{
     prelude::{ApplicationExt, ApplicationExtManual, Cast, GtkWindowExt, IsA, WidgetExt},
 };
 use i18n::tr;
+use nix::unistd::Uid;
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
@@ -86,10 +87,8 @@ async fn main() -> anyhow::Result<()> {
         i18n::set_locale(Some(locale));
     }
 
-    let uid = unsafe { libc::getuid() };
-
     let platform = Platform::get();
-    let instance = platform.new_single_instance(format!("/tmp/snx-rs-gui-{uid}.lock"))?;
+    let instance = platform.new_single_instance(format!("/tmp/snx-rs-gui-{}.lock", Uid::current()))?;
     if !instance.is_single() {
         if let Some(mut command) = cmdline_params.command {
             if matches!(command, TrayEvent::Connect(_)) && default_params.server_name.is_empty() {

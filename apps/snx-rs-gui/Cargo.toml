@@ -27,7 +27,6 @@ clap_complete = { workspace = true }
 hex = "0.4"
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 futures = "0.3"
-libc = "0.2"
 async-trait = "0.1"
 interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
@@ -35,6 +34,7 @@ async-channel = "2"
 itertools = "0.14"
 uuid = { version = "1.18.1", features = ["v4"] }
 webkit6 = { version = "0.6", optional = true }
+nix = "0.31"
 
 [features]
 mobile-access = ["dep:webkit6"]

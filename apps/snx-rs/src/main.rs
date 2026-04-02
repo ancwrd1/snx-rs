@@ -3,6 +3,7 @@ use std::{future::Future, path::Path, sync::Arc};
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
+use nix::unistd::Uid;
 use secrecy::ExposeSecret;
 use snxcore::{
     ccc::CccHttpClient,
@@ -26,10 +27,6 @@ use tracing::{debug, metadata::LevelFilter, warn};
 use crate::cmdline::CmdlineParams;
 
 mod cmdline;
-
-fn is_root() -> bool {
-    unsafe { libc::geteuid() == 0 }
-}
 
 async fn await_termination<F, R>(f: F) -> anyhow::Result<()>
 where
@@ -67,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if cmdline_params.mode.requires_root() && !is_root() {
+    if cmdline_params.mode.requires_root() && !Uid::effective().is_root() {
         anyhow::bail!(tr!("error-no-root-privileges"));
     }
 
