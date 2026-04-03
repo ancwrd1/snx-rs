@@ -3,16 +3,37 @@ use std::{fs, io::Write, path::PathBuf};
 use anyhow::Context;
 use async_trait::async_trait;
 use cached::proc_macro::cached;
+use itertools::Itertools;
 use tracing::debug;
+use zbus::Connection;
 
 use crate::platform::{ResolverConfig, ResolverConfigurator};
 
 const RESOLV_CONF: &str = "/etc/resolv.conf";
+const AF_INET: i32 = 2;
 
 #[derive(Clone, Debug, PartialEq)]
 enum ResolverType {
     SystemdResolved,
     ResolvConf(PathBuf),
+}
+
+#[zbus::proxy(
+    interface = "org.freedesktop.resolve1.Manager",
+    default_service = "org.freedesktop.resolve1",
+    default_path = "/org/freedesktop/resolve1"
+)]
+pub trait Resolve1Manager {
+    #[zbus(name = "SetLinkDNS")]
+    fn set_link_dns(&self, ifindex: i32, addresses: Vec<(i32, Vec<u8>)>) -> zbus::Result<()>;
+    fn set_link_domains(&self, ifindex: i32, domains: Vec<(String, bool)>) -> zbus::Result<()>;
+    fn set_link_default_route(&self, ifindex: i32, enable: bool) -> zbus::Result<()>;
+    #[zbus(name = "SetLinkMulticastDNS")]
+    fn set_link_multicast_dns(&self, ifindex: i32, mode: &str) -> zbus::Result<()>;
+    #[zbus(name = "SetLinkLLMNR")]
+    fn set_link_llmnr(&self, ifindex: i32, mode: &str) -> zbus::Result<()>;
+    #[zbus(name = "SetLinkDNSOverTLS")]
+    fn set_link_dns_over_tls(&self, ifindex: i32, mode: &str) -> zbus::Result<()>;
 }
 
 struct SystemdResolvedConfigurator {
@@ -22,30 +43,31 @@ struct SystemdResolvedConfigurator {
 #[async_trait]
 impl ResolverConfigurator for SystemdResolvedConfigurator {
     async fn configure(&self, config: &ResolverConfig) -> anyhow::Result<()> {
-        let mut args = vec!["domain", &self.device];
+        let handle = super::new_netlink_connection()?;
+        let ifindex = super::resolve_device_index(&handle, &self.device).await? as i32;
 
-        let search_domains = config
+        let connection = Connection::system().await?;
+        let proxy = Resolve1ManagerProxy::new(&connection).await?;
+
+        let domains: Vec<(String, bool)> = config
             .search_domains
             .iter()
-            .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '.'))
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>();
+            .map(|s| (s.name.clone(), s.is_routing))
+            .collect();
 
-        args.extend(search_domains);
+        proxy.set_link_domains(ifindex, domains).await?;
+        proxy.set_link_default_route(ifindex, false).await?;
+        proxy.set_link_multicast_dns(ifindex, "no").await?;
+        proxy.set_link_llmnr(ifindex, "no").await?;
+        proxy.set_link_dns_over_tls(ifindex, "no").await?;
 
-        crate::util::run_command("resolvectl", args).await?;
-        let _ = crate::util::run_command("resolvectl", ["default-route", &self.device, "false"]).await;
-        let _ = crate::util::run_command("resolvectl", ["mdns", &self.device, "false"]).await;
-        let _ = crate::util::run_command("resolvectl", ["llmnr", &self.device, "false"]).await;
-        let _ = crate::util::run_command("resolvectl", ["dnsovertls", &self.device, "false"]).await;
+        let addresses: Vec<(i32, Vec<u8>)> = config
+            .dns_servers
+            .iter()
+            .map(|ip| (AF_INET, ip.octets().to_vec()))
+            .collect();
 
-        let mut args = vec!["dns".to_owned(), self.device.clone()];
-
-        let servers = config.dns_servers.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-
-        args.extend(servers);
-
-        crate::util::run_command("resolvectl", args).await?;
+        proxy.set_link_dns(ifindex, addresses).await?;
 
         Ok(())
     }
@@ -148,14 +170,7 @@ impl ResolvConfConfigurator {
             .map(ToOwned::to_owned)
             .collect::<Vec<_>>();
 
-        // resolv.conf has no concept of routing domains
-        let search_domains = config
-            .search_domains
-            .iter()
-            .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '.' || c == '~'))
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
-            .join(" ");
+        let search_domains = config.search_domains.iter().map(|s| &s.name).join(" ");
 
         if configure {
             if search.is_empty() {
@@ -203,6 +218,7 @@ mod tests {
     };
 
     use super::*;
+    use crate::platform::SearchDomain;
 
     #[test]
     fn test_detect_resolver_systemd() {
@@ -358,7 +374,10 @@ mod tests {
         };
 
         let config = ResolverConfig {
-            search_domains: vec!["dom1.com".to_owned(), "dom2.net".to_owned()],
+            search_domains: vec![
+                SearchDomain::new("dom1.com", true),
+                SearchDomain::new("dom2.net", false),
+            ],
             dns_servers: vec!["192.168.1.1".parse().unwrap(), "192.168.1.2".parse().unwrap()],
         };
         cut.configure(&config).await.unwrap();
@@ -380,7 +399,10 @@ mod tests {
         };
 
         let config = ResolverConfig {
-            search_domains: vec!["dom1.com".to_owned(), "dom2.net".to_owned()],
+            search_domains: vec![
+                SearchDomain::new("dom1.com", true),
+                SearchDomain::new("dom2.net", false),
+            ],
             dns_servers: vec!["192.168.1.1".parse().unwrap(), "192.168.1.2".parse().unwrap()],
         };
 

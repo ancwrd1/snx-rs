@@ -2,11 +2,19 @@ use std::{collections::HashSet, net::Ipv4Addr};
 
 use async_trait::async_trait;
 use ipnet::Ipv4Net;
+use rtnetlink::{
+    RouteMessageBuilder,
+    packet_route::{
+        IpProtocol,
+        rule::{RuleAction, RuleAttribute, RuleFlags, RulePortRange},
+    },
+};
+use sysctl::{Ctl, Sysctl};
 use tracing::debug;
 
 use crate::{model::params::TunnelParams, platform::RoutingConfigurator};
 
-const IP_RULE_TABLE: &str = "18000";
+const IP_RULE_TABLE: u32 = 18000;
 
 pub struct LinuxRoutingConfigurator {
     device: String,
@@ -21,7 +29,15 @@ impl LinuxRoutingConfigurator {
 
     async fn add_route(&self, route: Ipv4Net) -> anyhow::Result<()> {
         debug!("Adding route: {} via {}", route, self.device);
-        crate::util::run_command("ip", ["route", "add", &route.to_string(), "dev", &self.device]).await?;
+        let handle = super::new_netlink_connection()?;
+        let index = super::resolve_device_index(&handle, &self.device).await?;
+
+        let message = RouteMessageBuilder::<Ipv4Addr>::new()
+            .destination_prefix(route.network(), route.prefix_len())
+            .output_interface(index)
+            .build();
+
+        handle.route().add(message).execute().await?;
         Ok(())
     }
 }
@@ -49,19 +65,32 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
             self.device
         );
 
-        let dst = destination.to_string();
+        let handle = super::new_netlink_connection()?;
+        let index = super::resolve_device_index(&handle, &self.device).await?;
 
-        crate::util::run_command(
-            "ip",
-            ["route", "add", "table", IP_RULE_TABLE, "default", "dev", &self.device],
-        )
-        .await?;
+        // ip route add table 18000 default dev $device
+        let message = RouteMessageBuilder::<Ipv4Addr>::new()
+            .table_id(IP_RULE_TABLE)
+            .output_interface(index)
+            .build();
+        handle.route().add(message).execute().await?;
 
-        crate::util::run_command("ip", ["rule", "add", "not", "to", &dst, "table", IP_RULE_TABLE]).await?;
+        // ip rule add not to $dst table 18000
+        let mut rule = handle
+            .rule()
+            .add()
+            .v4()
+            .table_id(IP_RULE_TABLE)
+            .action(RuleAction::ToTable);
+        let msg = rule.message_mut();
+        msg.header.dst_len = 32;
+        msg.header.flags.insert(RuleFlags::Invert);
+        msg.attributes.push(RuleAttribute::Destination(destination.into()));
+        rule.execute().await?;
 
         if disable_ipv6 {
-            super::sysctl("net.ipv6.conf.all.disable_ipv6", "1")?;
-            super::sysctl("net.ipv6.conf.default.disable_ipv6", "1")?;
+            Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("1")?;
+            Ctl::new("net.ipv6.conf.default.disable_ipv6")?.set_value_string("1")?;
         }
 
         Ok(())
@@ -70,76 +99,85 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
     async fn setup_keepalive_route(&self, destination: Ipv4Addr, with_table: bool) -> anyhow::Result<()> {
         debug!("Setting up keepalive route through {}", self.device);
 
-        let dst = destination.to_string();
+        let handle = super::new_netlink_connection()?;
+        let index = super::resolve_device_index(&handle, &self.device).await?;
 
         if with_table {
-            crate::util::run_command(
-                "ip",
-                &["route", "add", "table", IP_RULE_TABLE, &dst, "dev", &self.device],
-            )
-            .await?;
+            // ip route add table 18000 $dst dev $device
+            let message = RouteMessageBuilder::<Ipv4Addr>::new()
+                .table_id(IP_RULE_TABLE)
+                .destination_prefix(destination, 32)
+                .output_interface(index)
+                .build();
+            handle.route().add(message).execute().await?;
         }
 
-        for dest_port in [
-            TunnelParams::IPSEC_SCV_PORT.to_string(),
-            TunnelParams::IPSEC_KEEPALIVE_PORT.to_string(),
-        ] {
-            crate::util::run_command(
-                "ip",
-                &[
-                    "rule",
-                    "add",
-                    "to",
-                    &dst,
-                    "ipproto",
-                    "udp",
-                    "dport",
-                    &dest_port,
-                    "table",
-                    IP_RULE_TABLE,
-                ],
-            )
-            .await?;
+        for dest_port in [TunnelParams::IPSEC_SCV_PORT, TunnelParams::IPSEC_KEEPALIVE_PORT] {
+            // ip rule add to $dst ipproto udp dport $port table 18000
+            let mut rule = handle
+                .rule()
+                .add()
+                .v4()
+                .table_id(IP_RULE_TABLE)
+                .action(RuleAction::ToTable);
+            let msg = rule.message_mut();
+            msg.header.dst_len = 32;
+            msg.attributes.push(RuleAttribute::Destination(destination.into()));
+            msg.attributes.push(RuleAttribute::IpProtocol(IpProtocol::Udp));
+            msg.attributes.push(RuleAttribute::DestinationPortRange(RulePortRange {
+                start: dest_port,
+                end: dest_port,
+            }));
+            rule.execute().await?;
         }
+
         Ok(())
     }
 
     async fn remove_default_route(&self, destination: Ipv4Addr, enable_ipv6: bool) -> anyhow::Result<()> {
-        let dst = destination.to_string();
+        let handle = super::new_netlink_connection()?;
 
-        crate::util::run_command("ip", ["rule", "del", "not", "to", &dst, "table", IP_RULE_TABLE]).await?;
+        // ip rule del not to $dst table 18000
+        let mut rule = handle
+            .rule()
+            .add()
+            .v4()
+            .table_id(IP_RULE_TABLE)
+            .action(RuleAction::ToTable);
+        let msg = rule.message_mut();
+        msg.header.dst_len = 32;
+        msg.header.flags.insert(RuleFlags::Invert);
+        msg.attributes.push(RuleAttribute::Destination(destination.into()));
+        handle.rule().del(rule.message_mut().clone()).execute().await?;
 
         if enable_ipv6 {
-            super::sysctl("net.ipv6.conf.all.disable_ipv6", "0")?;
-            super::sysctl("net.ipv6.conf.default.disable_ipv6", "0")?;
+            Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("0")?;
+            Ctl::new("net.ipv6.conf.default.disable_ipv6")?.set_value_string("0")?;
         }
 
         Ok(())
     }
 
     async fn remove_keepalive_route(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
-        let dst = destination.to_string();
+        let handle = super::new_netlink_connection()?;
 
-        for dest_port in [
-            TunnelParams::IPSEC_SCV_PORT.to_string(),
-            TunnelParams::IPSEC_KEEPALIVE_PORT.to_string(),
-        ] {
-            crate::util::run_command(
-                "ip",
-                &[
-                    "rule",
-                    "del",
-                    "to",
-                    &dst,
-                    "ipproto",
-                    "udp",
-                    "dport",
-                    &dest_port,
-                    "table",
-                    IP_RULE_TABLE,
-                ],
-            )
-            .await?;
+        for dest_port in [TunnelParams::IPSEC_SCV_PORT, TunnelParams::IPSEC_KEEPALIVE_PORT] {
+            // ip rule del to $dst ipproto udp dport $port table 18000
+            let mut rule = handle
+                .rule()
+                .add()
+                .v4()
+                .table_id(IP_RULE_TABLE)
+                .action(RuleAction::ToTable);
+            let msg = rule.message_mut();
+            msg.header.dst_len = 32;
+            msg.attributes.push(RuleAttribute::Destination(destination.into()));
+            msg.attributes.push(RuleAttribute::IpProtocol(IpProtocol::Udp));
+            msg.attributes.push(RuleAttribute::DestinationPortRange(RulePortRange {
+                start: dest_port,
+                end: dest_port,
+            }));
+            handle.rule().del(rule.message_mut().clone()).execute().await?;
         }
 
         Ok(())

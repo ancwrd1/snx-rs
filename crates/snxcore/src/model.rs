@@ -3,9 +3,13 @@ use std::{borrow::Cow, fmt, net::Ipv4Addr, sync::Arc, time::Duration};
 use chrono::{DateTime, Local};
 use ipnet::Ipv4Net;
 use isakmp::model::EspCryptMaterial;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::model::params::{TransportType, TunnelParams, TunnelType};
+use crate::{
+    model::params::{TransportType, TunnelParams, TunnelType},
+    platform::SearchDomain,
+};
 
 pub mod params;
 pub mod proto;
@@ -45,6 +49,12 @@ impl Default for IpsecSession {
             transport_type: TransportType::default(),
             address_lifetime: Duration::default(),
         }
+    }
+}
+
+impl IpsecSession {
+    pub fn ipv4net_address(&self) -> Ipv4Net {
+        Ipv4Net::with_netmask(self.address, self.netmask).unwrap_or_else(|_| Ipv4Net::from(self.address))
     }
 }
 
@@ -109,7 +119,7 @@ pub struct ConnectionInfo {
     pub transport_type: TransportType,
     pub ip_address: Ipv4Net,
     pub dns_servers: Vec<Ipv4Addr>,
-    pub search_domains: Vec<String>,
+    pub search_domains: Vec<SearchDomain>,
     pub interface_name: String,
     pub dns_configured: bool,
     pub routing_configured: bool,
@@ -147,7 +157,7 @@ impl ConnectionInfo {
             ("info-dns-servers", self.or_empty(|| format!("{:?}", self.dns_servers))),
             (
                 "info-search-domains",
-                self.or_empty(|| format!("[{}]", self.search_domains.join(", "))),
+                self.or_empty(|| format!("[{}]", self.search_domains.iter().map(|d| d.to_string()).join(", "))),
             ),
             ("info-interface", self.or_empty(|| self.interface_name.clone())),
             ("info-dns-configured", self.or_empty(|| self.dns_configured.to_string())),

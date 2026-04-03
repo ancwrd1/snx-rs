@@ -278,54 +278,27 @@ impl SslTunnel {
 
     async fn make_resolver_config(&self) -> ResolverConfig {
         let features = Platform::get().get_features().await;
+        let builder = ResolverConfig::builder(self.params.clone(), features);
 
-        let acquired_domains = self
-            .hello_reply
-            .office_mode
-            .dns_suffix
-            .as_ref()
-            .map(|s| s.0.as_slice())
-            .unwrap_or_default()
-            .iter()
-            .map(|s| {
-                if self.params.set_routing_domains && features.split_dns {
-                    format!("~{s}")
-                } else {
-                    s.clone()
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let search_domains = acquired_domains
-            .iter()
-            .chain(self.params.search_domains.iter())
-            .filter(|s| {
-                !s.is_empty()
-                    && !self
-                        .params
-                        .ignore_search_domains
-                        .iter()
-                        .any(|d| d.to_lowercase() == s.trim_matches('~').to_lowercase())
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let dns_servers = self
-            .hello_reply
-            .office_mode
-            .dns_servers
-            .clone()
-            .unwrap_or_default()
-            .iter()
-            .chain(self.params.dns_servers.iter())
-            .filter(|s| !self.params.ignore_dns_servers.iter().any(|d| *d == **s))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        ResolverConfig {
-            search_domains,
-            dns_servers,
-        }
+        builder
+            .search_domains(
+                self.hello_reply
+                    .office_mode
+                    .dns_suffix
+                    .as_ref()
+                    .map(|s| s.0.as_slice())
+                    .unwrap_or_default(),
+            )
+            .dns_servers(
+                self.hello_reply
+                    .office_mode
+                    .dns_servers
+                    .as_deref()
+                    .unwrap_or_default()
+                    .iter()
+                    .cloned(),
+            )
+            .build()
     }
 
     pub async fn setup_dns(&self, config: ResolverConfig, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {

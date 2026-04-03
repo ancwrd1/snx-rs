@@ -1,6 +1,8 @@
+use core::fmt;
 use std::{
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr},
+    sync::Arc,
     time::Duration,
 };
 
@@ -9,13 +11,35 @@ use async_trait::async_trait;
 use ipnet::Ipv4Net;
 #[cfg(target_os = "linux")]
 use linux::LinuxPlatformAccess as PlatformAccessImpl;
+use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 
-use crate::model::IpsecSession;
+use crate::model::{IpsecSession, params::TunnelParams};
 
 #[cfg(target_os = "linux")]
 mod linux;
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SearchDomain {
+    pub name: String,
+    pub is_routing: bool,
+}
+
+impl SearchDomain {
+    pub fn new<S: AsRef<str>>(name: S, is_routing: bool) -> Self {
+        Self {
+            name: name.as_ref().to_owned(),
+            is_routing,
+        }
+    }
+}
+
+impl fmt::Display for SearchDomain {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", if self.is_routing { "~" } else { "" }, self.name)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlatformFeatures {
@@ -32,13 +56,14 @@ pub trait IpsecConfigurator {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub enum UdpEncap {
-    EspInUdp,
+#[repr(i32)]
+pub enum UdpEncapType {
+    EspInUdp = 2,
 }
 
 #[async_trait]
 pub trait UdpSocketExt {
-    fn set_encap(&self, encap: UdpEncap) -> anyhow::Result<()>;
+    fn set_encapsulation(&self, encap: UdpEncapType) -> anyhow::Result<()>;
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()>;
     async fn send_receive(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>>;
 }
@@ -65,8 +90,86 @@ async fn udp_send_receive(
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ResolverConfig {
-    pub search_domains: Vec<String>,
+    pub search_domains: Vec<SearchDomain>,
     pub dns_servers: Vec<Ipv4Addr>,
+}
+
+impl ResolverConfig {
+    pub fn builder(params: Arc<TunnelParams>, features: PlatformFeatures) -> ResolverConfigBuilder {
+        ResolverConfigBuilder {
+            params,
+            features,
+            search_domains: Vec::new(),
+            dns_servers: Vec::new(),
+        }
+    }
+}
+
+pub struct ResolverConfigBuilder {
+    params: Arc<TunnelParams>,
+    features: PlatformFeatures,
+    search_domains: Vec<SearchDomain>,
+    dns_servers: Vec<Ipv4Addr>,
+}
+
+impl ResolverConfigBuilder {
+    // add search domains acquired from the tunnel
+    pub fn search_domains<I, S>(mut self, domains: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.search_domains.extend(domains.into_iter().filter_map(|s| {
+            let trimmed = s.as_ref().trim_matches(|c: char| c.is_whitespace() || c == '.');
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(SearchDomain::new(
+                    trimmed,
+                    self.params.set_routing_domains && self.features.split_dns,
+                ))
+            }
+        }));
+        self
+    }
+
+    // add DNS servers acquired from the tunnel
+    pub fn dns_servers<I>(mut self, servers: I) -> Self
+    where
+        I: IntoIterator<Item = Ipv4Addr>,
+    {
+        self.dns_servers.extend(servers);
+
+        self
+    }
+
+    pub fn build(mut self) -> ResolverConfig {
+        // add manual search domains
+        self.search_domains.extend(self.params.search_domains.iter().map(|d| {
+            if let Some(s) = d.strip_prefix("~") {
+                SearchDomain::new(s, self.features.split_dns)
+            } else {
+                SearchDomain::new(d, self.params.set_routing_domains && self.features.split_dns)
+            }
+        }));
+
+        // remove ignored domains
+        self.search_domains.retain(|domain| {
+            !self
+                .params
+                .ignore_search_domains
+                .iter()
+                .any(|d| d.eq_ignore_ascii_case(&domain.name))
+        });
+
+        self.dns_servers.extend(&self.params.dns_servers);
+        self.dns_servers.retain(|s| !self.params.ignore_dns_servers.contains(s));
+
+        ResolverConfig {
+            search_domains: self.search_domains,
+            dns_servers: self.dns_servers,
+        }
+    }
 }
 
 #[async_trait]
@@ -104,7 +207,6 @@ pub trait NetworkInterface {
     ) -> anyhow::Result<()>;
 
     fn is_online(&self) -> bool;
-    fn poll_online(&self);
 }
 
 pub trait SingleInstance {

@@ -1,29 +1,28 @@
 use std::{
     fs,
     net::{Ipv4Addr, SocketAddr},
-    os::fd::{AsFd, AsRawFd, OwnedFd},
+    os::fd::{AsFd, OwnedFd},
     time::Duration,
 };
 
 use anyhow::anyhow;
 use cached::proc_macro::cached;
-use itertools::Itertools;
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
-    sys::stat::Mode,
+    getsockopt_impl, setsockopt_impl, sockopt_impl,
+    sys::{socket, stat::Mode},
     unistd,
 };
 use tokio::net::UdpSocket;
-use tracing::{debug, trace, warn};
+use tracing::debug;
 use uuid::Uuid;
 
 use crate::{
     model::IpsecSession,
     platform::{
         IpsecConfigurator, Keychain, NetworkInterface, PlatformAccess, PlatformFeatures, ResolverConfigurator,
-        RoutingConfigurator, SingleInstance, UdpEncap, UdpSocketExt,
+        RoutingConfigurator, SingleInstance, UdpEncapType, UdpSocketExt,
     },
-    util,
 };
 
 mod keychain;
@@ -32,58 +31,19 @@ pub mod resolver;
 mod routing;
 pub mod xfrm;
 
-const UDP_ENCAP_ESPINUDP: libc::c_int = 2; // from /usr/include/linux/udp.h
-
-pub fn sysctl<K, V>(key: K, value: V) -> anyhow::Result<()>
-where
-    K: AsRef<str>,
-    V: AsRef<str>,
-{
-    let path = format!("/proc/sys/{}", key.as_ref().split('.').join("/"));
-    trace!("Writing {} to {}", value.as_ref(), path);
-    fs::write(path, value.as_ref()).inspect_err(|e| warn!("{e}"))?;
-    Ok(())
-}
+// nix does not provide these socket options yet, so we implement them here using the convenient macros.
+sockopt_impl!(UdpEncap, Both, libc::SOL_UDP, libc::UDP_ENCAP, UdpEncapType);
+sockopt_impl!(NoCheck, Both, libc::SOL_SOCKET, libc::SO_NO_CHECK, bool);
 
 #[async_trait::async_trait]
 impl UdpSocketExt for UdpSocket {
-    fn set_encap(&self, encap: UdpEncap) -> anyhow::Result<()> {
-        let stype: libc::c_int = match encap {
-            UdpEncap::EspInUdp => UDP_ENCAP_ESPINUDP,
-        };
-
-        unsafe {
-            let rc = libc::setsockopt(
-                self.as_raw_fd(),
-                libc::SOL_UDP,
-                libc::UDP_ENCAP,
-                &stype as *const libc::c_int as _,
-                size_of::<libc::c_int>() as _,
-            );
-            if rc != 0 {
-                Err(anyhow!(i18n::tr!("error-udp-encap-failed", code = rc)))
-            } else {
-                Ok(())
-            }
-        }
+    fn set_encapsulation(&self, encap_type: UdpEncapType) -> anyhow::Result<()> {
+        socket::setsockopt(self, UdpEncap, &encap_type)
+            .map_err(|e| anyhow!(i18n::tr!("error-udp-encap-failed", code = e)))
     }
 
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()> {
-        let disable: libc::c_int = flag.into();
-        unsafe {
-            let rc = libc::setsockopt(
-                self.as_raw_fd(),
-                libc::SOL_SOCKET,
-                libc::SO_NO_CHECK,
-                &disable as *const libc::c_int as _,
-                size_of::<libc::c_int>() as _,
-            );
-            if rc != 0 {
-                Err(anyhow!(i18n::tr!("error-so-no-check-failed", code = rc)))
-            } else {
-                Ok(())
-            }
-        }
+        socket::setsockopt(self, NoCheck, &flag).map_err(|e| anyhow!(i18n::tr!("error-so-no-check-failed", code = e)))
     }
 
     async fn send_receive(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>> {
@@ -95,9 +55,6 @@ pub struct UnixSingleInstance {
     name: String,
     handle: Option<OwnedFd>,
 }
-
-unsafe impl Send for UnixSingleInstance {}
-unsafe impl Sync for UnixSingleInstance {}
 
 impl UnixSingleInstance {
     pub fn new<N: AsRef<str>>(name: N) -> anyhow::Result<Self> {
@@ -160,7 +117,13 @@ fn is_wsl2() -> bool {
 }
 
 async fn check_for_xfrm_state() -> bool {
-    util::run_command("ip", ["xfrm", "state", "count"]).await.is_ok()
+    let Ok(handle) = xfrmnetlink::new_connection().map(|(conn, handle, _)| {
+        tokio::spawn(conn);
+        handle
+    }) else {
+        return false;
+    };
+    handle.state().get_sadinfo().execute().await.is_ok()
 }
 
 #[cached]
@@ -170,19 +133,28 @@ async fn is_xfrm_available() -> bool {
         return false;
     }
 
-    let result = if !check_for_xfrm_state().await {
-        debug!("Attempting to load xfrm_interface kernel module");
-        let _ = util::run_command("modprobe", ["xfrm_interface"])
-            .await
-            .inspect_err(|e| warn!("{e}"));
-        check_for_xfrm_state().await
-    } else {
-        true
-    };
+    let result = check_for_xfrm_state().await;
 
     debug!("Kernel xfrm available: {}", result);
 
     result
+}
+
+pub(crate) fn new_netlink_connection() -> anyhow::Result<rtnetlink::Handle> {
+    let (connection, handle, _) = rtnetlink::new_connection()?;
+    tokio::spawn(connection);
+    Ok(handle)
+}
+
+pub(crate) async fn resolve_device_index(handle: &rtnetlink::Handle, device: &str) -> anyhow::Result<u32> {
+    use futures::StreamExt;
+
+    let mut links = handle.link().get().match_name(device.to_string()).execute();
+    if let Some(Ok(link)) = links.next().await {
+        Ok(link.header.index)
+    } else {
+        Err(anyhow!(i18n::tr!("error-device-not-found", device = device)))
+    }
 }
 
 pub struct LinuxPlatformAccess;

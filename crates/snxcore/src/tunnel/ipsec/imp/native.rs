@@ -18,7 +18,7 @@ use crate::{
     ccc::CccHttpClient,
     model::{ConnectionInfo, IpsecSession, VpnSession, params::TunnelParams},
     platform::{
-        IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncap, UdpSocketExt,
+        IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncapType, UdpSocketExt,
     },
     server_info,
     tunnel::{
@@ -73,7 +73,7 @@ impl NativeIpsecTunnel {
         let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
-        natt_socket.set_encap(UdpEncap::EspInUdp)?;
+        natt_socket.set_encapsulation(UdpEncapType::EspInUdp)?;
 
         let device_name = params
             .if_name
@@ -161,7 +161,11 @@ impl NativeIpsecTunnel {
         if !self.params.no_dns
             && let Some(session) = self.session.ipsec_session.as_ref()
         {
-            let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+            let config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
+                .search_domains(&session.domains)
+                .dns_servers(session.dns.iter().cloned())
+                .build();
+
             let _ = self.setup_dns(&config, true).await;
         }
         self.configurator.cleanup().await;
@@ -196,7 +200,10 @@ impl VpnTunnel for NativeIpsecTunnel {
 
         self.setup_routing(session).await?;
 
-        let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+        let resolver_config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
+            .search_domains(&session.domains)
+            .dns_servers(session.dns.iter().cloned())
+            .build();
 
         if !self.params.no_dns {
             self.setup_dns(&resolver_config, false).await?;

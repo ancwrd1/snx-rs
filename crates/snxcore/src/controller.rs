@@ -144,7 +144,7 @@ where
                 if result.is_ok()
                     && mfa.mfa_type == MfaType::PasswordInput
                     && self.mfa_index == params.password_factor
-                    && !params.no_keychain
+                    && params.keychain
                     && !input.is_empty()
                 {
                     let _ = Platform::get()
@@ -227,7 +227,7 @@ where
                 self.username = input.clone();
 
                 if !self.username.is_empty()
-                    && !params.no_keychain
+                    && params.keychain
                     && params.password.expose_secret().is_empty()
                     && let Ok(password) = Platform::get().new_keychain().acquire_password(&self.username).await
                 {
@@ -249,7 +249,7 @@ where
         }
 
         if !params.user_name.is_empty()
-            && !params.no_keychain
+            && params.keychain
             && params.password.expose_secret().is_empty()
             && let Ok(password) = Platform::get().new_keychain().acquire_password(&params.user_name).await
         {

@@ -163,11 +163,11 @@ pub struct CmdlineParams {
     pub if_name: Option<String>,
 
     #[clap(
-        long = "no-keychain",
+        long = "keychain",
         short = 'K',
-        help = "Do not use OS keychain to store or retrieve user password"
+        help = "Use OS keychain to store or retrieve user password"
     )]
-    pub no_keychain: Option<bool>,
+    pub keychain: Option<bool>,
 
     #[clap(long = "ike-lifetime", short = 'L', help = "IPSec IKE lifetime in seconds")]
     pub ike_lifetime: Option<u64>,
@@ -336,8 +336,8 @@ impl CmdlineParams {
             other.if_name = Some(if_name);
         }
 
-        if let Some(no_keychain) = self.no_keychain {
-            other.no_keychain = no_keychain;
+        if let Some(keychain) = self.keychain {
+            other.keychain = keychain;
         }
 
         if let Some(ike_lifetime) = self.ike_lifetime {

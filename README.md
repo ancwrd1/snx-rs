@@ -107,7 +107,7 @@ If the desktop environment does not have a dbus SNI interface, use the `--no-tra
 * SSL tunnel via Linux TUN device
 * Store a password factor in the OS keychain using Secret Service API
 * Multiple connection profiles
-* Certificate enrollment and renewal using command line interface
+* Certificate enrollment and renewal using the command line interface
 
 <!-- TOC --><a name="dns-resolver-configuration-and-privacy"></a>
 ## DNS Resolver Configuration and Privacy
@@ -296,7 +296,7 @@ Note that most IPSec servers have shorter IKE duration configured, so it may be 
 ## Additional Usage Notes
 
 * If identity provider SSO authentication is used in standalone mode, the browser URL will be printed to the console. In command mode, the browser will be opened automatically.
-* If the password is not provided in the configuration file, the first entered MFA challenge code will be stored in the OS keychain unless the `no-keychain` parameter is specified. Keychain integration is provided only in command mode. The `password-factor` option controls which MFA factor to consider a password.
+* User passwords can be stored in the OS keychain (KDE KWallet or GNOME Keyring). This is controlled by the `keychain` option. Keychain integration is provided only in command mode or in the GUI frontend. The `password-factor` option controls which MFA factor to consider as a password.
 
 <a id="faq"></a>
 

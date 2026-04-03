@@ -1,6 +1,10 @@
+## v5.3.0 (TBD)
+- Application now uses Linux APIs directly instead of running the external commands to configure OS networking stack.
+- Flipped the `no-keychain` parameter to be `keychain` so that keychain usage is opt-in instead of opt-out.
+
 ## v5.2.4 (2026-04-01)
-- Added SCV policy emulation which may fix the long-standing issue of blocked access to Intranet resources.
-- Fixed a potential problem with SSL tunnel when connecting to gateway version R82.
+- Added SCV policy emulation, which may fix the long-standing issue of blocked access to Intranet resources.
+- Fixed a potential problem with the SSL tunnel when connecting to gateway version R82.
 
 ## v5.2.3 (2026-03-18)
 - Fixed a regression where the user certificate authentication stopped working when it is supplemented with 2FA.
