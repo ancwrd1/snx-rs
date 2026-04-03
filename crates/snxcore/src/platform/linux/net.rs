@@ -160,17 +160,21 @@ impl NetworkInterface for LinuxNetworkInterface {
     }
 
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
-        let connection = Connection::system().await?;
-        let nm_proxy = NetworkManagerProxy::new(&connection).await?;
-        let device_path = nm_proxy.get_device_by_ip_iface(device_name).await?;
-        let device_proxy = NetworkManagerDeviceProxy::builder(&connection)
-            .path(device_path)?
-            .build()
-            .await?;
-        device_proxy.set_managed(false).await?;
+        if let Ok(connection) = Connection::system().await
+            && let Ok(nm_proxy) = NetworkManagerProxy::new(&connection).await
+            && let Ok(device_path) = nm_proxy.get_device_by_ip_iface(device_name).await
+            && let Ok(device_proxy) = NetworkManagerDeviceProxy::builder(&connection)
+                .path(device_path)?
+                .build()
+                .await
+        {
+            debug!("NM: setting device {} to unmanaged", device_name);
+            device_proxy.set_managed(false).await?;
+        }
 
         let opt = format!("net.ipv4.conf.{device_name}.promote_secondaries");
         Ctl::new(&opt)?.set_value_string("1")?;
+
         Ok(())
     }
 
