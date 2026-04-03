@@ -1,6 +1,6 @@
 use crate::{
     model::{IpsecSession, params::TunnelParams},
-    platform::ResolverConfig,
+    platform::{Platform, PlatformAccess, ResolverConfig, SearchDomain},
 };
 
 pub mod connector;
@@ -9,19 +9,27 @@ pub mod keepalive;
 pub mod natt;
 pub mod scv;
 
-pub fn make_resolver_config(session: &IpsecSession, params: &TunnelParams) -> ResolverConfig {
+pub async fn make_resolver_config(session: &IpsecSession, params: &TunnelParams) -> ResolverConfig {
+    let features = Platform::get().get_features().await;
+
     let search_domains = session
         .domains
         .iter()
-        .chain(&params.search_domains)
+        .map(|d| SearchDomain::new(d, params.set_routing_domains && features.split_dns))
+        .chain(params.search_domains.iter().map(|d| {
+            if let Some(s) = d.strip_prefix("~") {
+                SearchDomain::new(s, features.split_dns)
+            } else {
+                SearchDomain::new(d, params.set_routing_domains && features.split_dns)
+            }
+        }))
         .filter(|s| {
-            !s.is_empty()
+            !s.name.is_empty()
                 && !params
                     .ignore_search_domains
                     .iter()
-                    .any(|d| d.to_lowercase() == s.trim_matches('~').to_lowercase())
+                    .any(|d| d.eq_ignore_ascii_case(&s.name))
         })
-        .cloned()
         .collect::<Vec<_>>();
 
     let dns_servers = session

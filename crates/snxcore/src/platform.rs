@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr},
@@ -9,6 +10,7 @@ use async_trait::async_trait;
 use ipnet::Ipv4Net;
 #[cfg(target_os = "linux")]
 use linux::LinuxPlatformAccess as PlatformAccessImpl;
+use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 
@@ -16,6 +18,27 @@ use crate::model::IpsecSession;
 
 #[cfg(target_os = "linux")]
 mod linux;
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SearchDomain {
+    pub name: String,
+    pub is_routing: bool,
+}
+
+impl SearchDomain {
+    pub fn new<S: AsRef<str>>(name: S, is_routing: bool) -> Self {
+        Self {
+            name: name.as_ref().to_owned(),
+            is_routing,
+        }
+    }
+}
+
+impl fmt::Display for SearchDomain {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", if self.is_routing { "~" } else { "" }, self.name)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlatformFeatures {
@@ -66,7 +89,7 @@ async fn udp_send_receive(
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ResolverConfig {
-    pub search_domains: Vec<String>,
+    pub search_domains: Vec<SearchDomain>,
     pub dns_servers: Vec<Ipv4Addr>,
 }
 

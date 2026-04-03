@@ -263,19 +263,11 @@ impl IpsecTunnelConnector {
             .map(Into::into)
             .collect();
 
-        let features = Platform::get().get_features().await;
-
         self.ipsec_session.domains = get_long_attribute(&om_reply, ConfigAttributeType::InternalDomainName)
             .map(|v| String::from_utf8_lossy(&v).into_owned())
             .unwrap_or_default()
             .split([',', ';'])
-            .map(|s| {
-                if self.params.set_routing_domains && features.split_dns {
-                    format!("~{s}")
-                } else {
-                    s.to_owned()
-                }
-            })
+            .map(ToOwned::to_owned)
             .collect();
 
         self.ipsec_session.transport_type = self.esp_transport;

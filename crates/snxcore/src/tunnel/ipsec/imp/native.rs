@@ -161,7 +161,7 @@ impl NativeIpsecTunnel {
         if !self.params.no_dns
             && let Some(session) = self.session.ipsec_session.as_ref()
         {
-            let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+            let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params).await;
             let _ = self.setup_dns(&config, true).await;
         }
         self.configurator.cleanup().await;
@@ -196,7 +196,7 @@ impl VpnTunnel for NativeIpsecTunnel {
 
         self.setup_routing(session).await?;
 
-        let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+        let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params).await;
 
         if !self.params.no_dns {
             self.setup_dns(&resolver_config, false).await?;

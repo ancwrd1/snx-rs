@@ -118,7 +118,7 @@ impl TunIpsecTunnel {
                 .await;
             let _ = configurator.remove_keepalive_route(self.gateway_address).await;
             if !self.params.no_dns {
-                let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+                let config = crate::tunnel::ipsec::make_resolver_config(session, &self.params).await;
                 let _ = self.setup_dns(&config, device.name(), true).await;
             }
             let _ = Platform::get()
@@ -220,7 +220,7 @@ impl VpnTunnel for TunIpsecTunnel {
 
         self.setup_routing(&tun_name, session).await?;
 
-        let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params);
+        let resolver_config = crate::tunnel::ipsec::make_resolver_config(session, &self.params).await;
 
         if !self.params.no_dns {
             self.setup_dns(&resolver_config, &tun_name, false).await?;

@@ -28,7 +28,7 @@ use crate::{
         params::{TransportType, TunnelParams, TunnelType},
         proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
     },
-    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
+    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, SearchDomain},
     server_info,
     sexpr::SExpression,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
@@ -287,27 +287,26 @@ impl SslTunnel {
             .map(|s| s.0.as_slice())
             .unwrap_or_default()
             .iter()
-            .map(|s| {
-                if self.params.set_routing_domains && features.split_dns {
-                    format!("~{s}")
-                } else {
-                    s.clone()
-                }
-            })
+            .map(|s| SearchDomain::new(s, self.params.set_routing_domains && features.split_dns))
             .collect::<Vec<_>>();
 
         let search_domains = acquired_domains
-            .iter()
-            .chain(self.params.search_domains.iter())
-            .filter(|s| {
-                !s.is_empty()
+            .into_iter()
+            .chain(self.params.search_domains.iter().map(|d| {
+                if let Some(s) = d.strip_prefix("~") {
+                    SearchDomain::new(s, features.split_dns)
+                } else {
+                    SearchDomain::new(d, self.params.set_routing_domains && features.split_dns)
+                }
+            }))
+            .filter(|domain| {
+                !domain.name.is_empty()
                     && !self
                         .params
                         .ignore_search_domains
                         .iter()
-                        .any(|d| d.to_lowercase() == s.trim_matches('~').to_lowercase())
+                        .any(|d| d.eq_ignore_ascii_case(&domain.name))
             })
-            .cloned()
             .collect::<Vec<_>>();
 
         let dns_servers = self

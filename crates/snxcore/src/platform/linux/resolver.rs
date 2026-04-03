@@ -51,9 +51,13 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
         let domains: Vec<(String, bool)> = config
             .search_domains
             .iter()
-            .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '.'))
-            .filter(|s| !s.is_empty())
-            .map(|s| (s.to_owned(), false))
+            .map(|s| {
+                (
+                    s.name.trim_matches(|c: char| c.is_whitespace() || c == '.').to_owned(),
+                    s.is_routing,
+                )
+            })
+            .filter(|(name, _)| !name.is_empty())
             .collect();
 
         proxy.set_link_domains(ifindex, domains).await?;
@@ -171,11 +175,10 @@ impl ResolvConfConfigurator {
             .map(ToOwned::to_owned)
             .collect::<Vec<_>>();
 
-        // resolv.conf has no concept of routing domains
         let search_domains = config
             .search_domains
             .iter()
-            .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '.' || c == '~'))
+            .map(|s| s.name.trim_matches(|c: char| c.is_whitespace() || c == '.'))
             .filter(|s| !s.is_empty())
             .collect::<Vec<_>>()
             .join(" ");
@@ -226,6 +229,7 @@ mod tests {
     };
 
     use super::*;
+    use crate::platform::SearchDomain;
 
     #[test]
     fn test_detect_resolver_systemd() {
@@ -381,7 +385,10 @@ mod tests {
         };
 
         let config = ResolverConfig {
-            search_domains: vec!["dom1.com".to_owned(), "dom2.net".to_owned()],
+            search_domains: vec![
+                SearchDomain::new("dom1.com", true),
+                SearchDomain::new("dom2.net", false),
+            ],
             dns_servers: vec!["192.168.1.1".parse().unwrap(), "192.168.1.2".parse().unwrap()],
         };
         cut.configure(&config).await.unwrap();
@@ -403,7 +410,10 @@ mod tests {
         };
 
         let config = ResolverConfig {
-            search_domains: vec!["dom1.com".to_owned(), "dom2.net".to_owned()],
+            search_domains: vec![
+                SearchDomain::new("dom1.com", true),
+                SearchDomain::new("dom2.net", false),
+            ],
             dns_servers: vec!["192.168.1.1".parse().unwrap(), "192.168.1.2".parse().unwrap()],
         };
 
