@@ -3,7 +3,6 @@
 * [System Requirements](system-requirements.md)
 * [Installation](installation.md)
 * [Quick Start Guide](quick-start.md)
-* [Advantages Over the Official SNX Client](advantages.md)
 * [Implemented Features](features.md)
 * [DNS Resolver Configuration and Privacy](dns-configuration.md)
 * [Tunnel Type Selection](tunnel-types.md)
