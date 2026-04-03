@@ -23,6 +23,7 @@ enum ResolverType {
     default_path = "/org/freedesktop/resolve1"
 )]
 pub trait Resolve1Manager {
+    #[zbus(name = "SetLinkDNS")]
     fn set_link_dns(&self, ifindex: i32, addresses: Vec<(i32, Vec<u8>)>) -> zbus::Result<()>;
     fn set_link_domains(&self, ifindex: i32, domains: Vec<(String, bool)>) -> zbus::Result<()>;
     fn set_link_default_route(&self, ifindex: i32, enable: bool) -> zbus::Result<()>;
@@ -56,10 +57,10 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
             .collect();
 
         proxy.set_link_domains(ifindex, domains).await?;
-        let _ = proxy.set_link_default_route(ifindex, false).await;
-        let _ = proxy.set_link_multicast_dns(ifindex, "no").await;
-        let _ = proxy.set_link_llmnr(ifindex, "no").await;
-        let _ = proxy.set_link_dns_over_tls(ifindex, "no").await;
+        proxy.set_link_default_route(ifindex, false).await?;
+        proxy.set_link_multicast_dns(ifindex, "no").await?;
+        proxy.set_link_llmnr(ifindex, "no").await?;
+        proxy.set_link_dns_over_tls(ifindex, "no").await?;
 
         let addresses: Vec<(i32, Vec<u8>)> = config
             .dns_servers
