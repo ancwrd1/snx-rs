@@ -2,6 +2,7 @@ use core::fmt;
 use std::{
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr},
+    sync::Arc,
     time::Duration,
 };
 
@@ -14,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 
-use crate::model::IpsecSession;
+use crate::model::{IpsecSession, params::TunnelParams};
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -91,6 +92,84 @@ async fn udp_send_receive(
 pub struct ResolverConfig {
     pub search_domains: Vec<SearchDomain>,
     pub dns_servers: Vec<Ipv4Addr>,
+}
+
+impl ResolverConfig {
+    pub fn builder(params: Arc<TunnelParams>, features: PlatformFeatures) -> ResolverConfigBuilder {
+        ResolverConfigBuilder {
+            params,
+            features,
+            search_domains: Vec::new(),
+            dns_servers: Vec::new(),
+        }
+    }
+}
+
+pub struct ResolverConfigBuilder {
+    params: Arc<TunnelParams>,
+    features: PlatformFeatures,
+    search_domains: Vec<SearchDomain>,
+    dns_servers: Vec<Ipv4Addr>,
+}
+
+impl ResolverConfigBuilder {
+    // add search domains acquired from the tunnel
+    pub fn search_domains<I, S>(mut self, domains: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.search_domains.extend(domains.into_iter().filter_map(|s| {
+            let trimmed = s.as_ref().trim_matches(|c: char| c.is_whitespace() || c == '.');
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(SearchDomain::new(
+                    trimmed,
+                    self.params.set_routing_domains && self.features.split_dns,
+                ))
+            }
+        }));
+        self
+    }
+
+    // add DNS servers acquired from the tunnel
+    pub fn dns_servers<I>(mut self, servers: I) -> Self
+    where
+        I: IntoIterator<Item = Ipv4Addr>,
+    {
+        self.dns_servers.extend(servers);
+
+        self
+    }
+
+    pub fn build(mut self) -> ResolverConfig {
+        // add manual search domains
+        self.search_domains.extend(self.params.search_domains.iter().map(|d| {
+            if let Some(s) = d.strip_prefix("~") {
+                SearchDomain::new(s, self.features.split_dns)
+            } else {
+                SearchDomain::new(d, self.params.set_routing_domains && self.features.split_dns)
+            }
+        }));
+
+        // remove ignored domains
+        self.search_domains.retain(|domain| {
+            !self
+                .params
+                .ignore_search_domains
+                .iter()
+                .any(|d| d.eq_ignore_ascii_case(&domain.name))
+        });
+
+        self.dns_servers.extend(&self.params.dns_servers);
+        self.dns_servers.retain(|s| !self.params.ignore_dns_servers.contains(s));
+
+        ResolverConfig {
+            search_domains: self.search_domains,
+            dns_servers: self.dns_servers,
+        }
+    }
 }
 
 #[async_trait]

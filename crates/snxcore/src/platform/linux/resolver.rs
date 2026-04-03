@@ -3,6 +3,7 @@ use std::{fs, io::Write, path::PathBuf};
 use anyhow::Context;
 use async_trait::async_trait;
 use cached::proc_macro::cached;
+use itertools::Itertools;
 use tracing::debug;
 use zbus::Connection;
 
@@ -51,13 +52,7 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
         let domains: Vec<(String, bool)> = config
             .search_domains
             .iter()
-            .map(|s| {
-                (
-                    s.name.trim_matches(|c: char| c.is_whitespace() || c == '.').to_owned(),
-                    s.is_routing,
-                )
-            })
-            .filter(|(name, _)| !name.is_empty())
+            .map(|s| (s.name.clone(), s.is_routing))
             .collect();
 
         proxy.set_link_domains(ifindex, domains).await?;
@@ -175,13 +170,7 @@ impl ResolvConfConfigurator {
             .map(ToOwned::to_owned)
             .collect::<Vec<_>>();
 
-        let search_domains = config
-            .search_domains
-            .iter()
-            .map(|s| s.name.trim_matches(|c: char| c.is_whitespace() || c == '.'))
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
-            .join(" ");
+        let search_domains = config.search_domains.iter().map(|s| &s.name).join(" ");
 
         if configure {
             if search.is_empty() {

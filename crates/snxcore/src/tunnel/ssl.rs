@@ -28,7 +28,7 @@ use crate::{
         params::{TransportType, TunnelParams, TunnelType},
         proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
     },
-    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, SearchDomain},
+    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
     server_info,
     sexpr::SExpression,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
@@ -278,53 +278,27 @@ impl SslTunnel {
 
     async fn make_resolver_config(&self) -> ResolverConfig {
         let features = Platform::get().get_features().await;
+        let builder = ResolverConfig::builder(self.params.clone(), features);
 
-        let acquired_domains = self
-            .hello_reply
-            .office_mode
-            .dns_suffix
-            .as_ref()
-            .map(|s| s.0.as_slice())
-            .unwrap_or_default()
-            .iter()
-            .map(|s| SearchDomain::new(s, self.params.set_routing_domains && features.split_dns))
-            .collect::<Vec<_>>();
-
-        let search_domains = acquired_domains
-            .into_iter()
-            .chain(self.params.search_domains.iter().map(|d| {
-                if let Some(s) = d.strip_prefix("~") {
-                    SearchDomain::new(s, features.split_dns)
-                } else {
-                    SearchDomain::new(d, self.params.set_routing_domains && features.split_dns)
-                }
-            }))
-            .filter(|domain| {
-                !domain.name.is_empty()
-                    && !self
-                        .params
-                        .ignore_search_domains
-                        .iter()
-                        .any(|d| d.eq_ignore_ascii_case(&domain.name))
-            })
-            .collect::<Vec<_>>();
-
-        let dns_servers = self
-            .hello_reply
-            .office_mode
-            .dns_servers
-            .clone()
-            .unwrap_or_default()
-            .iter()
-            .chain(self.params.dns_servers.iter())
-            .filter(|s| !self.params.ignore_dns_servers.iter().any(|d| *d == **s))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        ResolverConfig {
-            search_domains,
-            dns_servers,
-        }
+        builder
+            .search_domains(
+                self.hello_reply
+                    .office_mode
+                    .dns_suffix
+                    .as_ref()
+                    .map(|s| s.0.as_slice())
+                    .unwrap_or_default(),
+            )
+            .dns_servers(
+                self.hello_reply
+                    .office_mode
+                    .dns_servers
+                    .as_deref()
+                    .unwrap_or_default()
+                    .iter()
+                    .cloned(),
+            )
+            .build()
     }
 
     pub async fn setup_dns(&self, config: ResolverConfig, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
