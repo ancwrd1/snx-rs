@@ -210,18 +210,6 @@ impl NetworkInterface for LinuxNetworkInterface {
     fn is_online(&self) -> bool {
         ONLINE_STATE.load(Ordering::SeqCst)
     }
-
-    fn poll_online(&self) {
-        tokio::spawn(async move {
-            let connection = Connection::system().await?;
-            let proxy = NetworkManagerProxy::new(&connection).await?;
-            let state = proxy.state().await?;
-            let state: NetworkManagerState = state.into();
-            debug!("Acquired network state via polling: {:?}", state);
-            ONLINE_STATE.store(state.is_online(), Ordering::SeqCst);
-            Ok::<_, anyhow::Error>(())
-        });
-    }
 }
 
 #[cfg(test)]

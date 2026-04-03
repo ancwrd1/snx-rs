@@ -105,7 +105,6 @@ pub trait NetworkInterface {
     ) -> anyhow::Result<()>;
 
     fn is_online(&self) -> bool;
-    fn poll_online(&self);
 }
 
 pub trait SingleInstance {
