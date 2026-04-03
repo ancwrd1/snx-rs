@@ -14,7 +14,7 @@ use nix::{
     unistd,
 };
 use tokio::net::UdpSocket;
-use tracing::{debug, warn};
+use tracing::debug;
 use uuid::Uuid;
 
 use crate::{
@@ -23,7 +23,6 @@ use crate::{
         IpsecConfigurator, Keychain, NetworkInterface, PlatformAccess, PlatformFeatures, ResolverConfigurator,
         RoutingConfigurator, SingleInstance, UdpEncapType, UdpSocketExt,
     },
-    util,
 };
 
 mod keychain;
@@ -134,15 +133,7 @@ async fn is_xfrm_available() -> bool {
         return false;
     }
 
-    let result = if !check_for_xfrm_state().await {
-        debug!("Attempting to load xfrm_interface kernel module");
-        let _ = util::run_command("modprobe", ["xfrm_interface"])
-            .await
-            .inspect_err(|e| warn!("{e}"));
-        check_for_xfrm_state().await
-    } else {
-        true
-    };
+    let result = check_for_xfrm_state().await;
 
     debug!("Kernel xfrm available: {}", result);
 

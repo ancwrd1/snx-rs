@@ -1,20 +1,14 @@
 use std::{
     borrow::Cow,
     collections::BTreeMap,
-    ffi::OsStr,
-    fmt,
     future::Future,
     net::{IpAddr, Ipv4Addr, ToSocketAddrs},
-    path::Path,
-    process::Output,
 };
 
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use cached::proc_macro::cached;
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use itertools::Itertools;
-use tokio::process::Command;
-use tracing::trace;
 use uuid::Uuid;
 
 use crate::{
@@ -63,33 +57,6 @@ pub fn snx_deobfuscate<S: AsRef<str>>(data: S) -> anyhow::Result<Vec<u8>> {
     decoded.reverse();
 
     Ok(decoded)
-}
-
-fn process_output(output: &Output) -> anyhow::Result<String> {
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(anyhow!(if stderr.is_empty() {
-            output.status.to_string()
-        } else {
-            stderr
-        }))
-    }
-}
-
-pub async fn run_command<C, I, T>(command: C, args: I) -> anyhow::Result<String>
-where
-    C: AsRef<Path> + fmt::Debug,
-    I: IntoIterator<Item = T> + fmt::Debug,
-    T: AsRef<OsStr>,
-{
-    trace!("Exec: {:?} {:?}", command, args);
-
-    let mut command = Command::new(command.as_ref().as_os_str());
-    command.envs(vec![("LANG", "C"), ("LC_ALL", "C")]).args(args);
-
-    process_output(&command.output().await?)
 }
 
 pub fn block_on<F, O>(f: F) -> O
