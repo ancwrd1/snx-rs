@@ -18,7 +18,7 @@ use crate::{
     ccc::CccHttpClient,
     model::{ConnectionInfo, IpsecSession, VpnSession, params::TunnelParams},
     platform::{
-        IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncap, UdpSocketExt,
+        IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncapType, UdpSocketExt,
     },
     server_info,
     tunnel::{
@@ -73,7 +73,7 @@ impl NativeIpsecTunnel {
         let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
-        natt_socket.set_encap(UdpEncap::EspInUdp)?;
+        natt_socket.set_encapsulation(UdpEncapType::EspInUdp)?;
 
         let device_name = params
             .if_name

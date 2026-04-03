@@ -42,7 +42,7 @@ enum-as-inner = "0.7"
 num-traits = "0.2"
 parse_int = "0.9"
 byteorder = "1"
-nix = { version = "0.31", features = ["fs", "user"] }
+nix = { version = "0.31", features = ["fs", "user", "socket"] }
 uuid = { version = "1", features = ["v4", "v5"] }
 opener = { version = "0.8"}
 cached = {  version = "0.59",  features = ["async"] }
@@ -56,10 +56,14 @@ rusqlite = { version = "0.39" , features = ["uuid"] }
 
 # necessary for build.rs and DEP_OPENSSL_VERSION_NUMBER
 openssl-sys = "0.9"
+xfrmnetlink = "0.2.1"
+netlink-packet-xfrm = "0.3.1"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 secret-service = {  version = "5", features = ["rt-tokio-crypto-rust"] }
+sysctl = "0.7"
+rtnetlink = "0.20"
 
 [dev-dependencies]
 tempfile = "3"

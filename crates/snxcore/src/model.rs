@@ -48,6 +48,12 @@ impl Default for IpsecSession {
     }
 }
 
+impl IpsecSession {
+    pub fn ipv4net_address(&self) -> Ipv4Net {
+        Ipv4Net::with_netmask(self.address, self.netmask).unwrap_or_else(|_| Ipv4Net::from(self.address))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct VpnSession {
     pub ccc_session_id: String,

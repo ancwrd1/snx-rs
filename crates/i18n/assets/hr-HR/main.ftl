@@ -119,6 +119,7 @@ error-keepalive-failed = Keepalive nije uspio
 error-receive-failed = Primanje nije uspjelo
 error-unknown-color-scheme = Nepoznata vrijednost color-scheme
 error-cannot-determine-ip = Nije moguće odrediti zadanu IP adresu
+error-device-not-found = Uređaj {$device} nije pronađen
 error-invalid-command = Nevažeća naredba: {$command}
 error-otp-browser-failed = Nije moguće dobiti OTP iz preglednika
 error-invalid-operation-mode = Nevažeći način rada

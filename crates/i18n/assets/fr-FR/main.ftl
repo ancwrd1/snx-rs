@@ -119,6 +119,7 @@ error-keepalive-failed = Échec du keepalive
 error-receive-failed = Échec de la réception
 error-unknown-color-scheme = Valeur de schéma de couleur inconnue
 error-cannot-determine-ip = Impossible de déterminer l'IP par défaut
+error-device-not-found = Périphérique {$device} introuvable
 error-invalid-command = Commande invalide : {$command}
 error-otp-browser-failed = Impossible d'obtenir l'OTP depuis le navigateur
 error-invalid-operation-mode = Mode d'opération invalide

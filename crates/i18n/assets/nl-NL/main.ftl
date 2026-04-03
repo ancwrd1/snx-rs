@@ -109,6 +109,7 @@ error-keepalive-failed = Keepalive mislukt
 error-receive-failed = Ontvangst mislukt
 error-unknown-color-scheme = Onbekende kleurenschema-waarde
 error-cannot-determine-ip = Kan standaard-IP niet bepalen
+error-device-not-found = Apparaat {$device} niet gevonden
 error-invalid-command = Ongeldig commando: {$command}
 error-otp-browser-failed = Kan OTP niet van browser krijgen
 error-invalid-operation-mode = Ongeldige bedrijfsmodus

@@ -119,6 +119,7 @@ error-keepalive-failed = Keepalive epäonnistui
 error-receive-failed = Vastaanotto epäonnistui
 error-unknown-color-scheme = Tuntematon väriteeman arvo
 error-cannot-determine-ip = Oletus-IP-osoitetta ei voi määrittää
+error-device-not-found = Laitetta {$device} ei löydy
 error-invalid-command = Virheellinen komento: {$command}
 error-otp-browser-failed = OTP:ta ei voi hakea selaimesta
 error-invalid-operation-mode = Virheellinen toimintatila

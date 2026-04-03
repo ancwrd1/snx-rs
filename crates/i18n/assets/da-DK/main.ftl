@@ -117,6 +117,7 @@ error-keepalive-failed = Keepalive mislykkedes
 error-receive-failed = Modtagelse mislykkedes
 error-unknown-color-scheme = Ukendt farveskema-værdi
 error-cannot-determine-ip = Kan ikke bestemme standard-IP
+error-device-not-found = Enhed {$device} ikke fundet
 error-invalid-command = Ugyldig kommando: {$command}
 error-otp-browser-failed = Kan ikke få OTP fra browseren
 error-invalid-operation-mode = Ugyldig driftsmåde

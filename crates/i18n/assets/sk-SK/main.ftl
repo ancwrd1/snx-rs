@@ -119,6 +119,7 @@ error-keepalive-failed = Keepalive zlyhal
 error-receive-failed = Prijatie zlyhalo
 error-unknown-color-scheme = Neznáma hodnota farebnej schémy
 error-cannot-determine-ip = Nie je možné určiť predvolenú IP
+error-device-not-found = Zariadenie {$device} nebolo nájdené
 error-invalid-command = Neplatný príkaz: {$command}
 error-otp-browser-failed = Nie je možné získať OTP z prehliadača
 error-invalid-operation-mode = Neplatný režim prevádzky

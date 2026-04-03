@@ -119,6 +119,7 @@ error-keepalive-failed = Ошибка keepalive
 error-receive-failed = Ошибка получения
 error-unknown-color-scheme = Неизвестное значение цветовой схемы
 error-cannot-determine-ip = Не удалось определить IP по умолчанию
+error-device-not-found = Устройство {$device} не найдено
 error-invalid-command = Недопустимая команда: {$command}
 error-otp-browser-failed = Не удалось получить OTP из браузера
 error-invalid-operation-mode = Недопустимый режим работы

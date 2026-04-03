@@ -1,18 +1,26 @@
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 
 use ipnet::Ipv4Net;
 use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
+use netlink_packet_xfrm::constants::{
+    IPPROTO_ESP, UDP_ENCAP_ESPINUDP, XFRM_MODE_TUNNEL, XFRM_POLICY_IN, XFRM_POLICY_OUT,
+    XFRM_STATE_AF_UNSPEC,
+};
+use netlink_packet_xfrm::nlas::UserTemplate;
 use rand::random;
+use rtnetlink::{LinkMessageBuilder, LinkXfrm};
+use sysctl::{Ctl, Sysctl};
 use tracing::{debug, trace};
 
 use crate::{
     model::IpsecSession,
     platform::{IpsecConfigurator, NetworkInterface, Platform, PlatformAccess},
-    util,
 };
 
-async fn iproute2(args: &[&str]) -> anyhow::Result<String> {
-    util::run_command("ip", args).await
+fn new_xfrm_connection() -> anyhow::Result<xfrmnetlink::Handle> {
+    let (connection, handle, _) = xfrmnetlink::new_connection()?;
+    tokio::spawn(connection);
+    Ok(handle)
 }
 
 struct XfrmLink<'a> {
@@ -20,22 +28,32 @@ struct XfrmLink<'a> {
     if_id: u32,
     address: Ipv4Net,
     mtu: u16,
+    handle: rtnetlink::Handle,
 }
 
-impl XfrmLink<'_> {
+impl<'a> XfrmLink<'a> {
+    fn new(name: &'a str, if_id: u32, address: Ipv4Net, mtu: u16) -> anyhow::Result<Self> {
+        let handle = super::new_netlink_connection()?;
+
+        Ok(Self {
+            name,
+            if_id,
+            address,
+            mtu,
+            handle,
+        })
+    }
+
     async fn add(&self) -> anyhow::Result<()> {
         let _ = self.delete().await;
 
-        iproute2(&[
-            "link",
-            "add",
-            self.name,
-            "type",
-            "xfrm",
-            "if_id",
-            &self.if_id.to_string(),
-        ])
-        .await?;
+        let msg = LinkMessageBuilder::<LinkXfrm>::new(self.name)
+            .if_id(self.if_id)
+            .mtu(self.mtu as _)
+            .up()
+            .build();
+
+        self.handle.link().add(msg).execute().await?;
 
         let _ = Platform::get()
             .new_network_interface()
@@ -43,23 +61,27 @@ impl XfrmLink<'_> {
             .await;
 
         let opt = format!("net.ipv4.conf.{}.disable_policy", self.name);
-        super::sysctl(opt, "1")?;
+        Ctl::new(&opt)?.set_value_string("1")?;
 
         let opt = format!("net.ipv4.conf.{}.rp_filter", self.name);
-        super::sysctl(opt, "0")?;
+        Ctl::new(&opt)?.set_value_string("0")?;
 
         let opt = format!("net.ipv4.conf.{}.forwarding", self.name);
-        super::sysctl(opt, "1")?;
+        Ctl::new(&opt)?.set_value_string("1")?;
 
-        iproute2(&["link", "set", self.name, "mtu", &self.mtu.to_string(), "up"]).await?;
-
-        iproute2(&["addr", "add", &self.address.to_string(), "dev", self.name]).await?;
-
+        let index = super::resolve_device_index(&self.handle, self.name).await?;
+        self.handle
+            .address()
+            .add(index, self.address.addr().into(), self.address.prefix_len())
+            .execute()
+            .await?;
         Ok(())
     }
 
     async fn delete(&self) -> anyhow::Result<()> {
-        iproute2(&["link", "del", "name", self.name]).await?;
+        if let Ok(index) = super::resolve_device_index(&self.handle, self.name).await {
+            self.handle.link().del(index).execute().await?;
+        }
         Ok(())
     }
 }
@@ -90,66 +112,52 @@ impl XfrmState<'_> {
     }
 
     async fn add(&self) -> anyhow::Result<()> {
-        let authkey = format!("0x{}", hex::encode(&self.params.sk_a));
-        let enckey = format!("0x{}", hex::encode(&self.params.sk_e));
-        let trunc_len = (self.params.auth_algorithm.hash_len() * 8).to_string();
+        let handle = new_xfrm_connection()?;
+        let src: IpAddr = self.src.into();
+        let dst: IpAddr = self.dst.into();
+        let trunc_len = (self.params.auth_algorithm.hash_len() * 8) as u32;
 
-        let spi = format!("0x{:x}", self.params.spi);
-        let src = self.src.to_string();
-        let dst = self.dst.to_string();
-
-        iproute2(&[
-            "xfrm",
-            "state",
-            "add",
-            "src",
-            &src,
-            "dst",
-            &dst,
-            "proto",
-            "esp",
-            "spi",
-            &spi,
-            "mode",
-            "tunnel",
-            "flag",
-            "af-unspec",
-            "auth-trunc",
-            self.auth_alg_as_xfrm_name(),
-            &authkey,
-            &trunc_len,
-            "enc",
-            self.enc_alg_as_xfrm_name(),
-            &enckey,
-            "if_id",
-            &self.if_id.to_string(),
-            "encap",
-            "espinudp",
-            &self.src_port.to_string(),
-            &self.dest_port.to_string(),
-            "0.0.0.0",
-        ])
-        .await?;
+        handle
+            .state()
+            .add(src, dst)
+            .protocol(IPPROTO_ESP)
+            .spi(self.params.spi)
+            .mode(XFRM_MODE_TUNNEL)
+            .flags(XFRM_STATE_AF_UNSPEC)
+            .authentication_trunc(self.auth_alg_as_xfrm_name(), &self.params.sk_a.to_vec(), trunc_len)?
+            .encryption(self.enc_alg_as_xfrm_name(), &self.params.sk_e.to_vec())?
+            .ifid(self.if_id)
+            .encapsulation(
+                UDP_ENCAP_ESPINUDP,
+                self.src_port,
+                self.dest_port,
+                Ipv4Addr::UNSPECIFIED.into(),
+            )
+            .execute()
+            .await?;
 
         Ok(())
     }
 
     async fn delete(&self) -> anyhow::Result<()> {
-        let src = self.src.to_string();
-        let dst = self.dst.to_string();
-        let spi = format!("0x{:x}", self.params.spi);
+        let handle = new_xfrm_connection()?;
+        let src: IpAddr = self.src.into();
+        let dst: IpAddr = self.dst.into();
 
-        iproute2(&[
-            "xfrm", "state", "del", "src", &src, "dst", &dst, "proto", "esp", "spi", &spi,
-        ])
-        .await?;
+        handle
+            .state()
+            .delete(src, dst)
+            .protocol(IPPROTO_ESP)
+            .spi(self.params.spi)
+            .execute()
+            .await?;
 
         Ok(())
     }
 }
 
 struct XfrmPolicy {
-    dir: PolicyDir,
+    dir: u8,
     src: Ipv4Addr,
     dst: Ipv4Addr,
     if_id: u32,
@@ -157,44 +165,38 @@ struct XfrmPolicy {
 
 impl XfrmPolicy {
     async fn add(&self) -> anyhow::Result<()> {
-        iproute2(&[
-            "xfrm",
-            "policy",
-            "add",
-            "dir",
-            self.dir.as_str(),
-            "tmpl",
-            "src",
-            &self.src.to_string(),
-            "dst",
-            &self.dst.to_string(),
-            "proto",
-            "esp",
-            "mode",
-            "tunnel",
-            "if_id",
-            &self.if_id.to_string(),
-        ])
-        .await?;
+        let handle = new_xfrm_connection()?;
+        let src: IpAddr = self.src.into();
+        let dst: IpAddr = self.dst.into();
+
+        let mut tmpl = UserTemplate::default();
+        tmpl.source(&src);
+        tmpl.destination(&dst);
+        tmpl.protocol(IPPROTO_ESP);
+        tmpl.mode(XFRM_MODE_TUNNEL);
+
+        handle
+            .policy()
+            .add(Ipv4Addr::UNSPECIFIED.into(), 0, Ipv4Addr::UNSPECIFIED.into(), 0)
+            .direction(self.dir)
+            .ifid(self.if_id)
+            .add_template(tmpl)
+            .execute()
+            .await?;
 
         Ok(())
     }
 
     async fn delete(&self) -> anyhow::Result<()> {
-        iproute2(&[
-            "xfrm",
-            "policy",
-            "del",
-            "dir",
-            self.dir.as_str(),
-            "if_id",
-            &self.if_id.to_string(),
-            "src",
-            "0.0.0.0/0",
-            "dst",
-            "0.0.0.0/0",
-        ])
-        .await?;
+        let handle = new_xfrm_connection()?;
+
+        handle
+            .policy()
+            .delete(Ipv4Addr::UNSPECIFIED.into(), 0, Ipv4Addr::UNSPECIFIED.into(), 0)
+            .direction(self.dir)
+            .ifid(self.if_id)
+            .execute()
+            .await?;
 
         Ok(())
     }
@@ -205,21 +207,6 @@ impl XfrmPolicy {
 enum CommandType {
     Add,
     Delete,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum PolicyDir {
-    In,
-    Out,
-}
-
-impl PolicyDir {
-    fn as_str(self) -> &'static str {
-        match self {
-            PolicyDir::In => "in",
-            PolicyDir::Out => "out",
-        }
-    }
 }
 
 pub struct XfrmConfigurator {
@@ -256,18 +243,12 @@ impl XfrmConfigurator {
         })
     }
 
-    fn new_xfrm_link(&self) -> XfrmLink<'_> {
-        XfrmLink {
-            name: &self.name,
-            if_id: self.if_id,
-            address: Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask)
-                .unwrap_or_else(|_| Ipv4Net::from(self.ipsec_session.address)),
-            mtu: self.mtu,
-        }
+    fn new_xfrm_link(&self) -> anyhow::Result<XfrmLink<'_>> {
+        XfrmLink::new(&self.name, self.if_id, self.ipsec_session.ipv4net_address(), self.mtu)
     }
 
     async fn setup_xfrm_link(&self) -> anyhow::Result<()> {
-        self.new_xfrm_link().add().await
+        self.new_xfrm_link()?.add().await
     }
 
     async fn configure_xfrm_state(
@@ -296,7 +277,7 @@ impl XfrmConfigurator {
     async fn configure_xfrm_policy(
         &self,
         command: CommandType,
-        dir: PolicyDir,
+        dir: u8,
         src: Ipv4Addr,
         dst: Ipv4Addr,
     ) -> anyhow::Result<()> {
@@ -330,9 +311,9 @@ impl XfrmConfigurator {
         )
         .await?;
 
-        self.configure_xfrm_policy(CommandType::Add, PolicyDir::Out, self.source_ip, self.dest_ip)
+        self.configure_xfrm_policy(CommandType::Add, XFRM_POLICY_OUT, self.source_ip, self.dest_ip)
             .await?;
-        self.configure_xfrm_policy(CommandType::Add, PolicyDir::In, self.dest_ip, self.source_ip)
+        self.configure_xfrm_policy(CommandType::Add, XFRM_POLICY_IN, self.dest_ip, self.source_ip)
             .await?;
 
         Ok(())
@@ -376,7 +357,8 @@ impl IpsecConfigurator for XfrmConfigurator {
             )
             .await;
 
-        let old_address = self.new_xfrm_link().address;
+        let old_address = self.ipsec_session.ipv4net_address();
+        let new_address = session.ipv4net_address();
 
         self.ipsec_session = session.clone();
 
@@ -387,6 +369,7 @@ impl IpsecConfigurator for XfrmConfigurator {
             &self.ipsec_session.esp_out,
         )
         .await?;
+
         self.configure_xfrm_state(
             CommandType::Add,
             self.dest_ip,
@@ -395,16 +378,14 @@ impl IpsecConfigurator for XfrmConfigurator {
         )
         .await?;
 
-        let link = self.new_xfrm_link();
-
-        if old_address != link.address {
+        if old_address != new_address {
             debug!(
                 "IP address changed from {} to {}, replacing it for device {}",
-                old_address, link.address, link.name
+                old_address, new_address, self.name
             );
             Platform::get()
                 .new_network_interface()
-                .replace_ip_address(link.name, old_address, link.address)
+                .replace_ip_address(&self.name, old_address, new_address)
                 .await?;
         }
 
@@ -431,13 +412,15 @@ impl IpsecConfigurator for XfrmConfigurator {
             .await;
 
         let _ = self
-            .configure_xfrm_policy(CommandType::Delete, PolicyDir::Out, self.source_ip, self.dest_ip)
+            .configure_xfrm_policy(CommandType::Delete, XFRM_POLICY_OUT, self.source_ip, self.dest_ip)
             .await;
 
         let _ = self
-            .configure_xfrm_policy(CommandType::Delete, PolicyDir::In, self.dest_ip, self.source_ip)
+            .configure_xfrm_policy(CommandType::Delete, XFRM_POLICY_IN, self.dest_ip, self.source_ip)
             .await;
 
-        let _ = self.new_xfrm_link().delete().await;
+        if let Ok(link) = self.new_xfrm_link() {
+            let _ = link.delete().await;
+        };
     }
 }

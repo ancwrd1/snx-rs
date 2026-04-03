@@ -1,5 +1,5 @@
 use std::{
-    net::Ipv4Addr,
+    net::{IpAddr, Ipv4Addr},
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -7,6 +7,14 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use futures::StreamExt;
 use ipnet::Ipv4Net;
+use rtnetlink::{
+    AddressMessageBuilder, RouteMessageBuilder,
+    packet_route::{
+        address::AddressAttribute,
+        route::{RouteAddress, RouteAttribute, RouteScope},
+    },
+};
+use sysctl::{Ctl, Sysctl};
 use tracing::debug;
 use zbus::Connection;
 
@@ -87,39 +95,63 @@ impl NetworkInterface for LinuxNetworkInterface {
     }
 
     async fn get_default_ip(&self) -> anyhow::Result<Ipv4Addr> {
-        let default_route = util::run_command("ip", ["-4", "route", "show", "default"]).await?;
-        let mut parts = default_route.split_whitespace();
-        while let Some(part) = parts.next() {
-            if part == "dev"
-                && let Some(dev) = parts.next()
+        let handle = super::new_netlink_connection()?;
+
+        let mut routes = handle
+            .route()
+            .get(RouteMessageBuilder::<Ipv4Addr>::new().build())
+            .execute();
+
+        while let Some(route) = routes.next().await {
+            if let Ok(route) = route
+                && route.header.scope == RouteScope::Universe
+                && route.header.destination_prefix_length == 0
+                && route.attributes.iter().any(|a| matches!(a, RouteAttribute::Gateway(_)))
             {
-                let addr = util::run_command("ip", ["-4", "-o", "addr", "show", "dev", dev]).await?;
-                let mut parts = addr.split_whitespace();
-                while let Some(part) = parts.next() {
-                    if part == "inet"
-                        && let Some(ip) = parts.next()
-                    {
-                        return Ok(ip
-                            .split_once('/')
-                            .map_or(ip, |(before, _)| before)
-                            .to_string()
-                            .parse()?);
+                // Try PrefSource first (src field in routing table)
+                if let Some(ip) = route.attributes.iter().find_map(|a| match a {
+                    RouteAttribute::PrefSource(RouteAddress::Inet(ip)) => Some(*ip),
+                    _ => None,
+                }) {
+                    debug!("Found default route with preferred source {}", ip);
+                    return Ok(ip);
+                }
+
+                // PrefSource may not be set; fall back to querying the interface address
+                if let Some(oif) = route.attributes.iter().find_map(|a| match a {
+                    RouteAttribute::Oif(id) => Some(*id),
+                    _ => None,
+                }) {
+                    let mut addrs = handle.address().get().set_link_index_filter(oif).execute();
+                    while let Some(addr) = addrs.next().await {
+                        if let Ok(addr) = addr
+                            && let Some(ip) = addr.attributes.iter().find_map(|a| match a {
+                                AddressAttribute::Address(IpAddr::V4(ip)) => Some(*ip),
+                                _ => None,
+                            })
+                        {
+                            debug!("Found default route via interface {} with address {}", oif, ip);
+                            return Ok(ip);
+                        }
                     }
                 }
             }
         }
+
         Err(anyhow!(i18n::tr!("error-cannot-determine-ip")))
     }
 
     async fn delete_device(&self, device_name: &str) -> anyhow::Result<()> {
-        util::run_command("ip", ["link", "del", "name", device_name]).await?;
+        let handle = super::new_netlink_connection()?;
+        let index = super::resolve_device_index(&handle, device_name).await?;
+        handle.link().del(index).execute().await?;
         Ok(())
     }
 
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
         util::run_command("nmcli", ["device", "set", device_name, "managed", "no"]).await?;
         let opt = format!("net.ipv4.conf.{device_name}.promote_secondaries");
-        super::sysctl(opt, "1")?;
+        Ctl::new(&opt)?.set_value_string("1")?;
         Ok(())
     }
 
@@ -129,8 +161,26 @@ impl NetworkInterface for LinuxNetworkInterface {
         old_address: Ipv4Net,
         new_address: Ipv4Net,
     ) -> anyhow::Result<()> {
-        util::run_command("ip", &["addr", "add", &new_address.to_string(), "dev", device_name]).await?;
-        util::run_command("ip", &["addr", "del", &old_address.to_string(), "dev", device_name]).await?;
+        let handle = super::new_netlink_connection()?;
+        let index = super::resolve_device_index(&handle, device_name).await?;
+
+        handle
+            .address()
+            .add(index, new_address.addr().into(), new_address.prefix_len())
+            .execute()
+            .await?;
+
+        handle
+            .address()
+            .del(
+                AddressMessageBuilder::<Ipv4Addr>::new()
+                    .index(index)
+                    .address(old_address.addr(), old_address.prefix_len())
+                    .build(),
+            )
+            .execute()
+            .await?;
+
         Ok(())
     }
 
