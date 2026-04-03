@@ -1,6 +1,6 @@
 # Mobile Access Authentication
 
-Mobile Access authentication is an experimental feature that replaces the official `cshell` connection method using the web access.
+Mobile Access authentication is a feature that replaces the official `cshell` connection method using the web access.
 It is helpful in cases when a DynamicID MFA code is required via the web portal login and the normal VPN connection via the advertised
 authentication types does not work.
 To use it, the snx-rs-gui application must be built with the `mobile-access` feature enabled. It requires the `webkit6` package to be installed.
