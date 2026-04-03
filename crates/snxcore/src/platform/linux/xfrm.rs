@@ -2,11 +2,12 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use ipnet::Ipv4Net;
 use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
-use netlink_packet_xfrm::constants::{
-    IPPROTO_ESP, UDP_ENCAP_ESPINUDP, XFRM_MODE_TUNNEL, XFRM_POLICY_IN, XFRM_POLICY_OUT,
-    XFRM_STATE_AF_UNSPEC,
+use netlink_packet_xfrm::{
+    constants::{
+        IPPROTO_ESP, UDP_ENCAP_ESPINUDP, XFRM_MODE_TUNNEL, XFRM_POLICY_IN, XFRM_POLICY_OUT, XFRM_STATE_AF_UNSPEC,
+    },
+    nlas::UserTemplate,
 };
-use netlink_packet_xfrm::nlas::UserTemplate;
 use rand::random;
 use rtnetlink::{LinkMessageBuilder, LinkXfrm};
 use sysctl::{Ctl, Sysctl};
