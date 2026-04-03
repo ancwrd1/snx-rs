@@ -141,7 +141,7 @@ struct MyWidgets {
     default_routing: gtk4::Switch,
     add_routes: gtk4::Entry,
     ignored_routes: gtk4::Entry,
-    no_keychain: gtk4::Switch,
+    keychain: gtk4::Switch,
     no_cert_check: gtk4::Switch,
     cert_type: gtk4::ComboBoxText,
     cert_path: gtk4::Entry,
@@ -263,7 +263,7 @@ impl MyWidgets {
             .set_text(&params.add_routes.iter().map(|ip| ip.to_string()).join(","));
         self.ignored_routes
             .set_text(&params.ignore_routes.iter().map(|ip| ip.to_string()).join(","));
-        self.no_keychain.set_active(params.no_keychain);
+        self.keychain.set_active(params.keychain);
         self.no_cert_check.set_active(params.ignore_server_cert);
         self.cert_type.set_active_id(Some(&params.cert_type.to_string()));
         self.cert_path.set_text(
@@ -557,7 +557,7 @@ impl SettingsDialog {
             .placeholder_text(tr!("placeholder-routes"))
             .build();
 
-        let no_keychain = gtk4::Switch::builder().halign(Align::Start).build();
+        let keychain = gtk4::Switch::builder().halign(Align::Start).build();
         let no_cert_check = gtk4::Switch::builder().halign(Align::Start).build();
         let cert_type = gtk4::ComboBoxText::builder().build();
         let cert_path = gtk4::Entry::builder().build();
@@ -607,7 +607,7 @@ impl SettingsDialog {
             default_routing,
             add_routes,
             ignored_routes,
-            no_keychain,
+            keychain,
             no_cert_check,
             cert_type,
             cert_path,
@@ -849,7 +849,7 @@ impl SettingsDialog {
             .split(',')
             .flat_map(|s| parse_ipv4_or_subnet(s).ok())
             .collect();
-        params.no_keychain = self.widgets.no_keychain.is_active();
+        params.keychain = self.widgets.keychain.is_active();
         params.ignore_server_cert = self.widgets.no_cert_check.is_active();
         params.cert_type = self.widgets.cert_type.active().unwrap_or_default().into();
         params.cert_path = {
@@ -1138,9 +1138,9 @@ impl SettingsDialog {
         password_factor.append(&self.widgets.password_factor);
         misc_box.append(&password_factor);
 
-        let no_keychain = self.form_box(&tr!("label-no-keychain"));
-        no_keychain.append(&self.widgets.no_keychain);
-        misc_box.append(&no_keychain);
+        let keychain = self.form_box(&tr!("label-keychain"));
+        keychain.append(&self.widgets.keychain);
+        misc_box.append(&keychain);
 
         let ike_lifetime = self.form_box(&tr!("label-ike-lifetime"));
         ike_lifetime.append(&self.widgets.ike_lifetime);

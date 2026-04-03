@@ -344,7 +344,7 @@ pub struct TunnelParams {
     pub cert_password: Option<SecretString>,
     pub cert_id: Option<String>,
     pub if_name: Option<String>,
-    pub no_keychain: bool,
+    pub keychain: bool,
     pub ike_lifetime: Duration,
     pub ike_persist: bool,
     pub client_mode: String,
@@ -395,7 +395,7 @@ impl Default for TunnelParams {
             cert_password: None,
             cert_id: None,
             if_name: None,
-            no_keychain: true,
+            keychain: false,
             ike_lifetime: DEFAULT_IKE_LIFETIME,
             ike_persist: false,
             client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
@@ -445,7 +445,7 @@ impl PartialEq for TunnelParams {
                 == other.cert_password.as_ref().map(|s| s.expose_secret())
             && self.cert_id == other.cert_id
             && self.if_name == other.if_name
-            && self.no_keychain == other.no_keychain
+            && self.keychain == other.keychain
             && self.ike_lifetime == other.ike_lifetime
             && self.ike_persist == other.ike_persist
             && self.client_mode == other.client_mode
@@ -510,7 +510,7 @@ impl TunnelParams {
                 "cert-password" => params.cert_password = Some(v.into()),
                 "cert-id" => params.cert_id = Some(v),
                 "if-name" => params.if_name = Some(v),
-                "no-keychain" => params.no_keychain = v.parse().unwrap_or_default(),
+                "keychain" => params.keychain = v.parse().unwrap_or_default(),
                 "ike-lifetime" => {
                     params.ike_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
                 }
@@ -622,7 +622,7 @@ impl TunnelParams {
         if let Some(ref if_name) = self.if_name {
             writeln!(buf, "if-name={if_name}")?;
         }
-        writeln!(buf, "no-keychain={}", self.no_keychain)?;
+        writeln!(buf, "keychain={}", self.keychain)?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
         writeln!(buf, "ike-persist={}", self.ike_persist)?;
         writeln!(buf, "log-level={}", self.log_level)?;
@@ -739,7 +739,7 @@ mod tests {
             cert_password: Some("password".into()),
             cert_id: Some("id".to_string()),
             if_name: Some("ifname".to_string()),
-            no_keychain: true,
+            keychain: false,
             ike_lifetime: Duration::from_secs(100),
             ike_persist: true,
             client_mode: "client_mode".to_string(),
