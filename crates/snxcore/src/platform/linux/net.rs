@@ -175,6 +175,12 @@ impl NetworkInterface for LinuxNetworkInterface {
         let opt = format!("net.ipv4.conf.{device_name}.promote_secondaries");
         Ctl::new(&opt)?.set_value_string("1")?;
 
+        let opt = format!("net.ipv4.conf.{device_name}.rp_filter");
+        Ctl::new(&opt)?.set_value_string("0")?;
+
+        let opt = format!("net.ipv4.conf.{device_name}.forwarding");
+        Ctl::new(&opt)?.set_value_string("1")?;
+
         Ok(())
     }
 
