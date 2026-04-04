@@ -56,10 +56,12 @@ impl<'a> XfrmLink<'a> {
 
         self.handle.link().add(msg).execute().await?;
 
-        let _ = Platform::get()
-            .new_network_interface()
-            .configure_device(self.name)
-            .await;
+        // When a new link is created, the kernel may set default sysctl values for it asynchronously.
+        // We need to wait for them to be set before configuring the device, otherwise they will be overwritten.
+        debug!("Waiting 1s for interface {} to be initialized by the kernel", self.name);
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+        debug!("Configuring sysctl values for interface {}", self.name);
 
         let opt = format!("net.ipv4.conf.{}.disable_policy", self.name);
         Ctl::new(&opt)?.set_value_string("1")?;
@@ -70,12 +72,18 @@ impl<'a> XfrmLink<'a> {
         let opt = format!("net.ipv4.conf.{}.forwarding", self.name);
         Ctl::new(&opt)?.set_value_string("1")?;
 
+        let _ = Platform::get()
+            .new_network_interface()
+            .configure_device(self.name)
+            .await;
+
         let index = super::resolve_device_index(&self.handle, self.name).await?;
         self.handle
             .address()
             .add(index, self.address.addr().into(), self.address.prefix_len())
             .execute()
             .await?;
+
         Ok(())
     }
 
