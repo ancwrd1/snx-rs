@@ -348,10 +348,10 @@ impl VpnTunnel for SslTunnel {
             self.setup_dns(resolver_config.clone(), &tun_name, false).await?;
         }
 
-        let _ = Platform::get()
+        Platform::get()
             .new_network_interface()
             .configure_device(&tun_name)
-            .await;
+            .await?;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 

@@ -22,6 +22,12 @@ use crate::platform::NetworkInterface;
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
+fn sysctl_set(name: &str, value: &str) -> anyhow::Result<()> {
+    debug!("Setting sysctl {} = {}", name, value);
+    Ctl::new(name)?.set_value_string(value)?;
+    Ok(())
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum NetworkManagerState {
     Unknown,
@@ -172,14 +178,9 @@ impl NetworkInterface for LinuxNetworkInterface {
             device_proxy.set_managed(false).await?;
         }
 
-        let opt = format!("net.ipv4.conf.{device_name}.promote_secondaries");
-        Ctl::new(&opt)?.set_value_string("1")?;
-
-        let opt = format!("net.ipv4.conf.{device_name}.rp_filter");
-        Ctl::new(&opt)?.set_value_string("0")?;
-
-        let opt = format!("net.ipv4.conf.{device_name}.forwarding");
-        Ctl::new(&opt)?.set_value_string("1")?;
+        sysctl_set(&format!("net.ipv4.conf.{device_name}.promote_secondaries"), "1")?;
+        sysctl_set(&format!("net.ipv4.conf.{device_name}.rp_filter"), "0")?;
+        sysctl_set(&format!("net.ipv4.conf.{device_name}.forwarding"), "1")?;
 
         Ok(())
     }

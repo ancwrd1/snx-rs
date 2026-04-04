@@ -57,15 +57,12 @@ impl<'a> XfrmLink<'a> {
 
         // When a new link is created, the kernel may set default sysctl values for it asynchronously.
         // We need to wait for them to be set before configuring the device, otherwise they will be overwritten.
-        debug!("Waiting 1s for interface {} to be initialized by the kernel", self.name);
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
-        debug!("Configuring sysctl values for interface {}", self.name);
-
-        let _ = Platform::get()
+        Platform::get()
             .new_network_interface()
             .configure_device(self.name)
-            .await;
+            .await?;
 
         let index = super::resolve_device_index(&self.handle, self.name).await?;
         self.handle
