@@ -5,6 +5,7 @@ use gtk4::{
     glib::{self, clone},
     prelude::*,
 };
+use i18n::fluent_templates::LanguageIdentifier;
 use itertools::Itertools;
 use secrecy::ExposeSecret;
 use snxcore::{
@@ -1128,7 +1129,9 @@ impl SettingsDialog {
         self.widgets.locale.set_model(Some(&model));
 
         model.append(&tr!("label-system-language"));
-        for locale in i18n::get_locales() {
+
+        let locales = i18n::get_locales();
+        for locale in &locales {
             let message = format!("language-{locale}");
             model.append(&format!(
                 "{} ({})",
@@ -1137,9 +1140,11 @@ impl SettingsDialog {
             ));
         }
 
-        if let Some(ref locale) = ConnectionProfilesStore::instance().get_default().locale {
-            let translated = i18n::translate(&format!("language-{locale}"));
-            self.select_dropdown_item(&self.widgets.locale, &translated);
+        if let Some(ref locale) = ConnectionProfilesStore::instance().get_default().locale
+            && let Ok(lang) = locale.parse::<LanguageIdentifier>()
+            && let Some(index) = locales.iter().position(|l| *l == lang)
+        {
+            self.widgets.locale.set_selected(index as u32 + 1);
         } else {
             self.widgets.locale.set_selected(0);
         }
@@ -1546,17 +1551,6 @@ impl SettingsDialog {
         let height = current_size.1.max(400);
 
         self.window.set_default_size(max_width, height);
-    }
-
-    fn select_dropdown_item(&self, dropdown: &gtk4::DropDown, target_text: &str) {
-        let list = get_string_list(dropdown);
-        for i in 0..list.n_items() {
-            if list.string(i).as_deref() == Some(target_text) {
-                dropdown.set_selected(i);
-                return;
-            }
-        }
-        dropdown.set_selected(0);
     }
 }
 
