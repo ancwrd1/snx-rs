@@ -1135,7 +1135,7 @@ impl SettingsDialog {
             let message = format!("language-{locale}");
             model.append(&format!(
                 "{} ({})",
-                i18n::translate_for_locale(&locale, &message),
+                i18n::translate_for_locale(locale, &message),
                 i18n::translate(&message)
             ));
         }
