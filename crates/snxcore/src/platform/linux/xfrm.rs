@@ -10,7 +10,6 @@ use netlink_packet_xfrm::{
 };
 use rand::random;
 use rtnetlink::{LinkMessageBuilder, LinkXfrm};
-use sysctl::{Ctl, Sysctl};
 use tracing::{debug, trace};
 
 use crate::{
@@ -62,15 +61,6 @@ impl<'a> XfrmLink<'a> {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
         debug!("Configuring sysctl values for interface {}", self.name);
-
-        let opt = format!("net.ipv4.conf.{}.disable_policy", self.name);
-        Ctl::new(&opt)?.set_value_string("1")?;
-
-        let opt = format!("net.ipv4.conf.{}.rp_filter", self.name);
-        Ctl::new(&opt)?.set_value_string("0")?;
-
-        let opt = format!("net.ipv4.conf.{}.forwarding", self.name);
-        Ctl::new(&opt)?.set_value_string("1")?;
 
         let _ = Platform::get()
             .new_network_interface()
