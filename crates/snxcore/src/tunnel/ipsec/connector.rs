@@ -617,7 +617,7 @@ impl IpsecTunnelConnector {
 #[async_trait]
 impl TunnelConnector for IpsecTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
-        let my_address = Platform::get().new_network_interface().get_default_ip().await?;
+        let my_address = Platform::get().new_network_interface().get_default_ipv4().await?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
 

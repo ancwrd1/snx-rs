@@ -10,8 +10,9 @@ use ipnet::Ipv4Net;
 use rtnetlink::{
     AddressMessageBuilder, RouteMessageBuilder,
     packet_route::{
+        AddressFamily,
         address::AddressAttribute,
-        route::{RouteAddress, RouteAttribute, RouteScope},
+        route::{RouteAddress, RouteAttribute, RouteScope, RouteType},
     },
 };
 use sysctl::{Ctl, Sysctl};
@@ -111,7 +112,7 @@ impl NetworkInterface for LinuxNetworkInterface {
         Ok(())
     }
 
-    async fn get_default_ip(&self) -> anyhow::Result<Ipv4Addr> {
+    async fn get_default_ipv4(&self) -> anyhow::Result<Ipv4Addr> {
         let handle = super::new_netlink_connection()?;
 
         let mut routes = handle
@@ -122,6 +123,8 @@ impl NetworkInterface for LinuxNetworkInterface {
         while let Some(route) = routes.next().await {
             if let Ok(route) = route
                 && route.header.scope == RouteScope::Universe
+                && route.header.kind == RouteType::Unicast
+                && route.header.address_family == AddressFamily::Inet
                 && route.header.destination_prefix_length == 0
                 && route.attributes.iter().any(|a| matches!(a, RouteAttribute::Gateway(_)))
             {
@@ -227,7 +230,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_default_ip() {
-        let ip = LinuxNetworkInterface.get_default_ip().await;
+        let ip = LinuxNetworkInterface.get_default_ipv4().await;
         println!("{ip:?}");
     }
 }
