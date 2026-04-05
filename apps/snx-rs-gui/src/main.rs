@@ -23,7 +23,6 @@ use crate::{
     profiles::ConnectionProfilesStore,
     prompt::GtkPrompt,
     status::show_status_dialog,
-    theme::init_theme_monitoring,
     tray::{TrayCommand, TrayEvent},
 };
 
@@ -100,8 +99,6 @@ async fn main() -> anyhow::Result<()> {
         }
         return Ok(());
     }
-
-    let _ = init_theme_monitoring().await;
 
     let (tray_event_sender, mut tray_event_receiver) = mpsc::channel(16);
 

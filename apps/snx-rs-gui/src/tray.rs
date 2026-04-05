@@ -12,11 +12,8 @@ use snxcore::model::{
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
 
-use crate::{
-    assets,
-    profiles::ConnectionProfilesStore,
-    theme::{SystemColorTheme, system_color_theme},
-};
+use crate::theme::ThemeMonitor;
+use crate::{assets, profiles::ConnectionProfilesStore, theme::SystemColorTheme};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrayEvent {
@@ -73,6 +70,7 @@ pub struct AppTray {
     command_receiver: Option<Receiver<TrayCommand>>,
     status: Arc<anyhow::Result<ConnectionStatus>>,
     tray_icon: Option<Handle<KsniTray>>,
+    theme_monitor: ThemeMonitor,
 }
 
 impl AppTray {
@@ -91,6 +89,7 @@ impl AppTray {
             command_receiver: Some(rx),
             status: Arc::new(Err(anyhow!(crate::tr!("error-no-service-connection")))),
             tray_icon: handle,
+            theme_monitor: ThemeMonitor::new(),
         };
 
         app_tray.update().await;
@@ -113,7 +112,7 @@ impl AppTray {
         let tunnel_params = TunnelParams::load(TunnelParams::default_config_path()).unwrap_or_default();
 
         let system_theme = match tunnel_params.icon_theme {
-            IconTheme::AutoDetect => system_color_theme().ok().unwrap_or_default(),
+            IconTheme::AutoDetect => self.theme_monitor.current_theme(),
             IconTheme::Dark => SystemColorTheme::Light,
             IconTheme::Light => SystemColorTheme::Dark,
         };
