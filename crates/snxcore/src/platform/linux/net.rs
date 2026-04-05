@@ -182,9 +182,9 @@ impl NetworkInterface for LinuxNetworkInterface {
             device_proxy.set_managed(false).await?;
         }
 
-        sysctl_set(&format!("net.ipv4.conf.{device_name}.promote_secondaries"), "1")?;
-        sysctl_set(&format!("net.ipv4.conf.{device_name}.rp_filter"), "0")?;
-        sysctl_set(&format!("net.ipv4.conf.{device_name}.forwarding"), "1")?;
+        for (name, value) in [("promote_secondaries", "1"), ("rp_filter", "0"), ("forwarding", "1")] {
+            sysctl_set(&format!("net.ipv4.conf.{device_name}.{name}"), value)?;
+        }
 
         Ok(())
     }

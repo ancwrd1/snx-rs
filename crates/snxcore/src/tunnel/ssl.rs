@@ -367,15 +367,11 @@ impl VpnTunnel for SslTunnel {
         let fut = async move {
             while let Some(item) = snx_receiver.next().await {
                 match item {
-                    SlimPacketType::Control(expr) => {
-                        debug!("Control packet received");
-                        match expr {
-                            SExpression::Object(Some(name), _) if name == "keepalive" => {
-                                let _ = keepalive_counter
-                                    .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |v| (v > 0).then_some(v - 1));
-                            }
-                            _ => {}
-                        }
+                    SlimPacketType::Control(SExpression::Object(Some(name), _)) if name == "keepalive" => {
+                        keepalive_counter.store(0, Ordering::SeqCst);
+                    }
+                    SlimPacketType::Control(sexpr) => {
+                        debug!("Control packet received: {}", sexpr);
                     }
                     SlimPacketType::Data(data) => {
                         tun_sender.send(data).await?;
