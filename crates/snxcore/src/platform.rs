@@ -196,7 +196,7 @@ pub trait RoutingConfigurator {
 #[async_trait]
 pub trait NetworkInterface {
     async fn start_network_state_monitoring(&self) -> anyhow::Result<()>;
-    async fn get_default_ip(&self) -> anyhow::Result<Ipv4Addr>;
+    async fn get_default_ipv4(&self) -> anyhow::Result<Ipv4Addr>;
     async fn delete_device(&self, device_name: &str) -> anyhow::Result<()>;
     async fn configure_device(&self, device_name: &str) -> anyhow::Result<()>;
     async fn replace_ip_address(
