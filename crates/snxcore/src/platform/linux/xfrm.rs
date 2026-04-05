@@ -75,10 +75,7 @@ impl<'a> XfrmLink<'a> {
     }
 
     async fn delete(&self) -> anyhow::Result<()> {
-        if let Ok(index) = super::resolve_device_index(&self.handle, self.name).await {
-            self.handle.link().del(index).execute().await?;
-        }
-        Ok(())
+        Platform::get().new_network_interface().delete_device(self.name).await
     }
 }
 
