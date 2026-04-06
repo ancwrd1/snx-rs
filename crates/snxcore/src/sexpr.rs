@@ -489,4 +489,13 @@ mod tests {
 
         assert_eq!(encoded.replace("\t", "").replace("\n", " "), text);
     }
+
+    #[test]
+    fn test_parse_client_settings() {
+        let text = include_str!("../tests/client_settings.txt");
+        let sexpr = text.parse::<SExpression>().unwrap();
+        let encoded = format!("{sexpr}");
+        let decoded = encoded.parse::<SExpression>().unwrap();
+        assert_eq!(decoded, sexpr);
+    }
 }
