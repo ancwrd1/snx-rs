@@ -762,9 +762,9 @@ checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
 name = "fastrand"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
+checksum = "a043dc74da1e37d6afe657061213aa6f425f855399a11d3463c6ecccc4dfda1f"
 
 [[package]]
 name = "fdeflate"
@@ -1047,9 +1047,9 @@ dependencies = [
 
 [[package]]
 name = "gdk4"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa528049fd8726974a7aa1a6e1421f891e7579bea6cc6d54056ab4d1a1b937e7"
+checksum = "fd42fdbbf48612c6e8f47c65fb92d2e8f39c25aecd6af047e83897c1a22d2a4e"
 dependencies = [
  "cairo-rs",
  "gdk-pixbuf",
@@ -1062,9 +1062,9 @@ dependencies = [
 
 [[package]]
 name = "gdk4-sys"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dd48b1b03dce78ab52805ac35cfb69c48af71a03af5723231d8583718738377"
+checksum = "9d974ac4f15e67472c3a9728daf612590b4a5762a4b33f0edd298df0b80d043c"
 dependencies = [
  "cairo-sys-rs",
  "gdk-pixbuf-sys",
@@ -1114,9 +1114,9 @@ dependencies = [
 
 [[package]]
 name = "gio"
-version = "0.22.2"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "816b6743c46b217aa8fba679095ac6f2162fd53259dc8f186fcdbff9c555db03"
+checksum = "17271ffcd5a3cce62e8dbe18924c0894fe125945c5f484d0820a75c2f21a4421"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -1144,9 +1144,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "039f93465ac17e6cb02d16f16572cd3e43a77e736d5ecc461e71b9c9c5c0569c"
+checksum = "02856b71413e175be50eff37fe0aefa53e227054ee3d96196faee8a0823cac80"
 dependencies = [
  "bitflags",
  "futures-channel",
@@ -1271,9 +1271,9 @@ dependencies = [
 
 [[package]]
 name = "gtk4"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87f671029e3f5288fd35e03a6e6b19e1ce643b10a3d261d33d183e453f6c52fe"
+checksum = "25d47a7ca9ec6f50b5ace32eaaf11fe152c9bbc4f780a35e42c9b7fc5b046f9c"
 dependencies = [
  "cairo-rs",
  "field-offset",
@@ -1304,9 +1304,9 @@ dependencies = [
 
 [[package]]
 name = "gtk4-sys"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0786e7e8e0550d0ab2df4d0d90032f22033e07d5ed78b6a1b2e51b05340339e"
+checksum = "5a25bd07084651c77bb6e7bce7d4cea8d9f98d210acee473e400a9106bc0ce50"
 dependencies = [
  "cairo-sys-rs",
  "gdk-pixbuf-sys",
@@ -1733,7 +1733,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#c34382dcfbf5b9ea076b04f102d65750cbbec39d"
+source = "git+https://github.com/ancwrd1/isakmp.git#0c8a1c40ccf33db9d724401a4cab3064d57ebdc8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2269,9 +2269,9 @@ dependencies = [
 
 [[package]]
 name = "pango"
-version = "0.22.0"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25d8f224eddef627b896d2f7b05725b3faedbd140e0e8343446f0d34f34238ee"
+checksum = "4804fb6018c6604eac198f0f897320d3696c9af7983cde056f07cef93cac9202"
 dependencies = [
  "gio",
  "glib",
@@ -2830,9 +2830,9 @@ checksum = "b12e76d157a900eb52e81bc6e9f3069344290341720e9178cde2407113ac8d89"
 
 [[package]]
 name = "semver"
-version = "1.0.27"
+version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
+checksum = "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
 
 [[package]]
 name = "serde"
