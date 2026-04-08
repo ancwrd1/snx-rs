@@ -23,9 +23,21 @@ use crate::platform::NetworkInterface;
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
+// Setting the sysctl values can be flaky for new interfaces because they can acquire default values asynchronously.
 fn sysctl_set(name: &str, value: &str) -> anyhow::Result<()> {
-    debug!("Setting sysctl {} = {}", name, value);
-    Ctl::new(name)?.set_value_string(value)?;
+    let ctl = Ctl::new(name)?;
+
+    for _ in 0..3 {
+        debug!("Setting sysctl {name} = {value}");
+        ctl.set_value_string(value)?;
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        if ctl.value_string()? == value {
+            break;
+        }
+    }
+
     Ok(())
 }
 
@@ -182,7 +194,7 @@ impl NetworkInterface for LinuxNetworkInterface {
             device_proxy.set_managed(false).await?;
         }
 
-        for (name, value) in [("promote_secondaries", "1"), ("rp_filter", "0"), ("forwarding", "1")] {
+        for (name, value) in [("rp_filter", "0"), ("promote_secondaries", "1"), ("forwarding", "1")] {
             sysctl_set(&format!("net.ipv4.conf.{device_name}.{name}"), value)?;
         }
 

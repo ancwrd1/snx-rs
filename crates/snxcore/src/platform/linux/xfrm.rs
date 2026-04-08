@@ -55,10 +55,6 @@ impl<'a> XfrmLink<'a> {
 
         self.handle.link().add(msg).execute().await?;
 
-        // When a new link is created, the kernel may set default sysctl values for it asynchronously.
-        // We need to wait before configuring the device with our values, otherwise they may be overwritten.
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
         Platform::get()
             .new_network_interface()
             .configure_device(self.name)
