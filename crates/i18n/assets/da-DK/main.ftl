@@ -54,6 +54,7 @@ label-cancel = Annuller
 label-open = Åbn
 label-select-file = Vælg en fil
 label-ca-cert-files = X.509-certifikater
+label-allow-forwarding = Tillad pakkeforwarding for tunnelgrænsefladen
 
 # Tabs and expanders
 tab-general = Generelt

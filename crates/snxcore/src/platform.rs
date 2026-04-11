@@ -89,6 +89,14 @@ async fn udp_send_receive(
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
+pub struct DeviceConfig {
+    pub name: String,
+    pub mtu: u16,
+    pub address: Ipv4Net,
+    pub allow_forwarding: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct ResolverConfig {
     pub search_domains: Vec<SearchDomain>,
     pub dns_servers: Vec<Ipv4Addr>,
@@ -198,7 +206,7 @@ pub trait NetworkInterface {
     async fn start_network_state_monitoring(&self) -> anyhow::Result<()>;
     async fn get_default_ipv4(&self) -> anyhow::Result<Ipv4Addr>;
     async fn delete_device(&self, device_name: &str) -> anyhow::Result<()>;
-    async fn configure_device(&self, device_name: &str) -> anyhow::Result<()>;
+    async fn configure_device(&self, device_config: &DeviceConfig) -> anyhow::Result<()>;
     async fn replace_ip_address(
         &self,
         device_name: &str,
@@ -232,12 +240,11 @@ pub trait PlatformAccess {
     fn init(&self);
     fn new_ipsec_configurator(
         &self,
-        name: &str,
+        device_config: DeviceConfig,
         ipsec_session: IpsecSession,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-        mtu: u16,
     ) -> anyhow::Result<impl IpsecConfigurator + use<Self> + Send + Sync>;
     fn new_routing_configurator<S: AsRef<str>>(
         &self,

@@ -374,6 +374,7 @@ pub struct TunnelParams {
     pub disable_ipv6: bool,
     pub mtu: u16,
     pub transport_type: TransportType,
+    pub allow_forwarding: bool,
     #[serde(skip)]
     pub mfa_code: Option<String>,
     #[serde(skip)]
@@ -425,6 +426,7 @@ impl Default for TunnelParams {
             disable_ipv6: false,
             mtu: DEFAULT_MTU,
             transport_type: TransportType::default(),
+            allow_forwarding: false,
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
@@ -475,6 +477,7 @@ impl PartialEq for TunnelParams {
             && self.disable_ipv6 == other.disable_ipv6
             && self.mtu == other.mtu
             && self.transport_type == other.transport_type
+            && self.allow_forwarding == other.allow_forwarding
             && self.mfa_code == other.mfa_code
             && self.reg_key == other.reg_key
             && self.client_logging_data == other.client_logging_data
@@ -548,6 +551,7 @@ impl TunnelParams {
                 "disable-ipv6" => params.disable_ipv6 = v.parse().unwrap_or_default(),
                 "mtu" => params.mtu = v.parse().unwrap_or(DEFAULT_MTU),
                 "transport-type" => params.transport_type = v.parse().unwrap_or_default(),
+                "allow-forwarding" => params.allow_forwarding = v.parse().unwrap_or_default(),
                 "client-logging-data" => params.client_logging_data = Some(v.into()),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
@@ -661,6 +665,7 @@ impl TunnelParams {
         writeln!(buf, "disable-ipv6={}", self.disable_ipv6)?;
         writeln!(buf, "mtu={}", self.mtu)?;
         writeln!(buf, "transport-type={}", self.transport_type)?;
+        writeln!(buf, "allow-forwarding={}", self.allow_forwarding)?;
 
         if let Some(ref client_logging_data) = self.client_logging_data {
             writeln!(buf, "client-logging-data={}", client_logging_data.display())?;
@@ -769,6 +774,7 @@ mod tests {
             disable_ipv6: true,
             mtu: 2000,
             transport_type: TransportType::Tcpt,
+            allow_forwarding: true,
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,

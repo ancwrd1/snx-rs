@@ -54,6 +54,7 @@ label-cancel = Cancelar
 label-open = Abrir
 label-select-file = Seleccionar un archivo
 label-ca-cert-files = Certificados X.509
+label-allow-forwarding = Permitir el reenvío de paquetes para la interfaz del túnel
 
 # Tabs and expanders
 tab-general = General

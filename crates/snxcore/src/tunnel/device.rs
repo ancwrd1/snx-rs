@@ -1,5 +1,3 @@
-use std::net::Ipv4Addr;
-
 use tracing::debug;
 use tun::AbstractDevice;
 
@@ -9,15 +7,10 @@ pub struct TunDevice {
 }
 
 impl TunDevice {
-    pub fn new(name: &str, ip_address: Ipv4Addr, netmask: Option<Ipv4Addr>, mtu: u16) -> anyhow::Result<Self> {
+    pub fn new(name: &str) -> anyhow::Result<Self> {
         let mut config = tun::Configuration::default();
 
-        config.address(ip_address).mtu(mtu).up();
-        config.tun_name(name);
-
-        if let Some(netmask) = netmask {
-            config.netmask(netmask);
-        }
+        config.tun_name(name).up();
 
         let dev = tun::create_as_async(&config)?;
 

@@ -54,6 +54,7 @@ label-cancel = Peruuta
 label-open = Avaa
 label-select-file = Valitse tiedosto
 label-ca-cert-files = X.509-varmenteet
+label-allow-forwarding = Salli pakettien edelleenlähetys tunneliliitännälle
 
 # Tabs and expanders
 tab-general = Yleiset

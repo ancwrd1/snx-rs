@@ -37,6 +37,7 @@
 | `disable-ipv6=true\|false`                | Disable IPv6 in the kernel when default route is enabled, to prevent IPv6 leaks.                                                                      |
 | `mtu=<MTU>`                               | Set MTU for the tunnel interface. Default is 1350.                                                                                                    |
 | `transport-type=<type>`                   | Set IPSec transport type. Possible values are: auto, kernel, udp, tcpt. Default is auto.                                                              |
+| `allow-forwarding=true\|false`            | Enable or disable packet forwarding for the tunnel interface. Default is false.                                                                       |
 | `client-logging-data=<path>`              | A path to a json file which contains a custom client_logging_data structure (1). Used to impersonate the official Check Point client.                 |
 
 

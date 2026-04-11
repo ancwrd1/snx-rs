@@ -14,6 +14,7 @@ use ipnet::Ipv4Net;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::{debug, warn};
 
+use crate::platform::DeviceConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{ConnectionInfo, IpsecSession, VpnSession, params::TunnelParams},
@@ -81,13 +82,19 @@ impl NativeIpsecTunnel {
             .unwrap_or(TunnelParams::DEFAULT_IPSEC_IF_NAME)
             .to_owned();
 
+        let device_config = DeviceConfig {
+            name: device_name.clone(),
+            mtu: params.mtu,
+            address: ipsec_session.ipv4net_address(),
+            allow_forwarding: params.allow_forwarding,
+        };
+
         let mut configurator = Platform::get().new_ipsec_configurator(
-            &device_name,
+            device_config,
             ipsec_session.clone(),
             natt_socket.local_addr()?.port(),
             gateway_address,
             server_info.connectivity_info.natt_port,
-            params.mtu,
         )?;
 
         configurator.configure().await?;

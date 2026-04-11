@@ -21,6 +21,7 @@ use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error, warn};
 
+use crate::platform::DeviceConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -207,19 +208,26 @@ impl VpnTunnel for TunIpsecTunnel {
             anyhow::bail!(tr!("error-no-ipsec-session"));
         };
 
-        let mut tun = TunDevice::new(
-            name_hint,
-            ipsec_session.address,
-            Some(ipsec_session.netmask),
-            self.params.mtu,
-        )?;
-        let tun_name = tun.name().to_owned();
-
         let session = self
             .session
             .ipsec_session
             .as_ref()
             .context(tr!("error-no-ipsec-session"))?;
+
+        let mut tun = TunDevice::new(name_hint)?;
+        let tun_name = tun.name().to_owned();
+
+        let device_config = DeviceConfig {
+            name: tun_name.clone(),
+            mtu: self.params.mtu,
+            address: session.ipv4net_address(),
+            allow_forwarding: self.params.allow_forwarding,
+        };
+
+        Platform::get()
+            .new_network_interface()
+            .configure_device(&device_config)
+            .await?;
 
         self.setup_routing(&tun_name, session).await?;
 
@@ -231,11 +239,6 @@ impl VpnTunnel for TunIpsecTunnel {
         if !self.params.no_dns {
             self.setup_dns(&resolver_config, &tun_name, false).await?;
         }
-
-        Platform::get()
-            .new_network_interface()
-            .configure_device(&tun_name)
-            .await?;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 

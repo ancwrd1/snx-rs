@@ -54,6 +54,7 @@ label-cancel = Zrušiť
 label-open = Otvoriť
 label-select-file = Vybrať súbor
 label-ca-cert-files = Certifikáty X.509
+label-allow-forwarding = Povoliť preposielanie paketov pre rozhranie tunela
 
 # Tabs and expanders
 tab-general = Všeobecné

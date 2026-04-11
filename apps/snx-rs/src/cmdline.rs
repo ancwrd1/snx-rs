@@ -220,6 +220,13 @@ pub struct CmdlineParams {
     pub transport_type: Option<TransportType>,
 
     #[clap(
+        long = "allow-forwarding",
+        short = 'B',
+        help = "Allow packet forwarding for tunnel interface"
+    )]
+    pub allow_forwarding: Option<bool>,
+
+    #[clap(
         long = "mfa-code",
         short = 'F',
         help = "MFA code to use in the non-interactive scripts, typically a TOTP code"
@@ -374,6 +381,10 @@ impl CmdlineParams {
 
         if let Some(transport_type) = self.transport_type {
             other.transport_type = transport_type;
+        }
+
+        if let Some(allow_forwarding) = self.allow_forwarding {
+            other.allow_forwarding = allow_forwarding;
         }
 
         if let Some(mfa_code) = self.mfa_code {

@@ -180,6 +180,7 @@ struct MyWidgets {
     disable_ipv6: gtk4::Switch,
     mtu: gtk4::Entry,
     transport_type: gtk4::DropDown,
+    allow_forwarding: gtk4::Switch,
     profile_select: gtk4::DropDown,
     profile_new: gtk4::Button,
     profile_rename: gtk4::Button,
@@ -323,6 +324,7 @@ impl MyWidgets {
         self.disable_ipv6.set_active(params.disable_ipv6);
         self.mtu.set_text(&params.mtu.to_string());
         self.transport_type.set_selected(params.transport_type.as_u32());
+        self.allow_forwarding.set_active(params.allow_forwarding);
         self.fetch_info.activate();
     }
 
@@ -636,6 +638,7 @@ impl SettingsDialog {
 
         let mtu = gtk4::Entry::builder().build();
         let transport_type = gtk4::DropDown::builder().build();
+        let allow_forwarding = gtk4::Switch::builder().halign(Align::Start).build();
 
         let profile_select = gtk4::DropDown::builder().model(&gtk4::StringList::new(&[])).build();
         let profile_new = gtk4::Button::with_label(&tr!("profile-new"));
@@ -685,6 +688,7 @@ impl SettingsDialog {
             disable_ipv6,
             mtu,
             transport_type,
+            allow_forwarding,
             profile_select,
             profile_new,
             profile_rename,
@@ -1002,6 +1006,7 @@ impl SettingsDialog {
         params.port_knock = self.widgets.port_knock.is_active();
         params.transport_type = self.widgets.transport_type.selected().into();
         params.disable_ipv6 = self.widgets.disable_ipv6.is_active();
+        params.allow_forwarding = self.widgets.allow_forwarding.is_active();
 
         let ip_lease_time = self.widgets.ip_lease_time.text();
         params.ip_lease_time = if ip_lease_time.trim().is_empty() {
@@ -1262,6 +1267,10 @@ impl SettingsDialog {
         let port_knock = self.form_box(&tr!("label-port-knock"));
         port_knock.append(&self.widgets.port_knock);
         misc_box.append(&port_knock);
+
+        let allow_forwarding = self.form_box(&tr!("label-allow-forwarding"));
+        allow_forwarding.append(&self.widgets.allow_forwarding);
+        misc_box.append(&allow_forwarding);
 
         let ip_lease_time = self.form_box(&tr!("label-ip-lease-time"));
         ip_lease_time.append(&self.widgets.ip_lease_time);

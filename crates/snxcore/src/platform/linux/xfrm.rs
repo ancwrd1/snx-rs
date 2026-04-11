@@ -1,6 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use ipnet::Ipv4Net;
 use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
 use netlink_packet_xfrm::{
     constants::{
@@ -12,6 +11,7 @@ use rand::random;
 use rtnetlink::{LinkMessageBuilder, LinkXfrm};
 use tracing::{debug, trace};
 
+use crate::platform::DeviceConfig;
 use crate::{
     model::IpsecSession,
     platform::{IpsecConfigurator, NetworkInterface, Platform, PlatformAccess},
@@ -24,22 +24,18 @@ fn new_xfrm_connection() -> anyhow::Result<xfrmnetlink::Handle> {
 }
 
 struct XfrmLink<'a> {
-    name: &'a str,
+    device_config: &'a DeviceConfig,
     if_id: u32,
-    address: Ipv4Net,
-    mtu: u16,
     handle: rtnetlink::Handle,
 }
 
 impl<'a> XfrmLink<'a> {
-    fn new(name: &'a str, if_id: u32, address: Ipv4Net, mtu: u16) -> anyhow::Result<Self> {
+    fn new(device_config: &'a DeviceConfig, if_id: u32) -> anyhow::Result<Self> {
         let handle = super::new_netlink_connection()?;
 
         Ok(Self {
-            name,
+            device_config,
             if_id,
-            address,
-            mtu,
             handle,
         })
     }
@@ -47,9 +43,8 @@ impl<'a> XfrmLink<'a> {
     async fn add(&self) -> anyhow::Result<()> {
         let _ = self.delete().await;
 
-        let msg = LinkMessageBuilder::<LinkXfrm>::new(self.name)
+        let msg = LinkMessageBuilder::<LinkXfrm>::new(&self.device_config.name)
             .if_id(self.if_id)
-            .mtu(self.mtu as _)
             .up()
             .build();
 
@@ -57,21 +52,17 @@ impl<'a> XfrmLink<'a> {
 
         Platform::get()
             .new_network_interface()
-            .configure_device(self.name)
-            .await?;
-
-        let index = super::resolve_device_index(&self.handle, self.name).await?;
-        self.handle
-            .address()
-            .add(index, self.address.addr().into(), self.address.prefix_len())
-            .execute()
+            .configure_device(&self.device_config)
             .await?;
 
         Ok(())
     }
 
     async fn delete(&self) -> anyhow::Result<()> {
-        Platform::get().new_network_interface().delete_device(self.name).await
+        Platform::get()
+            .new_network_interface()
+            .delete_device(&self.device_config.name)
+            .await
     }
 }
 
@@ -199,41 +190,38 @@ enum CommandType {
 }
 
 pub struct XfrmConfigurator {
-    name: String,
+    device_config: DeviceConfig,
     ipsec_session: IpsecSession,
     source_ip: Ipv4Addr,
     if_id: u32,
     src_port: u16,
     dest_ip: Ipv4Addr,
     dest_port: u16,
-    mtu: u16,
 }
 
 impl XfrmConfigurator {
     pub fn new(
-        name: &str,
+        device_config: DeviceConfig,
         ipsec_session: IpsecSession,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-        mtu: u16,
     ) -> anyhow::Result<Self> {
         let if_id = random();
 
         Ok(Self {
-            name: name.to_owned(),
+            device_config,
             ipsec_session,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
             dest_ip,
             if_id,
             src_port,
             dest_port,
-            mtu,
         })
     }
 
     fn new_xfrm_link(&self) -> anyhow::Result<XfrmLink<'_>> {
-        XfrmLink::new(&self.name, self.if_id, self.ipsec_session.ipv4net_address(), self.mtu)
+        XfrmLink::new(&self.device_config, self.if_id)
     }
 
     async fn setup_xfrm_link(&self) -> anyhow::Result<()> {
@@ -370,11 +358,11 @@ impl IpsecConfigurator for XfrmConfigurator {
         if old_address != new_address {
             debug!(
                 "IP address changed from {} to {}, replacing it for device {}",
-                old_address, new_address, self.name
+                old_address, new_address, self.device_config.name
             );
             Platform::get()
                 .new_network_interface()
-                .replace_ip_address(&self.name, old_address, new_address)
+                .replace_ip_address(&self.device_config.name, old_address, new_address)
                 .await?;
         }
 

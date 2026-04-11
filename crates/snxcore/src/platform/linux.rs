@@ -17,6 +17,7 @@ use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
 
+use crate::platform::DeviceConfig;
 use crate::{
     model::IpsecSession,
     platform::{
@@ -200,14 +201,13 @@ impl PlatformAccess for LinuxPlatformAccess {
 
     fn new_ipsec_configurator(
         &self,
-        name: &str,
+        device_config: DeviceConfig,
         ipsec_session: IpsecSession,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-        mtu: u16,
     ) -> anyhow::Result<impl IpsecConfigurator + use<> + Send + Sync> {
-        xfrm::XfrmConfigurator::new(name, ipsec_session, src_port, dest_ip, dest_port, mtu)
+        xfrm::XfrmConfigurator::new(device_config, ipsec_session, src_port, dest_ip, dest_port)
     }
 
     fn new_routing_configurator<S: AsRef<str>>(

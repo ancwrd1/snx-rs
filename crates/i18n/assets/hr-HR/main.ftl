@@ -54,6 +54,7 @@ label-cancel = Odustani
 label-open = Otvori
 label-select-file = Odaberi datoteku
 label-ca-cert-files = X.509 certifikati
+label-allow-forwarding = Dopusti prosljeđivanje paketa za sučelje tunela
 
 # Tabs and expanders
 tab-general = Općenito

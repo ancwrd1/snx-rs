@@ -21,6 +21,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 
+use crate::platform::DeviceConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -216,7 +217,7 @@ impl SslTunnel {
 
             if !self.params.no_dns {
                 let config = self.make_resolver_config().await;
-                let _ = self.setup_dns(config, device.name(), true).await;
+                let _ = self.setup_dns(&config, device.name(), true).await;
             }
             let _ = Platform::get()
                 .new_network_interface()
@@ -228,14 +229,9 @@ impl SslTunnel {
         }
     }
 
-    pub async fn setup_routing(
-        &self,
-        dev_name: &str,
-        ip_address: Ipv4Addr,
-        netmask: Option<Ipv4Addr>,
-    ) -> anyhow::Result<()> {
+    pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(dev_name, ip_address);
+        let configurator = platform.new_routing_configurator(&device_config.name, device_config.address.addr());
 
         let dest_ip = util::server_name_to_ipv4(
             &self.params.server_name,
@@ -260,9 +256,8 @@ impl SslTunnel {
 
                 subnets.extend(util::ranges_to_subnets(&range));
 
-                let network = Ipv4Net::with_netmask(ip_address, netmask.unwrap_or(Ipv4Addr::new(255, 255, 255, 255)))?;
-                if network.prefix_len() < 32 {
-                    subnets.push(network.trunc());
+                if device_config.address.prefix_len() < 32 {
+                    subnets.push(device_config.address.trunc());
                 }
             }
         }
@@ -301,13 +296,13 @@ impl SslTunnel {
             .build()
     }
 
-    pub async fn setup_dns(&self, config: ResolverConfig, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
+    pub async fn setup_dns(&self, config: &ResolverConfig, dev_name: &str, cleanup: bool) -> anyhow::Result<()> {
         let resolver = Platform::get().new_resolver_configurator(dev_name)?;
 
         if cleanup {
-            resolver.cleanup(&config).await?;
+            resolver.cleanup(config).await?;
         } else {
-            resolver.configure(&config).await?;
+            resolver.configure(config).await?;
         }
 
         Ok(())
@@ -337,21 +332,30 @@ impl VpnTunnel for SslTunnel {
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let mut tun = TunDevice::new(name_hint, ip_address, netmask, self.params.mtu)?;
+        let mut tun = TunDevice::new(name_hint)?;
         let tun_name = tun.name().to_owned();
 
-        self.setup_routing(&tun_name, ip_address, netmask).await?;
+        let device_config = DeviceConfig {
+            name: tun_name.clone(),
+            mtu: self.params.mtu,
+            address: netmask
+                .and_then(|netmask| Ipv4Net::with_netmask(ip_address, netmask).ok())
+                .unwrap_or_else(|| Ipv4Net::from(ip_address)),
+            allow_forwarding: self.params.allow_forwarding,
+        };
+
+        Platform::get()
+            .new_network_interface()
+            .configure_device(&device_config)
+            .await?;
+
+        self.setup_routing(&device_config).await?;
 
         let resolver_config = self.make_resolver_config().await;
 
         if !self.params.no_dns {
-            self.setup_dns(resolver_config.clone(), &tun_name, false).await?;
+            self.setup_dns(&resolver_config, &tun_name, false).await?;
         }
-
-        Platform::get()
-            .new_network_interface()
-            .configure_device(&tun_name)
-            .await?;
 
         let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
 

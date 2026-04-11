@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use ipnet::Ipv4Net;
 use rtnetlink::{
-    AddressMessageBuilder, RouteMessageBuilder,
+    AddressMessageBuilder, LinkMessageBuilder, LinkUnspec, RouteMessageBuilder,
     packet_route::{
         AddressFamily,
         address::AddressAttribute,
@@ -19,7 +19,7 @@ use sysctl::{Ctl, Sysctl};
 use tracing::debug;
 use zbus::Connection;
 
-use crate::platform::NetworkInterface;
+use crate::platform::{DeviceConfig, NetworkInterface};
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
@@ -181,21 +181,49 @@ impl NetworkInterface for LinuxNetworkInterface {
         Ok(())
     }
 
-    async fn configure_device(&self, device_name: &str) -> anyhow::Result<()> {
+    async fn configure_device(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
+        debug!("Configuring device: {:?}", device_config);
+
         if let Ok(connection) = Connection::system().await
             && let Ok(nm_proxy) = NetworkManagerProxy::new(&connection).await
-            && let Ok(device_path) = nm_proxy.get_device_by_ip_iface(device_name).await
+            && let Ok(device_path) = nm_proxy.get_device_by_ip_iface(&device_config.name).await
             && let Ok(device_proxy) = NetworkManagerDeviceProxy::builder(&connection)
                 .path(device_path)?
                 .build()
                 .await
         {
-            debug!("NM: setting device {} to unmanaged", device_name);
+            debug!("NM: setting device {} to unmanaged", device_config.name);
             device_proxy.set_managed(false).await?;
         }
 
-        for (name, value) in [("rp_filter", "0"), ("promote_secondaries", "1"), ("forwarding", "1")] {
-            sysctl_set(&format!("net.ipv4.conf.{device_name}.{name}"), value)?;
+        let handle = super::new_netlink_connection()?;
+
+        let index = super::resolve_device_index(&handle, &device_config.name).await?;
+        let msg = LinkMessageBuilder::<LinkUnspec>::default()
+            .index(index)
+            .mtu(device_config.mtu as u32)
+            .build();
+        handle.link().set(msg).execute().await?;
+
+        handle
+            .address()
+            .add(
+                index,
+                device_config.address.addr().into(),
+                device_config.address.prefix_len(),
+            )
+            .execute()
+            .await?;
+
+        let forwarding = if device_config.allow_forwarding { "1" } else { "0" };
+
+        for (name, value) in [
+            ("rp_filter", "0"),
+            ("promote_secondaries", "1"),
+            ("forwarding", forwarding),
+            ("disable_policy", forwarding),
+        ] {
+            sysctl_set(&format!("net.ipv4.conf.{}.{name}", device_config.name), value)?;
         }
 
         Ok(())

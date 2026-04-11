@@ -54,6 +54,7 @@ label-cancel = Abbrechen
 label-open = Öffnen
 label-select-file = Datei auswählen
 label-ca-cert-files = X.509-Zertifikate
+label-allow-forwarding = Paketweiterleitung für die Tunnelschnittstelle zulassen
 
 # Tabs and expanders
 tab-general = Allgemein

@@ -1,7 +1,8 @@
-## v5.3.0 (TBD)
+## v5.3.0 (2026-04-11)
 - Application now uses Linux APIs directly instead of running the external commands to configure OS networking stack.
-- Switched to GTK 4.10.
+- Switched to GTK 4.10, requiring Linux distros from 2023 and later.
 - Flipped the `no-keychain` parameter to be `keychain` so that keychain usage is opt-in instead of opt-out.
+- Added `allow-forwarding` option to enable packet forwarding for the tunnel interface. Forwarding is disabled by default.
 
 ## v5.2.4 (2026-04-01)
 - Added SCV policy emulation, which may fix the long-standing issue of blocked access to Intranet resources.

@@ -54,6 +54,7 @@ label-cancel = Cancel
 label-open = Open
 label-select-file = Select a file
 label-ca-cert-files = X.509 certificates
+label-allow-forwarding = Allow packet forwarding for tunnel interface
 
 # Tabs and expanders
 tab-general = General
