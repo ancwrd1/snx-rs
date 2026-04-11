@@ -14,12 +14,12 @@ use ipnet::Ipv4Net;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::{debug, warn};
 
-use crate::platform::DeviceConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{ConnectionInfo, IpsecSession, VpnSession, params::TunnelParams},
     platform::{
-        IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncapType, UdpSocketExt,
+        DeviceConfig, IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncapType,
+        UdpSocketExt,
     },
     server_info,
     tunnel::{

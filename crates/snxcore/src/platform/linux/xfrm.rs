@@ -11,10 +11,9 @@ use rand::random;
 use rtnetlink::{LinkMessageBuilder, LinkXfrm};
 use tracing::{debug, trace};
 
-use crate::platform::DeviceConfig;
 use crate::{
     model::IpsecSession,
-    platform::{IpsecConfigurator, NetworkInterface, Platform, PlatformAccess},
+    platform::{DeviceConfig, IpsecConfigurator, NetworkInterface, Platform, PlatformAccess},
 };
 
 fn new_xfrm_connection() -> anyhow::Result<xfrmnetlink::Handle> {
@@ -52,7 +51,7 @@ impl<'a> XfrmLink<'a> {
 
         Platform::get()
             .new_network_interface()
-            .configure_device(&self.device_config)
+            .configure_device(self.device_config)
             .await?;
 
         Ok(())

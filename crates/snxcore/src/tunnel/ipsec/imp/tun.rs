@@ -21,14 +21,13 @@ use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error, warn};
 
-use crate::platform::DeviceConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
         ConnectionInfo, IpsecSession, VpnSession,
         params::{TransportType, TunnelParams},
     },
-    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
+    platform::{DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
     server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,

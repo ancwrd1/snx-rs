@@ -1,6 +1,6 @@
-use std::{
-    sync::Arc,
-    sync::atomic::{AtomicU32, Ordering},
+use std::sync::{
+    Arc,
+    atomic::{AtomicU32, Ordering},
 };
 
 use anyhow::anyhow;

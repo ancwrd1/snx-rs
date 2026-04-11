@@ -12,8 +12,11 @@ use snxcore::model::{
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
 
-use crate::theme::ThemeMonitor;
-use crate::{assets, profiles::ConnectionProfilesStore, theme::SystemColorTheme};
+use crate::{
+    assets,
+    profiles::ConnectionProfilesStore,
+    theme::{SystemColorTheme, ThemeMonitor},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrayEvent {

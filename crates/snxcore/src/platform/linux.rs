@@ -17,12 +17,11 @@ use tokio::net::UdpSocket;
 use tracing::debug;
 use uuid::Uuid;
 
-use crate::platform::DeviceConfig;
 use crate::{
     model::IpsecSession,
     platform::{
-        IpsecConfigurator, Keychain, NetworkInterface, PlatformAccess, PlatformFeatures, ResolverConfigurator,
-        RoutingConfigurator, SingleInstance, UdpEncapType, UdpSocketExt,
+        DeviceConfig, IpsecConfigurator, Keychain, NetworkInterface, PlatformAccess, PlatformFeatures,
+        ResolverConfigurator, RoutingConfigurator, SingleInstance, UdpEncapType, UdpSocketExt,
     },
 };
 

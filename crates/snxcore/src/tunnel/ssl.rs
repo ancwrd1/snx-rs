@@ -21,7 +21,6 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 
-use crate::platform::DeviceConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -29,7 +28,7 @@ use crate::{
         params::{TransportType, TunnelParams, TunnelType},
         proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
     },
-    platform::{NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
+    platform::{DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
     server_info,
     sexpr::SExpression,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
