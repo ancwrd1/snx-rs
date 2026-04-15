@@ -157,7 +157,7 @@ impl ResolverConfigBuilder {
             if let Some(s) = d.strip_prefix("~") {
                 SearchDomain::new(s, self.features.split_dns)
             } else {
-                SearchDomain::new(d, self.params.set_routing_domains && self.features.split_dns)
+                SearchDomain::new(d, false)
             }
         }));
 
