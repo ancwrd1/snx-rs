@@ -3,6 +3,7 @@ dialog-title = VPN-Einstellungen
 button-ok = OK
 button-apply = Anwenden
 button-cancel = Abbrechen
+button-close = Schließen
 button-fetch-info = Informationen abrufen
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Authentifizierungsmethode
 label-tunnel-type = Tunneltyp
 label-cert-auth-type = Zertifikatstyp
 label-icon-theme = Symbolthema
+label-color-theme = Farbthema
 label-username = Benutzername
 label-username-required = Benutzername ist für die Authentifizierung erforderlich
 label-password = Passwort
@@ -21,18 +23,18 @@ label-search-domains = Zusätzliche Suchdomänen
 label-ignored-domains = Ignorierte Suchdomänen
 label-routing-domains = Erhaltene Suchdomänen als Routing-Domänen behandeln
 label-ca-cert = Server-CA-Stammzertifikate
-label-no-cert-check = Alle TLS-Zertifikatsprüfungen deaktivieren (UNSICHER!)
+label-no-cert-check = Alle TLS-Zertifikatsprüfungen deaktivieren
 label-password-factor = Index des Passwortfaktors, 1..N
 label-keychain = Benutzerpasswort im Schlüsselbund speichern
-label-ike-lifetime = IPSec IKE SA-Lebensdauer, Sekunden
-label-ike-persist = IPSec IKE-Sitzung speichern und automatisch neu verbinden
-label-no-keepalive = IPSec Keepalive-Pakete deaktivieren
+label-ike-lifetime = IPsec IKE SA-Lebensdauer, Sekunden
+label-ike-persist = IPsec-IKE-Sitzung speichern
+label-no-keepalive = IPsec Keepalive-Pakete deaktivieren
 label-port-knock = NAT-T Port Knocking aktivieren
 label-no-routing = Alle erworbenen Routen ignorieren
 label-default-routing = Standardroute über den Tunnel setzen
 label-add-routes = Zusätzliche statische Routen
 label-ignored-routes = Zu ignorierende Routen
-label-client-cert = Client-Zertifikat oder Treiberpfad (.pem, .pfx/.p12, .so)
+label-client-cert = Client-Zertifikat oder Treiberpfad
 label-cert-password = PFX-Passwort oder PKCS11-PIN
 label-cert-id = Hex-ID des PKCS11-Zertifikats
 label-language = Sprache
@@ -40,7 +42,7 @@ label-system-language = Systemstandard
 label-username-password = Benutzername und Passwort
 label-auto-connect = Automatisch beim Start verbinden
 label-ip-lease-time = Benutzerdefinierte IP-Lease-Zeit, Sekunden
-label-disable-ipv6 = IPv6 deaktivieren, wenn die Standardroute aktiviert ist
+label-disable-ipv6 = Standardroute deaktiviert IPv6
 label-mtu = MTU
 label-connection-profile = Verbindungsprofil
 label-profile-name = Profilname
@@ -54,7 +56,7 @@ label-cancel = Abbrechen
 label-open = Öffnen
 label-select-file = Datei auswählen
 label-ca-cert-files = X.509-Zertifikate
-label-allow-forwarding = Paketweiterleitung für die Tunnelschnittstelle zulassen
+label-allow-forwarding = Paketweiterleitung zulassen
 
 # Tabs and expanders
 tab-general = Allgemein
@@ -95,7 +97,7 @@ error-endless-challenges = Endlosschleife von Benutzernamen-Challenges
 error-no-pkcs12 = Kein PKCS12-Pfad und Passwort angegeben
 error-no-pkcs8 = Kein PKCS8 PEM-Pfad angegeben
 error-no-pkcs11 = Kein PKCS11-PIN angegeben
-error-no-ipsec-session = Keine IPSEC-Sitzung
+error-no-ipsec-session = Keine IPsec-Sitzung
 error-request-failed-error-code = Anfrage fehlgeschlagen, Fehlercode: {$error_code}
 error-no-root-privileges = Dieses Programm muss als Root-Benutzer ausgeführt werden!
 error-missing-required-parameters = Erforderliche Parameter fehlen: Servername und/oder Anmeldetyp!
@@ -143,14 +145,14 @@ placeholder-routes = Durch Komma getrennte x.x.x.x/x
 placeholder-certs = Durch Komma getrennte PEM- oder DER-Dateien
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (veraltet)
 
 # Certificate types
 cert-type-none = Keine
 cert-type-pfx = PFX-Datei
 cert-type-pem = PEM-Datei
-cert-type-hw = Hardware-Token
+cert-type-hw = HSM-Gerät
 
 # Transport types
 transport-type-autodetect = Automatisch erkennen
@@ -159,14 +161,19 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automatisch
-icon-theme-dark = Dunkel
-icon-theme-light = Hell
+theme-autodetect = Automatisch
+theme-dark = Dunkel
+theme-light = Hell
 
 # Application
 app-title = SNX-RS VPN-Client für Linux
 app-connection-error = Verbindungsfehler
 app-connection-success = Verbindung erfolgreich
+
+# About dialog
+about-version = Version
+about-authors = Autoren
+about-license = Lizenz
 
 # Authentication
 auth-dialog-title = VPN-Authentifizierungsfaktor
@@ -235,6 +242,7 @@ language-sv-SE = Schwedisch
 
 # Connection status messages
 connection-status-disconnected = Getrennt
+connection-status-connected = Verbunden
 connection-status-connecting = Verbindung wird hergestellt
 connection-status-connected-since = Verbunden seit: {$since}
 connection-status-mfa-pending = Warte auf MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = NATT-Port
 login-options-internal-ca-fingerprint = Interner CA-Fingerabdruck
 
 # Connection profiles
-profile-new = Neu
-profile-rename = Umbenennen
-profile-delete = Löschen
 profile-delete-prompt = Sind Sie sicher, dass Sie das ausgewählte Profil löschen möchten?
 profile-default-name = Standard
 profile-new-title = Neues Verbindungsprofil
 profile-rename-title = Verbindungsprofil umbenennen
+profiles-header = Verbindungsprofile

@@ -93,8 +93,8 @@ impl FromStr for OperationMode {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TunnelType {
     #[default]
-    Ipsec,
-    Ssl,
+    IPsec,
+    SSL,
 }
 
 impl TunnelType {
@@ -108,15 +108,15 @@ impl TunnelType {
 
     pub fn as_str(&self) -> &'static str {
         match self {
-            TunnelType::Ipsec => "ipsec",
-            TunnelType::Ssl => "ssl",
+            TunnelType::IPsec => "ipsec",
+            TunnelType::SSL => "ssl",
         }
     }
 
     pub fn as_u32(&self) -> u32 {
         match self {
-            TunnelType::Ipsec => 0,
-            TunnelType::Ssl => 1,
+            TunnelType::IPsec => 0,
+            TunnelType::SSL => 1,
         }
     }
 }
@@ -126,8 +126,8 @@ impl FromStr for TunnelType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "ipsec" => Ok(TunnelType::Ipsec),
-            "ssl" => Ok(TunnelType::Ssl),
+            "ipsec" => Ok(TunnelType::IPsec),
+            "ssl" => Ok(TunnelType::SSL),
             _ => Err(anyhow!(tr!("error-invalid-tunnel-type"))),
         }
     }
@@ -136,8 +136,8 @@ impl FromStr for TunnelType {
 impl fmt::Display for TunnelType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Ssl => write!(f, "SSL"),
-            Self::Ipsec => write!(f, "IPSec"),
+            Self::SSL => write!(f, "SSL"),
+            Self::IPsec => write!(f, "IPsec"),
         }
     }
 }
@@ -145,8 +145,8 @@ impl fmt::Display for TunnelType {
 impl From<u32> for TunnelType {
     fn from(value: u32) -> Self {
         match value {
-            0 => Self::Ipsec,
-            _ => Self::Ssl,
+            0 => Self::IPsec,
+            _ => Self::SSL,
         }
     }
 }
@@ -209,14 +209,14 @@ impl FromStr for CertType {
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
-pub enum IconTheme {
+pub enum ColorTheme {
     #[default]
     AutoDetect,
     Dark,
     Light,
 }
 
-impl IconTheme {
+impl ColorTheme {
     pub fn as_u32(&self) -> u32 {
         match self {
             Self::AutoDetect => 0,
@@ -226,7 +226,7 @@ impl IconTheme {
     }
 }
 
-impl From<u32> for IconTheme {
+impl From<u32> for ColorTheme {
     fn from(value: u32) -> Self {
         match value {
             1 => Self::Dark,
@@ -236,7 +236,7 @@ impl From<u32> for IconTheme {
     }
 }
 
-impl fmt::Display for IconTheme {
+impl fmt::Display for ColorTheme {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::AutoDetect => "auto",
@@ -247,14 +247,14 @@ impl fmt::Display for IconTheme {
     }
 }
 
-impl FromStr for IconTheme {
+impl FromStr for ColorTheme {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "auto" => Ok(IconTheme::AutoDetect),
-            "dark" => Ok(IconTheme::Dark),
-            "light" => Ok(IconTheme::Light),
+            "auto" => Ok(ColorTheme::AutoDetect),
+            "dark" => Ok(ColorTheme::Dark),
+            "light" => Ok(ColorTheme::Light),
             _ => Err(anyhow!(tr!("error-invalid-icon-theme"))),
         }
     }
@@ -365,7 +365,8 @@ pub struct TunnelParams {
     pub ike_persist: bool,
     pub client_mode: String,
     pub no_keepalive: bool,
-    pub icon_theme: IconTheme,
+    pub icon_theme: ColorTheme,
+    pub color_theme: ColorTheme,
     pub set_routing_domains: bool,
     pub port_knock: bool,
     pub locale: Option<String>,
@@ -415,9 +416,10 @@ impl Default for TunnelParams {
             keychain: false,
             ike_lifetime: DEFAULT_IKE_LIFETIME,
             ike_persist: false,
-            client_mode: TunnelType::Ipsec.as_client_mode().to_owned(),
+            client_mode: TunnelType::IPsec.as_client_mode().to_owned(),
             no_keepalive: false,
-            icon_theme: IconTheme::default(),
+            icon_theme: ColorTheme::default(),
+            color_theme: ColorTheme::default(),
             set_routing_domains: false,
             port_knock: false,
             locale: None,
@@ -752,7 +754,7 @@ mod tests {
             ignore_routes: vec![Ipv4Net::new(Ipv4Addr::new(21, 22, 23, 24), 24).unwrap()],
             no_dns: true,
             ignore_server_cert: true,
-            tunnel_type: TunnelType::Ssl,
+            tunnel_type: TunnelType::SSL,
             ca_cert: vec![PathBuf::from("ca.cert")],
             login_type: "vpn_test".to_string(),
             cert_type: CertType::Pkcs8,
@@ -765,7 +767,8 @@ mod tests {
             ike_persist: true,
             client_mode: "client_mode".to_string(),
             no_keepalive: true,
-            icon_theme: IconTheme::Light,
+            icon_theme: ColorTheme::Light,
+            color_theme: ColorTheme::Dark,
             set_routing_domains: true,
             port_knock: true,
             locale: Some("ja_JP".to_string()),

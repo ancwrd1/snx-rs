@@ -7,9 +7,9 @@ This project contains the source code for an unofficial Linux client for Check P
 
 ## Key Features
 
-* IPSec and SSL tunnel support
+* IPsec and SSL tunnel support
 * Browser-based SSO, username/password, certificate, HSM token and MFA authentication
-* GTK frontend with tray icon
+* GUI frontend with tray icon
 * Split DNS via systemd-resolved for better privacy
 * OS keychain integration (GNOME Keyring, KDE KWallet)
 * Multiple connection profiles

@@ -3,6 +3,7 @@ dialog-title = Nastavenia VPN
 button-ok = OK
 button-apply = Použiť
 button-cancel = Zrušiť
+button-close = Zavrieť
 button-fetch-info = Získať informácie
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Metóda overovania
 label-tunnel-type = Typ tunela
 label-cert-auth-type = Typ certifikátu
 label-icon-theme = Motív ikon
+label-color-theme = Farebný motív
 label-username = Používateľské meno
 label-username-required = Používateľské meno je potrebné na overenie
 label-password = Heslo
@@ -24,9 +26,9 @@ label-ca-cert = Koreňové certifikáty CA servera
 label-no-cert-check = Zakázať všetky kontroly TLS certifikátov (NEBEZPEČNÉ!)
 label-password-factor = Index hesla, 1..N
 label-keychain = Uložiť heslo používateľa do úložiska kľúčov
-label-ike-lifetime = Životnosť IPSec IKE SA, sekundy
-label-ike-persist = Uložiť IPSec IKE reláciu a automaticky sa znova pripojiť
-label-no-keepalive = Zakázať pakety keepalive IPSec
+label-ike-lifetime = Životnosť IPsec IKE SA, sekundy
+label-ike-persist = Uložiť IPsec IKE reláciu a automaticky sa znova pripojiť
+label-no-keepalive = Zakázať pakety keepalive IPsec
 label-port-knock = Povoliť NAT-T port knocking
 label-no-routing = Ignorovať všetky získané trasy
 label-default-routing = Nastaviť predvolenú trasu cez tunel
@@ -95,7 +97,7 @@ error-endless-challenges = Nekonečná slučka výziev používateľského mena
 error-no-pkcs12 = Žiadna cesta PKCS12 a heslo nie sú poskytnuté
 error-no-pkcs8 = Žiadna cesta PKCS8 PEM nie je poskytnutá
 error-no-pkcs11 = Žiadny PIN PKCS11 nie je poskytnutý
-error-no-ipsec-session = Žiadna IPSEC relácia
+error-no-ipsec-session = Žiadna IPsec relácia
 error-request-failed-error-code = Požiadavka zlyhala, kód chyby: {$error_code}
 error-no-root-privileges = Tento program musí byť spustený ako root používateľ!
 error-missing-required-parameters = Chýbajú povinné parametre: názov servera a/alebo typ prístupu!
@@ -143,14 +145,14 @@ placeholder-routes = Trasy oddelené čiarkami vo formáte x.x.x.x/x
 placeholder-certs = Súbory PEM alebo DER oddelené čiarkami
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (zastaralé)
 
 # Certificate types
 cert-type-none = Žiadny
 cert-type-pfx = Súbor PFX
 cert-type-pem = Súbor PEM
-cert-type-hw = Hardvérový token
+cert-type-hw = Zariadenie HSM
 
 # Transport types
 transport-type-autodetect = Automatická detekcia
@@ -159,9 +161,9 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automatická detekcia
-icon-theme-dark = Tmavý
-icon-theme-light = Svetlý
+theme-autodetect = Automatická detekcia
+theme-dark = Tmavý
+theme-light = Svetlý
 
 # Connection info
 info-connected-since = Pripojené od
@@ -182,6 +184,11 @@ info-default-route = Predvolená trasa
 app-title = SNX-RS VPN klient pre Linux
 app-connection-error = Chyba pripojenia
 app-connection-success = Pripojenie úspešné
+
+# About dialog
+about-version = Verzia
+about-authors = Autori
+about-license = Licencia
 
 # Authentication
 auth-dialog-title = VPN autentifikačný faktor
@@ -235,6 +242,7 @@ language-sv-SE = Švédčina
 
 # Connection status messages
 connection-status-disconnected = Odpojené
+connection-status-connected = Pripojené
 connection-status-connecting = Prebieha pripájanie
 connection-status-connected-since = Pripojené od: {$since}
 connection-status-mfa-pending = Čakanie na MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = Port NATT
 login-options-internal-ca-fingerprint = Odtlačok interného CA
 
 # Connection profiles
-profile-new = Nový
-profile-rename = Premenovať
-profile-delete = Zmazať
 profile-delete-prompt = Naozaj chcete zmazať vybraný profil?
 profile-default-name = Predvolený
 profile-new-title = Nový profil pripojenia
 profile-rename-title = Premenovať profil pripojenia
+profiles-header = Profily pripojenia

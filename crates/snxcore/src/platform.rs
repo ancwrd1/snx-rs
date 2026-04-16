@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 
-use crate::model::{IpsecSession, params::TunnelParams};
+use crate::model::{IPsecSession, params::TunnelParams};
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -49,9 +49,9 @@ pub struct PlatformFeatures {
 }
 
 #[async_trait]
-pub trait IpsecConfigurator {
+pub trait IPsecConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()>;
-    async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()>;
+    async fn rekey(&mut self, session: &IPsecSession) -> anyhow::Result<()>;
     async fn cleanup(&mut self);
 }
 
@@ -241,11 +241,11 @@ pub trait PlatformAccess {
     fn new_ipsec_configurator(
         &self,
         device_config: DeviceConfig,
-        ipsec_session: IpsecSession,
+        ipsec_session: IPsecSession,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-    ) -> anyhow::Result<impl IpsecConfigurator + use<Self> + Send + Sync>;
+    ) -> anyhow::Result<impl IPsecConfigurator + use<Self> + Send + Sync>;
     fn new_routing_configurator<S: AsRef<str>>(
         &self,
         device: S,

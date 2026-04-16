@@ -14,7 +14,7 @@ use crate::{
     server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
-        ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
+        ipsec::imp::tun::{PacketReceiver, PacketSender, TunIPsecTunnel},
     },
     util,
 };
@@ -47,9 +47,9 @@ fn make_channel(socket: UdpSocket, address: SocketAddr) -> (PacketSender, Packet
     (tx_out, rx_in)
 }
 
-pub(crate) struct UdpIpsecTunnel(Box<TunIpsecTunnel>);
+pub(crate) struct UdpIPsecTunnel(Box<TunIPsecTunnel>);
 
-impl UdpIpsecTunnel {
+impl UdpIPsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         let server_info = server_info::get(&params).await?;
@@ -62,13 +62,13 @@ impl UdpIpsecTunnel {
         let (sender, receiver) = make_channel(socket, address);
 
         Ok(Self(Box::new(
-            TunIpsecTunnel::create(params, session, sender, receiver, TransportType::Udp).await?,
+            TunIPsecTunnel::create(params, session, sender, receiver, TransportType::Udp).await?,
         )))
     }
 }
 
 #[async_trait::async_trait]
-impl VpnTunnel for UdpIpsecTunnel {
+impl VpnTunnel for UdpIPsecTunnel {
     async fn run(
         mut self: Box<Self>,
         command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,

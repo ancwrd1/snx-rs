@@ -1,0 +1,1252 @@
+import { Button, CheckBox, ComboBox, HorizontalBox, LineEdit, Palette,
+         ScrollView, Switch, TabWidget, VerticalBox, Palette } from "std-widgets.slint";
+import { Tr } from "tr.slint";
+
+component IconButton inherits Rectangle {
+    in property <bool> enabled: true;
+    callback clicked();
+
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: !root.enabled ? transparent
+              : ta.pressed ? Palette.control-background.darker(0.2)
+              : ta.has-hover ? Palette.control-background.darker(0.1)
+              : transparent;
+
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => { root.clicked(); }
+    }
+
+    @children
+}
+
+component PlusIcon inherits Path {
+    in property <color> tint: #2e7d32;
+    stroke: root.tint;
+    stroke-width: 2px;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 10;
+    viewbox-height: 10;
+    width: 14px;
+    height: 14px;
+    MoveTo { x: 5; y: 1; }
+    LineTo { x: 5; y: 9; }
+    MoveTo { x: 1; y: 5; }
+    LineTo { x: 9; y: 5; }
+}
+
+component PencilIcon inherits Path {
+    in property <color> tint: Palette.foreground;
+    stroke: root.tint;
+    stroke-width: 1.2px;
+    fill: root.tint.transparentize(0.85);
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 10;
+    viewbox-height: 10;
+    width: 14px;
+    height: 14px;
+    MoveTo { x: 1.5; y: 8.5; }
+    LineTo { x: 2.5; y: 6.5; }
+    LineTo { x: 6.5; y: 2.5; }
+    LineTo { x: 8.5; y: 4.5; }
+    LineTo { x: 4.5; y: 8.5; }
+    LineTo { x: 2.5; y: 9.5; }
+    LineTo { x: 1.5; y: 8.5; }
+}
+
+component DeleteIcon inherits Path {
+    in property <color> tint: #c62828;
+    stroke: root.tint;
+    stroke-width: 2px;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 10;
+    viewbox-height: 10;
+    width: 14px;
+    height: 14px;
+    MoveTo { x: 2; y: 2; }
+    LineTo { x: 8; y: 8; }
+    MoveTo { x: 8; y: 2; }
+    LineTo { x: 2; y: 8; }
+}
+
+component DnsIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 8 2 A 6 6 0 0 1 8 14 A 6 6 0 0 1 8 2 M 2 8 L 14 8 M 8 2 A 3 6 0 0 1 8 14 A 3 6 0 0 1 8 2";
+}
+
+component RoutingIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.6px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 2 8 L 13 8 M 9 4 L 13 8 L 9 12";
+}
+
+component CertsIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 8 2 L 14 4 L 14 8 L 11 13 L 8 14 L 5 13 L 2 8 L 2 4 Z";
+}
+
+component MiscIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.6px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12";
+}
+
+component UiIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 2 2 L 14 2 L 14 10 L 2 10 Z M 6 10 L 6 13 M 10 10 L 10 13 M 4 13 L 12 13";
+}
+
+component FormStackRow inherits VerticalLayout {
+    in property <string> label;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    spacing: 8px;
+
+    Text {
+        text: root.label;
+        font-weight: 500;
+        font-size: 13px;
+        color: Palette.foreground.transparentize(0.1);
+    }
+
+    @children
+}
+
+component FormToggleRow inherits HorizontalLayout {
+    in property <string> label;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    spacing: 12px;
+
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 14px;
+            wrap: word-wrap;
+        }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        @children
+    }
+}
+
+component FormDivider inherits Rectangle {
+    height: 1px;
+    background: Palette.border.transparentize(0.5);
+}
+
+component FormCard inherits Rectangle {
+    background: Palette.alternate-background;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Palette.border;
+    clip: true;
+
+    @children
+}
+
+component Expander inherits VerticalLayout {
+    in property <string> title;
+    in property <string> icon-kind;
+    in-out property <bool> expanded: false;
+    out property <length> body-preferred-width: body.preferred-width;
+    spacing: 0px;
+
+    header := Rectangle {
+        background: ta.pressed ? Palette.alternate-background.darker(0.15)
+                  : ta.has-hover ? Palette.alternate-background.darker(0.05)
+                  : Palette.alternate-background;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        border-bottom-left-radius: root.expanded ? 0 : 8px;
+        border-bottom-right-radius: root.expanded ? 0 : 8px;
+        min-height: 44px;
+        clip: true;
+        border-width: 1px;
+        border-color: Palette.border;
+
+        animate border-bottom-left-radius { duration: 200ms; easing: ease-in-out; }
+        animate border-bottom-right-radius { duration: 200ms; easing: ease-in-out; }
+
+        ta := TouchArea {
+            clicked => { root.expanded = !root.expanded; }
+        }
+
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: 3px;
+            height: parent.height;
+            background: root.expanded ? Palette.accent-background : transparent;
+            animate background { duration: 200ms; easing: ease-in-out; }
+        }
+
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 12px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            spacing: 10px;
+
+            VerticalLayout {
+                alignment: center;
+                width: 18px;
+
+                if root.icon-kind == "dns": DnsIcon { }
+                if root.icon-kind == "routing": RoutingIcon { }
+                if root.icon-kind == "certs": CertsIcon { }
+                if root.icon-kind == "misc": MiscIcon { }
+                if root.icon-kind == "ui": UiIcon { }
+            }
+
+            Text {
+                text: root.title;
+                horizontal-alignment: left;
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+                color: Palette.control-foreground;
+                font-weight: 600;
+                font-size: 15px;
+            }
+
+            VerticalLayout {
+                alignment: center;
+
+                Path {
+                    width: 12px;
+                    height: 12px;
+                    stroke: Palette.control-foreground;
+                    stroke-width: 1.3px;
+                    viewbox-y: 0;
+                    viewbox-width: 10;
+                    viewbox-height: 10;
+
+                    MoveTo { x: 2; y: 3.5; }
+                    LineTo { x: 5; y: 6.5; }
+                    LineTo { x: 8; y: 3.5; }
+
+                    transform-rotation: root.expanded ? 180deg : 0deg;
+                    transform-origin: { x: self.width / 2, y: self.height / 2 };
+
+                    animate transform-rotation {
+                        duration: 300ms;
+                        easing: ease-in-out;
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        background: Palette.alternate-background;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        clip: true;
+        height: root.expanded ? body.preferred-height : 0;
+
+        animate height {
+            duration: 200ms;
+            easing: ease-in-out;
+        }
+
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: 3px;
+            height: parent.height;
+            background: root.expanded ? Palette.accent-background : transparent;
+            animate background { duration: 200ms; easing: ease-in-out; }
+        }
+
+        body := VerticalLayout {
+            @children
+        }
+    }
+}
+
+export component SettingsWindow inherits Window {
+    title: Tr.dialog-title;
+    min-width: max(800px, 230px + 50px + max(
+        max(
+            max(expander-dns.body-preferred-width, expander-routing.body-preferred-width),
+            max(expander-certs.body-preferred-width, expander-misc.body-preferred-width),
+        ),
+        expander-ui.body-preferred-width,
+    ));
+    min-height: 600px;
+    default-font-size: 14px;
+
+    in property <length> min-form-width: 300px;
+
+    // profile management
+    in property <[string]> profiles: [];
+    in property <int> default-profile-index: 0;
+    in-out property <int> profile-index: 0;
+
+    // general tab
+    in-out property <string> server-name;
+    in property <[string]> auth-types: [];
+    in-out property <int> auth-type-index: 0;
+    in property <[string]> tunnel-types: [];
+    in-out property <int> tunnel-type-index: 0;
+    in property <bool> tunnel-type-enabled: true;
+    in-out property <bool> machine-cert: false;
+    in property <bool> machine-cert-enabled: false;
+    in property <bool> show-user-auth: false;
+    in property <bool> show-cert-auth: false;
+    in-out property <string> username;
+    in-out property <string> password;
+    in property <[string]> cert-types: [];
+    in-out property <int> cert-type-index: 0;
+    in-out property <string> cert-path;
+    in-out property <string> cert-password;
+    in-out property <string> cert-id;
+
+    // dns
+    in-out property <bool> no-dns: false;
+    in-out property <string> dns-servers;
+    in-out property <string> ignored-dns-servers;
+    in-out property <string> search-domains;
+    in-out property <string> ignored-domains;
+    in-out property <bool> set-routing-domains: false;
+
+    // routing
+    in-out property <bool> no-routing: false;
+    in-out property <bool> default-routing: false;
+    in-out property <string> add-routes;
+    in-out property <string> ignored-routes;
+    in-out property <bool> disable-ipv6: false;
+
+    // certs
+    in-out property <string> ca-cert;
+    in-out property <bool> no-cert-check: false;
+
+    // misc
+    in-out property <string> password-factor;
+    in-out property <bool> keychain: false;
+    in-out property <string> ike-lifetime;
+    in-out property <bool> ike-persist: false;
+    in-out property <bool> no-keepalive: false;
+    in-out property <bool> port-knock: false;
+    in-out property <bool> allow-forwarding: false;
+    in-out property <string> ip-lease-time;
+    in-out property <string> mtu;
+    in property <[string]> transport-types: [];
+    in-out property <int> transport-type-index: 0;
+
+    // ui
+    in property <[string]> icon-themes: [];
+    in-out property <int> icon-theme-index: 0;
+    in property <[string]> color-themes: [];
+    in-out property <int> color-theme-index: 0;
+    in property <[string]> locales: [];
+    in-out property <int> locale-index: 0;
+    in-out property <bool> auto-connect: false;
+    in-out property <bool> fetch-enabled: true;
+
+    // error message
+    in property <string> error-text;
+    in property <color> error-color: Palette.color-scheme == ColorScheme.dark ? #ffffff : #000000;
+
+    // modal confirm
+    in-out property <string> confirm-message;
+    in-out property <bool> confirm-visible: false;
+
+    // modal entry
+    in-out property <string> entry-title;
+    in-out property <string> entry-label;
+    in-out property <string> entry-value;
+    in-out property <bool> entry-visible: false;
+
+    // callbacks
+    callback fetch-info-clicked();
+    callback profile-new-clicked();
+    callback profile-rename-clicked();
+    callback profile-delete-clicked();
+    callback profile-changed();
+    callback auth-type-changed();
+    callback machine-cert-changed();
+    callback browse-ca-cert-clicked();
+    callback browse-cert-path-clicked();
+    callback ok-clicked();
+    callback apply-clicked();
+    callback cancel-clicked();
+    callback confirm-ok-clicked();
+    callback confirm-cancel-clicked();
+    callback entry-ok-clicked(string);
+    callback entry-cancel-clicked();
+
+    public function show-confirm(msg: string) {
+        root.confirm-message = msg;
+        root.confirm-visible = true;
+    }
+
+    public function show-entry(title: string, label: string, value: string) {
+        root.entry-title = title;
+        root.entry-label = label;
+        root.entry-value = value;
+        root.entry-visible = true;
+    }
+
+    changed profile-index => { root.profile-changed(); }
+    changed auth-type-index => { root.auth-type-changed(); }
+    changed machine-cert => {
+        self.height = max(self.preferred-height, root.min-height);
+        root.machine-cert-changed();
+    }
+    changed show-user-auth => { self.height = max(self.preferred-height, root.min-height); }
+    changed show-cert-auth => { self.height = max(self.preferred-height, root.min-height); }
+
+    VerticalLayout {
+        padding: 10px;
+        spacing: 0px;
+
+        HorizontalLayout {
+            spacing: 6px;
+            vertical-stretch: 1;
+
+            Rectangle {
+                width: 240px;
+                background: Palette.alternate-background;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Palette.border;
+
+                VerticalLayout {
+                    padding: 6px;
+                    spacing: 4px;
+
+                    HorizontalLayout {
+                        spacing: 6px;
+                        padding-left: 6px;
+                        padding-right: 2px;
+                        padding-top: 2px;
+                        padding-bottom: 2px;
+
+                        Text {
+                            text: Tr.profiles-header;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                        }
+
+                        IconButton {
+                            clicked => { root.profile-new-clicked(); }
+                            PlusIcon { }
+                        }
+                    }
+
+                    Rectangle {
+                        height: 1px;
+                        background: Palette.border;
+                    }
+
+                    ScrollView {
+                        vertical-stretch: 1;
+
+                        VerticalLayout {
+                            alignment: start;
+                            spacing: 2px;
+
+                            for name[i] in root.profiles: Rectangle {
+                                height: 32px;
+                                border-radius: 4px;
+                                background: root.profile-index == i
+                                    ? Palette.accent-background
+                                    : row-ta.has-hover
+                                        ? Palette.control-background.darker(0.1)
+                                        : transparent;
+
+                                row-ta := TouchArea {
+                                    clicked => { root.profile-index = i; }
+                                }
+
+                                HorizontalLayout {
+                                    padding-left: 8px;
+                                    padding-right: 4px;
+                                    spacing: 2px;
+
+                                    Text {
+                                        text: name;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 1;
+                                        overflow: elide;
+                                        color: root.profile-index == i
+                                            ? Palette.accent-foreground
+                                            : Palette.foreground;
+                                    }
+
+                                    VerticalLayout {
+                                        alignment: center;
+                                        IconButton {
+                                            clicked => {
+                                                root.profile-index = i;
+                                                root.profile-rename-clicked();
+                                            }
+                                            PencilIcon {
+                                                tint: root.profile-index == i
+                                                    ? Palette.accent-foreground
+                                                    : Palette.foreground;
+                                            }
+                                        }
+                                    }
+
+                                    VerticalLayout {
+                                        alignment: center;
+                                        IconButton {
+                                            enabled: i != root.default-profile-index;
+                                            clicked => {
+                                                root.profile-index = i;
+                                                root.profile-delete-clicked();
+                                            }
+                                            if i != root.default-profile-index: DeleteIcon { }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            TabWidget {
+                horizontal-stretch: 1;
+
+                Tab {
+                    title: Tr.tab-general;
+
+                    ScrollView {
+                        VerticalLayout {
+                            padding-top: 6px;
+                            alignment: start;
+
+                            FormCard {
+                                min-width: 400px;
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    FormStackRow {
+                                        label: Tr.label-server-address;
+                                        HorizontalLayout {
+                                            spacing: 6px;
+                                            server-address := LineEdit {
+                                                text <=> root.server-name;
+                                                horizontal-stretch: 1;
+                                            }
+                                            Button {
+                                                text: Tr.button-fetch-info;
+                                                enabled: root.fetch-enabled && server-address.text != "";
+                                                clicked => { root.fetch-info-clicked(); }
+                                            }
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-auth-method;
+                                        ComboBox {
+                                            model: root.auth-types;
+                                            current-index <=> root.auth-type-index;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-tunnel-type;
+                                        ComboBox {
+                                            model: root.tunnel-types;
+                                            current-index <=> root.tunnel-type-index;
+                                            enabled: root.tunnel-type-enabled;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-machine-cert-auth;
+                                        Switch {
+                                            checked <=> root.machine-cert;
+                                            enabled: root.machine-cert-enabled;
+                                        }
+                                    }
+
+                                    if root.show-user-auth: FormDivider { }
+                                    if root.show-user-auth: FormStackRow {
+                                        label: Tr.label-username;
+                                        LineEdit {
+                                            text <=> root.username;
+                                        }
+                                    }
+
+                                    if root.show-user-auth: FormDivider { }
+                                    if root.show-user-auth: FormStackRow {
+                                        label: Tr.label-password;
+                                        LineEdit {
+                                            text <=> root.password;
+                                            input-type: InputType.password;
+                                        }
+                                    }
+
+                                    if root.show-cert-auth || root.machine-cert: FormDivider { }
+                                    if root.show-cert-auth || root.machine-cert: FormStackRow {
+                                        label: Tr.label-cert-auth-type;
+                                        ComboBox {
+                                            model: root.cert-types;
+                                            current-index <=> root.cert-type-index;
+                                        }
+                                    }
+
+                                    if root.show-cert-auth || root.machine-cert: FormDivider { }
+                                    if root.show-cert-auth || root.machine-cert: FormStackRow {
+                                        label: Tr.label-client-cert;
+                                        HorizontalLayout {
+                                            spacing: 6px;
+                                            LineEdit {
+                                                text <=> root.cert-path;
+                                                horizontal-stretch: 1;
+                                            }
+                                            Button {
+                                                text: Tr.label-browse;
+                                                clicked => { root.browse-cert-path-clicked(); }
+                                            }
+                                        }
+                                    }
+
+                                    if root.show-cert-auth || root.machine-cert: FormDivider { }
+                                    if root.show-cert-auth || root.machine-cert: FormStackRow {
+                                        label: Tr.label-cert-password;
+                                        LineEdit {
+                                            text <=> root.cert-password;
+                                            input-type: InputType.password;
+                                        }
+                                    }
+
+                                    if root.show-cert-auth || root.machine-cert: FormDivider { }
+                                    if root.show-cert-auth || root.machine-cert: FormStackRow {
+                                        label: Tr.label-cert-id;
+                                        LineEdit {
+                                            text <=> root.cert-id;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Tab {
+                    title: Tr.tab-advanced;
+
+                    ScrollView {
+                        VerticalLayout {
+                            padding-top: 6px;
+                            spacing: 8px;
+                            alignment: start;
+
+                            expander-dns := Expander {
+                                title: Tr.expand-dns;
+                                icon-kind: "dns";
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    FormToggleRow {
+                                        label: Tr.label-no-dns;
+                                        Switch { checked <=> root.no-dns; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-dns-servers;
+                                        LineEdit {
+                                            text <=> root.dns-servers;
+                                            placeholder-text: Tr.placeholder-ip-addresses;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ignored-dns-servers;
+                                        LineEdit {
+                                            text <=> root.ignored-dns-servers;
+                                            placeholder-text: Tr.placeholder-ip-addresses;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-search-domains;
+                                        LineEdit {
+                                            text <=> root.search-domains;
+                                            placeholder-text: Tr.placeholder-domains;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ignored-domains;
+                                        LineEdit {
+                                            text <=> root.ignored-domains;
+                                            placeholder-text: Tr.placeholder-domains;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-routing-domains;
+                                        Switch { checked <=> root.set-routing-domains; }
+                                    }
+                                }
+                            }
+
+                            expander-routing := Expander {
+                                title: Tr.expand-routing;
+                                icon-kind: "routing";
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    FormToggleRow {
+                                        label: Tr.label-no-routing;
+                                        Switch { checked <=> root.no-routing; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-default-routing;
+                                        Switch { checked <=> root.default-routing; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-add-routes;
+                                        LineEdit {
+                                            text <=> root.add-routes;
+                                            placeholder-text: Tr.placeholder-routes;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ignored-routes;
+                                        LineEdit {
+                                            text <=> root.ignored-routes;
+                                            placeholder-text: Tr.placeholder-routes;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-disable-ipv6;
+                                        Switch { checked <=> root.disable-ipv6; }
+                                    }
+                                }
+                            }
+
+                            expander-certs := Expander {
+                                title: Tr.expand-certificates;
+                                icon-kind: "certs";
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    FormStackRow {
+                                        label: Tr.label-ca-cert;
+                                        HorizontalLayout {
+                                            spacing: 6px;
+                                            min-width: root.min-form-width;
+                                            LineEdit {
+                                                text <=> root.ca-cert;
+                                                placeholder-text: Tr.placeholder-certs;
+                                                horizontal-stretch: 1;
+                                            }
+                                            Button {
+                                                text: Tr.label-browse;
+                                                clicked => { root.browse-ca-cert-clicked(); }
+                                            }
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-no-cert-check;
+                                        Switch { checked <=> root.no-cert-check; }
+                                    }
+                                }
+                            }
+
+                            expander-misc := Expander {
+                                title: Tr.expand-misc;
+                                icon-kind: "misc";
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    FormStackRow {
+                                        label: Tr.label-password-factor;
+                                        LineEdit {
+                                            text <=> root.password-factor;
+                                            input-type: InputType.number;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-keychain;
+                                        Switch { checked <=> root.keychain; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ike-lifetime;
+                                        LineEdit {
+                                            text <=> root.ike-lifetime;
+                                            input-type: InputType.number;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-ike-persist;
+                                        Switch { checked <=> root.ike-persist; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-no-keepalive;
+                                        Switch { checked <=> root.no-keepalive; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-port-knock;
+                                        Switch { checked <=> root.port-knock; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-allow-forwarding;
+                                        Switch { checked <=> root.allow-forwarding; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ip-lease-time;
+                                        LineEdit {
+                                            text <=> root.ip-lease-time;
+                                            input-type: InputType.number;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-mtu;
+                                        LineEdit {
+                                            text <=> root.mtu;
+                                            input-type: InputType.number;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.info-transport-type;
+                                        ComboBox {
+                                            model: root.transport-types;
+                                            current-index <=> root.transport-type-index;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+                                }
+                            }
+
+                            expander-ui := Expander {
+                                title: Tr.expand-ui;
+                                icon-kind: "ui";
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    FormStackRow {
+                                        label: Tr.label-icon-theme;
+                                        ComboBox {
+                                            model: root.icon-themes;
+                                            current-index <=> root.icon-theme-index;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-color-theme;
+                                        ComboBox {
+                                            model: root.icon-themes;
+                                            current-index <=> root.color-theme-index;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-language;
+                                        ComboBox {
+                                            model: root.locales;
+                                            current-index <=> root.locale-index;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-auto-connect;
+                                        Switch { checked <=> root.auto-connect; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if root.error-text != "": HorizontalLayout {
+            padding: 8px;
+            Rectangle {
+                background: Palette.color-scheme == ColorScheme.dark
+                    ? #f4433622
+                    : #fdecea;
+                border-width: 1px;
+                border-radius: 8px;
+                border-color: #f4433666;
+                drop-shadow-blur: 8px;
+                drop-shadow-color: #00000022;
+                drop-shadow-offset-y: 1px;
+                clip: true;
+
+                Rectangle {
+                    x: 0;
+                    y: 0;
+                    width: 4px;
+                    height: parent.height;
+                    background: #f44336;
+                }
+
+                HorizontalLayout {
+                    padding-left: 16px;
+                    padding-right: 14px;
+                    padding-top: 12px;
+                    padding-bottom: 12px;
+                    spacing: 12px;
+
+                    VerticalLayout {
+                        alignment: start;
+
+                        Rectangle {
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 11px;
+                            background: #f44336;
+
+                            Text {
+                                text: "!";
+                                color: white;
+                                font-weight: 700;
+                                font-size: 15px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        horizontal-stretch: 1;
+
+                        Text {
+                            text: root.error-text;
+                            color: Palette.color-scheme == ColorScheme.dark
+                                ? #ffb4b0
+                                : #b71c1c;
+                            font-weight: 500;
+                            horizontal-alignment: left;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            padding: 6px;
+            alignment: end;
+            Rectangle {
+                height: 1px;
+                width: 100%;
+                border-width: 1px;
+                border-radius: 1px;
+                border-color: Palette.border;
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            spacing: 6px;
+            padding: 6px;
+
+            Button {
+                text: Tr.button-cancel;
+                min-width: 80px;
+                clicked => { root.cancel-clicked(); }
+            }
+            Button {
+                text: Tr.button-apply;
+                min-width: 80px;
+                clicked => { root.apply-clicked(); }
+            }
+            Button {
+                text: Tr.button-ok;
+                min-width: 80px;
+                primary: true;
+                clicked => { root.ok-clicked(); }
+            }
+        }
+    }
+
+    if root.confirm-visible: Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000099;
+
+        TouchArea { }
+
+        FocusScope {
+            init => { self.focus(); }
+            key-pressed(event) => {
+                if event.text == Key.Escape {
+                    root.confirm-visible = false;
+                    root.confirm-cancel-clicked();
+                    return accept;
+                }
+                reject
+            }
+        }
+
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 400px;
+            height: dialog-layout.preferred-height;
+            background: Palette.background;
+            border-color: Palette.border;
+            border-width: 1px;
+            border-radius: 6px;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: #00000099;
+            drop-shadow-offset-y: 2px;
+
+            TouchArea { }
+
+            dialog-layout := VerticalLayout {
+                padding: 16px;
+                spacing: 16px;
+
+                Text {
+                    text: root.confirm-message;
+                    wrap: word-wrap;
+                }
+
+                HorizontalLayout {
+                    alignment: end;
+                    spacing: 6px;
+
+                    Button {
+                        text: Tr.button-cancel;
+                        min-width: 80px;
+                        clicked => {
+                            root.confirm-visible = false;
+                            root.confirm-cancel-clicked();
+                        }
+                    }
+                    Button {
+                        text: Tr.button-ok;
+                        min-width: 80px;
+                        primary: true;
+                        clicked => {
+                            root.confirm-visible = false;
+                            root.confirm-ok-clicked();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if root.entry-visible: Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000099;
+
+        TouchArea { }
+
+        FocusScope {
+            init => { entry-input.focus(); }
+            key-pressed(event) => {
+                if event.text == Key.Escape {
+                    root.entry-visible = false;
+                    root.entry-cancel-clicked();
+                    return accept;
+                }
+                reject
+            }
+
+            Rectangle {
+                x: (root.width - self.width) / 2;
+                y: (root.height - self.height) / 2;
+                width: 400px;
+                height: entry-dialog-layout.preferred-height;
+                background: Palette.background;
+                border-color: Palette.border;
+                border-width: 1px;
+                border-radius: 6px;
+                drop-shadow-blur: 16px;
+                drop-shadow-color: #00000099;
+                drop-shadow-offset-y: 2px;
+
+                TouchArea { }
+
+                entry-dialog-layout := VerticalLayout {
+                    padding: 16px;
+                    spacing: 12px;
+
+                    Text {
+                        text: root.entry-title;
+                        font-weight: 700;
+                    }
+
+                    Text {
+                        text: root.entry-label;
+                    }
+
+                    entry-input := LineEdit {
+                        text <=> root.entry-value;
+                        init => { self.select-all(); }
+                        accepted(text) => {
+                            if (text != "") {
+                                root.entry-visible = false;
+                                root.entry-ok-clicked(text);
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: 6px;
+
+                        Button {
+                            text: Tr.button-cancel;
+                            min-width: 80px;
+                            clicked => {
+                                root.entry-visible = false;
+                                root.entry-cancel-clicked();
+                            }
+                        }
+                        Button {
+                            text: Tr.button-ok;
+                            min-width: 80px;
+                            primary: true;
+                            enabled: entry-input.text != "";
+                            clicked => {
+                                root.entry-visible = false;
+                                root.entry-ok-clicked(entry-input.text);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

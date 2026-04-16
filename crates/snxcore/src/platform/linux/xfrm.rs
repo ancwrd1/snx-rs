@@ -12,8 +12,8 @@ use rtnetlink::{LinkMessageBuilder, LinkXfrm};
 use tracing::{debug, trace};
 
 use crate::{
-    model::IpsecSession,
-    platform::{DeviceConfig, IpsecConfigurator, NetworkInterface, Platform, PlatformAccess},
+    model::IPsecSession,
+    platform::{DeviceConfig, IPsecConfigurator, NetworkInterface, Platform, PlatformAccess},
 };
 
 fn new_xfrm_connection() -> anyhow::Result<xfrmnetlink::Handle> {
@@ -190,7 +190,7 @@ enum CommandType {
 
 pub struct XfrmConfigurator {
     device_config: DeviceConfig,
-    ipsec_session: IpsecSession,
+    ipsec_session: IPsecSession,
     source_ip: Ipv4Addr,
     if_id: u32,
     src_port: u16,
@@ -201,7 +201,7 @@ pub struct XfrmConfigurator {
 impl XfrmConfigurator {
     pub fn new(
         device_config: DeviceConfig,
-        ipsec_session: IpsecSession,
+        ipsec_session: IPsecSession,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
@@ -297,7 +297,7 @@ impl XfrmConfigurator {
 }
 
 #[async_trait::async_trait]
-impl IpsecConfigurator for XfrmConfigurator {
+impl IPsecConfigurator for XfrmConfigurator {
     async fn configure(&mut self) -> anyhow::Result<()> {
         self.source_ip = Platform::get().new_network_interface().get_default_ipv4().await?;
         debug!("Source IP: {}", self.source_ip);
@@ -310,7 +310,7 @@ impl IpsecConfigurator for XfrmConfigurator {
         Ok(())
     }
 
-    async fn rekey(&mut self, session: &IpsecSession) -> anyhow::Result<()> {
+    async fn rekey(&mut self, session: &IPsecSession) -> anyhow::Result<()> {
         trace!(
             "Rekeying XFRM state with new session: IN: {:?}, OUT: {:?}",
             session.esp_in, session.esp_out

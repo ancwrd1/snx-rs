@@ -18,9 +18,9 @@ use tracing::debug;
 use uuid::Uuid;
 
 use crate::{
-    model::IpsecSession,
+    model::IPsecSession,
     platform::{
-        DeviceConfig, IpsecConfigurator, Keychain, NetworkInterface, PlatformAccess, PlatformFeatures,
+        DeviceConfig, IPsecConfigurator, Keychain, NetworkInterface, PlatformAccess, PlatformFeatures,
         ResolverConfigurator, RoutingConfigurator, SingleInstance, UdpEncapType, UdpSocketExt,
     },
 };
@@ -201,11 +201,11 @@ impl PlatformAccess for LinuxPlatformAccess {
     fn new_ipsec_configurator(
         &self,
         device_config: DeviceConfig,
-        ipsec_session: IpsecSession,
+        ipsec_session: IPsecSession,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-    ) -> anyhow::Result<impl IpsecConfigurator + use<> + Send + Sync> {
+    ) -> anyhow::Result<impl IPsecConfigurator + use<> + Send + Sync> {
         xfrm::XfrmConfigurator::new(device_config, ipsec_session, src_port, dest_ip, dest_port)
     }
 

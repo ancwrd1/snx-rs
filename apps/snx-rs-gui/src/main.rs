@@ -1,11 +1,6 @@
-use std::{cell::RefCell, collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use clap::{CommandFactory, Parser};
-use gtk4::{
-    Application, ApplicationWindow, License, Window,
-    glib::{self, clone},
-    prelude::{ApplicationExt, ApplicationExtManual, Cast, GtkWindowExt, IsA, WidgetExt},
-};
 use i18n::tr;
 use nix::unistd::Uid;
 use snxcore::{
@@ -21,9 +16,11 @@ use tracing::{level_filters::LevelFilter, warn};
 use crate::{
     params::CmdlineParams,
     profiles::ConnectionProfilesStore,
-    prompt::GtkPrompt,
-    status::show_status_dialog,
     tray::{TrayCommand, TrayEvent},
+    ui::{
+        about::AboutWindowController, open_window, prompt::SlintPrompt, settings::SettingsWindowController,
+        status::StatusWindowController,
+    },
 };
 
 mod assets;
@@ -31,43 +28,18 @@ mod dbus;
 mod ipc;
 mod params;
 mod profiles;
-mod prompt;
-mod settings;
-mod status;
 mod theme;
 mod tray;
+mod ui;
 #[cfg(feature = "mobile-access")]
 mod webkit;
 
 pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
-thread_local! {
-    static WINDOWS: RefCell<HashMap<String, Window>> = RefCell::new(HashMap::new());
-}
-
-pub fn main_window() -> ApplicationWindow {
-    get_window("main").unwrap().downcast::<ApplicationWindow>().unwrap()
-}
-
-pub fn get_window(name: &str) -> Option<Window> {
-    WINDOWS.with(|cell| cell.borrow().get(name).cloned())
-}
-
-pub fn set_window<W: Cast + IsA<Window>>(name: &str, window: Option<W>) {
-    WINDOWS.with(|cell| {
-        if let Some(window) = window {
-            cell.borrow_mut().insert(name.to_string(), window.upcast::<Window>())
-        } else {
-            cell.borrow_mut().remove(name)
-        }
-    });
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cmdline_params = params::CmdlineParams::parse();
 
-    // Handle completions immediately and exit
     if let Some(shell) = cmdline_params.completions {
         clap_complete::generate(
             shell,
@@ -86,6 +58,12 @@ async fn main() -> anyhow::Result<()> {
         i18n::set_locale(Some(locale));
     }
 
+    #[cfg(feature = "mobile-access")]
+    if let Some(url) = cmdline_params.webkit.as_deref() {
+        let code = tokio::task::block_in_place(|| webkit::webkit_main(url, cmdline_params.webkit_ignore_cert));
+        std::process::exit(code);
+    }
+
     let platform = Platform::get();
     let instance = platform.new_single_instance(format!("/tmp/snx-rs-gui-{}.lock", Uid::current()))?;
     if !instance.is_single() {
@@ -100,150 +78,109 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let (tray_event_sender, mut tray_event_receiver) = mpsc::channel(16);
+    let (tray_event_sender, tray_event_receiver) = mpsc::channel(16);
 
     if let Err(e) = ipc::start_ipc_listener(tray_event_sender.clone()) {
         warn!("Failed to start IPC listener: {}", e);
     }
 
-    let mut retry_count = 5;
-
-    let mut my_tray = loop {
-        match tray::AppTray::new(tray_event_sender.clone(), cmdline_params.no_tray).await {
-            Ok(tray) => break tray,
-            Err(e) => {
-                if retry_count == 0 {
-                    anyhow::bail!("Failed to create tray: {}", e);
-                } else {
-                    warn!("Failed to create tray: {}, retrying in 2 seconds", e);
-                    retry_count -= 1;
-                    tokio::time::sleep(Duration::from_secs(2)).await;
-                }
-            }
-        }
-    };
-
+    let mut my_tray = create_tray(tray_event_sender.clone(), cmdline_params.no_tray).await?;
     let tray_command_sender = my_tray.sender();
 
     tokio::spawn(async move { my_tray.run().await });
 
-    let tray_command_sender2 = tray_command_sender.clone();
-    let tray_event_sender2 = tray_event_sender.clone();
+    {
+        let cmd_sender = tray_command_sender.clone();
+        let evt_sender = tray_event_sender.clone();
+        tokio::spawn(async move { status_poll(cmd_sender, evt_sender).await });
+    }
 
-    tokio::spawn(async move { status_poll(tray_command_sender2, tray_event_sender2).await });
+    let no_tray = cmdline_params.no_tray;
+    let tray_command_sender_for_events = tray_command_sender.clone();
+    let tray_event_sender_for_status = tray_event_sender.clone();
 
-    let app = Application::builder().application_id("com.github.snx-rs").build();
-
-    let tray_event_sender2 = tray_event_sender.clone();
-
-    glib::spawn_future_local(clone!(
-        #[weak]
-        app,
-        async move {
-            let mut cancel_sender = None;
-
-            while let Some(v) = tray_event_receiver.recv().await {
-                match v {
-                    TrayEvent::Connect(uuid) => {
-                        let sender = tray_command_sender.clone();
-                        let (tx, rx) = mpsc::channel(16);
-                        cancel_sender = Some(tx);
-
-                        if let Some(profile) = ConnectionProfilesStore::instance().get(uuid) {
-                            ConnectionProfilesStore::instance().set_connected(uuid);
-                            tokio::spawn(async move { do_connect(sender, profile, rx).await });
-                        }
-                    }
-                    TrayEvent::Disconnect => {
-                        let sender = tray_command_sender.clone();
-                        let cancel_sender = cancel_sender.take();
-                        let params = ConnectionProfilesStore::instance().get_connected();
-                        tokio::spawn(async move { do_disconnect(sender, params, cancel_sender).await });
-                    }
-                    TrayEvent::Settings => settings::start_settings_dialog(
-                        main_window(),
-                        tray_command_sender.clone(),
-                        ConnectionProfilesStore::instance().get_connected().profile_id,
-                    ),
-                    TrayEvent::Exit => {
-                        let _ = tray_command_sender.send(TrayCommand::Exit).await;
-                        app.quit();
-                    }
-                    TrayEvent::About => do_about(),
-
-                    TrayEvent::Status => {
-                        do_status(tray_event_sender2.clone(), cmdline_params.no_tray);
-                    }
-                }
-            }
-        }
-    ));
-
-    app.connect_activate(move |app| {
-        let app_window = ApplicationWindow::builder().application(app).visible(false).build();
-
-        let provider = gtk4::CssProvider::new();
-        provider.load_from_data(assets::APP_CSS);
-
-        gtk4::style_context_add_provider_for_display(
-            &app_window.display(),
-            &provider,
-            gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
-        );
-
-        set_window("main", Some(app_window));
+    tokio::spawn(async move {
+        handle_tray_events(
+            tray_event_receiver,
+            tray_command_sender_for_events,
+            tray_event_sender_for_status,
+            no_tray,
+        )
+        .await;
     });
 
     if let Some(mut command) = cmdline_params.command {
-        tokio::spawn(async move {
+        ui::run_from_event_loop(async move {
             let params = ConnectionProfilesStore::instance().get_default();
             if matches!(command, TrayEvent::Connect(_)) && params.server_name.is_empty() {
                 command = TrayEvent::Settings;
             }
-
-            let _ = tray_event_sender.send(command).await;
+            tray_event_sender.send(command).await
         });
     } else if cmdline_params.no_tray {
-        let _ = tray_event_sender.send(TrayEvent::Status).await;
+        ui::run_from_event_loop(async move { tray_event_sender.send(TrayEvent::Status).await });
     }
 
-    app.run_with_args::<&str>(&[]);
+    tokio::task::block_in_place(slint::run_event_loop_until_quit)?;
 
     Ok(())
 }
 
-fn do_about() {
-    glib::idle_add_once(|| {
-        if let Some(dialog) = get_window("about") {
-            dialog.present();
-            return;
+async fn create_tray(sender: mpsc::Sender<TrayEvent>, no_tray: bool) -> anyhow::Result<tray::AppTray> {
+    let mut retry_count = 5;
+    loop {
+        match tray::AppTray::new(sender.clone(), no_tray).await {
+            Ok(tray) => return Ok(tray),
+            Err(e) => {
+                if retry_count == 0 {
+                    anyhow::bail!("Failed to create tray: {}", e);
+                }
+                warn!("Failed to create tray: {}, retrying in 2 seconds", e);
+                retry_count -= 1;
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
         }
-
-        let dialog = gtk4::AboutDialog::builder()
-            .transient_for(&main_window())
-            .version(env!("CARGO_PKG_VERSION"))
-            .logo_icon_name("network-vpn")
-            .website("https://github.com/ancwrd1/snx-rs")
-            .authors([env!("CARGO_PKG_AUTHORS")])
-            .license_type(License::Agpl30)
-            .program_name(tr!("app-title"))
-            .title(tr!("app-title"))
-            .build();
-
-        set_window("about", Some(dialog.clone()));
-
-        dialog.connect_close_request(|_| {
-            set_window("about", None::<gtk4::Window>);
-            glib::signal::Propagation::Proceed
-        });
-        dialog.present();
-    });
+    }
 }
 
-fn do_status(sender: mpsc::Sender<TrayEvent>, exit_on_close: bool) {
-    glib::idle_add_once(move || {
-        glib::spawn_future_local(async move { show_status_dialog(sender, exit_on_close).await });
-    });
+async fn handle_tray_events(
+    mut rx: mpsc::Receiver<TrayEvent>,
+    tray_command_sender: mpsc::Sender<TrayCommand>,
+    tray_event_sender: mpsc::Sender<TrayEvent>,
+    no_tray: bool,
+) {
+    let mut cancel_sender = None;
+
+    while let Some(v) = rx.recv().await {
+        match v {
+            TrayEvent::Connect(uuid) => {
+                let sender = tray_command_sender.clone();
+                let (tx, rx) = mpsc::channel(16);
+                cancel_sender = Some(tx);
+
+                if let Some(profile) = ConnectionProfilesStore::instance().get(uuid) {
+                    ConnectionProfilesStore::instance().set_connected(uuid);
+                    tokio::spawn(async move { on_connect(sender, profile, rx).await });
+                }
+            }
+            TrayEvent::Disconnect => {
+                let sender = tray_command_sender.clone();
+                let cancel_sender = cancel_sender.take();
+                let params = ConnectionProfilesStore::instance().get_connected();
+                tokio::spawn(async move { on_disconnect(sender, params, cancel_sender).await });
+            }
+            TrayEvent::Settings => on_settings(tray_command_sender.clone()),
+            TrayEvent::Exit => {
+                let _ = tray_command_sender.send(TrayCommand::Exit).await;
+                let _ = slint::quit_event_loop();
+            }
+            TrayEvent::About => on_about(),
+
+            TrayEvent::Status => {
+                on_status(tray_event_sender.clone(), no_tray);
+            }
+        }
+    }
 }
 
 fn init_logging(params: &TunnelParams) {
@@ -256,7 +193,7 @@ fn init_logging(params: &TunnelParams) {
 
 async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mpsc::Sender<TrayEvent>) {
     let mut controller = ServiceController::new(
-        GtkPrompt,
+        SlintPrompt,
         new_browser_controller(ConnectionProfilesStore::instance().get_connected()),
     );
 
@@ -267,7 +204,7 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
         let params = ConnectionProfilesStore::instance().get_connected();
         let status = controller.command(ServiceCommand::Status, params.clone()).await;
 
-        if !status::same_status(&status, &old_status) {
+        if !ui::status::same_status(&status, &old_status) {
             let is_disconnected = matches!(status, Ok(ConnectionStatus::Disconnected));
 
             old_status = Arc::new(status);
@@ -286,12 +223,28 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
     }
 }
 
-async fn do_disconnect(
+fn on_about() {
+    open_window(AboutWindowController::NAME, || Ok(AboutWindowController::new()?))
+}
+
+fn on_status(sender: mpsc::Sender<TrayEvent>, exit_on_close: bool) {
+    open_window(StatusWindowController::NAME, move || {
+        Ok(StatusWindowController::new(exit_on_close, sender)?)
+    })
+}
+
+fn on_settings(sender: mpsc::Sender<TrayCommand>) {
+    open_window(SettingsWindowController::NAME, move || {
+        Ok(SettingsWindowController::new(sender)?)
+    })
+}
+
+async fn on_disconnect(
     sender: mpsc::Sender<TrayCommand>,
     params: Arc<TunnelParams>,
     cancel_sender: Option<mpsc::Sender<()>>,
 ) {
-    let mut controller = ServiceController::new(GtkPrompt, new_browser_controller(params.clone()));
+    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()));
     let status = controller.command(ServiceCommand::Disconnect, params).await;
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
     if let Some(cancel_sender) = cancel_sender {
@@ -299,14 +252,14 @@ async fn do_disconnect(
     }
 }
 
-async fn do_connect(
+async fn on_connect(
     sender: mpsc::Sender<TrayCommand>,
     params: Arc<TunnelParams>,
     mut cancel_receiver: mpsc::Receiver<()>,
 ) {
     let _ = sender.send(TrayCommand::Update(None)).await;
 
-    let mut controller = ServiceController::new(GtkPrompt, new_browser_controller(params.clone()));
+    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()));
 
     let mut status = tokio::select! {
         _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-cancelled"))),
@@ -315,11 +268,11 @@ async fn do_connect(
 
     if let Err(ref e) = status {
         let message = tr!("app-connection-error");
-        let _ = GtkPrompt.show_notification(&message, &e.to_string()).await;
+        let _ = SlintPrompt.show_notification(&message, &e.to_string()).await;
         status = controller.command(ServiceCommand::Status, params).await;
     } else if let Ok(ConnectionStatus::Connected(_)) = status {
         let message = tr!("app-connection-success");
-        let _ = GtkPrompt
+        let _ = SlintPrompt
             .show_notification(&message, &tr!("connection-connected-to", server = params.server_name))
             .await;
     };

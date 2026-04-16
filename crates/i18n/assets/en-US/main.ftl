@@ -3,6 +3,7 @@ dialog-title = VPN settings
 button-ok = OK
 button-apply = Apply
 button-cancel = Cancel
+button-close = Close
 button-fetch-info = Fetch info
 
 # Labels
@@ -11,7 +12,8 @@ label-auth-method = Authentication method
 label-tunnel-type = Tunnel type
 label-cert-auth-type = Certificate auth type
 label-icon-theme = Icon theme
-label-username = User name
+label-color-theme = Color theme
+label-username = Username
 label-username-required = Username is required for authentication
 label-password = Password
 label-no-dns = Do not change DNS resolver configuration
@@ -24,9 +26,9 @@ label-ca-cert = Server CA root certificates
 label-no-cert-check = Disable all TLS certificate checks (INSECURE!)
 label-password-factor = Index of password factor, 1..N
 label-keychain = Store user password in the keychain
-label-ike-lifetime = IPSec IKE SA lifetime, seconds
-label-ike-persist = Save IPSec IKE session and reconnect automatically
-label-no-keepalive = Disable IPSec keepalive packets
+label-ike-lifetime = IPsec IKE SA lifetime, seconds
+label-ike-persist = Save IPsec IKE session and reconnect automatically
+label-no-keepalive = Disable IPsec keepalive packets
 label-port-knock = Enable NAT-T port knocking
 label-no-routing = Ignore all acquired routes
 label-default-routing = Set default route through the tunnel
@@ -95,7 +97,7 @@ error-endless-challenges = Endless loop of username challenges
 error-no-pkcs12 = No PKCS12 path and password provided
 error-no-pkcs8 = No PKCS8 PEM path provided
 error-no-pkcs11 = No PKCS11 pin provided
-error-no-ipsec-session = No IPSEC session
+error-no-ipsec-session = No IPsec session
 error-request-failed-error-code = Request failed, error code: {$error_code}
 error-no-root-privileges = This program should be run as a root user!
 error-missing-required-parameters = Missing required parameters: server name and/or login type!
@@ -143,14 +145,14 @@ placeholder-routes = Comma-separated x.x.x.x/x
 placeholder-certs = Comma-separated PEM or DER files
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL
 
 # Certificate types
 cert-type-none = None
 cert-type-pfx = PFX file
 cert-type-pem = PEM file
-cert-type-hw = Hardware token
+cert-type-hw = HSM device
 
 # Transport types
 transport-type-autodetect = Autodetect
@@ -159,14 +161,19 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Autodetect
-icon-theme-dark = Dark
-icon-theme-light = Light
+theme-autodetect = Autodetect
+theme-dark = Dark
+theme-light = Light
 
 # Application
 app-title = SNX-RS VPN Client for Linux
 app-connection-error = Connection error
 app-connection-success = Connection succeeded
+
+# About dialog
+about-version = Version
+about-authors = Authors
+about-license = License
 
 # Authentication
 auth-dialog-title = VPN Authentication Factor
@@ -235,6 +242,7 @@ language-sv-SE = Swedish
 
 # Connection status messages
 connection-status-disconnected = Disconnected
+connection-status-connected = Connected
 connection-status-connecting = Connecting in progress
 connection-status-connected-since = Connected since: {$since}
 connection-status-mfa-pending = MFA pending: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = NATT port
 login-options-internal-ca-fingerprint = Internal CA fingerprint
 
 # Connection profiles
-profile-new = New
-profile-rename = Rename
-profile-delete = Delete
 profile-delete-prompt = Are you sure to delete the selected profile?
 profile-default-name = Default
 profile-new-title = New connection profile
 profile-rename-title = Rename connection profile
+profiles-header = Connection profiles

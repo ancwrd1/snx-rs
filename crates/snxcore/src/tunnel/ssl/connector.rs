@@ -107,7 +107,7 @@ impl TunnelConnector for SslTunnelConnector {
                 ccc_session_id: String::new(),
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::UserNameInput,
-                    prompt: "User name: ".to_owned(),
+                    prompt: tr!("label-username"),
                 }),
                 ipsec_session: None,
                 username: None,

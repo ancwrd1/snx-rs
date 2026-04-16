@@ -18,7 +18,7 @@ use crate::{
     server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
-        ipsec::imp::tun::{PacketReceiver, PacketSender, TunIpsecTunnel},
+        ipsec::imp::tun::{PacketReceiver, PacketSender, TunIPsecTunnel},
     },
     util,
 };
@@ -51,9 +51,9 @@ where
     (tx_out, rx_in)
 }
 
-pub(crate) struct TcptIpsecTunnel(Box<TunIpsecTunnel>);
+pub(crate) struct TcptIPsecTunnel(Box<TunIPsecTunnel>);
 
-impl TcptIpsecTunnel {
+impl TcptIPsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let info = server_info::get(&params).await?;
 
@@ -66,13 +66,13 @@ impl TcptIpsecTunnel {
         let (sender, receiver) = make_channel(tcp);
 
         Ok(Self(Box::new(
-            TunIpsecTunnel::create(params, session, sender, receiver, TransportType::Tcpt).await?,
+            TunIPsecTunnel::create(params, session, sender, receiver, TransportType::Tcpt).await?,
         )))
     }
 }
 
 #[async_trait::async_trait]
-impl VpnTunnel for TcptIpsecTunnel {
+impl VpnTunnel for TcptIPsecTunnel {
     async fn run(
         mut self: Box<Self>,
         command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,

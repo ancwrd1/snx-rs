@@ -3,6 +3,7 @@ dialog-title = Nastavení VPN
 button-ok = OK
 button-apply = Použít
 button-cancel = Zrušit
+button-close = Zavřít
 button-fetch-info = Získat informace
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Metoda ověřování
 label-tunnel-type = Typ tunelu
 label-cert-auth-type = Typ certifikátu
 label-icon-theme = Motiv ikon
+label-color-theme = Barevný motiv
 label-username = Uživatelské jméno
 label-username-required = Uživatelské jméno je vyžadováno pro ověření
 label-password = Heslo
@@ -21,18 +23,18 @@ label-search-domains = Další vyhledávací domény
 label-ignored-domains = Ignorované vyhledávací domény
 label-routing-domains = Považovat přijaté vyhledávací domény za směrovací domény
 label-ca-cert = Kořenové certifikáty CA serveru
-label-no-cert-check = Zakázat všechny kontroly TLS certifikátů (NEBEZPEČNÉ!)
+label-no-cert-check = Zakázat všechny kontroly TLS certifikátů
 label-password-factor = Index hesla, 1..N
 label-keychain = Uložit heslo uživatele do úložiště klíčů
-label-ike-lifetime = Životnost IPSec IKE SA, sekundy
-label-ike-persist = Uložit IPSec IKE relaci a automaticky se znovu připojit
-label-no-keepalive = Zakázat pakety keepalive IPSec
+label-ike-lifetime = Životnost IPsec IKE SA, sekundy
+label-ike-persist = Uložit IPsec IKE relaci
+label-no-keepalive = Zakázat pakety keepalive IPsec
 label-port-knock = Povolit NAT-T port knocking
 label-no-routing = Ignorovat všechny získané trasy
 label-default-routing = Nastavit výchozí trasu přes tunel
 label-add-routes = Další statické trasy
 label-ignored-routes = Trasy k ignorování
-label-client-cert = Klientský certifikát nebo cesta k ovladači (.pem, .pfx/.p12, .so)
+label-client-cert = Klientský certifikát nebo cesta k ovladači
 label-cert-password = Heslo PFX nebo PIN PKCS11
 label-cert-id = Hexadecimální ID certifikátu PKCS11
 label-language = Jazyk
@@ -40,7 +42,7 @@ label-system-language = Systémové výchozí
 label-username-password = Uživatelské jméno a heslo
 label-auto-connect = Automaticky se připojit při spuštění
 label-ip-lease-time = Vlastní doba pronájmu IP, sekundy
-label-disable-ipv6 = Zakázat IPv6, když je povolena výchozí trasa
+label-disable-ipv6 = Výchozí trasa zakáže IPv6
 label-mtu = MTU
 label-connection-profile = Profil připojení
 label-profile-name = Název profilu
@@ -54,7 +56,7 @@ label-cancel = Zrušit
 label-open = Otevřít
 label-select-file = Vyberte soubor
 label-ca-cert-files = Certifikáty X.509
-label-allow-forwarding = Povolit předávání paketů pro rozhraní tunelu
+label-allow-forwarding = Povolit přeposílání paketů
 
 # Tabs and expanders
 tab-general = Obecné
@@ -95,7 +97,7 @@ error-endless-challenges = Nekonečná smyčka výzev uživatelského jména
 error-no-pkcs12 = Žádná cesta PKCS12 a heslo nejsou poskytnuty
 error-no-pkcs8 = Žádná cesta PKCS8 PEM není poskytnuta
 error-no-pkcs11 = Žádný PIN PKCS11 není poskytnut
-error-no-ipsec-session = Žádná IPSEC relace
+error-no-ipsec-session = Žádná IPsec relace
 error-request-failed-error-code = Požadavek selhal, kód chyby: {$error_code}
 error-no-root-privileges = Tento program musí být spuštěn jako root uživatel!
 error-missing-required-parameters = Chybí povinné parametry: název serveru a/nebo typ přístupu!
@@ -143,14 +145,14 @@ placeholder-routes = Trasy oddělené čárkami ve formátu x.x.x.x/x
 placeholder-certs = Soubory PEM nebo DER oddělené čárkami
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (zastaralé)
 
 # Certificate types
 cert-type-none = Žádný
 cert-type-pfx = Soubor PFX
 cert-type-pem = Soubor PEM
-cert-type-hw = Hardwarový token
+cert-type-hw = Zařízení HSM
 
 # Transport types
 transport-type-autodetect = Automatická detekce
@@ -159,9 +161,9 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automatická detekce
-icon-theme-dark = Tmavý
-icon-theme-light = Světlý
+theme-autodetect = Automatická detekce
+theme-dark = Tmavý
+theme-light = Světlý
 
 # Connection info
 info-connected-since = Připojeno od
@@ -182,6 +184,11 @@ info-default-route = Výchozí trasa
 app-title = SNX-RS VPN klient pro Linux
 app-connection-error = Chyba připojení
 app-connection-success = Připojení úspěšné
+
+# About dialog
+about-version = Verze
+about-authors = Autoři
+about-license = Licence
 
 # Authentication
 auth-dialog-title = VPN autentizační faktor
@@ -235,6 +242,7 @@ language-sv-SE = Švédština
 
 # Connection status messages
 connection-status-disconnected = Odpojeno
+connection-status-connected = Připojeno
 connection-status-connecting = Probíhá připojování
 connection-status-connected-since = Připojeno od: {$since}
 connection-status-mfa-pending = Čeká se na MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = Port NATT
 login-options-internal-ca-fingerprint = Otisk interního CA
 
 # Connection profiles
-profile-new = Nový
-profile-rename = Přejmenovat
-profile-delete = Smazat
 profile-delete-prompt = Opravdu chcete smazat vybraný profil?
 profile-default-name = Výchozí
 profile-new-title = Nový profil připojení
 profile-rename-title = Přejmenovat profil připojení
+profiles-header = Profily připojení

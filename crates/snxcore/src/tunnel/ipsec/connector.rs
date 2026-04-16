@@ -24,7 +24,7 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
-        IpsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
+        IPsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TransportType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData},
     },
@@ -34,7 +34,7 @@ use crate::{
     tunnel::{
         TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
         ipsec::{
-            imp::{native::NativeIpsecTunnel, tcpt::TcptIpsecTunnel, udp::UdpIpsecTunnel},
+            imp::{native::NativeIPsecTunnel, tcpt::TcptIPsecTunnel, udp::UdpIPsecTunnel},
             natt::NattProber,
         },
     },
@@ -101,7 +101,7 @@ fn get_short_attribute(payload: &AttributesPayload, attr: ConfigAttributeType) -
         .find_map(|a| if a.attribute_type == attr { a.as_short() } else { None })
 }
 
-pub struct IpsecTunnelConnector {
+pub struct IPsecTunnelConnector {
     params: Arc<TunnelParams>,
     service: Ikev1Service,
     gateway_address: Ipv4Addr,
@@ -110,14 +110,14 @@ pub struct IpsecTunnelConnector {
     last_challenge_type: ConfigAttributeType,
     ccc_session: String,
     username: String,
-    ipsec_session: IpsecSession,
+    ipsec_session: IPsecSession,
     last_rekey: Option<SystemTime>,
     last_ip_lease: Option<SystemTime>,
     command_sender: Option<Sender<TunnelCommand>>,
     esp_transport: TransportType,
 }
 
-impl IpsecTunnelConnector {
+impl IPsecTunnelConnector {
     pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
         let server_info = server_info::get(&params).await?;
 
@@ -164,7 +164,7 @@ impl IpsecTunnelConnector {
             last_challenge_type: ConfigAttributeType::Other(0),
             ccc_session: String::new(),
             username: String::new(),
-            ipsec_session: IpsecSession::default(),
+            ipsec_session: IPsecSession::default(),
             last_rekey: None,
             last_ip_lease: None,
             command_sender: None,
@@ -298,7 +298,7 @@ impl IpsecTunnelConnector {
         let status = get_short_attribute(&id_reply, ConfigAttributeType::Status);
         match status {
             Some(1) => {
-                debug!("IPSec authentication succeeded");
+                debug!("IPsec authentication succeeded");
                 self.service
                     .send_ack_response(id_reply.identifier, self.last_message_id)
                     .await?;
@@ -319,7 +319,7 @@ impl IpsecTunnelConnector {
                 self.do_session_exchange(username).await
             }
             Some(status) => {
-                warn!("IPSec authentication failed, status: {}", status);
+                warn!("IPsec authentication failed, status: {}", status);
                 Err(anyhow!(tr!("error-auth-failed")))
             }
             None => {
@@ -334,7 +334,7 @@ impl IpsecTunnelConnector {
                         ipsec_session: None,
                         state: SessionState::PendingChallenge(MfaChallenge {
                             mfa_type: MfaType::UserNameInput,
-                            prompt: "User name: ".to_owned(),
+                            prompt: tr!("label-username"),
                         }),
                         username: None,
                     })
@@ -435,14 +435,14 @@ impl IpsecTunnelConnector {
         if self.last_ip_lease.is_some_and(|last_ip_lease| {
             now.duration_since(last_ip_lease).unwrap_or(address_lifetime) >= address_lifetime
         }) {
-            debug!("Start refreshing IPSec session");
+            debug!("Start refreshing IPsec session");
             self.do_session_exchange(self.username.clone()).await?;
             rekeyed = true;
         } else if self
             .last_rekey
             .is_some_and(|last_rekey| now.duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
         {
-            debug!("Start rekeying IPSec tunnel");
+            debug!("Start rekeying IPsec tunnel");
             self.do_esp_proposal().await?;
             rekeyed = true;
         }
@@ -615,7 +615,7 @@ impl IpsecTunnelConnector {
 }
 
 #[async_trait]
-impl TunnelConnector for IpsecTunnelConnector {
+impl TunnelConnector for IPsecTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         let my_address = Platform::get().new_network_interface().get_default_ipv4().await?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
@@ -765,9 +765,9 @@ impl TunnelConnector for IpsecTunnelConnector {
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
         let result: anyhow::Result<Box<dyn VpnTunnel + Send>> = match self.esp_transport {
-            TransportType::Kernel => Ok(Box::new(NativeIpsecTunnel::create(self.params.clone(), session).await?)),
-            TransportType::Tcpt => Ok(Box::new(TcptIpsecTunnel::create(self.params.clone(), session).await?)),
-            TransportType::Udp => Ok(Box::new(UdpIpsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::Kernel => Ok(Box::new(NativeIPsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::Tcpt => Ok(Box::new(TcptIPsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::Udp => Ok(Box::new(UdpIPsecTunnel::create(self.params.clone(), session).await?)),
             _ => Err(anyhow!(tr!("error-invalid-transport-type"))),
         };
 
@@ -809,7 +809,7 @@ impl TunnelConnector for IpsecTunnelConnector {
     }
 }
 
-impl Drop for IpsecTunnelConnector {
+impl Drop for IPsecTunnelConnector {
     fn drop(&mut self) {
         std::thread::scope(|s| {
             s.spawn(|| {

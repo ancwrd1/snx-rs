@@ -7,7 +7,7 @@ use ksni::{
 };
 use snxcore::model::{
     ConnectionStatus,
-    params::{DEFAULT_PROFILE_UUID, IconTheme, TunnelParams},
+    params::{ColorTheme, DEFAULT_PROFILE_UUID, TunnelParams},
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
@@ -115,9 +115,9 @@ impl AppTray {
         let tunnel_params = TunnelParams::load(TunnelParams::default_config_path()).unwrap_or_default();
 
         let system_theme = match tunnel_params.icon_theme {
-            IconTheme::AutoDetect => self.theme_monitor.current_theme(),
-            IconTheme::Dark => SystemColorTheme::Light,
-            IconTheme::Light => SystemColorTheme::Dark,
+            ColorTheme::AutoDetect => self.theme_monitor.current_theme(),
+            ColorTheme::Dark => SystemColorTheme::Light,
+            ColorTheme::Light => SystemColorTheme::Dark,
         };
 
         if system_theme.is_dark() {

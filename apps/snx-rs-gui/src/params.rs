@@ -21,4 +21,12 @@ pub struct CmdlineParams {
 
     #[clap(long = "completions", help = "Generate shell completions for the given shell")]
     pub completions: Option<clap_complete::Shell>,
+
+    #[cfg(feature = "mobile-access")]
+    #[clap(long = "webkit", hide = true)]
+    pub webkit: Option<String>,
+
+    #[cfg(feature = "mobile-access")]
+    #[clap(long = "webkit-ignore-cert", hide = true)]
+    pub webkit_ignore_cert: bool,
 }

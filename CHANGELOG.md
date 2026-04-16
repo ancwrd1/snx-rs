@@ -1,3 +1,8 @@
+## v6.0.0 (TBD)
+- Major UI redesign based on [Slint framework](https://slint.dev).
+- Dropped GTK4 dependency for generic builds. It is still required for `mobile-access` feature to show an embedded webview.
+- Fixed a regression with the additional search domains used as routing domains.
+
 ## v5.3.0 (2026-04-11)
 - Application now uses Linux APIs directly instead of running the external commands to configure OS networking stack.
 - Switched to GTK 4.10, requiring Linux distros from 2023 and later.

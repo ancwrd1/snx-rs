@@ -3,6 +3,7 @@ dialog-title = VPN-asetukset
 button-ok = OK
 button-apply = Käytä
 button-cancel = Peruuta
+button-close = Sulje
 button-fetch-info = Hae tiedot
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Tunnistusmenetelmä
 label-tunnel-type = Tunnelityyppi
 label-cert-auth-type = Varmennetyyppi
 label-icon-theme = Kuvaketeema
+label-color-theme = Väriteema
 label-username = Käyttäjätunnus
 label-username-required = Käyttäjätunnus vaaditaan todennukseen
 label-password = Salasana
@@ -21,18 +23,18 @@ label-search-domains = Lisähakualueet
 label-ignored-domains = Ohitettavat hakualueet
 label-routing-domains = Käsittele vastaanotetut hakualueet reititysalueina
 label-ca-cert = Palvelimen CA-juurivarmenne
-label-no-cert-check = Poista kaikki TLS-varmennetarkistukset käytöstä (TURVATON!)
+label-no-cert-check = Poista kaikki TLS-varmennetarkistukset käytöstä
 label-password-factor = Salasanatekijäindeksi, 1..N
 label-keychain = Tallenna käyttäjän salasana avainketjuun
-label-ike-lifetime = IPSec IKE SA -elinaika, sekuntia
-label-ike-persist = Tallenna IPSec IKE -istunto ja yhdistä automaattisesti
-label-no-keepalive = Poista IPSec keepalive-paketit käytöstä
+label-ike-lifetime = IPsec IKE SA -elinaika, sekuntia
+label-ike-persist = Tallenna IPsec IKE -istunto
+label-no-keepalive = Poista IPsec keepalive-paketit käytöstä
 label-port-knock = Ota NAT-T port knocking käyttöön
 label-no-routing = Ohita kaikki vastaanotetut reitit
 label-default-routing = Aseta oletusreitti tunnelin kautta
 label-add-routes = Lisästaattiset reitit
 label-ignored-routes = Ohitettavat reitit
-label-client-cert = Asiakasvarmenne tai ajuripolku (.pem, .pfx/.p12, .so)
+label-client-cert = Asiakasvarmenne tai ajuripolku
 label-cert-password = PFX-salasana tai PKCS11-PIN
 label-cert-id = PKCS11-varmennuksen heksadesimaalinen tunniste
 label-language = Kieli
@@ -40,7 +42,7 @@ label-system-language = Järjestelmän oletus
 label-username-password = Käyttäjätunnus ja salasana
 label-auto-connect = Yhdistä automaattisesti käynnistyksessä
 label-ip-lease-time = Mukautettu IP-vuokra-aika, sekuntia
-label-disable-ipv6 = Poista IPv6 käytöstä, kun oletusreitti on käytössä
+label-disable-ipv6 = Oletusreitti poistaa IPv6:n käytöstä
 label-mtu = MTU
 label-connection-profile = Yhteysprofiili
 label-profile-name = Profiilin nimi
@@ -54,7 +56,7 @@ label-cancel = Peruuta
 label-open = Avaa
 label-select-file = Valitse tiedosto
 label-ca-cert-files = X.509-varmenteet
-label-allow-forwarding = Salli pakettien edelleenlähetys tunneliliitännälle
+label-allow-forwarding = Salli pakettien edelleenlähetys
 
 # Tabs and expanders
 tab-general = Yleiset
@@ -95,7 +97,7 @@ error-endless-challenges = Loputon silmukka käyttäjätunnushaasteita
 error-no-pkcs12 = Ei PKCS12-polku ja salasana annettu
 error-no-pkcs8 = Ei PKCS8 PEM-polku annettu
 error-no-pkcs11 = Ei PKCS11 PIN-koodia annettu
-error-no-ipsec-session = Ei IPSEC-istuntoa
+error-no-ipsec-session = Ei IPsec-istuntoa
 error-request-failed-error-code = Pyyntö epäonnistui, virhekoodi: {$error_code}
 error-no-root-privileges = Tämä ohjelma pitää ajaa root-käyttäjänä!
 error-missing-required-parameters = Pakolliset parametrit puuttuvat: palvelimen nimi ja/tai kirjautumistyyppi!
@@ -143,14 +145,14 @@ placeholder-routes = Pilkulla erotetut reitit muodossa x.x.x.x/x
 placeholder-certs = Pilkulla erotetut PEM- tai DER-tiedostot
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (vanhentunut)
 
 # Certificate types
 cert-type-none = Ei mitään
 cert-type-pfx = PFX-tiedosto
 cert-type-pem = PEM-tiedosto
-cert-type-hw = Laiteavain
+cert-type-hw = HSM-laite
 
 # Transport types
 transport-type-autodetect = Automaattinen tunnistus
@@ -159,9 +161,9 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automaattinen tunnistus
-icon-theme-dark = Tumma
-icon-theme-light = Vaalea
+theme-autodetect = Automaattinen tunnistus
+theme-dark = Tumma
+theme-light = Vaalea
 
 # Connection info
 info-connected-since = Yhdistetty alkaen
@@ -182,6 +184,11 @@ info-default-route = Oletusreitti
 app-title = SNX-RS VPN-asiakasohjelma Linuxille
 app-connection-error = Yhteysvirhe
 app-connection-success = Yhteys onnistui
+
+# About dialog
+about-version = Versio
+about-authors = Tekijät
+about-license = Lisenssi
 
 # Authentication
 auth-dialog-title = VPN-todennustekijä
@@ -235,6 +242,7 @@ language-sv-SE = Ruotsi
 
 # Connection status messages
 connection-status-disconnected = Yhteys katkaistu
+connection-status-connected = Yhdistetty
 connection-status-connecting = Yhdistetään
 connection-status-connected-since = Yhdistetty: {$since}
 connection-status-mfa-pending = Odotetaan MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = NATT-portti
 login-options-internal-ca-fingerprint = Sisäisen CA:n sormenjälki
 
 # Connection profiles
-profile-new = Uusi
-profile-rename = Nimeä uudelleen
-profile-delete = Poista
 profile-delete-prompt = Haluatko varmasti poistaa valitun profiilin?
 profile-default-name = Oletus
 profile-new-title = Uusi yhteysprofiili
 profile-rename-title = Nimeä yhteysprofiili uudelleen
+profiles-header = Yhteysprofiilit

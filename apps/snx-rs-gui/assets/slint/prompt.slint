@@ -1,0 +1,96 @@
+import { Button, LineEdit, VerticalBox, HorizontalBox, Palette } from "std-widgets.slint";
+import { Tr } from "tr.slint";
+
+export component PromptWindow inherits Window {
+    title: Tr.auth-dialog-title;
+    min-width: 500px;
+    min-height: 220px;
+    default-font-size: 14px;
+
+    in property <string> header;
+    in property <string> prompt;
+    in property <string> default-entry;
+    in property <bool> secure: false;
+
+    callback ok-clicked(string);
+    callback cancel-clicked();
+
+    changed default-entry => {
+        if !root.secure { entry.select-all(); }
+    }
+
+    forward-focus: entry;
+
+    init => {
+        entry.focus();
+    }
+
+    FocusScope {
+        key-pressed(event) => {
+            if event.text == Key.Escape {
+                root.cancel-clicked();
+                return accept;
+            }
+            return reject;
+        }
+
+        VerticalBox {
+            padding: 14px;
+            spacing: 12px;
+
+            if root.header != "": Text {
+                text: root.header;
+                font-size: 13px;
+                font-weight: 400;
+                opacity: 0.75;
+                horizontal-alignment: left;
+                wrap: TextWrap.word-wrap;
+            }
+
+            Rectangle {
+                background: Palette.alternate-background;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Palette.border;
+                vertical-stretch: 1;
+
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 4px;
+                    alignment: start;
+
+                    Text {
+                        text: root.prompt;
+                        font-size: 16px;
+                        font-weight: 600;
+                        horizontal-alignment: left;
+                    }
+
+                    entry := LineEdit {
+                        text: root.default-entry;
+                        input-type: root.secure ? InputType.password : InputType.text;
+                        accepted(text) => { root.ok-clicked(text); }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                spacing: 6px;
+
+                Button {
+                    text: Tr.button-cancel;
+                    min-width: 80px;
+                    clicked => { root.cancel-clicked(); }
+                }
+
+                Button {
+                    text: Tr.button-ok;
+                    min-width: 80px;
+                    primary: true;
+                    clicked => { root.ok-clicked(entry.text); }
+                }
+            }
+        }
+    }
+}

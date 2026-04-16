@@ -1,0 +1,92 @@
+import { Button, VerticalBox, HorizontalBox, Palette } from "std-widgets.slint";
+import { Tr } from "tr.slint";
+
+export component AboutWindow inherits Window {
+    in property <string> app-name;
+    in property <string> version;
+    in property <string> authors;
+    in property <string> website;
+    in property <string> license;
+    in property <image> app-icon: Palette.color-scheme == ColorScheme.dark
+            ? @image-url("../icons/dark/network-vpn-connected.png")
+            : @image-url("../icons/light/network-vpn-connected.png");
+
+    title: root.app-name;
+    min-width: 380px;
+    default-font-size: 14px;
+
+    callback ok-clicked();
+    callback website-clicked();
+
+    VerticalLayout {
+        padding: 6px;
+        spacing: 6px;
+
+        Rectangle {
+            background: Palette.alternate-background;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Palette.border;
+            vertical-stretch: 1;
+
+            VerticalBox {
+                padding-bottom: 32px;
+                HorizontalLayout {
+                    alignment: center;
+                    Image {
+                        source: root.app-icon;
+                        width: 64px;
+                        height: 64px;
+                    }
+                }
+
+                Text {
+                    text: root.app-name;
+                    font-size: 18px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: Tr.about-version + ": " + root.version;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: Tr.about-authors + ": " + root.authors;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+
+                Text {
+                    text: Tr.about-license + ": " + root.license;
+                    horizontal-alignment: center;
+                }
+
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.website-clicked(); }
+                    Text {
+                        text: root.website;
+                        horizontal-alignment: center;
+                        color: #3080ff;
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            alignment: center;
+            spacing: 6px;
+            padding-right: 6px;
+            padding-bottom: 6px;
+
+            Button {
+                text: Tr.button-ok;
+                min-width: 80px;
+                primary: true;
+                clicked => { root.ok-clicked(); }
+            }
+        }
+    }
+}

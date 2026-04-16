@@ -24,8 +24,8 @@ Example output (may differ for your server):
            Server address: remote.company.com
                 Server IP: 1.2.3.4
            Client enabled: true
-      Supported protocols: IPSec, SSL, L2TP
-       Preferred protocol: IPSec
+      Supported protocols: IPsec, SSL, L2TP
+       Preferred protocol: IPsec
                 TCPT port: 443
                 NATT port: 4500
   Internal CA fingerprint: MATE FRED PEN RANK LIP HUGH BEAD WET CAGE DEW FULL EDIT

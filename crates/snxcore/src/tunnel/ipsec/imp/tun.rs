@@ -24,7 +24,7 @@ use tracing::{debug, error, warn};
 use crate::{
     ccc::CccHttpClient,
     model::{
-        ConnectionInfo, IpsecSession, VpnSession,
+        ConnectionInfo, IPsecSession, VpnSession,
         params::{TransportType, TunnelParams},
     },
     platform::{DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
@@ -42,7 +42,7 @@ const SEND_TIMEOUT: Duration = Duration::from_secs(120);
 pub type PacketSender = Sender<Bytes>;
 pub type PacketReceiver = Receiver<Bytes>;
 
-pub(crate) struct TunIpsecTunnel {
+pub(crate) struct TunIPsecTunnel {
     params: Arc<TunnelParams>,
     session: Arc<VpnSession>,
     sender: PacketSender,
@@ -55,7 +55,7 @@ pub(crate) struct TunIpsecTunnel {
     subnets: Vec<Ipv4Net>,
 }
 
-impl TunIpsecTunnel {
+impl TunIPsecTunnel {
     pub(crate) async fn create(
         params: Arc<TunnelParams>,
         session: Arc<VpnSession>,
@@ -131,7 +131,7 @@ impl TunIpsecTunnel {
         }
     }
 
-    pub async fn setup_routing(&self, dev_name: &str, session: &IpsecSession) -> anyhow::Result<()> {
+    pub async fn setup_routing(&self, dev_name: &str, session: &IPsecSession) -> anyhow::Result<()> {
         let platform = Platform::get();
         let configurator = platform.new_routing_configurator(dev_name, session.address);
 
@@ -186,14 +186,14 @@ impl TunIpsecTunnel {
 }
 
 #[async_trait::async_trait]
-impl VpnTunnel for TunIpsecTunnel {
+impl VpnTunnel for TunIPsecTunnel {
     async fn run(
         mut self: Box<Self>,
         mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
         debug!(
-            "Running IPSec ({}) tunnel for session {}",
+            "Running IPsec ({}) tunnel for session {}",
             self.esp_transport, self.session.ccc_session_id,
         );
 
@@ -407,12 +407,12 @@ impl VpnTunnel for TunIpsecTunnel {
         let result = loop {
             tokio::select! {
                 () = &mut command_fut => {
-                    debug!("Terminating IPSec tunnel due to stop command");
+                    debug!("Terminating IPsec tunnel due to stop command");
                     break Ok(());
                 }
 
                 err = &mut ka_run => {
-                    debug!("Terminating IPSec tunnel due to keepalive failure");
+                    debug!("Terminating IPsec tunnel due to keepalive failure");
                     break err;
                 }
 
@@ -448,9 +448,9 @@ impl VpnTunnel for TunIpsecTunnel {
     }
 }
 
-impl Drop for TunIpsecTunnel {
+impl Drop for TunIPsecTunnel {
     fn drop(&mut self) {
-        debug!("Cleaning up IPSec ({}) tunnel", self.esp_transport);
+        debug!("Cleaning up IPsec ({}) tunnel", self.esp_transport);
         std::thread::scope(|s| {
             s.spawn(|| util::block_on(self.cleanup()));
         });

@@ -7,9 +7,9 @@
 * Certificate enrollment and renewal using the command line interface
 * Mobile Access authentication using VPN web portal
 * HSM token authentication
-* GTK frontend with tray icon
-* IPSec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
-* Automatic IPSec tunnel reconnection without authentication, via optional parameter
+* GUI frontend with tray icon
+* IPsec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
+* Automatic IPsec tunnel reconnection without authentication, via optional parameter
 * SSL tunnel via Linux TUN device
 * Store a password factor in the OS keychain using Secret Service API
 * Multiple connection profiles

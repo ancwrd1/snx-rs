@@ -43,5 +43,3 @@ pub static LIGHT_THEME: LazyLock<IconTheme> = LazyLock::new(|| IconTheme {
     disconnected: argb!("../assets/icons/light/network-vpn-disconnected.png"),
     connected: argb!("../assets/icons/light/network-vpn-connected.png"),
 });
-
-pub const APP_CSS: &str = include_str!("../assets/app.css");

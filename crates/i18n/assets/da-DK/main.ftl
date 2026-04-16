@@ -3,6 +3,7 @@ dialog-title = VPN-indstillinger
 button-ok = OK
 button-apply = Anvend
 button-cancel = Annuller
+button-close = Luk
 button-fetch-info = Hent information
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Godkendelsesmetode
 label-tunnel-type = Tunneltype
 label-cert-auth-type = Certifikattype
 label-icon-theme = Ikon-tema
+label-color-theme = Farvetema
 label-username = Brugernavn
 label-username-required = Brugernavn er påkrævet for godkendelse
 label-password = Adgangskode
@@ -21,18 +23,18 @@ label-search-domains = Yderligere søgedomæner
 label-ignored-domains = Ignorerede søgedomæner
 label-routing-domains = Behandl modtagne søgedomæner som routingdomæner
 label-ca-cert = Server CA-rodcertifikat
-label-no-cert-check = Deaktiver alle TLS-certifikatkontroller (USIKKERT!)
+label-no-cert-check = Deaktiver alle TLS-certifikatkontroller
 label-password-factor = Adgangskodefaktorindeks, 1..N
 label-keychain = Gem brugeradgangskode i nøgleringen
-label-ike-lifetime = IPSec IKE SA-levetid, sekunder
-label-ike-persist = Gem IPSec IKE-session og genopret automatisk
-label-no-keepalive = Deaktiver IPSec keepalive-pakker
+label-ike-lifetime = IPsec IKE SA-levetid, sekunder
+label-ike-persist = Gem IPsec IKE-session
+label-no-keepalive = Deaktiver IPsec keepalive-pakker
 label-port-knock = Aktiver NAT-T port knocking
 label-no-routing = Ignorer alle modtagne ruter
 label-default-routing = Angiv standardrute gennem tunnellen
 label-add-routes = Yderligere statiske ruter
 label-ignored-routes = Ruter der skal ignoreres
-label-client-cert = Klientcertifikat eller driversti (.pem, .pfx/.p12, .so)
+label-client-cert = Klientcertifikat eller driversti
 label-cert-password = PFX-adgangskode eller PKCS11-PIN
 label-cert-id = PKCS11-certifikatets hexadecimale ID
 label-language = Sprog
@@ -40,7 +42,7 @@ label-system-language = Systemstandard
 label-username-password = Brugernavn og adgangskode
 label-auto-connect = Forbind automatisk ved opstart
 label-ip-lease-time = Brugerdefineret IP-leasetid, sekunder
-label-disable-ipv6 = Deaktiver IPv6, når standardrute er aktiveret
+label-disable-ipv6 = Standardrute deaktiverer IPv6
 label-mtu = MTU
 label-connection-profile = Forbindelsesprofil
 label-profile-name = Profilnavn
@@ -54,7 +56,7 @@ label-cancel = Annuller
 label-open = Åbn
 label-select-file = Vælg en fil
 label-ca-cert-files = X.509-certifikater
-label-allow-forwarding = Tillad pakkeforwarding for tunnelgrænsefladen
+label-allow-forwarding = Tillad pakkeviderestilling
 
 # Tabs and expanders
 tab-general = Generelt
@@ -95,7 +97,7 @@ error-endless-challenges = Uendelig løkke af brugernavnudfordringer
 error-no-pkcs12 = Ingen PKCS12-sti og adgangskode angivet
 error-no-pkcs8 = Ingen PKCS8 PEM-sti angivet
 error-no-pkcs11 = Ingen PKCS11 PIN angivet
-error-no-ipsec-session = Ingen IPSEC-session
+error-no-ipsec-session = Ingen IPsec-session
 error-request-failed-error-code = Anmodning mislykkedes, feilkode: {$error_code}
 error-no-root-privileges = Dette program skal køres som root-bruger!
 error-missing-required-parameters = Manglende påkrævede parametre: servernavn og/eller adgangstype!
@@ -143,14 +145,14 @@ placeholder-routes = Ruter adskilt med komma i formatet x.x.x.x/x
 placeholder-certs = PEM- eller DER-filer adskilt med komma
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (forældet)
 
 # Certificate types
 cert-type-none = Ingen
 cert-type-pfx = PFX-fil
 cert-type-pem = PEM-fil
-cert-type-hw = Hardware-token
+cert-type-hw = HSM-enhed
 
 # Transport types
 transport-type-autodetect = Automatisk registrering
@@ -159,9 +161,9 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automatisk registrering
-icon-theme-dark = Mørk
-icon-theme-light = Lys
+theme-autodetect = Automatisk registrering
+theme-dark = Mørk
+theme-light = Lys
 
 # Connection info
 info-connected-since = Forbundet siden
@@ -182,6 +184,11 @@ info-default-route = Standardrute
 app-title = SNX-RS VPN-klient til Linux
 app-connection-error = Forbindelsesfejl
 app-connection-success = Forbindelse lykkedes
+
+# About dialog
+about-version = Version
+about-authors = Forfattere
+about-license = Licens
 
 # Authentication
 auth-dialog-title = VPN-godkendelsesfaktor
@@ -235,6 +242,7 @@ language-sv-SE = Svensk
 
 # Connection status messages
 connection-status-disconnected = Afbrudt
+connection-status-connected = Forbundet
 connection-status-connecting = Forbinder
 connection-status-connected-since = Forbundet siden: {$since}
 connection-status-mfa-pending = Afventer MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = NATT-port
 login-options-internal-ca-fingerprint = Internt CA-fingeraftryk
 
 # Connection profiles
-profile-new = Ny
-profile-rename = Omdøb
-profile-delete = Slet
 profile-delete-prompt = Er du sikker på at slette den valgte profil?
 profile-default-name = Standard
 profile-new-title = Ny forbindelsesprofil
 profile-rename-title = Omdøb forbindelsesprofil
+profiles-header = Forbindelsesprofiler

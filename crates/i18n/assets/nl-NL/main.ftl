@@ -3,6 +3,7 @@ dialog-title = VPN-instellingen
 button-ok = OK
 button-apply = Toepassen
 button-cancel = Annuleren
+button-close = Sluiten
 button-fetch-info = Informatie ophalen
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Authenticatiemethode
 label-tunnel-type = Tunneltype
 label-cert-auth-type = Certificaattype
 label-icon-theme = Pictogramthema
+label-color-theme = Kleurthema
 label-username = Gebruikersnaam
 label-username-required = Gebruikersnaam is vereist voor authenticatie
 label-password = Wachtwoord
@@ -21,18 +23,18 @@ label-search-domains = Extra zoekdomeinen
 label-ignored-domains = Genegeerde zoekdomeinen
 label-routing-domains = Ontvangen zoekdomeinen als routeringsdomeinen behandelen
 label-ca-cert = Server CA-basiscertificaten
-label-no-cert-check = Alle TLS-certificaatcontroles uitschakelen (ONVEILIG!)
+label-no-cert-check = Alle TLS-certificaatcontroles uitschakelen
 label-password-factor = Index van wachtwoordfactor, 1..N
 label-keychain = Gebruikerswachtwoord opslaan in de sleutelhanger
-label-ike-lifetime = IPSec IKE SA-levensduur, seconden
-label-ike-persist = IPSec IKE-sessie opslaan en automatisch opnieuw verbinden
-label-no-keepalive = IPSec keepalive-pakketten uitschakelen
+label-ike-lifetime = IPsec IKE SA-levensduur, seconden
+label-ike-persist = IPsec IKE-sessie opslaan
+label-no-keepalive = IPsec keepalive-pakketten uitschakelen
 label-port-knock = NAT-T port knocking inschakelen
 label-no-routing = Alle verkregen routes negeren
 label-default-routing = Standaardroute via tunnel instellen
 label-add-routes = Extra statische routes
 label-ignored-routes = Te negeren routes
-label-client-cert = Clientcertificaat of stuurprogrammapad (.pem, .pfx/.p12, .so)
+label-client-cert = Clientcertificaat of stuurprogrammapad
 label-cert-password = PFX-wachtwoord of PKCS11-pin
 label-cert-id = Hexadecimale ID van PKCS11-certificaat
 label-language = Taal
@@ -40,7 +42,7 @@ label-system-language = Systeemstandaard
 label-username-password = Gebruikersnaam en wachtwoord
 label-auto-connect = Automatisch verbinden bij opstarten
 label-ip-lease-time = Aangepaste IP-leasetijd, seconden
-label-disable-ipv6 = IPv6 uitschakelen wanneer de standaardroute is ingeschakeld
+label-disable-ipv6 = Standaardroute schakelt IPv6 uit
 label-mtu = MTU
 label-connection-profile = Verbindingsprofiel
 label-profile-name = Profielnaam
@@ -54,7 +56,7 @@ label-cancel = Annuleren
 label-open = Openen
 label-select-file = Selecteer een bestand
 label-ca-cert-files = X.509-certificaten
-label-allow-forwarding = Pakket-forwarding toestaan voor de tunnelinterface
+label-allow-forwarding = Pakketdoorsturen toestaan
 
 # Tabs and expanders
 tab-general = Algemeen
@@ -132,7 +134,7 @@ error-endless-challenges = Oneindige lus van gebruikersnaamuitdagingen
 error-no-pkcs12 = Geen PKCS12-pad en wachtwoord opgegeven
 error-no-pkcs8 = Geen PKCS8 PEM-pad opgegeven
 error-no-pkcs11 = Geen PKCS11 PIN opgegeven
-error-no-ipsec-session = Geen IPSEC-sessie
+error-no-ipsec-session = Geen IPsec-sessie
 error-invalid-transport-type = Ongeldig transporttype
 error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
 
@@ -143,14 +145,14 @@ placeholder-routes = Door komma's gescheiden x.x.x.x/x
 placeholder-certs = Door komma's gescheiden PEM- of DER-bestanden
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (verouderd)
 
 # Certificate types
 cert-type-none = Geen
 cert-type-pfx = PFX-bestand
 cert-type-pem = PEM-bestand
-cert-type-hw = Hardware-token
+cert-type-hw = HSM-apparaat
 
 # Transport types
 transport-type-autodetect = Automatisch detecteren
@@ -159,9 +161,9 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automatisch detecteren
-icon-theme-dark = Donker
-icon-theme-light = Licht
+theme-autodetect = Automatisch detecteren
+theme-dark = Donker
+theme-light = Licht
 
 # Connection info
 info-connected-since = Verbonden sinds
@@ -182,6 +184,11 @@ info-default-route = Standaardroute
 app-title = SNX-RS VPN-client voor Linux
 app-connection-error = Verbindingsfout
 app-connection-success = Verbinding geslaagd
+
+# About dialog
+about-version = Versie
+about-authors = Auteurs
+about-license = Licentie
 
 # Authentication
 auth-dialog-title = VPN-authenticatiefactor
@@ -235,6 +242,7 @@ language-sv-SE = Zweeds
 
 # Connection status messages
 connection-status-disconnected = Verbinding verbroken
+connection-status-connected = Verbonden
 connection-status-connecting = Verbinding maken
 connection-status-connected-since = Verbonden sinds: {$since}
 connection-status-mfa-pending = Wachten op MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = NATT-poort
 login-options-internal-ca-fingerprint = Interne CA-vingerafdruk
 
 # Connection profiles
-profile-new = Nieuw
-profile-rename = Hernoemen
-profile-delete = Verwijderen
 profile-delete-prompt = Weet u zeker dat u het geselecteerde profiel wilt verwijderen?
 profile-default-name = Standaard
 profile-new-title = Nieuw verbindingsprofiel
 profile-rename-title = Verbindingsprofiel hernoemen
+profiles-header = Verbindingsprofielen

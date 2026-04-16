@@ -41,7 +41,7 @@ impl ConnectionProfilesStore {
 
     pub fn get_connected(&self) -> Arc<TunnelParams> {
         self.get(*self.connected_profile.read().unwrap())
-            .unwrap_or_else(|| Arc::new(TunnelParams::default()))
+            .unwrap_or_else(|| self.get_default())
     }
 
     pub fn get_default(&self) -> Arc<TunnelParams> {

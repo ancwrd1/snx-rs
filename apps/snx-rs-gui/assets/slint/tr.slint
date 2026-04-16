@@ -1,0 +1,96 @@
+export global Tr {
+    // status dialog
+    in property <string> status-dialog-title: "Connection information";
+    in property <string> status-button-connect: "Connect";
+    in property <string> status-button-disconnect: "Disconnect";
+    in property <string> status-button-settings: "Settings";
+    in property <string> status-button-copy: "Copy";
+    in property <string> connection-status-connected: "Connected";
+    in property <string> connection-status-connecting: "Connecting in progress";
+    in property <string> connection-status-disconnected: "Disconnected";
+
+    // auth prompt
+    in property <string> auth-dialog-title: "VPN Authentication Factor";
+
+    // generic buttons
+    in property <string> button-ok: "OK";
+    in property <string> button-cancel: "Cancel";
+    in property <string> button-close: "Close";
+    in property <string> button-apply: "Apply";
+    in property <string> button-fetch-info: "Fetch info";
+    in property <string> label-browse: "Browse...";
+
+    // settings dialog
+    in property <string> dialog-title: "VPN settings";
+    in property <string> tab-general: "General";
+    in property <string> tab-advanced: "Advanced";
+
+    // general tab labels
+    in property <string> label-connection-profile: "Connection profile";
+    in property <string> label-server-address: "VPN server address";
+    in property <string> label-auth-method: "Authentication method";
+    in property <string> label-tunnel-type: "Tunnel type";
+    in property <string> label-machine-cert-auth: "Machine certificate authentication";
+    in property <string> label-username: "Username";
+    in property <string> label-password: "Password";
+    in property <string> label-cert-auth-type: "Certificate auth type";
+    in property <string> label-client-cert: "Client certificate or driver path";
+    in property <string> label-cert-password: "PFX password or PKCS11 pin";
+    in property <string> label-cert-id: "Hex ID of PKCS11 certificate";
+
+    // profile management
+    in property <string> profiles-header: "Connection profiles";
+
+    // dns expander
+    in property <string> expand-dns: "DNS";
+    in property <string> label-no-dns: "Do not change DNS resolver configuration";
+    in property <string> label-dns-servers: "Additional DNS servers";
+    in property <string> label-ignored-dns-servers: "Ignored DNS servers";
+    in property <string> label-search-domains: "Additional search domains";
+    in property <string> label-ignored-domains: "Ignored search domains";
+    in property <string> label-routing-domains: "Use routing domains";
+
+    // routing expander
+    in property <string> expand-routing: "Routing";
+    in property <string> label-no-routing: "Ignore all acquired routes";
+    in property <string> label-default-routing: "Set default route through the tunnel";
+    in property <string> label-add-routes: "Additional static routes";
+    in property <string> label-ignored-routes: "Routes to ignore";
+    in property <string> label-disable-ipv6: "Default route disables IPv6";
+
+    // certs expander
+    in property <string> expand-certificates: "Certificates";
+    in property <string> label-ca-cert: "Server CA root certificates";
+    in property <string> label-no-cert-check: "Disable all TLS certificate checks";
+
+    // misc expander
+    in property <string> expand-misc: "Misc Settings";
+    in property <string> label-password-factor: "Index of password factor, 1..N";
+    in property <string> label-keychain: "Store user password in the keychain";
+    in property <string> label-ike-lifetime: "IPsec IKE SA lifetime, seconds";
+    in property <string> label-ike-persist: "Store IPsec IKE session";
+    in property <string> label-no-keepalive: "Disable IPsec keepalive packets";
+    in property <string> label-port-knock: "Enable NAT-T port knocking";
+    in property <string> label-allow-forwarding: "Allow packet forwarding";
+    in property <string> label-ip-lease-time: "Custom IP lease time, seconds";
+    in property <string> label-mtu: "MTU";
+    in property <string> info-transport-type: "Transport type";
+
+    // ui expander
+    in property <string> expand-ui: "UI Settings";
+    in property <string> label-icon-theme: "Icon theme";
+    in property <string> label-color-theme: "Color theme";
+    in property <string> label-language: "Language";
+    in property <string> label-auto-connect: "Automatically connect on startup";
+
+    // about dialog
+    in property <string> about-version: "Version";
+    in property <string> about-authors: "Authors";
+    in property <string> about-license: "License";
+
+    // placeholders
+    in property <string> placeholder-domains: "Comma-separated domains";
+    in property <string> placeholder-ip-addresses: "Comma-separated IP addresses";
+    in property <string> placeholder-routes: "Comma-separated x.x.x.x/x";
+    in property <string> placeholder-certs: "Comma-separated PEM or DER files";
+}

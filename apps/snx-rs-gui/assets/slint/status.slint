@@ -1,0 +1,205 @@
+import { Button, ComboBox, HorizontalBox, Palette, VerticalBox } from "std-widgets.slint";
+import { Tr } from "tr.slint";
+
+export struct StatusEntry {
+    label: string,
+    value: string,
+}
+
+component ConnectButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <bool> has-menu: false;
+    callback clicked();
+
+    min-height: 28px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Palette.border;
+    background: !root.enabled ? Palette.control-background
+              : ta.pressed ? Palette.control-background.darker(0.2)
+              : ta.has-hover ? Palette.control-background.darker(0.1)
+              : Palette.control-background;
+
+    ta := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        alignment: center;
+        spacing: 8px;
+        padding-left: 10px;
+        padding-right: 10px;
+
+        Text {
+            text: root.label;
+            vertical-alignment: center;
+            color: root.enabled ? Palette.control-foreground : Palette.control-foreground.transparentize(0.5);
+        }
+
+        if root.has-menu: VerticalLayout {
+            alignment: center;
+
+            Path {
+                width: 12px;
+                height: 12px;
+                stroke: root.enabled ? Palette.control-foreground : Palette.control-foreground.transparentize(0.5);
+                stroke-width: 1.3px;
+                viewbox-y: 0;
+                viewbox-width: 10;
+                viewbox-height: 10;
+
+                MoveTo { x: 2; y: 3.5; }
+                LineTo { x: 5; y: 6.5; }
+                LineTo { x: 8; y: 3.5; }
+
+                transform-rotation: 180deg;
+                transform-origin: { x: self.width / 2, y: self.height / 2 };
+            }
+        }
+    }
+}
+
+export component StatusWindow inherits Window {
+    title: Tr.status-dialog-title;
+    preferred-width: 520px;
+    default-font-size: 14px;
+
+    in property <[StatusEntry]> entries: [];
+    in property <[string]> profile-names: [];
+    in property <bool> can-connect: true;
+    in property <bool> can-disconnect: true;
+    in property <bool> is-connected: false;
+
+    callback connect-clicked(int);
+    callback disconnect-clicked();
+    callback settings-clicked();
+    callback ok-clicked();
+
+    out property <length> preferred-content-height: root-layout.preferred-height;
+
+    property <color> status-color:
+        root.is-connected ? #22c55e
+      : root.can-disconnect ? #f59e0b
+      : #94a3b8;
+
+    property <string> status-text:
+        root.is-connected ? Tr.connection-status-connected
+      : root.can-disconnect ? Tr.connection-status-connecting
+      : Tr.connection-status-disconnected;
+
+    property <length> menu-item-height: 32px;
+    property <length> menu-padding: 8px;
+
+    root-layout := VerticalBox {
+        spacing: 10px;
+        padding: 10px;
+
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+            padding-left: 4px;
+
+            Rectangle {
+                width: 12px;
+                height: 12px;
+                border-radius: 6px;
+                background: root.status-color;
+                y: (parent.height - self.height) / 2;
+            }
+
+            Text {
+                text: root.status-text;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+        }
+
+        Rectangle {
+            background: Palette.alternate-background;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Palette.border;
+
+            vertical-stretch: 1;
+            min-height: entries-box.min-height;
+
+            entries-box := VerticalBox {
+                padding: 10px;
+                spacing: 6px;
+                alignment: start;
+
+                for entry in root.entries: HorizontalLayout {
+                    spacing: 10px;
+
+                    Text {
+                        text: entry.label + ":";
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                        color: Palette.foreground.transparentize(0.4);
+                        min-width: 140px;
+                    }
+
+                    TextInput {
+                        text: entry.value;
+                        read-only: true;
+                        single-line: false;
+                        wrap: word-wrap;
+                        horizontal-alignment: left;
+                        color: Palette.foreground;
+                        horizontal-stretch: 1;
+                    }
+                }
+            }
+        }
+
+        HorizontalBox {
+            padding-top: 0px;
+            spacing: 6px;
+
+            Button {
+                text: Tr.status-button-settings;
+                min-width: 80px;
+                clicked => { root.settings-clicked(); }
+            }
+
+            Rectangle { horizontal-stretch: 1; }
+
+            if root.can-connect: connect-menu := ContextMenuArea {
+                Menu {
+                    for name[i] in root.profile-names: MenuItem {
+                        title: name;
+                        activated => { root.connect-clicked(i); }
+                    }
+                }
+
+                ConnectButton {
+                    label: Tr.status-button-connect;
+                    has-menu: root.profile-names.length > 1;
+                    min-width: 100px;
+                    clicked => {
+                        if (root.profile-names.length <= 1) {
+                            root.connect-clicked(-1);
+                        } else {
+                            connect-menu.show({ x: 0, y: -(root.profile-names.length * root.menu-item-height + root.menu-padding) });
+                        }
+                    }
+                }
+            }
+
+            if root.can-disconnect && !root.can-connect: Button {
+                text: Tr.status-button-disconnect;
+                min-width: 100px;
+                clicked => { root.disconnect-clicked(); }
+            }
+
+            Button {
+                text: Tr.button-close;
+                min-width: 80px;
+                primary: true;
+                clicked => { root.ok-clicked(); }
+            }
+        }
+    }
+}

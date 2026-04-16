@@ -169,7 +169,7 @@ pub struct CmdlineParams {
     )]
     pub keychain: Option<bool>,
 
-    #[clap(long = "ike-lifetime", short = 'L', help = "IPSec IKE lifetime in seconds")]
+    #[clap(long = "ike-lifetime", short = 'L', help = "IPsec IKE lifetime in seconds")]
     pub ike_lifetime: Option<u64>,
 
     #[clap(
@@ -186,7 +186,7 @@ pub struct CmdlineParams {
     )]
     pub client_mode: Option<String>,
 
-    #[clap(long = "no-keepalive", short = 'A', help = "Disable IPSec keepalive packets")]
+    #[clap(long = "no-keepalive", short = 'A', help = "Disable IPsec keepalive packets")]
     pub no_keepalive: Option<bool>,
 
     #[clap(
@@ -215,7 +215,7 @@ pub struct CmdlineParams {
     #[clap(
         long = "transport-type",
         short = 'T',
-        help = "IPSec transport type [auto, kernel, tcpt, udp]"
+        help = "IPsec transport type [auto, kernel, tcpt, udp]"
     )]
     pub transport_type: Option<TransportType>,
 

@@ -1,6 +1,6 @@
 # Installation
 
-NOTE: artifacts with `-webkit` tag require a webkit6 package installed and are compiled with `mobile-access` feature, see below.
+NOTE: artifacts with `-webkit` tag require gtk4 and webkit6 packages and are compiled with `mobile-access` feature, see below.
 
 Download the latest binary and source release [here](https://github.com/ancwrd1/snx-rs/releases/latest).<br/>
 For Arch Linux and derivatives, the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.<br/>

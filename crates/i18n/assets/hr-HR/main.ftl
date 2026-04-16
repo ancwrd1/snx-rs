@@ -3,6 +3,7 @@ dialog-title = VPN postavke
 button-ok = U redu
 button-apply = Primijeni
 button-cancel = Odustani
+button-close = Zatvori
 button-fetch-info = Dohvati podatke
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Metoda autentifikacije
 label-tunnel-type = Vrsta tunela
 label-cert-auth-type = Vrsta autentifikacije certifikatom
 label-icon-theme = Tema ikona
+label-color-theme = Tema boja
 label-username = Korisničko ime
 label-username-required = Korisničko ime je potrebno za autentifikaciju
 label-password = Lozinka
@@ -21,18 +23,18 @@ label-search-domains = Dodatne domene za pretraživanje
 label-ignored-domains = Zanemarene domene za pretraživanje
 label-routing-domains = Tretiraj primljene domene za pretraživanje kao domene za usmjeravanje
 label-ca-cert = Korijenski CA certifikati poslužitelja
-label-no-cert-check = Onemogući sve provjere TLS certifikata (NESIGURNO!)
+label-no-cert-check = Onemogući sve provjere TLS certifikata
 label-password-factor = Indeks faktora lozinke, 1..N
 label-keychain = Spremi korisničku lozinku u privjesak za ključeve
-label-ike-lifetime = Životni vijek IPSec IKE SA, sekunde
-label-ike-persist = Spremi IPSec IKE sesiju i automatski se ponovno poveži
-label-no-keepalive = Onemogući IPSec keepalive pakete
+label-ike-lifetime = Životni vijek IPsec IKE SA, sekunde
+label-ike-persist = Spremi IPsec IKE sesiju
+label-no-keepalive = Onemogući IPsec keepalive pakete
 label-port-knock = Omogući NAT-T port knocking
 label-no-routing = Zanemari sve dobivene rute
 label-default-routing = Postavi zadanu rutu kroz tunel
 label-add-routes = Dodatne statičke rute
 label-ignored-routes = Rute za zanemariti
-label-client-cert = Certifikat klijenta ili putanja upravljačkog programa (.pem, .pfx/.p12, .so)
+label-client-cert = Certifikat klijenta ili putanja upravljačkog programa
 label-cert-password = PFX lozinka ili PKCS11 pin
 label-cert-id = Hex ID PKCS11 certifikata
 label-language = Jezik
@@ -40,7 +42,7 @@ label-system-language = Zadano sustava
 label-username-password = Korisničko ime i lozinka
 label-auto-connect = Automatski se poveži pri pokretanju
 label-ip-lease-time = Prilagođeno vrijeme zakupa IP adrese, sekunde
-label-disable-ipv6 = Onemogući IPv6 kada je zadana ruta omogućena
+label-disable-ipv6 = Zadana ruta onemogućuje IPv6
 label-mtu = MTU
 label-connection-profile = Profil veze
 label-profile-name = Naziv profila
@@ -54,7 +56,7 @@ label-cancel = Odustani
 label-open = Otvori
 label-select-file = Odaberi datoteku
 label-ca-cert-files = X.509 certifikati
-label-allow-forwarding = Dopusti prosljeđivanje paketa za sučelje tunela
+label-allow-forwarding = Dopusti prosljeđivanje paketa
 
 # Tabs and expanders
 tab-general = Općenito
@@ -95,7 +97,7 @@ error-endless-challenges = Beskonačna petlja izazova korisničkog imena
 error-no-pkcs12 = Nije navedena PKCS12 putanja i lozinka
 error-no-pkcs8 = Nije navedena PKCS8 PEM putanja
 error-no-pkcs11 = Nije naveden PKCS11 pin
-error-no-ipsec-session = Nema IPSEC sesije
+error-no-ipsec-session = Nema IPsec sesije
 error-request-failed-error-code = Zahtjev nije uspio, kod greške: {$error_code}
 error-no-root-privileges = Ovaj program treba pokrenuti kao root korisnik!
 error-missing-required-parameters = Nedostaju obavezni parametri: naziv poslužitelja i/ili tip prijave!
@@ -143,14 +145,14 @@ placeholder-routes = Odvojeno zarezom x.x.x.x/x
 placeholder-certs = PEM ili DER datoteke odvojene zarezom
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL
 
 # Certificate types
 cert-type-none = Ništa
 cert-type-pfx = PFX datoteka
 cert-type-pem = PEM datoteka
-cert-type-hw = Hardverski token
+cert-type-hw = HSM uređaj
 
 # Transport types
 transport-type-autodetect = Automatsko otkrivanje
@@ -159,14 +161,19 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automatsko otkrivanje
-icon-theme-dark = Tamna
-icon-theme-light = Svijetla
+theme-autodetect = Automatsko otkrivanje
+theme-dark = Tamna
+theme-light = Svijetla
 
 # Application
 app-title = SNX-RS VPN klijent za Linux
 app-connection-error = Greška veze
 app-connection-success = Veza uspješna
+
+# About dialog
+about-version = Verzija
+about-authors = Autori
+about-license = Licenca
 
 # Authentication
 auth-dialog-title = VPN faktor autentifikacije
@@ -235,6 +242,7 @@ language-sv-SE = Švedski
 
 # Connection status messages
 connection-status-disconnected = Prekinuta veza
+connection-status-connected = Povezano
 connection-status-connecting = Povezivanje u tijeku
 connection-status-connected-since = Povezano od: {$since}
 connection-status-mfa-pending = MFA na čekanju: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = NATT port
 login-options-internal-ca-fingerprint = Otisak internog CA
 
 # Connection profiles
-profile-new = Novi
-profile-rename = Preimenuj
-profile-delete = Obriši
 profile-delete-prompt = Jeste li sigurni da želite obrisati odabrani profil?
 profile-default-name = Zadano
 profile-new-title = Novi profil veze
 profile-rename-title = Preimenuj profil veze
+profiles-header = Profili veze

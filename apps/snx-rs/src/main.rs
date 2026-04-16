@@ -299,7 +299,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 }
             }
             result = &mut tunnel_fut => {
-                if params.tunnel_type == TunnelType::Ssl || !params.ike_persist {
+                if params.tunnel_type == TunnelType::SSL || !params.ike_persist {
                     debug!("Signing out");
                     let client = CccHttpClient::new(params.clone(), Some(session));
                     let _ = client.signout().await;

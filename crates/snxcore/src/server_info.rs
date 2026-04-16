@@ -14,6 +14,10 @@ use crate::{
 };
 
 pub async fn get_uncached(params: &TunnelParams) -> anyhow::Result<ServerInfoResponse> {
+    if params.server_name.is_empty() {
+        anyhow::bail!(i18n::tr!("error-no-server-name"));
+    }
+
     let client = CccHttpClient::new(Arc::new(params.clone()), None);
 
     let info = client.get_server_info().await?;

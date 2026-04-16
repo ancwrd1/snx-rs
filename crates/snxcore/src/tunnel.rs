@@ -11,7 +11,7 @@ use crate::{
         proto::LoginOption,
         *,
     },
-    tunnel::{ipsec::connector::IpsecTunnelConnector, ssl::connector::SslTunnelConnector},
+    tunnel::{ipsec::connector::IPsecTunnelConnector, ssl::connector::SslTunnelConnector},
 };
 
 pub mod device;
@@ -21,7 +21,7 @@ mod ssl;
 #[derive(Debug, Clone, PartialEq)]
 pub enum TunnelCommand {
     Terminate(bool),
-    ReKey(IpsecSession),
+    ReKey(IPsecSession),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,8 +69,8 @@ pub struct CheckPointTunnelConnectorFactory;
 impl TunnelConnectorFactory for CheckPointTunnelConnectorFactory {
     async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
         match params.tunnel_type {
-            TunnelType::Ipsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
-                Ok(Box::new(IpsecTunnelConnector::new(params).await?))
+            TunnelType::IPsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
+                Ok(Box::new(IPsecTunnelConnector::new(params).await?))
             }
             _ => Ok(Box::new(SslTunnelConnector::new(params).await?)),
         }

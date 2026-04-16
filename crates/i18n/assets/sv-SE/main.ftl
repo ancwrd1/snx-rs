@@ -3,6 +3,7 @@ dialog-title = VPN-inställningar
 button-ok = OK
 button-apply = Tillämpa
 button-cancel = Avbryt
+button-close = Stäng
 button-fetch-info = Hämta information
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Autentiseringsmetod
 label-tunnel-type = Tunneltyp
 label-cert-auth-type = Certifikattyp
 label-icon-theme = Ikon-tema
+label-color-theme = Färgtema
 label-username = Användarnamn
 label-username-required = Användarnamn krävs för autentisering
 label-password = Lösenord
@@ -24,9 +26,9 @@ label-ca-cert = Server CA-rotcertifikat
 label-no-cert-check = Inaktivera alla TLS-certifikatkontroller (OSÄKERT!)
 label-password-factor = Lösenordsfaktorindex, 1..N
 label-keychain = Spara användarlösenord i nyckelringen
-label-ike-lifetime = IPSec IKE SA-livstid, sekunder
-label-ike-persist = Spara IPSec IKE-session och återanslut automatiskt
-label-no-keepalive = Inaktivera IPSec keepalive-paket
+label-ike-lifetime = IPsec IKE SA-livstid, sekunder
+label-ike-persist = Spara IPsec IKE-session och återanslut automatiskt
+label-no-keepalive = Inaktivera IPsec keepalive-paket
 label-port-knock = Aktivera NAT-T port knocking
 label-no-routing = Ignorera alla erhållna rutter
 label-default-routing = Ange standardrutt genom tunneln
@@ -95,7 +97,7 @@ error-endless-challenges = Oändlig loop av användarnamnsutmaningar
 error-no-pkcs12 = Ingen PKCS12-sökväg och lösenord angivna
 error-no-pkcs8 = Ingen PKCS8 PEM-sökväg angiven
 error-no-pkcs11 = Ingen PKCS11 PIN angiven
-error-no-ipsec-session = Ingen IPSEC-session
+error-no-ipsec-session = Ingen IPsec-session
 error-request-failed-error-code = Förfrågan misslyckades, felkod: {$error_code}
 error-no-root-privileges = Detta program måste köras som root-användare!
 error-missing-required-parameters = Saknade obligatoriska parametrar: servernamn och/eller åtkomsttyp!
@@ -143,14 +145,14 @@ placeholder-routes = Rutter separerade med kommatecken i formatet x.x.x.x/x
 placeholder-certs = PEM- eller DER-filer separerade med kommatecken
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (föråldrat)
 
 # Certificate types
 cert-type-none = Ingen
 cert-type-pfx = PFX-fil
 cert-type-pem = PEM-fil
-cert-type-hw = Hårdvarutoken
+cert-type-hw = HSM-enhet
 
 # Transport types
 transport-type-autodetect = Automatisk identifiering
@@ -159,9 +161,9 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Automatisk identifiering
-icon-theme-dark = Mörkt
-icon-theme-light = Ljust
+theme-autodetect = Automatisk identifiering
+theme-dark = Mörkt
+theme-light = Ljust
 
 # Connection info
 info-connected-since = Ansluten sedan
@@ -182,6 +184,11 @@ info-default-route = Standardrutt
 app-title = SNX-RS VPN-klient för Linux
 app-connection-error = Anslutningsfel
 app-connection-success = Anslutning lyckades
+
+# About dialog
+about-version = Version
+about-authors = Författare
+about-license = Licens
 
 # Authentication
 auth-dialog-title = VPN-autentiseringsfaktor
@@ -235,6 +242,7 @@ language-sv-SE = Svenska
 
 # Connection status messages
 connection-status-disconnected = Frånkopplad
+connection-status-connected = Ansluten
 connection-status-connecting = Ansluter
 connection-status-connected-since = Ansluten sedan: {$since}
 connection-status-mfa-pending = Väntar på MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = NATT-port
 login-options-internal-ca-fingerprint = Internt CA-fingeravtryck
 
 # Connection profiles
-profile-new = Ny
-profile-rename = Byt namn
-profile-delete = Ta bort
 profile-delete-prompt = Är du säker på att du vill ta bort den valda profilen?
 profile-default-name = Standard
 profile-new-title = Ny anslutningsprofil
 profile-rename-title = Byt namn på anslutningsprofil
+profiles-header = Anslutningsprofiler

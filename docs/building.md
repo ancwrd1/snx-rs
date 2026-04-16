@@ -1,9 +1,9 @@
 # Building from Sources
 
 * Install the required dependencies:
-  - Debian/Ubuntu: `sudo apt install build-essential libssl-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev libjavascriptcoregtk-6.0-dev libsqlite3-dev`
-  - openSUSE: `sudo zypper install libopenssl-3-devel gtk4-devel webkit2gtk4-devel sqlite3-devel`
-  - Other distros: C compiler, OpenSSL, SQLite3, GTK 4 development packages, optionally WebKit 6 development package
+  - Debian/Ubuntu: `sudo apt install build-essential libssl-dev libfontconfig1-dev libsqlite3-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev libjavascriptcoregtk-6.0-dev`
+  - openSUSE: `sudo zypper install libopenssl-3-devel sqlite3-devel fontconfig-devel gtk4-devel webkit2gtk4-devel`
+  - Other distros: C compiler, OpenSSL, SQLite3, fontconfig, optionally GTK4 and WebKit6 development package
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version.
 * To build a version with mobile access feature and webkit integration, pass the `--features=mobile-access` parameter.

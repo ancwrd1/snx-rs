@@ -3,6 +3,7 @@ dialog-title = Paramètres VPN
 button-ok = OK
 button-apply = Appliquer
 button-cancel = Annuler
+button-close = Fermer
 button-fetch-info = Récupérer les informations
 
 # Labels
@@ -11,6 +12,7 @@ label-auth-method = Méthode d'authentification
 label-tunnel-type = Type de tunnel
 label-cert-auth-type = Type de certificat
 label-icon-theme = Thème d'icônes
+label-color-theme = Thème de couleur
 label-username = Nom d'utilisateur
 label-username-required = Le nom d'utilisateur est requis pour l'authentification
 label-password = Mot de passe
@@ -21,18 +23,18 @@ label-search-domains = Domaines de recherche supplémentaires
 label-ignored-domains = Domaines de recherche ignorés
 label-routing-domains = Traiter les domaines de recherche reçus comme domaines de routage
 label-ca-cert = Certificats racine CA du serveur
-label-no-cert-check = Désactiver toutes les vérifications de certificats TLS (INSÉCURISÉ !)
+label-no-cert-check = Désactiver toutes les vérifications de certificats TLS
 label-password-factor = Index du facteur de mot de passe, 1..N
 label-keychain = Stocker le mot de passe utilisateur dans le trousseau
-label-ike-lifetime = Durée de vie IPSec IKE SA, secondes
-label-ike-persist = Sauvegarder la session IPSec IKE et se reconnecter automatiquement
-label-no-keepalive = Désactiver les paquets keepalive IPSec
+label-ike-lifetime = Durée de vie IPsec IKE SA, secondes
+label-ike-persist = Stocker la session IPsec IKE
+label-no-keepalive = Désactiver les paquets keepalive IPsec
 label-port-knock = Activer le port knocking NAT-T
 label-no-routing = Ignorer toutes les routes acquises
 label-default-routing = Définir la route par défaut via le tunnel
 label-add-routes = Routes statiques supplémentaires
 label-ignored-routes = Routes à ignorer
-label-client-cert = Certificat client ou chemin du pilote (.pem, .pfx/.p12, .so)
+label-client-cert = Certificat client ou chemin du pilote
 label-cert-password = Mot de passe PFX ou code PIN PKCS11
 label-cert-id = ID hexadécimal du certificat PKCS11
 label-language = Langue
@@ -40,7 +42,7 @@ label-system-language = Par défaut du système
 label-username-password = Nom d'utilisateur et mot de passe
 label-auto-connect = Se connecter automatiquement au démarrage
 label-ip-lease-time = Durée de bail IP personnalisée, secondes
-label-disable-ipv6 = Désactiver IPv6 lorsque la route par défaut est activée
+label-disable-ipv6 = La route par défaut désactive IPv6
 label-mtu = MTU
 label-connection-profile = Profil de connexion
 label-profile-name = Nom du profil
@@ -54,7 +56,7 @@ label-cancel = Annuler
 label-open = Ouvrir
 label-select-file = Sélectionner un fichier
 label-ca-cert-files = Certificats X.509
-label-allow-forwarding = Autoriser le transfert de paquets pour l'interface du tunnel
+label-allow-forwarding = Autoriser le transfert de paquets
 
 # Tabs and expanders
 tab-general = Général
@@ -95,7 +97,7 @@ error-endless-challenges = Boucle infinie de défis de nom d'utilisateur
 error-no-pkcs12 = Pas de chemin PKCS12 et mot de passe fournis
 error-no-pkcs8 = Pas de chemin PKCS8 PEM fourni
 error-no-pkcs11 = Pas de code PIN PKCS11 fourni
-error-no-ipsec-session = Pas de session IPSEC
+error-no-ipsec-session = Pas de session IPsec
 error-request-failed-error-code = Échec de la requête, code d'erreur : {$error_code}
 error-no-root-privileges = Ce programme doit être exécuté en tant qu'utilisateur root !
 error-missing-required-parameters = Paramètres obligatoires manquants : nom du serveur et/ou type de connexion !
@@ -143,14 +145,14 @@ placeholder-routes = Routes séparées par des virgules au format x.x.x.x/x
 placeholder-certs = Fichiers PEM ou DER séparés par des virgules
 
 # Tunnel types
-tunnel-type-ipsec = IPSec
+tunnel-type-ipsec = IPsec
 tunnel-type-ssl = SSL (obsolète)
 
 # Certificate types
 cert-type-none = Aucun
 cert-type-pfx = Fichier PFX
 cert-type-pem = Fichier PEM
-cert-type-hw = Jeton matériel
+cert-type-hw = Périphérique HSM
 
 # Transport types
 transport-type-autodetect = Détection automatique
@@ -159,14 +161,19 @@ transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
 
 # Icon themes
-icon-theme-autodetect = Détection automatique
-icon-theme-dark = Sombre
-icon-theme-light = Clair
+theme-autodetect = Détection automatique
+theme-dark = Sombre
+theme-light = Clair
 
 # Application
 app-title = Client VPN SNX-RS pour Linux
 app-connection-error = Erreur de connexion
 app-connection-success = Connexion réussie
+
+# About dialog
+about-version = Version
+about-authors = Auteurs
+about-license = Licence
 
 # Authentication
 auth-dialog-title = Facteur d'authentification VPN
@@ -235,6 +242,7 @@ language-sv-SE = Suédois
 
 # Connection status messages
 connection-status-disconnected = Déconnecté
+connection-status-connected = Connecté
 connection-status-connecting = Connexion en cours
 connection-status-connected-since = Connecté depuis: {$since}
 connection-status-mfa-pending = En attente de MFA: {$mfa_type}
@@ -250,10 +258,8 @@ login-options-natt-port = Port NATT
 login-options-internal-ca-fingerprint = Empreinte CA interne
 
 # Connection profiles
-profile-new = Nouveau
-profile-rename = Renommer
-profile-delete = Supprimer
 profile-delete-prompt = Êtes-vous sûr de vouloir supprimer le profil sélectionné ?
 profile-default-name = Par défaut
 profile-new-title = Nouveau profil de connexion
 profile-rename-title = Renommer le profil de connexion
+profiles-header = Profils de connexion

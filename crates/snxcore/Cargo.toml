@@ -61,7 +61,7 @@ openssl-sys = "0.9"
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 secret-service = {  version = "5", features = ["rt-tokio-crypto-rust"] }
 sysctl = "0.7"
-rtnetlink = "0.20"
+rtnetlink = "0.21"
 xfrmnetlink = "0.3"
 netlink-packet-xfrm = "0.4"
 

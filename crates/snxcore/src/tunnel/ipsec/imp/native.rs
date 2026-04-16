@@ -16,9 +16,9 @@ use tracing::{debug, warn};
 
 use crate::{
     ccc::CccHttpClient,
-    model::{ConnectionInfo, IpsecSession, VpnSession, params::TunnelParams},
+    model::{ConnectionInfo, IPsecSession, VpnSession, params::TunnelParams},
     platform::{
-        DeviceConfig, IpsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncapType,
+        DeviceConfig, IPsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncapType,
         UdpSocketExt,
     },
     server_info,
@@ -29,8 +29,8 @@ use crate::{
     util,
 };
 
-pub(crate) struct NativeIpsecTunnel {
-    configurator: Box<dyn IpsecConfigurator + Send + Sync>,
+pub(crate) struct NativeIPsecTunnel {
+    configurator: Box<dyn IPsecConfigurator + Send + Sync>,
     keepalive_runner: KeepaliveRunner,
     scv_runner: ScvRunner,
     natt_socket: Arc<UdpSocket>,
@@ -42,7 +42,7 @@ pub(crate) struct NativeIpsecTunnel {
     subnets: Vec<Ipv4Net>,
 }
 
-impl NativeIpsecTunnel {
+impl NativeIPsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let server_info = server_info::get(&params).await?;
 
@@ -128,7 +128,7 @@ impl NativeIpsecTunnel {
         Ok(())
     }
 
-    async fn setup_routing(&self, session: &IpsecSession) -> anyhow::Result<()> {
+    async fn setup_routing(&self, session: &IPsecSession) -> anyhow::Result<()> {
         let platform = Platform::get();
         let configurator = platform.new_routing_configurator(&self.device_name, session.address);
 
@@ -189,13 +189,13 @@ impl NativeIpsecTunnel {
 }
 
 #[async_trait::async_trait]
-impl VpnTunnel for NativeIpsecTunnel {
+impl VpnTunnel for NativeIPsecTunnel {
     async fn run(
         mut self: Box<Self>,
         mut command_receiver: mpsc::Receiver<TunnelCommand>,
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
-        debug!("Running IPSec tunnel");
+        debug!("Running IPsec tunnel");
 
         let natt_stopper = start_natt_listener(self.natt_socket.clone(), event_sender.clone()).await?;
 
@@ -273,12 +273,12 @@ impl VpnTunnel for NativeIpsecTunnel {
         };
         let result = tokio::select! {
             () = fut => {
-                debug!("Terminating IPSec tunnel due to stop command");
+                debug!("Terminating IPsec tunnel due to stop command");
                 Ok(())
             }
 
             err = self.keepalive_runner.run() => {
-                debug!("Terminating IPSec tunnel due to keepalive failure");
+                debug!("Terminating IPsec tunnel due to keepalive failure");
                 err
             }
             err = self.scv_runner.run() => {
@@ -294,9 +294,9 @@ impl VpnTunnel for NativeIpsecTunnel {
     }
 }
 
-impl Drop for NativeIpsecTunnel {
+impl Drop for NativeIPsecTunnel {
     fn drop(&mut self) {
-        debug!("Cleaning up IPSec tunnel");
+        debug!("Cleaning up IPsec tunnel");
         std::thread::scope(|s| {
             s.spawn(|| util::block_on(self.cleanup()));
         });

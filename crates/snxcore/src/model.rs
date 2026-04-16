@@ -24,7 +24,7 @@ pub enum SessionState {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct IpsecSession {
+pub struct IPsecSession {
     pub lifetime: Duration,
     pub address: Ipv4Addr,
     pub netmask: Ipv4Addr,
@@ -36,7 +36,7 @@ pub struct IpsecSession {
     pub address_lifetime: Duration,
 }
 
-impl Default for IpsecSession {
+impl Default for IPsecSession {
     fn default() -> Self {
         Self {
             lifetime: Duration::default(),
@@ -52,7 +52,7 @@ impl Default for IpsecSession {
     }
 }
 
-impl IpsecSession {
+impl IPsecSession {
     pub fn ipv4net_address(&self) -> Ipv4Net {
         Ipv4Net::with_netmask(self.address, self.netmask).unwrap_or_else(|_| Ipv4Net::from(self.address))
     }
@@ -61,7 +61,7 @@ impl IpsecSession {
 #[derive(Debug, Clone, PartialEq)]
 pub struct VpnSession {
     pub ccc_session_id: String,
-    pub ipsec_session: Option<IpsecSession>,
+    pub ipsec_session: Option<IPsecSession>,
     pub state: SessionState,
     pub username: Option<String>,
 }
