@@ -1560,6 +1560,7 @@ impl SettingsDialog {
         let height = current_size.1.max(400);
 
         self.window.set_default_size(max_width, height);
+        self.window.set_size_request(max_width, height);
     }
 }
 
