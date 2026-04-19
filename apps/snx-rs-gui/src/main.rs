@@ -85,6 +85,9 @@ async fn main() -> anyhow::Result<()> {
         warn!("Failed to start IPC listener: {}", e);
     }
 
+    // initialize backend early to pre-warm slint event queues needed for ui::spawn_from_event_loop
+    slint::BackendSelector::new().select()?;
+
     let mut my_tray = create_tray(tray_event_sender.clone(), cmdline_params.no_tray).await?;
     let tray_command_sender = my_tray.sender();
 

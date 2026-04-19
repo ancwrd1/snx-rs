@@ -38,7 +38,7 @@ where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
 {
-    slint::Timer::single_shot(std::time::Duration::ZERO, || {
+    let _ = slint::invoke_from_event_loop(|| {
         tokio::spawn(f);
     });
 }
