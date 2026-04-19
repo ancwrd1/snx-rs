@@ -111,7 +111,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     if let Some(mut command) = cmdline_params.command {
-        ui::run_from_event_loop(async move {
+        ui::spawn_from_event_loop(async move {
             let params = ConnectionProfilesStore::instance().get_default();
             if matches!(command, TrayEvent::Connect(_)) && params.server_name.is_empty() {
                 command = TrayEvent::Settings;
@@ -119,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
             tray_event_sender.send(command).await
         });
     } else if cmdline_params.no_tray {
-        ui::run_from_event_loop(async move { tray_event_sender.send(TrayEvent::Status).await });
+        ui::spawn_from_event_loop(async move { tray_event_sender.send(TrayEvent::Status).await });
     }
 
     tokio::task::block_in_place(slint::run_event_loop_until_quit)?;
@@ -215,7 +215,8 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
             if first_run {
                 first_run = false;
                 if params.auto_connect && is_disconnected {
-                    let _ = event_sender.send(TrayEvent::Connect(params.profile_id)).await;
+                    let sender = event_sender.clone();
+                    ui::spawn_from_event_loop(async move { sender.send(TrayEvent::Connect(params.profile_id)).await });
                 }
             }
         }

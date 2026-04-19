@@ -33,7 +33,7 @@ where
     });
 }
 
-pub fn run_from_event_loop<F, R>(f: F)
+pub fn spawn_from_event_loop<F, R>(f: F)
 where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
@@ -44,9 +44,11 @@ where
 }
 
 pub fn update_windows() {
-    for controller in OPEN_WINDOWS.with(|slot| slot.borrow().values().cloned().collect::<Vec<_>>()) {
-        controller.update();
-    }
+    OPEN_WINDOWS.with(|slot| {
+        for controller in slot.borrow().values() {
+            controller.update();
+        }
+    });
 }
 
 fn store_window(name: &'static str, controller: Rc<dyn WindowController>) {
