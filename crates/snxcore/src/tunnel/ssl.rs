@@ -237,7 +237,7 @@ impl SslTunnel {
             server_info::get(&self.params).await?.connectivity_info.tcpt_port,
         )?;
 
-        let mut subnets = self.params.add_routes.clone();
+        let mut subnets = Vec::new();
 
         if !self.params.no_routing {
             if self.params.default_route {
@@ -245,6 +245,8 @@ impl SslTunnel {
                     .setup_default_route(dest_ip, self.params.disable_ipv6)
                     .await?;
             } else {
+                subnets.extend(&self.params.add_routes);
+
                 let range = if let Some(ref range) = self.hello_reply.range {
                     range.clone()
                 } else {
@@ -261,10 +263,10 @@ impl SslTunnel {
             }
         }
 
-        subnets.retain(|s| !s.contains(&dest_ip));
-
         if !subnets.is_empty() {
-            let _ = configurator.add_routes(&subnets, &self.params.ignore_routes).await;
+            let _ = configurator
+                .add_routes(dest_ip, &subnets, &self.params.ignore_routes)
+                .await;
         }
 
         Ok(())

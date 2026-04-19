@@ -3,7 +3,7 @@ use std::{collections::HashSet, net::Ipv4Addr};
 use async_trait::async_trait;
 use ipnet::Ipv4Net;
 use rtnetlink::{
-    RouteMessageBuilder,
+    Handle, RouteMessageBuilder,
     packet_route::{
         IpProtocol,
         rule::{RuleAction, RuleAttribute, RuleFlags, RulePortRange},
@@ -27,14 +27,13 @@ impl LinuxRoutingConfigurator {
         }
     }
 
-    async fn add_route(&self, route: Ipv4Net) -> anyhow::Result<()> {
+    async fn add_route(&self, handle: &Handle, device_index: u32, route: Ipv4Net) -> anyhow::Result<()> {
         debug!("Adding route: {} via {}", route, self.device);
-        let handle = super::new_netlink_connection()?;
-        let index = super::resolve_device_index(&handle, &self.device).await?;
 
         let message = RouteMessageBuilder::<Ipv4Addr>::new()
+            .table_id(IP_RULE_TABLE)
             .destination_prefix(route.network(), route.prefix_len())
-            .output_interface(index)
+            .output_interface(device_index)
             .build();
 
         handle.route().add(message).execute().await?;
@@ -44,17 +43,39 @@ impl LinuxRoutingConfigurator {
 
 #[async_trait]
 impl RoutingConfigurator for LinuxRoutingConfigurator {
-    async fn add_routes(&self, routes: &[Ipv4Net], ignore_routes: &[Ipv4Net]) -> anyhow::Result<()> {
+    async fn add_routes(
+        &self,
+        destination: Ipv4Addr,
+        routes: &[Ipv4Net],
+        ignore_routes: &[Ipv4Net],
+    ) -> anyhow::Result<()> {
         let routes = routes.iter().collect::<HashSet<_>>();
         debug!("Routes to add: {:?}", routes);
+
+        let handle = super::new_netlink_connection()?;
+        let index = super::resolve_device_index(&handle, &self.device).await?;
 
         for route in routes {
             if ignore_routes.iter().any(|ignore| ignore == route) {
                 debug!("Ignoring route: {}", route);
                 continue;
             }
-            let _ = self.add_route(*route).await;
+            let _ = self.add_route(&handle, index, *route).await;
         }
+
+        let mut rule = handle
+            .rule()
+            .add()
+            .v4()
+            .table_id(IP_RULE_TABLE)
+            .action(RuleAction::ToTable);
+
+        let msg = rule.message_mut();
+        msg.header.dst_len = 32;
+        msg.header.flags.insert(RuleFlags::Invert);
+        msg.attributes.push(RuleAttribute::Destination(destination.into()));
+
+        rule.execute().await?;
 
         Ok(())
     }

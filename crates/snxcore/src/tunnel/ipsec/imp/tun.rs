@@ -135,7 +135,7 @@ impl TunIPsecTunnel {
         let platform = Platform::get();
         let configurator = platform.new_routing_configurator(dev_name, session.address);
 
-        let mut subnets = self.params.add_routes.clone();
+        let mut subnets = Vec::new();
 
         let mut default_route_set = false;
 
@@ -146,6 +146,7 @@ impl TunIPsecTunnel {
                     .await?;
                 default_route_set = true;
             } else {
+                subnets.extend(&self.params.add_routes);
                 subnets.extend(&self.subnets);
                 let network = Ipv4Net::with_netmask(session.address, session.netmask)?;
                 if network.prefix_len() < 32 {
@@ -158,10 +159,10 @@ impl TunIPsecTunnel {
             .setup_keepalive_route(self.gateway_address, !default_route_set)
             .await?;
 
-        subnets.retain(|s| !s.contains(&self.gateway_address));
-
         if !subnets.is_empty() {
-            let _ = configurator.add_routes(&subnets, &self.params.ignore_routes).await;
+            let _ = configurator
+                .add_routes(self.gateway_address, &subnets, &self.params.ignore_routes)
+                .await;
         }
 
         Ok(())
