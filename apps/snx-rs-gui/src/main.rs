@@ -1,3 +1,4 @@
+#![deny(unsafe_code)]
 use std::{sync::Arc, time::Duration};
 
 use clap::{CommandFactory, Parser};
