@@ -21,6 +21,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 
+use crate::platform::RoutingConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -210,7 +211,10 @@ impl SslTunnel {
                     util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
             {
                 let _ = configurator
-                    .remove_default_route(dest_ip, self.params.disable_ipv6)
+                    .configure(&RoutingConfig::Cleanup {
+                        destination: dest_ip,
+                        enable_ipv6: self.params.disable_ipv6,
+                    })
                     .await;
             }
 
@@ -237,37 +241,41 @@ impl SslTunnel {
             server_info::get(&self.params).await?.connectivity_info.tcpt_port,
         )?;
 
-        let mut subnets = Vec::new();
+        if self.params.no_routing {
+            return Ok(());
+        }
 
-        if !self.params.no_routing {
-            if self.params.default_route {
-                configurator
-                    .setup_default_route(dest_ip, self.params.disable_ipv6)
-                    .await?;
-            } else {
-                subnets.extend(&self.params.add_routes);
-
-                let range = if let Some(ref range) = self.hello_reply.range {
-                    range.clone()
-                } else {
-                    let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-                    let client_settings = client.get_client_settings().await?;
-                    client_settings.updated_policies.range.settings
-                };
-
-                subnets.extend(util::ranges_to_subnets(&range));
-
-                if device_config.address.prefix_len() < 32 {
-                    subnets.push(device_config.address.trunc());
-                }
+        let config = if self.params.default_route {
+            RoutingConfig::Full {
+                destination: dest_ip,
+                disable_ipv6: self.params.disable_ipv6,
             }
-        }
+        } else {
+            let ranges = if let Some(ref range) = self.hello_reply.range {
+                range.clone()
+            } else {
+                let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+                let client_settings = client.get_client_settings().await?;
+                client_settings.updated_policies.range.settings
+            };
+            let subnets = util::ranges_to_subnets(&ranges).collect::<Vec<_>>();
 
-        if !subnets.is_empty() {
-            let _ = configurator
-                .add_routes(dest_ip, &subnets, &self.params.ignore_routes)
-                .await;
-        }
+            let mut routes = Vec::with_capacity(subnets.len() + self.params.add_routes.len());
+            routes.extend(&self.params.add_routes);
+            routes.extend(subnets);
+            routes.retain(|r| !self.params.ignore_routes.contains(r));
+
+            if device_config.address.prefix_len() < 32 {
+                routes.push(device_config.address.trunc());
+            }
+
+            RoutingConfig::Split {
+                destination: dest_ip,
+                routes,
+            }
+        };
+
+        configurator.configure(&config).await?;
 
         Ok(())
     }

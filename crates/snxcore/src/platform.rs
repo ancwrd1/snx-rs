@@ -180,6 +180,22 @@ impl ResolverConfigBuilder {
     }
 }
 
+#[derive(Debug)]
+pub enum RoutingConfig {
+    Full {
+        destination: Ipv4Addr,
+        disable_ipv6: bool,
+    },
+    Split {
+        destination: Ipv4Addr,
+        routes: Vec<Ipv4Net>,
+    },
+    Cleanup {
+        destination: Ipv4Addr,
+        enable_ipv6: bool,
+    },
+}
+
 #[async_trait]
 pub trait ResolverConfigurator {
     async fn configure(&self, config: &ResolverConfig) -> anyhow::Result<()>;
@@ -194,16 +210,7 @@ pub trait Keychain {
 
 #[async_trait]
 pub trait RoutingConfigurator {
-    async fn add_routes(
-        &self,
-        destination: Ipv4Addr,
-        routes: &[Ipv4Net],
-        ignore_routes: &[Ipv4Net],
-    ) -> anyhow::Result<()>;
-    async fn setup_default_route(&self, destination: Ipv4Addr, disable_ipv6: bool) -> anyhow::Result<()>;
-    async fn setup_keepalive_route(&self, destination: Ipv4Addr, with_table: bool) -> anyhow::Result<()>;
-    async fn remove_default_route(&self, destination: Ipv4Addr, enable_ipv6: bool) -> anyhow::Result<()>;
-    async fn remove_keepalive_route(&self, destination: Ipv4Addr) -> anyhow::Result<()>;
+    async fn configure(&self, config: &RoutingConfig) -> anyhow::Result<()>;
 }
 
 #[async_trait]

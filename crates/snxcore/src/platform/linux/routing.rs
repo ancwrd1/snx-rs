@@ -12,6 +12,7 @@ use rtnetlink::{
 use sysctl::{Ctl, Sysctl};
 use tracing::debug;
 
+use crate::platform::RoutingConfig;
 use crate::{model::params::TunnelParams, platform::RoutingConfigurator};
 
 const IP_RULE_TABLE: u32 = 18000;
@@ -39,53 +40,23 @@ impl LinuxRoutingConfigurator {
         handle.route().add(message).execute().await?;
         Ok(())
     }
-}
 
-#[async_trait]
-impl RoutingConfigurator for LinuxRoutingConfigurator {
-    async fn add_routes(
-        &self,
-        destination: Ipv4Addr,
-        routes: &[Ipv4Net],
-        ignore_routes: &[Ipv4Net],
-    ) -> anyhow::Result<()> {
+    async fn add_routes(&self, destination: Ipv4Addr, routes: &[Ipv4Net]) -> anyhow::Result<()> {
         let routes = routes.iter().collect::<HashSet<_>>();
-        debug!("Routes to add: {:?}", routes);
 
         let handle = super::new_netlink_connection()?;
         let index = super::resolve_device_index(&handle, &self.device).await?;
 
         for route in routes {
-            if ignore_routes.iter().any(|ignore| ignore == route) {
-                debug!("Ignoring route: {}", route);
-                continue;
-            }
             let _ = self.add_route(&handle, index, *route).await;
         }
 
-        let mut rule = handle
-            .rule()
-            .add()
-            .v4()
-            .table_id(IP_RULE_TABLE)
-            .action(RuleAction::ToTable);
-
-        let msg = rule.message_mut();
-        msg.header.dst_len = 32;
-        msg.header.flags.insert(RuleFlags::Invert);
-        msg.attributes.push(RuleAttribute::Destination(destination.into()));
-
-        rule.execute().await?;
+        self.add_exclusion_rule(&handle, destination).await?;
 
         Ok(())
     }
 
     async fn setup_default_route(&self, destination: Ipv4Addr, disable_ipv6: bool) -> anyhow::Result<()> {
-        debug!(
-            "Setting up default route through {}, disable IPv6: {disable_ipv6}",
-            self.device
-        );
-
         let handle = super::new_netlink_connection()?;
         let index = super::resolve_device_index(&handle, &self.device).await?;
 
@@ -94,20 +65,10 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
             .table_id(IP_RULE_TABLE)
             .output_interface(index)
             .build();
+
         handle.route().add(message).execute().await?;
 
-        // ip rule add not to $dst table 18000
-        let mut rule = handle
-            .rule()
-            .add()
-            .v4()
-            .table_id(IP_RULE_TABLE)
-            .action(RuleAction::ToTable);
-        let msg = rule.message_mut();
-        msg.header.dst_len = 32;
-        msg.header.flags.insert(RuleFlags::Invert);
-        msg.attributes.push(RuleAttribute::Destination(destination.into()));
-        rule.execute().await?;
+        self.add_exclusion_rule(&handle, destination).await?;
 
         if disable_ipv6 {
             Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("1")?;
@@ -117,20 +78,59 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
         Ok(())
     }
 
-    async fn setup_keepalive_route(&self, destination: Ipv4Addr, with_table: bool) -> anyhow::Result<()> {
-        debug!("Setting up keepalive route through {}", self.device);
+    async fn add_exclusion_rule(&self, handle: &Handle, destination: Ipv4Addr) -> anyhow::Result<()> {
+        // ip rule add not to $dst table 18000
+        let mut rule = handle
+            .rule()
+            .add()
+            .v4()
+            .table_id(IP_RULE_TABLE)
+            .priority(IP_RULE_TABLE)
+            .action(RuleAction::ToTable);
 
+        let msg = rule.message_mut();
+        msg.header.dst_len = 32;
+        msg.header.flags.insert(RuleFlags::Invert);
+        msg.attributes.push(RuleAttribute::Destination(destination.into()));
+
+        rule.execute().await?;
+
+        Ok(())
+    }
+
+    async fn remove_exclusion_rule(&self, destination: Ipv4Addr, enable_ipv6: bool) -> anyhow::Result<()> {
+        let handle = super::new_netlink_connection()?;
+
+        // ip rule del not to $dst table 18000
+        let mut rule = handle
+            .rule()
+            .add()
+            .v4()
+            .table_id(IP_RULE_TABLE)
+            .priority(IP_RULE_TABLE)
+            .action(RuleAction::ToTable);
+
+        let msg = rule.message_mut();
+        msg.header.dst_len = 32;
+        msg.header.flags.insert(RuleFlags::Invert);
+        msg.attributes.push(RuleAttribute::Destination(destination.into()));
+
+        handle.rule().del(rule.message_mut().clone()).execute().await?;
+
+        if enable_ipv6 {
+            Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("0")?;
+            Ctl::new("net.ipv6.conf.default.disable_ipv6")?.set_value_string("0")?;
+        }
+
+        Ok(())
+    }
+
+    async fn add_keepalive_rule(&self, destination: Ipv4Addr, with_dest_route: bool) -> anyhow::Result<()> {
         let handle = super::new_netlink_connection()?;
         let index = super::resolve_device_index(&handle, &self.device).await?;
 
-        if with_table {
-            // ip route add table 18000 $dst dev $device
-            let message = RouteMessageBuilder::<Ipv4Addr>::new()
-                .table_id(IP_RULE_TABLE)
-                .destination_prefix(destination, 32)
-                .output_interface(index)
-                .build();
-            handle.route().add(message).execute().await?;
+        if with_dest_route {
+            self.add_route(&handle, index, Ipv4Net::new(destination, 32)?).await?;
         }
 
         for dest_port in [TunnelParams::IPSEC_SCV_PORT, TunnelParams::IPSEC_KEEPALIVE_PORT] {
@@ -140,7 +140,9 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 .add()
                 .v4()
                 .table_id(IP_RULE_TABLE)
+                .priority(dest_port as u32)
                 .action(RuleAction::ToTable);
+
             let msg = rule.message_mut();
             msg.header.dst_len = 32;
             msg.attributes.push(RuleAttribute::Destination(destination.into()));
@@ -155,31 +157,7 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
         Ok(())
     }
 
-    async fn remove_default_route(&self, destination: Ipv4Addr, enable_ipv6: bool) -> anyhow::Result<()> {
-        let handle = super::new_netlink_connection()?;
-
-        // ip rule del not to $dst table 18000
-        let mut rule = handle
-            .rule()
-            .add()
-            .v4()
-            .table_id(IP_RULE_TABLE)
-            .action(RuleAction::ToTable);
-        let msg = rule.message_mut();
-        msg.header.dst_len = 32;
-        msg.header.flags.insert(RuleFlags::Invert);
-        msg.attributes.push(RuleAttribute::Destination(destination.into()));
-        handle.rule().del(rule.message_mut().clone()).execute().await?;
-
-        if enable_ipv6 {
-            Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("0")?;
-            Ctl::new("net.ipv6.conf.default.disable_ipv6")?.set_value_string("0")?;
-        }
-
-        Ok(())
-    }
-
-    async fn remove_keepalive_route(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
+    async fn remove_keepalive_rule(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
         let handle = super::new_netlink_connection()?;
 
         for dest_port in [TunnelParams::IPSEC_SCV_PORT, TunnelParams::IPSEC_KEEPALIVE_PORT] {
@@ -189,6 +167,7 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 .add()
                 .v4()
                 .table_id(IP_RULE_TABLE)
+                .priority(dest_port as u32)
                 .action(RuleAction::ToTable);
             let msg = rule.message_mut();
             msg.header.dst_len = 32;
@@ -201,6 +180,35 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
             handle.rule().del(rule.message_mut().clone()).execute().await?;
         }
 
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl RoutingConfigurator for LinuxRoutingConfigurator {
+    async fn configure(&self, config: &RoutingConfig) -> anyhow::Result<()> {
+        debug!("Configuring routing: {:?}", config);
+
+        match config {
+            RoutingConfig::Full {
+                destination,
+                disable_ipv6,
+            } => {
+                self.setup_default_route(*destination, *disable_ipv6).await?;
+                self.add_keepalive_rule(*destination, true).await?;
+            }
+            RoutingConfig::Split { destination, routes } => {
+                self.add_routes(*destination, routes).await?;
+                self.add_keepalive_rule(*destination, false).await?;
+            }
+            RoutingConfig::Cleanup {
+                destination,
+                enable_ipv6,
+            } => {
+                self.remove_exclusion_rule(*destination, *enable_ipv6).await?;
+                self.remove_keepalive_rule(*destination).await?;
+            }
+        }
         Ok(())
     }
 }

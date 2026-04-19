@@ -21,6 +21,7 @@ use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error, warn};
 
+use crate::platform::RoutingConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -114,9 +115,11 @@ impl TunIPsecTunnel {
             let platform = Platform::get();
             let configurator = platform.new_routing_configurator(device.name(), session.address);
             let _ = configurator
-                .remove_default_route(self.gateway_address, self.params.disable_ipv6)
+                .configure(&RoutingConfig::Cleanup {
+                    destination: self.gateway_address,
+                    enable_ipv6: self.params.disable_ipv6,
+                })
                 .await;
-            let _ = configurator.remove_keepalive_route(self.gateway_address).await;
             if !self.params.no_dns {
                 let config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
                     .search_domains(&session.domains)
@@ -135,35 +138,32 @@ impl TunIPsecTunnel {
         let platform = Platform::get();
         let configurator = platform.new_routing_configurator(dev_name, session.address);
 
-        let mut subnets = Vec::new();
-
-        let mut default_route_set = false;
-
-        if !self.params.no_routing {
-            if self.params.default_route {
-                configurator
-                    .setup_default_route(self.gateway_address, self.params.disable_ipv6)
-                    .await?;
-                default_route_set = true;
-            } else {
-                subnets.extend(&self.params.add_routes);
-                subnets.extend(&self.subnets);
-                let network = Ipv4Net::with_netmask(session.address, session.netmask)?;
-                if network.prefix_len() < 32 {
-                    subnets.push(network.trunc());
-                }
+        let config = if self.params.no_routing {
+            RoutingConfig::Split {
+                destination: self.gateway_address,
+                routes: Vec::new(),
             }
-        }
+        } else if self.params.default_route {
+            RoutingConfig::Full {
+                destination: self.gateway_address,
+                disable_ipv6: self.params.disable_ipv6,
+            }
+        } else {
+            let mut routes = Vec::with_capacity(self.subnets.len() + self.params.add_routes.len());
+            routes.extend(&self.params.add_routes);
+            routes.extend(&self.subnets);
+            routes.retain(|r| !self.params.ignore_routes.contains(r));
+            let network = Ipv4Net::with_netmask(session.address, session.netmask)?;
+            if network.prefix_len() < 32 {
+                routes.push(network.trunc());
+            }
+            RoutingConfig::Split {
+                destination: self.gateway_address,
+                routes,
+            }
+        };
 
-        configurator
-            .setup_keepalive_route(self.gateway_address, !default_route_set)
-            .await?;
-
-        if !subnets.is_empty() {
-            let _ = configurator
-                .add_routes(self.gateway_address, &subnets, &self.params.ignore_routes)
-                .await;
-        }
+        configurator.configure(&config).await?;
 
         Ok(())
     }
