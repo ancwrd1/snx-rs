@@ -202,35 +202,39 @@ impl SslTunnel {
             let _ = sender.send(()).await;
         }
 
-        if let Some(device) = self.tun_device.take() {
-            let ipaddr = self.hello_reply.office_mode.ipaddr.parse().unwrap();
-            let platform = Platform::get();
-            let configurator = platform.new_routing_configurator(device.name(), ipaddr);
+        let Some(device) = self.tun_device.take() else {
+            return;
+        };
 
-            if let Ok(info) = server_info::get(&self.params).await
-                && let Ok(dest_ip) =
-                    util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
-            {
-                let _ = configurator
-                    .configure(&RoutingConfig::Cleanup {
-                        destination: dest_ip,
-                        enable_ipv6: self.params.disable_ipv6,
-                    })
-                    .await;
-            }
+        let platform = Platform::get();
 
-            if !self.params.no_dns {
-                let config = self.make_resolver_config().await;
-                let _ = self.setup_dns(&config, device.name(), true).await;
-            }
-            let _ = Platform::get()
-                .new_network_interface()
-                .delete_device(device.name())
+        if let Ok(info) = server_info::get(&self.params).await
+            && let Ok(dest_ip) = util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
+        {
+            let configurator = platform.new_routing_configurator(device.name(), TunnelType::SSL);
+
+            let _ = configurator
+                .configure(&RoutingConfig::Cleanup {
+                    destination: dest_ip,
+                    enable_ipv6: self.params.disable_ipv6,
+                })
                 .await;
-            debug!("Signing out");
-            let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-            let _ = client.signout().await;
         }
+
+        if !self.params.no_dns {
+            let config = self.make_resolver_config().await;
+            let _ = self.setup_dns(&config, device.name(), true).await;
+        }
+
+        let _ = Platform::get()
+            .new_network_interface()
+            .delete_device(device.name())
+            .await;
+
+        debug!("Signing out");
+
+        let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
+        let _ = client.signout().await;
     }
 
     pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
