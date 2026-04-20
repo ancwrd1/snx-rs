@@ -18,6 +18,23 @@ use crate::{
 
 const IP_RULE_TABLE: u32 = 18000;
 
+// don't fail the netlink operation for special cases like EEXIST or ENOENT
+async fn run_netlink_op<F>(f: F, error_code_to_ignore: i32) -> anyhow::Result<()>
+where
+    F: Future<Output = Result<(), rtnetlink::Error>>,
+{
+    match f.await {
+        Ok(()) => Ok(()),
+        Err(rtnetlink::Error::NetlinkError(e))
+            if e.code.is_some_and(|code| code.get().abs() == error_code_to_ignore) =>
+        {
+            debug!("Ignoring netlink error: {}", e);
+            Ok(())
+        }
+        Err(other) => Err(other.into()),
+    }
+}
+
 pub struct LinuxRoutingConfigurator {
     device: String,
     handle: Handle,
@@ -47,7 +64,7 @@ impl LinuxRoutingConfigurator {
             .output_interface(self.device_index)
             .build();
 
-        self.handle.route().add(message).execute().await?;
+        run_netlink_op(self.handle.route().add(message).execute(), libc::EEXIST).await?;
 
         Ok(())
     }
@@ -56,7 +73,7 @@ impl LinuxRoutingConfigurator {
         let routes = routes.iter().collect::<HashSet<_>>();
 
         for route in routes {
-            let _ = self.add_route(*route).await;
+            self.add_route(*route).await?;
         }
 
         Ok(())
@@ -69,7 +86,7 @@ impl LinuxRoutingConfigurator {
             .output_interface(self.device_index)
             .build();
 
-        self.handle.route().add(message).execute().await?;
+        run_netlink_op(self.handle.route().add(message).execute(), libc::EEXIST).await?;
 
         if disable_ipv6 {
             Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("1")?;
@@ -95,7 +112,7 @@ impl LinuxRoutingConfigurator {
         msg.header.flags.insert(RuleFlags::Invert);
         msg.attributes.push(RuleAttribute::Destination(destination.into()));
 
-        rule.execute().await?;
+        run_netlink_op(rule.execute(), libc::EEXIST).await?;
 
         Ok(())
     }
@@ -116,7 +133,11 @@ impl LinuxRoutingConfigurator {
         msg.header.flags.insert(RuleFlags::Invert);
         msg.attributes.push(RuleAttribute::Destination(destination.into()));
 
-        self.handle.rule().del(rule.message_mut().clone()).execute().await?;
+        run_netlink_op(
+            self.handle.rule().del(rule.message_mut().clone()).execute(),
+            libc::ENOENT,
+        )
+        .await?;
 
         if enable_ipv6 {
             Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("0")?;
@@ -147,7 +168,7 @@ impl LinuxRoutingConfigurator {
                 end: dest_port,
             }));
 
-            rule.execute().await?;
+            run_netlink_op(rule.execute(), libc::EEXIST).await?;
         }
 
         Ok(())
@@ -173,7 +194,11 @@ impl LinuxRoutingConfigurator {
             end: port,
         }));
 
-        self.handle.rule().del(rule.message_mut().clone()).execute().await?;
+        run_netlink_op(
+            self.handle.rule().del(rule.message_mut().clone()).execute(),
+            libc::ENOENT,
+        )
+        .await?;
 
         Ok(())
     }
@@ -212,11 +237,11 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
             } => {
                 debug!("Cleaning up routing for {}", self.device);
 
-                let _ = self.remove_exclusion_rule(*destination, *enable_ipv6).await;
+                self.remove_exclusion_rule(*destination, *enable_ipv6).await?;
 
                 if self.tunnel_type == TunnelType::IPsec {
                     for dest_port in [TunnelParams::IPSEC_SCV_PORT, TunnelParams::IPSEC_KEEPALIVE_PORT] {
-                        let _ = self.remove_keepalive_rule(*destination, dest_port).await;
+                        self.remove_keepalive_rule(*destination, dest_port).await?;
                     }
                 }
             }
