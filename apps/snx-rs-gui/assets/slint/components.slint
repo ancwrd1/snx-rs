@@ -1,0 +1,497 @@
+import { Palette } from "std-widgets.slint";
+
+export component IconButton inherits Rectangle {
+    in property <bool> enabled: true;
+    in property <string> tooltip;
+    callback clicked();
+
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: !root.enabled ? transparent
+              : ta.pressed ? Palette.control-background.darker(0.2)
+              : ta.has-hover ? Palette.control-background.darker(0.1)
+              : transparent;
+
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => { root.clicked(); }
+    }
+
+    @children
+
+    if root.tooltip != "" && ta.has-hover: Rectangle {
+        x: -self.width - 6px;
+        y: (parent.height - self.height) / 2;
+        width: tooltip-text.preferred-width + 12px;
+        height: tooltip-text.preferred-height + 6px;
+        background: Palette.foreground.transparentize(0.1);
+        border-radius: 4px;
+
+        tooltip-text := Text {
+            text: root.tooltip;
+            color: Palette.background;
+            font-size: 12px;
+        }
+    }
+}
+
+export component PlusIcon inherits Path {
+    in property <color> tint: #2e7d32;
+    stroke: root.tint;
+    stroke-width: 2px;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 10;
+    viewbox-height: 10;
+    width: 14px;
+    height: 14px;
+    MoveTo { x: 5; y: 1; }
+    LineTo { x: 5; y: 9; }
+    MoveTo { x: 1; y: 5; }
+    LineTo { x: 9; y: 5; }
+}
+
+export component PencilIcon inherits Path {
+    in property <color> tint: Palette.foreground;
+    stroke: root.tint;
+    stroke-width: 1.2px;
+    fill: root.tint.transparentize(0.85);
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 10;
+    viewbox-height: 10;
+    width: 14px;
+    height: 14px;
+    MoveTo { x: 1.5; y: 8.5; }
+    LineTo { x: 2.5; y: 6.5; }
+    LineTo { x: 6.5; y: 2.5; }
+    LineTo { x: 8.5; y: 4.5; }
+    LineTo { x: 4.5; y: 8.5; }
+    LineTo { x: 2.5; y: 9.5; }
+    LineTo { x: 1.5; y: 8.5; }
+}
+
+export component DeleteIcon inherits Path {
+    in property <color> tint: #c62828;
+    stroke: root.tint;
+    stroke-width: 2px;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 10;
+    viewbox-height: 10;
+    width: 14px;
+    height: 14px;
+    MoveTo { x: 2; y: 2; }
+    LineTo { x: 8; y: 8; }
+    MoveTo { x: 8; y: 2; }
+    LineTo { x: 2; y: 8; }
+}
+
+export component DnsIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 8 2 A 6 6 0 0 1 8 14 A 6 6 0 0 1 8 2 M 2 8 L 14 8 M 8 2 A 3 6 0 0 1 8 14 A 3 6 0 0 1 8 2";
+}
+
+export component RoutingIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.6px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 2 8 L 13 8 M 9 4 L 13 8 L 9 12";
+}
+
+export component CertsIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 8 2 L 14 4 L 14 8 L 11 13 L 8 14 L 5 13 L 2 8 L 2 4 Z";
+}
+
+export component MiscIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.6px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12";
+}
+
+export component UiIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 2 2 L 14 2 L 14 10 L 2 10 Z M 6 10 L 6 13 M 10 10 L 10 13 M 4 13 L 12 13";
+}
+
+export component RefreshIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 13 5 A 5 5 0 1 0 13.5 10 M 13 2 L 13 5 L 10 5";
+}
+
+export component FolderIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.2px;
+    fill: root.tint.transparentize(0.85);
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 1.5 4 L 6 4 L 7.5 5.5 L 14.5 5.5 L 14.5 12.5 L 1.5 12.5 Z";
+}
+
+export component PlainLineEdit inherits Rectangle {
+    in-out property <string> text;
+    in-out property <bool> enabled <=> input.enabled;
+    in property <string> placeholder-text;
+    in property <length> right-padding: 8px;
+    in property <InputType> input-type: InputType.text;
+    out property <bool> has-focus: input.has-focus;
+    out property <bool> dark-theme: Palette.color-scheme == ColorScheme.dark;
+
+    min-height: 32px;
+    preferred-height: 32px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Palette.border;
+    background: input.enabled
+        ? (input.has-focus ? (root.dark-theme ? #1E1E1EB3 : #FFFFFFFF)
+                           : Palette.control-background)
+        : Palette.control-background;
+    clip: true;
+
+    Rectangle {
+        x: 0;
+        y: parent.height - self.height;
+        width: parent.width;
+        height: 3px;
+        background: input.has-focus ? Palette.accent-background : transparent;
+    }
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: root.right-padding;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        input := TextInput {
+            text <=> root.text;
+            color: Palette.control-foreground;
+            vertical-alignment: center;
+            single-line: true;
+            input-type: root.input-type;
+        }
+    }
+
+    if root.text == "" && !input.has-focus: Text {
+        x: 8px;
+        y: (parent.height - self.height) / 2;
+        text: root.placeholder-text;
+        color: Palette.control-foreground.transparentize(0.5);
+        font-size: input.font-size;
+    }
+}
+
+export component PathLineEdit inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder-text;
+    callback browse-clicked();
+
+    min-height: edit.min-height;
+    preferred-height: edit.preferred-height;
+
+    edit := PlainLineEdit {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.text;
+        placeholder-text: root.placeholder-text;
+        right-padding: 32px;
+    }
+
+    IconButton {
+        x: parent.width - self.width - 4px;
+        y: (parent.height - self.height) / 2;
+        clicked => { root.browse-clicked(); }
+        FolderIcon { }
+    }
+}
+
+export component FormStackRow inherits VerticalLayout {
+    in property <string> label;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    spacing: 8px;
+
+    Text {
+        text: root.label;
+        font-weight: 500;
+        font-size: 13px;
+        color: Palette.foreground.transparentize(0.1);
+    }
+
+    @children
+}
+
+export component FormToggleRow inherits HorizontalLayout {
+    in property <string> label;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    spacing: 12px;
+
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 14px;
+            wrap: word-wrap;
+        }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        @children
+    }
+}
+
+export component FormDivider inherits Rectangle {
+    height: 1px;
+    background: Palette.border.transparentize(0.5);
+}
+
+export component FormCard inherits Rectangle {
+    background: Palette.alternate-background;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Palette.border;
+    clip: true;
+
+    @children
+}
+
+export component Expander inherits VerticalLayout {
+    in property <string> title;
+    in property <string> icon-kind;
+    in-out property <bool> expanded: false;
+    out property <length> body-preferred-width: body.preferred-width;
+    spacing: 0px;
+
+    header := Rectangle {
+        background: ta.pressed ? Palette.alternate-background.darker(0.15)
+                  : ta.has-hover ? Palette.alternate-background.darker(0.05)
+                  : Palette.alternate-background;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        border-bottom-left-radius: root.expanded ? 0 : 8px;
+        border-bottom-right-radius: root.expanded ? 0 : 8px;
+        min-height: 44px;
+        clip: true;
+        border-width: 1px;
+        border-color: Palette.border;
+
+        animate border-bottom-left-radius { duration: 200ms; easing: ease-in-out; }
+        animate border-bottom-right-radius { duration: 200ms; easing: ease-in-out; }
+
+        ta := TouchArea {
+            clicked => { root.expanded = !root.expanded; }
+        }
+
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: 3px;
+            height: parent.height;
+            background: root.expanded ? Palette.accent-background : transparent;
+            animate background { duration: 200ms; easing: ease-in-out; }
+        }
+
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 12px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            spacing: 10px;
+
+            VerticalLayout {
+                alignment: center;
+                width: 18px;
+
+                if root.icon-kind == "dns": DnsIcon { }
+                if root.icon-kind == "routing": RoutingIcon { }
+                if root.icon-kind == "certs": CertsIcon { }
+                if root.icon-kind == "misc": MiscIcon { }
+                if root.icon-kind == "ui": UiIcon { }
+            }
+
+            Text {
+                text: root.title;
+                horizontal-alignment: left;
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+                color: Palette.control-foreground;
+                font-weight: 600;
+                font-size: 15px;
+            }
+
+            VerticalLayout {
+                alignment: center;
+
+                Path {
+                    width: 12px;
+                    height: 12px;
+                    stroke: Palette.control-foreground;
+                    stroke-width: 1.3px;
+                    viewbox-y: 0;
+                    viewbox-width: 10;
+                    viewbox-height: 10;
+
+                    MoveTo { x: 2; y: 3.5; }
+                    LineTo { x: 5; y: 6.5; }
+                    LineTo { x: 8; y: 3.5; }
+
+                    transform-rotation: root.expanded ? 180deg : 0deg;
+                    transform-origin: { x: self.width / 2, y: self.height / 2 };
+
+                    animate transform-rotation {
+                        duration: 300ms;
+                        easing: ease-in-out;
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        background: Palette.alternate-background;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        clip: true;
+        height: root.expanded ? body.preferred-height : 0;
+
+        animate height {
+            duration: 200ms;
+            easing: ease-in-out;
+        }
+
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: 3px;
+            height: parent.height;
+            background: root.expanded ? Palette.accent-background : transparent;
+            animate background { duration: 200ms; easing: ease-in-out; }
+        }
+
+        body := VerticalLayout {
+            @children
+        }
+    }
+}
+
+export component ConnectButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <bool> has-menu: false;
+    callback clicked();
+
+    min-height: 28px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Palette.border;
+    background: !root.enabled ? Palette.control-background
+              : ta.pressed ? Palette.control-background.darker(0.2)
+              : ta.has-hover ? Palette.control-background.darker(0.1)
+              : Palette.control-background;
+
+    ta := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        alignment: center;
+        spacing: 8px;
+        padding-left: 10px;
+        padding-right: 10px;
+
+        Text {
+            text: root.label;
+            vertical-alignment: center;
+            color: root.enabled ? Palette.control-foreground : Palette.control-foreground.transparentize(0.5);
+        }
+
+        if root.has-menu: VerticalLayout {
+            alignment: center;
+
+            Path {
+                width: 12px;
+                height: 12px;
+                stroke: root.enabled ? Palette.control-foreground : Palette.control-foreground.transparentize(0.5);
+                stroke-width: 1.3px;
+                viewbox-y: 0;
+                viewbox-width: 10;
+                viewbox-height: 10;
+
+                MoveTo { x: 2; y: 3.5; }
+                LineTo { x: 5; y: 6.5; }
+                LineTo { x: 8; y: 3.5; }
+
+                transform-rotation: 180deg;
+                transform-origin: { x: self.width / 2, y: self.height / 2 };
+            }
+        }
+    }
+}

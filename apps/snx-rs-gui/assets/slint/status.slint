@@ -1,64 +1,10 @@
 import { Button, ComboBox, HorizontalBox, Palette, VerticalBox } from "std-widgets.slint";
 import { Tr } from "tr.slint";
+import { ConnectButton } from "components.slint";
 
 export struct StatusEntry {
     label: string,
     value: string,
-}
-
-component ConnectButton inherits Rectangle {
-    in property <string> label;
-    in property <bool> enabled: true;
-    in property <bool> has-menu: false;
-    callback clicked();
-
-    min-height: 28px;
-    border-radius: 4px;
-    border-width: 1px;
-    border-color: Palette.border;
-    background: !root.enabled ? Palette.control-background
-              : ta.pressed ? Palette.control-background.darker(0.2)
-              : ta.has-hover ? Palette.control-background.darker(0.1)
-              : Palette.control-background;
-
-    ta := TouchArea {
-        enabled: root.enabled;
-        clicked => { root.clicked(); }
-    }
-
-    HorizontalLayout {
-        alignment: center;
-        spacing: 8px;
-        padding-left: 10px;
-        padding-right: 10px;
-
-        Text {
-            text: root.label;
-            vertical-alignment: center;
-            color: root.enabled ? Palette.control-foreground : Palette.control-foreground.transparentize(0.5);
-        }
-
-        if root.has-menu: VerticalLayout {
-            alignment: center;
-
-            Path {
-                width: 12px;
-                height: 12px;
-                stroke: root.enabled ? Palette.control-foreground : Palette.control-foreground.transparentize(0.5);
-                stroke-width: 1.3px;
-                viewbox-y: 0;
-                viewbox-width: 10;
-                viewbox-height: 10;
-
-                MoveTo { x: 2; y: 3.5; }
-                LineTo { x: 5; y: 6.5; }
-                LineTo { x: 8; y: 3.5; }
-
-                transform-rotation: 180deg;
-                transform-origin: { x: self.width / 2, y: self.height / 2 };
-            }
-        }
-    }
 }
 
 export component StatusWindow inherits Window {
