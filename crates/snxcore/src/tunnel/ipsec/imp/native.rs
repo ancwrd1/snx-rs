@@ -33,7 +33,7 @@ use crate::{
 };
 
 pub(crate) struct NativeIPsecTunnel {
-    configurator: Box<dyn IPsecConfigurator + Send + Sync>,
+    xfrm_configurator: Box<dyn IPsecConfigurator + Send + Sync>,
     keepalive_runner: KeepaliveRunner,
     scv_runner: ScvRunner,
     natt_socket: Arc<UdpSocket>,
@@ -98,13 +98,13 @@ impl NativeIPsecTunnel {
             natt_socket.local_addr()?.port(),
             gateway_address,
             server_info.connectivity_info.natt_port,
-        )?;
+        );
 
         configurator.configure().await?;
         ready.store(true, Ordering::SeqCst);
 
         Ok(Self {
-            configurator: Box::new(configurator),
+            xfrm_configurator: Box::new(configurator),
             keepalive_runner,
             scv_runner,
             natt_socket: Arc::new(natt_socket),
@@ -194,7 +194,7 @@ impl NativeIPsecTunnel {
                 .await;
         }
 
-        self.configurator.cleanup().await;
+        self.xfrm_configurator.cleanup().await;
     }
 }
 
@@ -273,7 +273,7 @@ impl VpnTunnel for NativeIPsecTunnel {
                             session.lifetime.as_secs()
                         );
                         self.ready.store(false, Ordering::SeqCst);
-                        let _ = self.configurator.rekey(&session).await;
+                        let _ = self.xfrm_configurator.rekey(&session).await;
                         self.ready.store(true, Ordering::SeqCst);
                         let address = Ipv4Net::with_netmask(session.address, session.netmask).unwrap_or(ip_address);
                         let _ = event_sender.send(TunnelEvent::Rekeyed(address)).await;

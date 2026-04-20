@@ -222,7 +222,7 @@ impl PlatformAccess for LinuxPlatformAccess {
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-    ) -> anyhow::Result<impl IPsecConfigurator + use<> + Send + Sync> {
+    ) -> impl IPsecConfigurator + use<> + Send + Sync {
         xfrm::XfrmConfigurator::new(device_config, ipsec_session, src_port, dest_ip, dest_port)
     }
 

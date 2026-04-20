@@ -203,10 +203,10 @@ impl XfrmConfigurator {
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-    ) -> anyhow::Result<Self> {
+    ) -> Self {
         let if_id = random();
 
-        Ok(Self {
+        Self {
             device_config,
             ipsec_session,
             source_ip: Ipv4Addr::new(0, 0, 0, 0),
@@ -214,7 +214,7 @@ impl XfrmConfigurator {
             if_id,
             src_port,
             dest_port,
-        })
+        }
     }
 
     fn new_xfrm_link(&self) -> anyhow::Result<XfrmLink<'_>> {

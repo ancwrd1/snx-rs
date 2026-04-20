@@ -259,7 +259,7 @@ pub trait PlatformAccess {
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
-    ) -> anyhow::Result<impl IPsecConfigurator + use<Self> + Send + Sync>;
+    ) -> impl IPsecConfigurator + use<Self> + Send + Sync;
     fn new_routing_configurator<S: AsRef<str> + Send>(
         &self,
         device: S,
