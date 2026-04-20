@@ -4,7 +4,7 @@ button-ok = OK
 button-apply = Bruk
 button-cancel = Avbryt
 button-close = Lukk
-button-fetch-info = Hent informasjon
+label-retrieve-info = Hent serverinfo
 
 # Labels
 label-server-address = VPN-serveradresse

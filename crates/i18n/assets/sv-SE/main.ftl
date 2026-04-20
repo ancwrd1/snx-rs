@@ -4,7 +4,7 @@ button-ok = OK
 button-apply = Tillämpa
 button-cancel = Avbryt
 button-close = Stäng
-button-fetch-info = Hämta information
+label-retrieve-info = Hämta serverinfo
 
 # Labels
 label-server-address = VPN-serveradress

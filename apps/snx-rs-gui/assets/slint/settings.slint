@@ -4,6 +4,7 @@ import { Tr } from "tr.slint";
 
 component IconButton inherits Rectangle {
     in property <bool> enabled: true;
+    in property <string> tooltip;
     callback clicked();
 
     width: 24px;
@@ -21,6 +22,21 @@ component IconButton inherits Rectangle {
     }
 
     @children
+
+    if root.tooltip != "" && ta.has-hover: Rectangle {
+        x: -self.width - 6px;
+        y: (parent.height - self.height) / 2;
+        width: tooltip-text.preferred-width + 12px;
+        height: tooltip-text.preferred-height + 6px;
+        background: Palette.foreground.transparentize(0.1);
+        border-radius: 4px;
+
+        tooltip-text := Text {
+            text: root.tooltip;
+            color: Palette.background;
+            font-size: 12px;
+        }
+    }
 }
 
 component PlusIcon inherits Path {
@@ -145,6 +161,20 @@ component UiIcon inherits Path {
     commands: "M 2 2 L 14 2 L 14 10 L 2 10 Z M 6 10 L 6 13 M 10 10 L 10 13 M 4 13 L 12 13";
 }
 
+component RefreshIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 13 5 A 5 5 0 1 0 13.5 10 M 13 2 L 13 5 L 10 5";
+}
+
 component FolderIcon inherits Path {
     in property <color> tint: Palette.control-foreground;
     stroke: root.tint;
@@ -159,6 +189,53 @@ component FolderIcon inherits Path {
     commands: "M 1.5 4 L 6 4 L 7.5 5.5 L 14.5 5.5 L 14.5 12.5 L 1.5 12.5 Z";
 }
 
+component PlainLineEdit inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder-text;
+    in property <length> right-padding: 8px;
+    in property <InputType> input-type: InputType.text;
+    out property <bool> has-focus: input.has-focus;
+
+    min-height: 32px;
+    preferred-height: 32px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Palette.border;
+    background: input.has-focus ? #1E1E1EB3 : Palette.control-background;
+    clip: true;
+
+    Rectangle {
+        x: 0;
+        y: parent.height - self.height;
+        width: parent.width;
+        height: 3px;
+        background: input.has-focus ? Palette.accent-background : transparent;
+    }
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: root.right-padding;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        input := TextInput {
+            text <=> root.text;
+            color: Palette.control-foreground;
+            vertical-alignment: center;
+            single-line: true;
+            input-type: root.input-type;
+        }
+    }
+
+    if root.text == "" && !input.has-focus: Text {
+        x: 8px;
+        y: (parent.height - self.height) / 2;
+        text: root.placeholder-text;
+        color: Palette.control-foreground.transparentize(0.5);
+        font-size: input.font-size;
+    }
+}
+
 component PathLineEdit inherits Rectangle {
     in-out property <string> text;
     in property <string> placeholder-text;
@@ -167,11 +244,12 @@ component PathLineEdit inherits Rectangle {
     min-height: edit.min-height;
     preferred-height: edit.preferred-height;
 
-    edit := LineEdit {
+    edit := PlainLineEdit {
         width: parent.width;
         height: parent.height;
         text <=> root.text;
         placeholder-text: root.placeholder-text;
+        right-padding: 32px;
     }
 
     IconButton {
@@ -624,16 +702,26 @@ export component SettingsWindow inherits Window {
 
                                     FormStackRow {
                                         label: Tr.label-server-address;
-                                        HorizontalLayout {
-                                            spacing: 6px;
-                                            server-address := LineEdit {
+                                        Rectangle {
+                                            min-height: server-address.min-height;
+                                            preferred-height: server-address.preferred-height;
+
+                                            server-address := PlainLineEdit {
+                                                width: parent.width;
+                                                height: parent.height;
                                                 text <=> root.server-name;
-                                                horizontal-stretch: 1;
+                                                right-padding: 32px;
                                             }
-                                            Button {
-                                                text: Tr.button-fetch-info;
+                                            IconButton {
+                                                x: parent.width - self.width - 4px;
+                                                y: (parent.height - self.height) / 2;
                                                 enabled: root.fetch-enabled && server-address.text != "";
+                                                tooltip: Tr.label-retrieve-info;
                                                 clicked => { root.fetch-info-clicked(); }
+                                                RefreshIcon {
+                                                    tint: parent.enabled ? Palette.control-foreground
+                                                                         : Palette.control-foreground.transparentize(0.6);
+                                                }
                                             }
                                         }
                                     }
