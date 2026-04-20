@@ -4,9 +4,7 @@ use std::{sync::Arc, time::Duration};
 use clap::{CommandFactory, Parser};
 use i18n::tr;
 use nix::unistd::Uid;
-use slint::winit_030::winit::platform::{
-    wayland::WindowAttributesExtWayland, x11::WindowAttributesExtX11,
-};
+use slint::winit_030::winit::platform::{wayland::WindowAttributesExtWayland, x11::WindowAttributesExtX11};
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
