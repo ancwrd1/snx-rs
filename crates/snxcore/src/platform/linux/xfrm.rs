@@ -40,14 +40,12 @@ impl<'a> XfrmLink<'a> {
     }
 
     async fn add(&self) -> anyhow::Result<()> {
-        let _ = self.delete().await;
-
         let msg = LinkMessageBuilder::<LinkXfrm>::new(&self.device_config.name)
             .if_id(self.if_id)
             .up()
             .build();
 
-        self.handle.link().add(msg).execute().await?;
+        super::run_netlink_op(self.handle.link().add(msg).execute(), libc::EEXIST).await?;
 
         Platform::get()
             .new_network_interface()
@@ -223,10 +221,6 @@ impl XfrmConfigurator {
         XfrmLink::new(&self.device_config, self.if_id)
     }
 
-    async fn setup_xfrm_link(&self) -> anyhow::Result<()> {
-        self.new_xfrm_link()?.add().await
-    }
-
     async fn configure_xfrm_state(
         &self,
         command: CommandType,
@@ -303,8 +297,7 @@ impl IPsecConfigurator for XfrmConfigurator {
         debug!("Source IP: {}", self.source_ip);
         debug!("Target IP: {}", self.dest_ip);
 
-        self.cleanup().await;
-        self.setup_xfrm_link().await?;
+        self.new_xfrm_link()?.add().await?;
         self.setup_xfrm_state_and_policies().await?;
 
         Ok(())

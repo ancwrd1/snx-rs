@@ -157,6 +157,23 @@ pub(crate) async fn resolve_device_index(handle: &rtnetlink::Handle, device: &st
     }
 }
 
+// don't fail the netlink operation for special cases like EEXIST or ENOENT
+pub(crate) async fn run_netlink_op<F>(f: F, error_code_to_ignore: i32) -> anyhow::Result<()>
+where
+    F: Future<Output = Result<(), rtnetlink::Error>>,
+{
+    match f.await {
+        Ok(()) => Ok(()),
+        Err(rtnetlink::Error::NetlinkError(e))
+            if e.code.is_some_and(|code| code.get().abs() == error_code_to_ignore) =>
+        {
+            debug!("Ignoring netlink error: {}", e);
+            Ok(())
+        }
+        Err(other) => Err(other.into()),
+    }
+}
+
 pub struct LinuxPlatformAccess;
 
 impl PlatformAccess for LinuxPlatformAccess {

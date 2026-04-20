@@ -176,7 +176,7 @@ impl NetworkInterface for LinuxNetworkInterface {
     async fn delete_device(&self, device_name: &str) -> anyhow::Result<()> {
         let handle = super::new_netlink_connection()?;
         if let Ok(index) = super::resolve_device_index(&handle, device_name).await {
-            handle.link().del(index).execute().await?;
+            super::run_netlink_op(handle.link().del(index).execute(), libc::ENOENT).await?;
         }
         Ok(())
     }

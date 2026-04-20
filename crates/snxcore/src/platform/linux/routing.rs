@@ -18,23 +18,6 @@ use crate::{
 
 const IP_RULE_TABLE: u32 = 18000;
 
-// don't fail the netlink operation for special cases like EEXIST or ENOENT
-async fn run_netlink_op<F>(f: F, error_code_to_ignore: i32) -> anyhow::Result<()>
-where
-    F: Future<Output = Result<(), rtnetlink::Error>>,
-{
-    match f.await {
-        Ok(()) => Ok(()),
-        Err(rtnetlink::Error::NetlinkError(e))
-            if e.code.is_some_and(|code| code.get().abs() == error_code_to_ignore) =>
-        {
-            debug!("Ignoring netlink error: {}", e);
-            Ok(())
-        }
-        Err(other) => Err(other.into()),
-    }
-}
-
 pub struct LinuxRoutingConfigurator {
     device: String,
     handle: Handle,
@@ -64,7 +47,7 @@ impl LinuxRoutingConfigurator {
             .output_interface(self.device_index)
             .build();
 
-        run_netlink_op(self.handle.route().add(message).execute(), libc::EEXIST).await?;
+        super::run_netlink_op(self.handle.route().add(message).execute(), libc::EEXIST).await?;
 
         Ok(())
     }
@@ -86,7 +69,7 @@ impl LinuxRoutingConfigurator {
             .output_interface(self.device_index)
             .build();
 
-        run_netlink_op(self.handle.route().add(message).execute(), libc::EEXIST).await?;
+        super::run_netlink_op(self.handle.route().add(message).execute(), libc::EEXIST).await?;
 
         if disable_ipv6 {
             Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("1")?;
@@ -112,7 +95,7 @@ impl LinuxRoutingConfigurator {
         msg.header.flags.insert(RuleFlags::Invert);
         msg.attributes.push(RuleAttribute::Destination(destination.into()));
 
-        run_netlink_op(rule.execute(), libc::EEXIST).await?;
+        super::run_netlink_op(rule.execute(), libc::EEXIST).await?;
 
         Ok(())
     }
@@ -133,7 +116,7 @@ impl LinuxRoutingConfigurator {
         msg.header.flags.insert(RuleFlags::Invert);
         msg.attributes.push(RuleAttribute::Destination(destination.into()));
 
-        run_netlink_op(
+        super::run_netlink_op(
             self.handle.rule().del(rule.message_mut().clone()).execute(),
             libc::ENOENT,
         )
@@ -168,7 +151,7 @@ impl LinuxRoutingConfigurator {
                 end: dest_port,
             }));
 
-            run_netlink_op(rule.execute(), libc::EEXIST).await?;
+            super::run_netlink_op(rule.execute(), libc::EEXIST).await?;
         }
 
         Ok(())
@@ -194,7 +177,7 @@ impl LinuxRoutingConfigurator {
             end: port,
         }));
 
-        run_netlink_op(
+        super::run_netlink_op(
             self.handle.rule().del(rule.message_mut().clone()).execute(),
             libc::ENOENT,
         )
