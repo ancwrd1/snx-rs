@@ -180,8 +180,6 @@ impl NativeIPsecTunnel {
             let _ = self.setup_dns(&config, true).await;
         }
 
-        self.configurator.cleanup().await;
-
         let platform = Platform::get();
 
         if let Ok(configurator) = platform
@@ -195,6 +193,8 @@ impl NativeIPsecTunnel {
                 })
                 .await;
         }
+
+        self.configurator.cleanup().await;
     }
 }
 

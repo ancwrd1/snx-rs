@@ -198,10 +198,6 @@ impl SslTunnel {
     }
 
     async fn cleanup(&mut self) {
-        if let Some(mut sender) = self.terminate_sender.take() {
-            let _ = sender.send(()).await;
-        }
-
         let Some(device) = self.tun_device.take() else {
             return;
         };
@@ -210,20 +206,23 @@ impl SslTunnel {
 
         if let Ok(info) = server_info::get(&self.params).await
             && let Ok(dest_ip) = util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
+            && let Ok(configurator) = platform.new_routing_configurator(device.name(), TunnelType::SSL).await
         {
-            if let Ok(configurator) = platform.new_routing_configurator(device.name(), TunnelType::SSL).await {
-                let _ = configurator
-                    .configure(&RoutingConfig::Cleanup {
-                        destination: dest_ip,
-                        enable_ipv6: self.params.disable_ipv6,
-                    })
-                    .await;
-            }
+            let _ = configurator
+                .configure(&RoutingConfig::Cleanup {
+                    destination: dest_ip,
+                    enable_ipv6: self.params.disable_ipv6,
+                })
+                .await;
         }
 
         if !self.params.no_dns {
             let config = self.make_resolver_config().await;
             let _ = self.setup_dns(&config, device.name(), true).await;
+        }
+
+        if let Some(mut sender) = self.terminate_sender.take() {
+            let _ = sender.send(()).await;
         }
 
         let _ = Platform::get()
