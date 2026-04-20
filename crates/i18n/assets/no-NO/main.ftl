@@ -49,7 +49,6 @@ label-profile-name = Profilnavn
 label-confirmation = Vennligst bekreft
 label-mobile-access = Mobiltilgang
 label-machine-cert-auth = Maskinsertifikat-autentisering
-label-browse = Bla gjennom...
 label-keychain-files = Nøkkelringfiler
 label-all-files = Alle filer
 label-cancel = Avbryt

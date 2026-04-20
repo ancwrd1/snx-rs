@@ -49,7 +49,6 @@ label-profile-name = Nazwa profilu
 label-confirmation = Proszę potwierdzić
 label-mobile-access = Dostęp mobilny
 label-machine-cert-auth = Uwierzytelnianie certyfikatem komputera
-label-browse = Przeglądaj...
 label-keychain-files = Pliki schowka kluczy
 label-all-files = Wszystkie pliki
 label-cancel = Anuluj

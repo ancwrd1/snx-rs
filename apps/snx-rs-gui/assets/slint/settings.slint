@@ -145,6 +145,43 @@ component UiIcon inherits Path {
     commands: "M 2 2 L 14 2 L 14 10 L 2 10 Z M 6 10 L 6 13 M 10 10 L 10 13 M 4 13 L 12 13";
 }
 
+component FolderIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.2px;
+    fill: root.tint.transparentize(0.85);
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 1.5 4 L 6 4 L 7.5 5.5 L 14.5 5.5 L 14.5 12.5 L 1.5 12.5 Z";
+}
+
+component PathLineEdit inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder-text;
+    callback browse-clicked();
+
+    min-height: edit.min-height;
+    preferred-height: edit.preferred-height;
+
+    edit := LineEdit {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.text;
+        placeholder-text: root.placeholder-text;
+    }
+
+    IconButton {
+        x: parent.width - self.width - 4px;
+        y: (parent.height - self.height) / 2;
+        clicked => { root.browse-clicked(); }
+        FolderIcon { }
+    }
+}
+
 component FormStackRow inherits VerticalLayout {
     in property <string> label;
     padding-left: 16px;
@@ -661,16 +698,9 @@ export component SettingsWindow inherits Window {
                                     if root.show-cert-auth || root.machine-cert: FormDivider { }
                                     if root.show-cert-auth || root.machine-cert: FormStackRow {
                                         label: Tr.label-client-cert;
-                                        HorizontalLayout {
-                                            spacing: 6px;
-                                            LineEdit {
-                                                text <=> root.cert-path;
-                                                horizontal-stretch: 1;
-                                            }
-                                            Button {
-                                                text: Tr.label-browse;
-                                                clicked => { root.browse-cert-path-clicked(); }
-                                            }
+                                        PathLineEdit {
+                                            text <=> root.cert-path;
+                                            browse-clicked => { root.browse-cert-path-clicked(); }
                                         }
                                     }
 
@@ -825,18 +855,11 @@ export component SettingsWindow inherits Window {
 
                                     FormStackRow {
                                         label: Tr.label-ca-cert;
-                                        HorizontalLayout {
-                                            spacing: 6px;
+                                        PathLineEdit {
                                             min-width: root.min-form-width;
-                                            LineEdit {
-                                                text <=> root.ca-cert;
-                                                placeholder-text: Tr.placeholder-certs;
-                                                horizontal-stretch: 1;
-                                            }
-                                            Button {
-                                                text: Tr.label-browse;
-                                                clicked => { root.browse-ca-cert-clicked(); }
-                                            }
+                                            text <=> root.ca-cert;
+                                            placeholder-text: Tr.placeholder-certs;
+                                            browse-clicked => { root.browse-ca-cert-clicked(); }
                                         }
                                     }
 

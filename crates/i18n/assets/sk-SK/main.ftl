@@ -49,7 +49,6 @@ label-profile-name = Názov profilu
 label-confirmation = Prosím potvrďte
 label-mobile-access = Mobilný prístup
 label-machine-cert-auth = Overovanie strojovým certifikátom
-label-browse = Prehľadávať...
 label-keychain-files = Súbory úložiska kľúčov
 label-all-files = Všetky súbory
 label-cancel = Zrušiť

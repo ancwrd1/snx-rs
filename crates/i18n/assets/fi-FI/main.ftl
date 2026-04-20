@@ -49,7 +49,6 @@ label-profile-name = Profiilin nimi
 label-confirmation = Vahvista
 label-mobile-access = Mobiilikäyttö
 label-machine-cert-auth = Koneen varmenteen todennus
-label-browse = Selaa...
 label-keychain-files = Avainketjutiedostot
 label-all-files = Kaikki tiedostot
 label-cancel = Peruuta
