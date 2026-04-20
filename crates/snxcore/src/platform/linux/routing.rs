@@ -70,8 +70,6 @@ impl LinuxRoutingConfigurator {
 
         self.handle.route().add(message).execute().await?;
 
-        self.add_exclusion_rule(destination).await?;
-
         if disable_ipv6 {
             Ctl::new("net.ipv6.conf.all.disable_ipv6")?.set_value_string("1")?;
             Ctl::new("net.ipv6.conf.default.disable_ipv6")?.set_value_string("1")?;
