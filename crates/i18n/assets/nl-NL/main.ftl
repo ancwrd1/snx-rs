@@ -4,7 +4,6 @@ button-ok = OK
 button-apply = Toepassen
 button-cancel = Annuleren
 button-close = Sluiten
-label-retrieve-info = Serverinfo ophalen
 
 # Labels
 label-server-address = VPN-serveradres

@@ -4,7 +4,6 @@ button-ok = OK
 button-apply = Käytä
 button-cancel = Peruuta
 button-close = Sulje
-label-retrieve-info = Hae palvelininfo
 
 # Labels
 label-server-address = VPN-palvelimen osoite

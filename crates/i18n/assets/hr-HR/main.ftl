@@ -4,7 +4,6 @@ button-ok = U redu
 button-apply = Primijeni
 button-cancel = Odustani
 button-close = Zatvori
-label-retrieve-info = Dohvati info poslužitelja
 
 # Labels
 label-server-address = Adresa VPN poslužitelja

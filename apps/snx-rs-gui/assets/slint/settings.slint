@@ -285,7 +285,6 @@ export component SettingsWindow inherits Window {
                                                 x: parent.width - self.width - 4px;
                                                 y: (parent.height - self.height) / 2;
                                                 enabled: root.fetch-enabled && server-address.text != "";
-                                                tooltip: Tr.label-retrieve-info;
                                                 clicked => { root.fetch-info-clicked(); }
                                                 RefreshIcon {
                                                     tint: parent.enabled ? Palette.control-foreground
