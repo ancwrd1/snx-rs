@@ -1,5 +1,5 @@
-use core::fmt;
 use std::{
+    fmt,
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
@@ -211,9 +211,8 @@ pub trait Keychain {
     async fn store_password(&self, username: &str, password: &str) -> anyhow::Result<()>;
 }
 
-#[async_trait]
 pub trait RoutingConfigurator {
-    async fn configure(&self, config: &RoutingConfig) -> anyhow::Result<()>;
+    fn configure(&self, config: &RoutingConfig) -> impl Future<Output = anyhow::Result<()>> + Send;
 }
 
 #[async_trait]
@@ -261,11 +260,11 @@ pub trait PlatformAccess {
         dest_ip: Ipv4Addr,
         dest_port: u16,
     ) -> anyhow::Result<impl IPsecConfigurator + use<Self> + Send + Sync>;
-    fn new_routing_configurator<S: AsRef<str>>(
+    fn new_routing_configurator<S: AsRef<str> + Send>(
         &self,
         device: S,
         tunnel_type: TunnelType,
-    ) -> impl RoutingConfigurator + Send + Sync;
+    ) -> impl Future<Output = anyhow::Result<impl RoutingConfigurator + Send + Sync>> + Send;
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync;
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance>;
 }

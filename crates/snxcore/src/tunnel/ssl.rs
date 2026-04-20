@@ -211,14 +211,14 @@ impl SslTunnel {
         if let Ok(info) = server_info::get(&self.params).await
             && let Ok(dest_ip) = util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
         {
-            let configurator = platform.new_routing_configurator(device.name(), TunnelType::SSL);
-
-            let _ = configurator
-                .configure(&RoutingConfig::Cleanup {
-                    destination: dest_ip,
-                    enable_ipv6: self.params.disable_ipv6,
-                })
-                .await;
+            if let Ok(configurator) = platform.new_routing_configurator(device.name(), TunnelType::SSL).await {
+                let _ = configurator
+                    .configure(&RoutingConfig::Cleanup {
+                        destination: dest_ip,
+                        enable_ipv6: self.params.disable_ipv6,
+                    })
+                    .await;
+            }
         }
 
         if !self.params.no_dns {
@@ -239,7 +239,9 @@ impl SslTunnel {
 
     pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(&device_config.name, TunnelType::SSL);
+        let configurator = platform
+            .new_routing_configurator(&device_config.name, TunnelType::SSL)
+            .await?;
 
         let dest_ip = util::server_name_to_ipv4(
             &self.params.server_name,

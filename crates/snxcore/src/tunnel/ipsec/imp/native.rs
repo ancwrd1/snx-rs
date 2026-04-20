@@ -133,7 +133,10 @@ impl NativeIPsecTunnel {
 
     async fn setup_routing(&self, session: &IPsecSession) -> anyhow::Result<()> {
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(&self.device_name, TunnelType::IPsec);
+
+        let configurator = platform
+            .new_routing_configurator(&self.device_name, TunnelType::IPsec)
+            .await?;
 
         let config = if self.params.no_routing {
             RoutingConfig::Split {
@@ -180,13 +183,18 @@ impl NativeIPsecTunnel {
         self.configurator.cleanup().await;
 
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(&self.device_name, TunnelType::IPsec);
-        let _ = configurator
-            .configure(&RoutingConfig::Cleanup {
-                destination: self.gateway_address,
-                enable_ipv6: self.params.disable_ipv6,
-            })
-            .await;
+
+        if let Ok(configurator) = platform
+            .new_routing_configurator(&self.device_name, TunnelType::IPsec)
+            .await
+        {
+            let _ = configurator
+                .configure(&RoutingConfig::Cleanup {
+                    destination: self.gateway_address,
+                    enable_ipv6: self.params.disable_ipv6,
+                })
+                .await;
+        }
     }
 }
 
