@@ -188,7 +188,7 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 destination,
                 disable_ipv6,
             } => {
-                debug!("Configuring full routing for {} via {}", destination, self.device);
+                debug!("Configuring full routing via {}", self.device);
 
                 self.add_exclusion_rule(*destination).await?;
                 self.add_default_route(*disable_ipv6).await?;
@@ -199,7 +199,7 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 }
             }
             RoutingConfig::Split { destination, routes } => {
-                debug!("Configuring split routing for {} via {}", destination, self.device);
+                debug!("Configuring split routing via {}", self.device);
 
                 self.add_exclusion_rule(*destination).await?;
                 self.add_routes(routes).await?;
@@ -212,7 +212,7 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 destination,
                 enable_ipv6,
             } => {
-                debug!("Cleaning up routing for {} via {}", destination, self.device);
+                debug!("Cleaning up routing for {}", self.device);
 
                 self.remove_exclusion_rule(*destination, *enable_ipv6).await?;
 
