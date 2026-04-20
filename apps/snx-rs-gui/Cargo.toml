@@ -35,8 +35,12 @@ itertools = "0.14"
 uuid = { version = "1.18.1", features = ["v4"] }
 webkit6 = { version = "0.6", optional = true }
 nix = "0.31"
-slint = { version = "1", default-features = false, features = ["std", "backend-default", "renderer-femtovg", "renderer-software", "compat-1-2"] }
 rfd = "0.17"
+
+[dependencies.slint]
+version = "1"
+default-features = false
+features = ["std", "backend-default", "renderer-femtovg", "renderer-software", "compat-1-2", "unstable-winit-030"]
 
 [build-dependencies]
 slint-build = "1"

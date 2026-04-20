@@ -4,6 +4,9 @@ use std::{sync::Arc, time::Duration};
 use clap::{CommandFactory, Parser};
 use i18n::tr;
 use nix::unistd::Uid;
+use slint::winit_030::winit::platform::{
+    wayland::WindowAttributesExtWayland, x11::WindowAttributesExtX11,
+};
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
@@ -75,6 +78,8 @@ async fn main() -> anyhow::Result<()> {
             if let Err(e) = ipc::send_event(command).await {
                 warn!("Failed to send event: {}", e);
             }
+        } else {
+            eprintln!("Another instance of snx-rs-gui is already running.");
         }
         return Ok(());
     }
@@ -85,8 +90,12 @@ async fn main() -> anyhow::Result<()> {
         warn!("Failed to start IPC listener: {}", e);
     }
 
-    // initialize backend early to pre-warm slint event queues needed for ui::spawn_from_event_loop
-    slint::BackendSelector::new().select()?;
+    slint::BackendSelector::new()
+        .with_winit_window_attributes_hook(|attr| {
+            let attr = WindowAttributesExtWayland::with_name(attr, env!("CARGO_PKG_NAME"), "");
+            WindowAttributesExtX11::with_name(attr, env!("CARGO_PKG_NAME"), env!("CARGO_PKG_NAME"))
+        })
+        .select()?;
 
     let mut my_tray = create_tray(tray_event_sender.clone(), cmdline_params.no_tray).await?;
     let tray_command_sender = my_tray.sender();
