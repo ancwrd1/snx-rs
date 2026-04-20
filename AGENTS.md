@@ -9,7 +9,6 @@ Guidance for AI coding agents (Claude Code, Copilot, Cursor, etc.) working in th
 Repository: https://github.com/ancwrd1/snx-rs  
 License: AGPL-3.0 (see `COPYING`)  
 Author: Dmitry Pankratov <dmitry@pankratov.net>  
-Currently on version `6.0.0` (unreleased major — see `CHANGELOG.md`).
 
 Linux-only. Other platforms are not supported and not a target.
 
