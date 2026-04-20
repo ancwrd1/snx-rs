@@ -38,6 +38,8 @@ mod webkit;
 
 pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
+const APP_ID: &str = env!("CARGO_PKG_NAME");
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cmdline_params = params::CmdlineParams::parse();
@@ -90,8 +92,8 @@ async fn main() -> anyhow::Result<()> {
 
     slint::BackendSelector::new()
         .with_winit_window_attributes_hook(|attr| {
-            let attr = WindowAttributesExtWayland::with_name(attr, env!("CARGO_PKG_NAME"), "");
-            WindowAttributesExtX11::with_name(attr, env!("CARGO_PKG_NAME"), env!("CARGO_PKG_NAME"))
+            let attr = WindowAttributesExtWayland::with_name(attr, APP_ID, "");
+            WindowAttributesExtX11::with_name(attr, APP_ID, APP_ID)
         })
         .select()?;
 
