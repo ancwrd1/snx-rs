@@ -157,31 +157,33 @@ impl LinuxRoutingConfigurator {
         Ok(())
     }
 
-    async fn remove_keepalive_rule(&self, destination: Ipv4Addr, port: u16) -> anyhow::Result<()> {
-        // ip rule del to $dst ipproto udp dport $port table 18000
-        let mut rule = self
-            .handle
-            .rule()
-            .add()
-            .v4()
-            .table_id(IP_RULE_TABLE)
-            .priority(port as u32)
-            .action(RuleAction::ToTable);
+    async fn remove_keepalive_rule(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
+        for dest_port in [TunnelParams::IPSEC_SCV_PORT, TunnelParams::IPSEC_KEEPALIVE_PORT] {
+            // ip rule del to $dst ipproto udp dport $port table 18000
+            let mut rule = self
+                .handle
+                .rule()
+                .add()
+                .v4()
+                .table_id(IP_RULE_TABLE)
+                .priority(dest_port as u32)
+                .action(RuleAction::ToTable);
 
-        let msg = rule.message_mut();
-        msg.header.dst_len = 32;
-        msg.attributes.push(RuleAttribute::Destination(destination.into()));
-        msg.attributes.push(RuleAttribute::IpProtocol(IpProtocol::Udp));
-        msg.attributes.push(RuleAttribute::DestinationPortRange(RulePortRange {
-            start: port,
-            end: port,
-        }));
+            let msg = rule.message_mut();
+            msg.header.dst_len = 32;
+            msg.attributes.push(RuleAttribute::Destination(destination.into()));
+            msg.attributes.push(RuleAttribute::IpProtocol(IpProtocol::Udp));
+            msg.attributes.push(RuleAttribute::DestinationPortRange(RulePortRange {
+                start: dest_port,
+                end: dest_port,
+            }));
 
-        super::run_netlink_op(
-            self.handle.rule().del(rule.message_mut().clone()).execute(),
-            libc::ENOENT,
-        )
-        .await?;
+            super::run_netlink_op(
+                self.handle.rule().del(rule.message_mut().clone()).execute(),
+                libc::ENOENT,
+            )
+            .await?;
+        }
 
         Ok(())
     }
@@ -218,14 +220,12 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 destination,
                 enable_ipv6,
             } => {
-                debug!("Cleaning up routing for {}", self.device);
+                debug!("Cleaning up routing rules for {}", self.device);
 
                 self.remove_exclusion_rule(*destination, *enable_ipv6).await?;
 
                 if self.tunnel_type == TunnelType::IPsec {
-                    for dest_port in [TunnelParams::IPSEC_SCV_PORT, TunnelParams::IPSEC_KEEPALIVE_PORT] {
-                        self.remove_keepalive_rule(*destination, dest_port).await?;
-                    }
+                    self.remove_keepalive_rule(*destination).await?;
                 }
             }
         }
