@@ -61,7 +61,7 @@ impl LinuxRoutingConfigurator {
         Ok(())
     }
 
-    async fn add_default_route(&self, destination: Ipv4Addr, disable_ipv6: bool) -> anyhow::Result<()> {
+    async fn add_default_route(&self, disable_ipv6: bool) -> anyhow::Result<()> {
         // ip route add table 18000 default dev $device
         let message = RouteMessageBuilder::<Ipv4Addr>::new()
             .table_id(IP_RULE_TABLE)
@@ -191,7 +191,7 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 debug!("Configuring full routing for {} via {}", destination, self.device);
 
                 self.add_exclusion_rule(*destination).await?;
-                self.add_default_route(*destination, *disable_ipv6).await?;
+                self.add_default_route(*disable_ipv6).await?;
 
                 if self.tunnel_type == TunnelType::IPsec {
                     self.add_route(Ipv4Net::new(*destination, 32)?).await?;
