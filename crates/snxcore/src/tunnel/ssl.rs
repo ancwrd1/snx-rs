@@ -21,7 +21,6 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_native_tls::native_tls::{Certificate, TlsConnector};
 use tracing::{debug, trace, warn};
 
-use crate::platform::RoutingConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
@@ -29,7 +28,9 @@ use crate::{
         params::{TransportType, TunnelParams, TunnelType},
         proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
     },
-    platform::{DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
+    platform::{
+        DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
+    },
     server_info,
     sexpr::SExpression,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
@@ -234,7 +235,7 @@ impl SslTunnel {
 
     pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(&device_config.name, device_config.address.addr());
+        let configurator = platform.new_routing_configurator(&device_config.name, TunnelType::SSL);
 
         let dest_ip = util::server_name_to_ipv4(
             &self.params.server_name,

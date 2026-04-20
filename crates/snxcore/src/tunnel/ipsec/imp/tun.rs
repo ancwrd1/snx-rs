@@ -21,14 +21,15 @@ use isakmp::esp::{EspCodec, EspEncapType};
 use tokio::time::MissedTickBehavior;
 use tracing::{debug, error, warn};
 
-use crate::platform::RoutingConfig;
 use crate::{
     ccc::CccHttpClient,
     model::{
         ConnectionInfo, IPsecSession, VpnSession,
-        params::{TransportType, TunnelParams},
+        params::{TransportType, TunnelParams, TunnelType},
     },
-    platform::{DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator},
+    platform::{
+        DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
+    },
     server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
@@ -109,34 +110,38 @@ impl TunIPsecTunnel {
     }
 
     async fn cleanup(&mut self) {
-        if let Some(device) = self.tun_device.take()
-            && let Some(session) = self.session.ipsec_session.as_ref()
+        let Some(device) = self.tun_device.take() else {
+            return;
+        };
+
+        if let Some(session) = self.session.ipsec_session.as_ref()
+            && !self.params.no_dns
         {
-            let platform = Platform::get();
-            let configurator = platform.new_routing_configurator(device.name(), session.address);
-            let _ = configurator
-                .configure(&RoutingConfig::Cleanup {
-                    destination: self.gateway_address,
-                    enable_ipv6: self.params.disable_ipv6,
-                })
-                .await;
-            if !self.params.no_dns {
-                let config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
-                    .search_domains(&session.domains)
-                    .dns_servers(session.dns.iter().cloned())
-                    .build();
-                let _ = self.setup_dns(&config, device.name(), true).await;
-            }
-            let _ = Platform::get()
-                .new_network_interface()
-                .delete_device(device.name())
-                .await;
+            let config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
+                .search_domains(&session.domains)
+                .dns_servers(session.dns.iter().cloned())
+                .build();
+            let _ = self.setup_dns(&config, device.name(), true).await;
         }
+
+        let platform = Platform::get();
+        let configurator = platform.new_routing_configurator(device.name(), TunnelType::IPsec);
+        let _ = configurator
+            .configure(&RoutingConfig::Cleanup {
+                destination: self.gateway_address,
+                enable_ipv6: self.params.disable_ipv6,
+            })
+            .await;
+
+        let _ = Platform::get()
+            .new_network_interface()
+            .delete_device(device.name())
+            .await;
     }
 
     pub async fn setup_routing(&self, dev_name: &str, session: &IPsecSession) -> anyhow::Result<()> {
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(dev_name, session.address);
+        let configurator = platform.new_routing_configurator(dev_name, TunnelType::IPsec);
 
         let config = if self.params.no_routing {
             RoutingConfig::Split {

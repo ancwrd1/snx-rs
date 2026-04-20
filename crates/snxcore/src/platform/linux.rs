@@ -18,7 +18,7 @@ use tracing::debug;
 use uuid::Uuid;
 
 use crate::{
-    model::IPsecSession,
+    model::{IPsecSession, params::TunnelType},
     platform::{
         DeviceConfig, IPsecConfigurator, Keychain, NetworkInterface, PlatformAccess, PlatformFeatures,
         ResolverConfigurator, RoutingConfigurator, SingleInstance, UdpEncapType, UdpSocketExt,
@@ -212,9 +212,9 @@ impl PlatformAccess for LinuxPlatformAccess {
     fn new_routing_configurator<S: AsRef<str>>(
         &self,
         device: S,
-        address: Ipv4Addr,
+        tunnel_type: TunnelType,
     ) -> impl RoutingConfigurator + Send + Sync {
-        routing::LinuxRoutingConfigurator::new(device, address)
+        routing::LinuxRoutingConfigurator::new(device, tunnel_type)
     }
 
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync {

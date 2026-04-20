@@ -14,13 +14,15 @@ use ipnet::Ipv4Net;
 use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::{debug, warn};
 
-use crate::platform::RoutingConfig;
 use crate::{
     ccc::CccHttpClient,
-    model::{ConnectionInfo, IPsecSession, VpnSession, params::TunnelParams},
+    model::{
+        ConnectionInfo, IPsecSession, VpnSession,
+        params::{TunnelParams, TunnelType},
+    },
     platform::{
-        DeviceConfig, IPsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfigurator, UdpEncapType,
-        UdpSocketExt,
+        DeviceConfig, IPsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
+        UdpEncapType, UdpSocketExt,
     },
     server_info,
     tunnel::{
@@ -131,7 +133,7 @@ impl NativeIPsecTunnel {
 
     async fn setup_routing(&self, session: &IPsecSession) -> anyhow::Result<()> {
         let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(&self.device_name, session.address);
+        let configurator = platform.new_routing_configurator(&self.device_name, TunnelType::IPsec);
 
         let config = if self.params.no_routing {
             RoutingConfig::Split {
@@ -174,18 +176,17 @@ impl NativeIPsecTunnel {
 
             let _ = self.setup_dns(&config, true).await;
         }
+
         self.configurator.cleanup().await;
 
-        if let Some(session) = self.session.ipsec_session.as_ref() {
-            let platform = Platform::get();
-            let configurator = platform.new_routing_configurator(&self.device_name, session.address);
-            let _ = configurator
-                .configure(&RoutingConfig::Cleanup {
-                    destination: self.gateway_address,
-                    enable_ipv6: self.params.disable_ipv6,
-                })
-                .await;
-        }
+        let platform = Platform::get();
+        let configurator = platform.new_routing_configurator(&self.device_name, TunnelType::IPsec);
+        let _ = configurator
+            .configure(&RoutingConfig::Cleanup {
+                destination: self.gateway_address,
+                enable_ipv6: self.params.disable_ipv6,
+            })
+            .await;
     }
 }
 

@@ -15,7 +15,10 @@ use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 
-use crate::model::{IPsecSession, params::TunnelParams};
+use crate::model::{
+    IPsecSession,
+    params::{TunnelParams, TunnelType},
+};
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -261,7 +264,7 @@ pub trait PlatformAccess {
     fn new_routing_configurator<S: AsRef<str>>(
         &self,
         device: S,
-        address: Ipv4Addr,
+        tunnel_type: TunnelType,
     ) -> impl RoutingConfigurator + Send + Sync;
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync;
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance>;

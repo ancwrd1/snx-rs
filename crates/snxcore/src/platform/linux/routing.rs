@@ -12,19 +12,23 @@ use rtnetlink::{
 use sysctl::{Ctl, Sysctl};
 use tracing::debug;
 
-use crate::platform::RoutingConfig;
-use crate::{model::params::TunnelParams, platform::RoutingConfigurator};
+use crate::{
+    model::params::{TunnelParams, TunnelType},
+    platform::{RoutingConfig, RoutingConfigurator},
+};
 
 const IP_RULE_TABLE: u32 = 18000;
 
 pub struct LinuxRoutingConfigurator {
     device: String,
+    tunnel_type: TunnelType,
 }
 
 impl LinuxRoutingConfigurator {
-    pub fn new<S: AsRef<str>>(device: S, _address: Ipv4Addr) -> Self {
+    pub fn new<S: AsRef<str>>(device: S, tunnel_type: TunnelType) -> Self {
         Self {
             device: device.as_ref().to_string(),
+            tunnel_type,
         }
     }
 
@@ -195,20 +199,30 @@ impl RoutingConfigurator for LinuxRoutingConfigurator {
                 disable_ipv6,
             } => {
                 self.setup_default_route(*destination, *disable_ipv6).await?;
-                self.add_keepalive_rule(*destination, true).await?;
+
+                if self.tunnel_type == TunnelType::IPsec {
+                    self.add_keepalive_rule(*destination, true).await?;
+                }
             }
             RoutingConfig::Split { destination, routes } => {
                 self.add_routes(*destination, routes).await?;
-                self.add_keepalive_rule(*destination, false).await?;
+
+                if self.tunnel_type == TunnelType::IPsec {
+                    self.add_keepalive_rule(*destination, false).await?;
+                }
             }
             RoutingConfig::Cleanup {
                 destination,
                 enable_ipv6,
             } => {
                 self.remove_exclusion_rule(*destination, *enable_ipv6).await?;
-                self.remove_keepalive_rule(*destination).await?;
+
+                if self.tunnel_type == TunnelType::IPsec {
+                    self.remove_keepalive_rule(*destination).await?;
+                }
             }
         }
+
         Ok(())
     }
 }
