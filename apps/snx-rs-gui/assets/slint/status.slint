@@ -9,7 +9,8 @@ export struct StatusEntry {
 
 export component StatusWindow inherits Window {
     title: Tr.status-dialog-title;
-    preferred-width: 520px;
+    preferred-width: 480px;
+    min-width: 480px;
     default-font-size: 14px;
 
     in property <[StatusEntry]> entries: [];
@@ -73,28 +74,29 @@ export component StatusWindow inherits Window {
 
             entries-box := VerticalBox {
                 padding: 10px;
-                spacing: 6px;
                 alignment: start;
 
-                for entry in root.entries: HorizontalLayout {
-                    spacing: 10px;
+                GridLayout {
+                    spacing-horizontal: 10px;
+                    spacing-vertical: 6px;
 
-                    Text {
-                        text: entry.label + ":";
-                        horizontal-alignment: right;
-                        vertical-alignment: center;
-                        color: Palette.foreground.transparentize(0.4);
-                        min-width: 140px;
-                    }
+                    for entry in root.entries: Row {
+                        Text {
+                            text: entry.label + ":";
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                            color: Palette.foreground.transparentize(0.4);
+                        }
 
-                    TextInput {
-                        text: entry.value;
-                        read-only: true;
-                        single-line: false;
-                        wrap: word-wrap;
-                        horizontal-alignment: left;
-                        color: Palette.foreground;
-                        horizontal-stretch: 1;
+                        TextInput {
+                            text: entry.value;
+                            read-only: true;
+                            single-line: false;
+                            wrap: word-wrap;
+                            horizontal-alignment: left;
+                            color: Palette.foreground;
+                            horizontal-stretch: 1;
+                        }
                     }
                 }
             }
