@@ -80,8 +80,9 @@ impl AppTray {
     pub async fn new(event_sender: Sender<TrayEvent>, no_tray: bool) -> anyhow::Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel(16);
 
+        let status = Arc::new(Err(anyhow!(crate::tr!("error-no-service-connection"))));
         let handle = if !no_tray {
-            let tray_icon = KsniTray::new(event_sender);
+            let tray_icon = KsniTray::new(event_sender, status.clone());
             Some(tray_icon.spawn().await?)
         } else {
             None
@@ -90,7 +91,7 @@ impl AppTray {
         let app_tray = AppTray {
             command_sender: tx,
             command_receiver: Some(rx),
-            status: Arc::new(Err(anyhow!(crate::tr!("error-no-service-connection")))),
+            status,
             tray_icon: handle,
             theme_monitor: ThemeMonitor::new(),
         };
@@ -102,13 +103,6 @@ impl AppTray {
 
     pub fn sender(&self) -> Sender<TrayCommand> {
         self.command_sender.clone()
-    }
-
-    fn status_label(&self) -> String {
-        match &*self.status {
-            Ok(status) => status.to_string(),
-            Err(e) => e.to_string(),
-        }
     }
 
     fn icon_theme(&self) -> &'static assets::IconTheme {
@@ -154,8 +148,6 @@ impl AppTray {
     }
 
     async fn update(&self) {
-        let status_label = self.status_label();
-
         // Custom pixmaps are supported under GNOME or KDE.
         // See https://github.com/AyatanaIndicators/libayatana-appindicator-glib/issues/47
         let icon = if self.pixmap_icons_supported() {
@@ -164,25 +156,12 @@ impl AppTray {
             PixmapOrName::Name(self.icon_name())
         };
 
-        let connect_enabled = self
-            .status
-            .as_ref()
-            .as_ref()
-            .is_ok_and(|status| *status == ConnectionStatus::Disconnected);
-
-        let disconnect_enabled = self
-            .status
-            .as_ref()
-            .as_ref()
-            .is_ok_and(|status| *status != ConnectionStatus::Disconnected);
-
         if let Some(ref tray_icon) = self.tray_icon {
+            let status = self.status.clone();
             tray_icon
                 .update(|tray| {
-                    tray.status_label = status_label;
                     tray.icon = icon;
-                    tray.connect_enabled = connect_enabled;
-                    tray.disconnect_enabled = disconnect_enabled;
+                    tray.status = status;
                 })
                 .await;
         }
@@ -216,19 +195,15 @@ impl AppTray {
 }
 
 struct KsniTray {
-    status_label: String,
-    connect_enabled: bool,
-    disconnect_enabled: bool,
+    status: Arc<anyhow::Result<ConnectionStatus>>,
     icon: PixmapOrName,
     event_sender: Sender<TrayEvent>,
 }
 
 impl KsniTray {
-    fn new(event_sender: Sender<TrayEvent>) -> Self {
+    fn new(event_sender: Sender<TrayEvent>, status: Arc<anyhow::Result<ConnectionStatus>>) -> Self {
         Self {
-            status_label: String::new(),
-            connect_enabled: false,
-            disconnect_enabled: false,
+            status,
             icon: PixmapOrName::Name(""),
             event_sender,
         }
@@ -237,6 +212,13 @@ impl KsniTray {
     fn send_tray_event(&self, event: TrayEvent) {
         let sender = self.event_sender.clone();
         tokio::spawn(async move { sender.send(event).await });
+    }
+
+    fn status_label(&self) -> String {
+        match &*self.status {
+            Ok(status) => status.to_string(),
+            Err(e) => e.to_string(),
+        }
     }
 }
 
@@ -265,50 +247,53 @@ impl ksni::Tray for KsniTray {
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
         let profiles = ConnectionProfilesStore::instance().all();
-        let connect_item = if profiles.len() < 2 {
-            MenuItem::Standard(StandardItem {
-                label: crate::tr!("tray-menu-connect").to_string(),
-                enabled: self.connect_enabled,
-                activate: Box::new(|tray: &mut KsniTray| {
-                    tray.send_tray_event(TrayEvent::Connect(DEFAULT_PROFILE_UUID))
-                }),
-                ..Default::default()
-            })
-        } else {
-            MenuItem::SubMenu(SubMenu {
-                label: crate::tr!("tray-menu-connect").to_string(),
-                enabled: self.connect_enabled,
-                submenu: profiles
-                    .into_iter()
-                    .map(|profile| {
-                        MenuItem::Standard(StandardItem {
-                            label: profile.profile_name.clone(),
-                            enabled: self.connect_enabled,
-                            activate: Box::new(move |tray: &mut KsniTray| {
-                                tray.send_tray_event(TrayEvent::Connect(profile.profile_id))
-                            }),
-                            ..Default::default()
+        let disconnected = (*self.status)
+            .as_ref()
+            .is_ok_and(|s| matches!(s, ConnectionStatus::Disconnected));
+
+        let connect_item = if disconnected {
+            if profiles.len() < 2 {
+                MenuItem::Standard(StandardItem {
+                    label: crate::tr!("tray-menu-connect").to_string(),
+                    activate: Box::new(|tray: &mut KsniTray| {
+                        tray.send_tray_event(TrayEvent::Connect(DEFAULT_PROFILE_UUID))
+                    }),
+                    ..Default::default()
+                })
+            } else {
+                MenuItem::SubMenu(SubMenu {
+                    label: crate::tr!("tray-menu-connect").to_string(),
+                    submenu: profiles
+                        .into_iter()
+                        .map(|profile| {
+                            MenuItem::Standard(StandardItem {
+                                label: profile.profile_name.clone(),
+                                activate: Box::new(move |tray: &mut KsniTray| {
+                                    tray.send_tray_event(TrayEvent::Connect(profile.profile_id))
+                                }),
+                                ..Default::default()
+                            })
                         })
-                    })
-                    .collect(),
+                        .collect(),
+                    ..Default::default()
+                })
+            }
+        } else {
+            MenuItem::Standard(StandardItem {
+                label: crate::tr!("tray-menu-disconnect").to_string(),
+                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Disconnect)),
                 ..Default::default()
             })
         };
 
         vec![
             MenuItem::Standard(StandardItem {
-                label: self.status_label.clone(),
+                label: self.status_label(),
                 enabled: false,
                 ..Default::default()
             }),
             MenuItem::Separator,
             connect_item,
-            MenuItem::Standard(StandardItem {
-                label: crate::tr!("tray-menu-disconnect").to_string(),
-                enabled: self.disconnect_enabled,
-                activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Disconnect)),
-                ..Default::default()
-            }),
             MenuItem::Standard(StandardItem {
                 label: crate::tr!("tray-menu-status").to_string(),
                 activate: Box::new(|tray: &mut KsniTray| tray.send_tray_event(TrayEvent::Status)),
