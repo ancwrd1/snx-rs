@@ -9,6 +9,7 @@ use snxcore::{
         params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
         proto::LoginOption,
     },
+    platform::{Keychain, Platform, PlatformAccess},
     server_info,
     util::parse_ipv4_or_subnet,
 };
@@ -120,7 +121,13 @@ impl SettingsWindowController {
 
         self.scope.window.set_profiles(ModelRc::new(VecModel::from(names)));
         self.scope.window.set_default_profile_index(default_index);
-        self.scope.window.set_profile_index(0);
+
+        let connected = ConnectionProfilesStore::instance().get_connected();
+        let index = profiles
+            .iter()
+            .position(|p| p.profile_id == connected.profile_id)
+            .unwrap_or(0) as i32;
+        self.scope.window.set_profile_index(index);
 
         self.state.borrow_mut().profile_ids = ids;
     }
@@ -694,6 +701,8 @@ fn on_profile_delete(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
     }
     ConnectionProfilesStore::instance().remove(id);
 
+    tokio::spawn(async move { Platform::get().new_keychain().delete_password(id).await });
+
     let mut names: Vec<SharedString> = window.get_profiles().iter().collect();
     if active < names.len() {
         names.remove(active);
@@ -866,7 +875,13 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
         ConnectionProfilesStore::instance().save(Arc::new(default_params));
     }
 
+    if !params.keychain && current.keychain {
+        let uuid = params.profile_id;
+        tokio::spawn(async move { Platform::get().new_keychain().delete_password(uuid).await });
+    }
+
     ConnectionProfilesStore::instance().save(Arc::new(params));
+
     i18n::set_locale(new_locale.and_then(|l| l.parse().ok()));
 
     super::update_windows();

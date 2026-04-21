@@ -331,6 +331,7 @@ impl VpnTunnel for TunIPsecTunnel {
             dns_configured: !self.params.no_dns,
             routing_configured: !self.params.no_routing,
             default_route: self.params.default_route,
+            profile_id: self.params.profile_id,
         };
         let _ = event_sender.send(TunnelEvent::Connected(info)).await;
         let ready = self.ready.clone();

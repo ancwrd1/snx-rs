@@ -149,7 +149,7 @@ where
                 {
                     let _ = Platform::get()
                         .new_keychain()
-                        .store_password(&self.username, &input)
+                        .store_password(params.profile_id, &SecretString::from(input))
                         .await;
                 }
                 result
@@ -229,7 +229,7 @@ where
                 if !self.username.is_empty()
                     && params.keychain
                     && params.password.expose_secret().is_empty()
-                    && let Ok(password) = Platform::get().new_keychain().acquire_password(&self.username).await
+                    && let Ok(password) = Platform::get().new_keychain().acquire_password(params.profile_id).await
                 {
                     self.password_from_keychain = password.into();
                 }
@@ -251,7 +251,7 @@ where
         if !params.user_name.is_empty()
             && params.keychain
             && params.password.expose_secret().is_empty()
-            && let Ok(password) = Platform::get().new_keychain().acquire_password(&params.user_name).await
+            && let Ok(password) = Platform::get().new_keychain().acquire_password(params.profile_id).await
         {
             self.password_from_keychain = password.into();
         }

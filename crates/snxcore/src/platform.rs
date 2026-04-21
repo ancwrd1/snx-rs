@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use ipnet::Ipv4Net;
 #[cfg(target_os = "linux")]
 use linux::LinuxPlatformAccess as PlatformAccessImpl;
+use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
@@ -207,8 +208,9 @@ pub trait ResolverConfigurator {
 
 #[async_trait]
 pub trait Keychain {
-    async fn acquire_password(&self, username: &str) -> anyhow::Result<String>;
-    async fn store_password(&self, username: &str, password: &str) -> anyhow::Result<()>;
+    async fn acquire_password(&self, profile_id: Uuid) -> anyhow::Result<String>;
+    async fn store_password(&self, profile_id: Uuid, password: &SecretString) -> anyhow::Result<()>;
+    async fn delete_password(&self, profile_id: Uuid) -> anyhow::Result<()>;
 }
 
 pub trait RoutingConfigurator {

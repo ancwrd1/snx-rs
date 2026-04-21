@@ -5,6 +5,7 @@ use ipnet::Ipv4Net;
 use isakmp::model::EspCryptMaterial;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     model::params::{TransportType, TunnelParams, TunnelType},
@@ -124,6 +125,7 @@ pub struct ConnectionInfo {
     pub dns_configured: bool,
     pub routing_configured: bool,
     pub default_route: bool,
+    pub profile_id: Uuid,
 }
 
 impl ConnectionInfo {
