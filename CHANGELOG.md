@@ -1,9 +1,23 @@
-## v6.0.0 (TBD)
-- Major UI redesign based on [Slint framework](https://slint.dev).
-- Dropped GTK4 dependency for generic builds. It is still required for `mobile-access` feature to show an embedded webview.
-- Refactored split-tunnel routing setup to allow the routes which contain the VPN gateway address.
-- Changed the way passwords are stored in the keychain to store them per connection profile.
-- Fixed a regression with the additional search domains used as routing domains.
+## v6.0.0 (2026-04-21)
+Marking the project's three-year anniversary, this major release delivers a complete UI rewrite and a substantial overhaul of the routing stack.
+What started as a reverse-engineering experiment born out of frustration with the official `snx` client has grown into a full-featured application
+with feature parity with the Check Point Windows client, while offering better privacy and performance on Linux.
+
+User interface:
+- Rewritten GUI frontend based on the [Slint framework](https://slint.dev), replacing the previous GTK 4 implementation.
+- Dropped the GTK 4 dependency for generic builds. GTK 4 and WebKitGTK are still required when the `mobile-access` feature is enabled, to host the embedded webview.
+- Tray menu now shows either a Connect or a Disconnect item depending on the current tunnel state, instead of exposing both.
+- The connection status dialog now shows the name of the active connection profile.
+- Fixed a regression where auto-connect did not trigger reliably on GUI startup.
+
+Routing and networking:
+- Refactored split-tunnel routing setup to allow routes that contain the VPN gateway address. Fixes #199.
+- Improved error handling and recovery during routing setup and teardown, so a partial failure no longer leaves stale routes behind.
+- Several routing fixes for the SSL tunnel and the `default-route` option.
+- Fixed a regression with additional search domains being incorrectly treated as routing domains. Fixes #198.
+
+Credentials and profiles:
+- Keychain passwords are now stored per connection profile instead of globally. Existing users will be prompted to re-enter their password on first connect after the upgrade.
 
 ## v5.3.0 (2026-04-11)
 - Application now uses Linux APIs directly instead of running the external commands to configure OS networking stack.
