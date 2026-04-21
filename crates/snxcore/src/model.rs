@@ -126,6 +126,7 @@ pub struct ConnectionInfo {
     pub routing_configured: bool,
     pub default_route: bool,
     pub profile_id: Uuid,
+    pub profile_name: String,
 }
 
 impl ConnectionInfo {
@@ -150,6 +151,7 @@ impl ConnectionInfo {
                     String::new()
                 },
             ),
+            ("info-connection-profile", self.or_empty(|| self.profile_name.clone())),
             ("info-server-name", self.or_empty(|| self.server_name.clone())),
             ("info-user-name", self.or_empty(|| self.username.clone())),
             ("info-login-type", self.or_empty(|| self.login_type.clone())),

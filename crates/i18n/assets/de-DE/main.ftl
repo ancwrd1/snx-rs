@@ -43,7 +43,6 @@ label-auto-connect = Automatisch beim Start verbinden
 label-ip-lease-time = Benutzerdefinierte IP-Lease-Zeit, Sekunden
 label-disable-ipv6 = Standardroute deaktiviert IPv6
 label-mtu = MTU
-label-connection-profile = Verbindungsprofil
 label-profile-name = Profilname
 label-confirmation = Bitte bestätigen
 label-mobile-access = Mobiler Zugriff
@@ -206,6 +205,7 @@ info-interface = Schnittstelle
 info-dns-configured = DNS konfiguriert
 info-routing-configured = Routing konfiguriert
 info-default-route = Standardroute
+info-connection-profile = Verbindungsprofil
 
 # CLI Messages
 cli-identity-provider-auth = Für die Authentifizierung über den Identitätsanbieter öffnen Sie die folgende URL in Ihrem Browser:

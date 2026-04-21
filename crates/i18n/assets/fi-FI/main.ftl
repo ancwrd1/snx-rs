@@ -43,7 +43,6 @@ label-auto-connect = Yhdistä automaattisesti käynnistyksessä
 label-ip-lease-time = Mukautettu IP-vuokra-aika, sekuntia
 label-disable-ipv6 = Oletusreitti poistaa IPv6:n käytöstä
 label-mtu = MTU
-label-connection-profile = Yhteysprofiili
 label-profile-name = Profiilin nimi
 label-confirmation = Vahvista
 label-mobile-access = Mobiilikäyttö
@@ -177,6 +176,7 @@ info-interface = Käyttöliittymä
 info-dns-configured = DNS määritetty
 info-routing-configured = Reititys määritetty
 info-default-route = Oletusreitti
+info-connection-profile = Yhteysprofiili
 
 # Application
 app-title = SNX-RS VPN-asiakasohjelma Linuxille

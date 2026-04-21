@@ -43,7 +43,6 @@ label-auto-connect = Automatski se poveži pri pokretanju
 label-ip-lease-time = Prilagođeno vrijeme zakupa IP adrese, sekunde
 label-disable-ipv6 = Zadana ruta onemogućuje IPv6
 label-mtu = MTU
-label-connection-profile = Profil veze
 label-profile-name = Naziv profila
 label-confirmation = Molimo potvrdite
 label-mobile-access = Mobilni pristup
@@ -206,6 +205,7 @@ info-interface = Sučelje
 info-dns-configured = DNS konfiguriran
 info-routing-configured = Usmjeravanje konfigurirano
 info-default-route = Zadana ruta
+info-connection-profile = Profil veze
 
 # CLI Messages
 cli-identity-provider-auth = Za autentifikaciju putem pružatelja identiteta, otvorite sljedeću URL adresu u pregledniku:

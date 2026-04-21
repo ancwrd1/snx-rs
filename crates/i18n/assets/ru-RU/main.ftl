@@ -43,7 +43,6 @@ label-auto-connect = Автоматически подключаться при 
 label-ip-lease-time = Пользовательское время аренды IP, секунды
 label-disable-ipv6 = Отключать IPv6, когда включён маршрут по умолчанию
 label-mtu = MTU
-label-connection-profile = Профиль подключения
 label-profile-name = Имя профиля
 label-confirmation = Пожалуйста, подтвердите
 label-mobile-access = Мобильный доступ
@@ -206,6 +205,7 @@ info-interface = Интерфейс
 info-dns-configured = DNS настроен
 info-routing-configured = Маршрутизация настроена
 info-default-route = Маршрут по умолчанию
+info-connection-profile = Профиль подключения
 
 # CLI Messages
 cli-identity-provider-auth = Для аутентификации через провайдера идентификации откройте следующий URL в браузере:

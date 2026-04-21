@@ -43,7 +43,6 @@ label-auto-connect = Ligar automaticamente ao iniciar
 label-ip-lease-time = Tempo de concessão de IP personalizado, segundos
 label-disable-ipv6 = Rota predefinida desativa IPv6
 label-mtu = MTU
-label-connection-profile = Perfil de ligação
 label-profile-name = Nome do perfil
 label-confirmation = Por favor, confirme
 label-mobile-access = Acesso móvel
@@ -177,6 +176,7 @@ info-interface = Interface
 info-dns-configured = DNS configurado
 info-routing-configured = Encaminhamento configurado
 info-default-route = Rota predefinida
+info-connection-profile = Perfil de ligação
 
 # Application
 app-title = Cliente VPN SNX-RS para Linux

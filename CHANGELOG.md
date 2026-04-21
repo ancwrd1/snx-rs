@@ -2,6 +2,7 @@
 - Major UI redesign based on [Slint framework](https://slint.dev).
 - Dropped GTK4 dependency for generic builds. It is still required for `mobile-access` feature to show an embedded webview.
 - Refactored split-tunnel routing setup to allow the routes which contain the VPN gateway address.
+- Changed the way passwords are stored in the keychain to store them per connection profile.
 - Fixed a regression with the additional search domains used as routing domains.
 
 ## v5.3.0 (2026-04-11)

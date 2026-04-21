@@ -43,7 +43,6 @@ label-auto-connect = Automaticky sa pripojiť pri štarte
 label-ip-lease-time = Vlastný čas prenájmu IP, sekundy
 label-disable-ipv6 = Zakázať IPv6, keď je povolená predvolená trasa
 label-mtu = MTU
-label-connection-profile = Profil pripojenia
 label-profile-name = Názov profilu
 label-confirmation = Prosím potvrďte
 label-mobile-access = Mobilný prístup
@@ -177,6 +176,7 @@ info-interface = Rozhranie
 info-dns-configured = DNS nakonfigurované
 info-routing-configured = Smerovanie nakonfigurované
 info-default-route = Predvolená trasa
+info-connection-profile = Profil pripojenia
 
 # Application
 app-title = SNX-RS VPN klient pre Linux

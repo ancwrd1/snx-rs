@@ -423,6 +423,7 @@ impl VpnTunnel for SslTunnel {
             routing_configured: !self.params.no_routing,
             default_route: self.params.default_route,
             profile_id: self.params.profile_id,
+            profile_name: self.params.profile_name.clone(),
         };
 
         let _ = event_sender.send(TunnelEvent::Connected(info)).await;

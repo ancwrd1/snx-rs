@@ -43,7 +43,6 @@ label-auto-connect = Anslut automatiskt vid start
 label-ip-lease-time = Anpassad IP-leasetid, sekunder
 label-disable-ipv6 = Inaktivera IPv6 när standardrutt är aktiverad
 label-mtu = MTU
-label-connection-profile = Anslutningsprofil
 label-profile-name = Profilnamn
 label-confirmation = Vänligen bekräfta
 label-mobile-access = Mobilåtkomst
@@ -177,6 +176,7 @@ info-interface = Gränssnitt
 info-dns-configured = DNS konfigurerad
 info-routing-configured = Routning konfigurerad
 info-default-route = Standardrutt
+info-connection-profile = Anslutningsprofil
 
 # Application
 app-title = SNX-RS VPN-klient för Linux

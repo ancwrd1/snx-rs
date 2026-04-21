@@ -43,7 +43,6 @@ label-auto-connect = Automatically connect on startup
 label-ip-lease-time = Custom IP lease time, seconds
 label-disable-ipv6 = Disable IPv6 when default route is enabled
 label-mtu = MTU
-label-connection-profile = Connection profile
 label-profile-name = Profile name
 label-confirmation = Please confirm
 label-mobile-access = Mobile Access
@@ -206,6 +205,7 @@ info-interface = Interface
 info-dns-configured = DNS configured
 info-routing-configured = Routing configured
 info-default-route = Default route
+info-connection-profile = Connection profile
 
 # CLI Messages
 cli-identity-provider-auth = For identity provider authentication, open the following URL in your browser:
