@@ -223,7 +223,7 @@ export component PlainLineEdit inherits Rectangle {
 
         input := TextInput {
             text <=> root.text;
-            color: Palette.control-foreground;
+            color: root.enabled ? Palette.control-foreground : Palette.control-foreground.transparentize(0.5);
             vertical-alignment: center;
             single-line: true;
             input-type: root.input-type;
