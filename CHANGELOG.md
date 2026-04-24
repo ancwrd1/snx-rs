@@ -1,6 +1,7 @@
 ## v6.0.1 (2026-04-24)
 - Fixed a bug with the .deb package which did not restart the service correctly during upgrade.
 - Fixed labels alignment in the status dialog.
+- Fixed dark/light theme detection on Ubuntu.
 
 ## v6.0.0 (2026-04-21)
 Marking the project's three-year anniversary, this major release delivers a complete UI rewrite and a substantial overhaul of the routing stack.
