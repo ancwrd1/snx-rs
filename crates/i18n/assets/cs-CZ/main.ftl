@@ -213,7 +213,7 @@ cli-tunnel-connected = Tunel připojen, stiskněte Ctrl+C pro ukončení.
 cli-tunnel-disconnected = Tunel odpojen
 cli-another-instance-running = Jiná instance snx-rs již běží
 cli-app-terminated = Aplikace ukončena signálem
-cli-mobile-access-auth = Pro ověření mobilního přístupu se přihlaste pomocí následujícího odkazu, poté najděte heslo uživatele v hexadecimálním tvaru ve zdrojovém kódu stránky a zadejte ho sem:
+cli-mobile-access-auth = Pro ověření mobilního přístupu se přihlaste na { $url }, poté najděte heslo uživatele v hexadecimálním tvaru ve zdrojovém kódu stránky a zadejte ho sem.
 cli-certificate-enrolled = Certifikát byl úspěšně zaregistrován.
 
 # Connection Messages

@@ -213,7 +213,7 @@ cli-tunnel-connected = Tunnel forbundet, tryk Ctrl+C for at afslutte.
 cli-tunnel-disconnected = Tunnel forbindelse afbrudt
 cli-another-instance-running = En anden forekomst af snx-rs kører allerede
 cli-app-terminated = Applikation afsluttet af signal
-cli-mobile-access-auth = Til mobiladgangsautentificering skal du logge ind via følgende URL, finde en brugeradgangskode i hex-formatet i sidens HTML-kilde og indtaste den her:
+cli-mobile-access-auth = Til mobiladgangsautentificering skal du logge ind på { $url }, finde en brugeradgangskode i hex-formatet i sidens HTML-kilde og indtaste den her.
 cli-certificate-enrolled = Certifikatet er blevet registreret.
 
 # Connection Messages

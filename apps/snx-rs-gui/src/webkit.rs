@@ -123,7 +123,7 @@ impl WebKitBrowser {
 #[async_trait::async_trait]
 impl BrowserController for WebKitBrowser {
     fn open(&self, url: &str) -> anyhow::Result<()> {
-        SystemBrowser.open(url)
+        SystemBrowser::default().open(url)
     }
 
     fn close(&self) {}

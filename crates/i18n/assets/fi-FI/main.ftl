@@ -213,7 +213,7 @@ cli-tunnel-connected = Tunneli yhdistetty, paina Ctrl+C lopettaaksesi.
 cli-tunnel-disconnected = Tunneli katkaistu
 cli-another-instance-running = Toinen snx-rs-esiintymä on jo käynnissä
 cli-app-terminated = Sovellus päättyi signaalin vuoksi
-cli-mobile-access-auth = Mobiilikäyttöön kirjautumista varten kirjaudu sisään seuraavan URL-osoitteen kautta, etsi sivun HTML-lähdekoodista heksamuotoinen käyttäjän salasana ja syötä se tähän:
+cli-mobile-access-auth = Mobiilikäyttöön kirjautumista varten kirjaudu osoitteeseen { $url }, etsi sivun HTML-lähdekoodista heksamuotoinen käyttäjän salasana ja syötä se tähän.
 cli-certificate-enrolled = Varmenne on rekisteröity onnistuneesti.
 
 # Connection Messages

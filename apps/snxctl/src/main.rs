@@ -109,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
 
     let command = params.command.into();
 
-    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser);
+    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser::default());
 
     let status = match await_termination(service_controller.command(command, tunnel_params.clone())).await {
         Some(status) => status?,

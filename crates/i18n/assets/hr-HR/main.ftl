@@ -213,7 +213,7 @@ cli-tunnel-connected = Tunel povezan, pritisnite Ctrl-C za izlaz.
 cli-tunnel-disconnected = Tunel prekinut
 cli-another-instance-running = Druga instanca snx-rs već je pokrenuta
 cli-app-terminated = Aplikacija prekinuta zbog signala
-cli-mobile-access-auth = Za autentifikaciju mobilnog pristupa, prijavite se putem sljedeće URL adrese, zatim pronađite korisničku lozinku u hex obliku u HTML izvoru stranice i unesite je ovdje:
+cli-mobile-access-auth = Za autentifikaciju mobilnog pristupa, prijavite se na { $url }, zatim pronađite korisničku lozinku u hex obliku u HTML izvoru stranice i unesite je ovdje.
 cli-certificate-enrolled = Certifikat je uspješno registriran.
 
 # Connection Messages

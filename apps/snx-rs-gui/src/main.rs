@@ -305,5 +305,5 @@ fn new_browser_controller(params: Arc<TunnelParams>) -> impl BrowserController {
 
 #[cfg(not(feature = "mobile-access"))]
 fn new_browser_controller(_params: Arc<TunnelParams>) -> impl BrowserController {
-    snxcore::browser::SystemBrowser
+    snxcore::browser::SystemBrowser::new(SlintPrompt)
 }

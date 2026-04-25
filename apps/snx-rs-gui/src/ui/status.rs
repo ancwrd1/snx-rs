@@ -139,7 +139,7 @@ impl WindowController for StatusWindowController {
         let (status_tx, status_rx) = async_channel::bounded::<Arc<anyhow::Result<ConnectionStatus>>>(1);
 
         tokio::spawn(async move {
-            let mut controller = ServiceController::new(SlintPrompt, SystemBrowser);
+            let mut controller = ServiceController::new(SlintPrompt, SystemBrowser::new(SlintPrompt));
             let mut old_status = Arc::new(Err(anyhow::anyhow!(tr!("app-connection-error"))));
             loop {
                 let params = ConnectionProfilesStore::instance().get_connected();

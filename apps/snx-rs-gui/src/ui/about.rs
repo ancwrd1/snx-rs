@@ -32,7 +32,7 @@ impl WindowController for AboutWindowController {
         self.scope.window.set_license(env!("CARGO_PKG_LICENSE").into());
 
         self.scope.window.on_website_clicked(|| {
-            let _ = SystemBrowser.open(WEBSITE_URL);
+            let _ = SystemBrowser::default().open(WEBSITE_URL);
         });
 
         self.scope.window.on_ok_clicked(|| close_window(Self::NAME));
