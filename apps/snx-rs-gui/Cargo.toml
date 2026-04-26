@@ -21,7 +21,7 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"
 tokio-util = { version = "0.7", features = ["codec"] }
-tokio = { version = "1", features = ["rt-multi-thread", "process"] }
+tokio = { version = "1", features = ["rt-multi-thread", "process", "signal"] }
 clap = { version = "4", features = ["derive"] }
 clap_complete = { workspace = true }
 hex = "0.4"

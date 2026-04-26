@@ -1,5 +1,5 @@
 #![deny(unsafe_code)]
-use std::{sync::Arc, time::Duration};
+use std::{os::unix::process::CommandExt, path::PathBuf, sync::Arc, time::Duration};
 
 use clap::{CommandFactory, Parser};
 use i18n::tr;
@@ -12,7 +12,10 @@ use snxcore::{
     platform::{Platform, PlatformAccess, SingleInstance},
     prompt::SecurePrompt,
 };
-use tokio::sync::mpsc;
+use tokio::{
+    signal::unix::{SignalKind, signal},
+    sync::mpsc,
+};
 use tracing::{level_filters::LevelFilter, warn};
 
 use crate::{
@@ -97,6 +100,12 @@ async fn main() -> anyhow::Result<()> {
         })
         .select()?;
 
+    tokio::spawn(async move {
+        if let Err(e) = wait_restart_signal().await {
+            warn!("Restart signal handler exited: {}", e);
+        }
+    });
+
     let mut my_tray = create_tray(tray_event_sender.clone(), cmdline_params.no_tray).await?;
     let tray_command_sender = my_tray.sender();
 
@@ -137,6 +146,27 @@ async fn main() -> anyhow::Result<()> {
     tokio::task::block_in_place(slint::run_event_loop_until_quit)?;
 
     Ok(())
+}
+
+async fn wait_restart_signal() -> anyhow::Result<()> {
+    let mut sig = signal(SignalKind::user_defined1())?;
+    if sig.recv().await.is_some() {
+        let exe = current_exe_path()?;
+        let args: Vec<String> = std::env::args().skip(1).collect();
+        let err = std::process::Command::new(exe).args(args).exec();
+        anyhow::bail!("re-exec failed: {}", err);
+    }
+    Ok(())
+}
+
+fn current_exe_path() -> anyhow::Result<PathBuf> {
+    let exe = std::env::current_exe()?;
+    let s = exe.to_string_lossy();
+    if let Some(stripped) = s.strip_suffix(" (deleted)") {
+        Ok(PathBuf::from(stripped))
+    } else {
+        Ok(exe)
+    }
 }
 
 async fn create_tray(sender: mpsc::Sender<TrayEvent>, no_tray: bool) -> anyhow::Result<tray::AppTray> {

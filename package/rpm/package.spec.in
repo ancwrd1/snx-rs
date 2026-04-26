@@ -37,7 +37,6 @@ case "$1" in
     2)
         # Upgrade
         systemctl stop snx-rs 2>/dev/null >/dev/null || true
-        pkill snx-rs-gui 2>/dev/null >/dev/null || true
         ;;
 esac
 exit 0
@@ -54,6 +53,7 @@ case "$1" in
         ;;
 esac
 gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
+pkill -USR1 -x snx-rs-gui 2>/dev/null >/dev/null || true
 exit 0
 
 %preun
@@ -61,7 +61,7 @@ case "$1" in
     0)
         # Uninstall (not upgrade)
         systemctl disable --now snx-rs 2>/dev/null >/dev/null || true
-        pkill snx-rs-gui 2>/dev/null >/dev/null || true
+        pkill -x snx-rs-gui 2>/dev/null >/dev/null || true
         ;;
     1)
         # Upgrade

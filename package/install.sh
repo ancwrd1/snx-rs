@@ -5,7 +5,6 @@ if grep -q '^ID=nixos' /etc/os-release 2>/dev/null; then
     exit 1
 fi
 
-killall snx-rs-gui 2>/dev/null
 systemctl stop snx-rs 2>/dev/null
 
 echo "Installing application"
@@ -18,5 +17,7 @@ gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
 echo "Starting service"
 systemctl daemon-reload
 systemctl enable --now snx-rs
+
+pkill -USR1 -x snx-rs-gui 2>/dev/null || true
 
 echo "Installation finished."

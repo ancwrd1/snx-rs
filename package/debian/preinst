@@ -3,7 +3,6 @@
 case "$1" in
 	install|upgrade)
 		systemctl stop snx-rs || true
-		pkill snx-rs-gui || true
 		;;
 	*)
 		;;
