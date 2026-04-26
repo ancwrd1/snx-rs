@@ -42,6 +42,10 @@ create_run() {
         cp "$basedir/package/$asset" "$target/$name/"
     done
 
+    for icon in $basedir/package/icons/*.svg; do
+        cp "$icon" "$target/$name/"
+    done
+
     cd "$target"
     tar c "$name" | xz -9 > "$name.tar.xz"
 
@@ -72,6 +76,7 @@ create_deb() {
     mkdir -p "$tmpdir/debian/usr/bin"
     mkdir -p "$tmpdir/debian/etc/systemd/system"
     mkdir -p "$tmpdir/debian/usr/share/applications"
+    mkdir -p "$tmpdir/debian/usr/share/icons/hicolor/symbolic/apps"
 
     for app in $apps; do
       install -m 755 "$target/$triple/lto/$app" "$tmpdir/debian/usr/bin/"
@@ -82,7 +87,8 @@ create_deb() {
     sed "s/{{version}}/$deb_version/;s/{{arch}}/$deb_arch/;s/{{size}}/$size/" "$basedir/package/debian/control.in" > "$debian/control"
 
     cp "$basedir/package/snx-rs.service" "$tmpdir/debian/etc/systemd/system/"
-    cp "$basedir/package/snx-rs-gui.desktop" "$tmpdir/debian/usr/share/applications"
+    cp "$basedir/package/snx-rs-gui.desktop" "$tmpdir/debian/usr/share/applications/"
+    cp "$basedir/package/icons"/*.svg "$tmpdir/debian/usr/share/icons/hicolor/symbolic/apps/"
 
     if ! fakeroot dpkg-deb --build "$tmpdir/debian" "$target/$name.deb"; then
         exit 1
@@ -112,6 +118,7 @@ create_rpm() {
     mkdir -p "$RPM_BUILDROOT/usr/bin"
     mkdir -p "$RPM_BUILDROOT/etc/systemd/system"
     mkdir -p "$RPM_BUILDROOT/usr/share/applications"
+    mkdir -p "$RPM_BUILDROOT/usr/share/icons/hicolor/symbolic/apps"
 
     for app in $apps; do
       install -m 755 "$target/$triple/lto/$app" "$RPM_BUILDROOT/usr/bin/"
@@ -119,6 +126,7 @@ create_rpm() {
 
     cp "$basedir/package/snx-rs.service" "$RPM_BUILDROOT/etc/systemd/system/"
     cp "$basedir/package/snx-rs-gui.desktop" "$RPM_BUILDROOT/usr/share/applications"
+    cp "$basedir/package/icons"/*.svg "$RPM_BUILDROOT/usr/share/icons/hicolor/symbolic/apps/"
 
     if ! rpmbuild --define "_topdir $rpm" \
              --define "_buildroot $rpm/BUILDROOT" \

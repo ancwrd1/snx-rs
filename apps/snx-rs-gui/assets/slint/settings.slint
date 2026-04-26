@@ -79,6 +79,8 @@ export component SettingsWindow inherits Window {
     // ui
     in property <[string]> icon-themes: [];
     in-out property <int> icon-theme-index: 0;
+    in property <bool> icon-theme-visible: true;
+
     in property <[string]> color-themes: [];
     in-out property <int> color-theme-index: 0;
     in property <[string]> locales: [];
@@ -629,16 +631,15 @@ export component SettingsWindow inherits Window {
                                 VerticalLayout {
                                     spacing: 0px;
 
-                                    FormStackRow {
+                                    if root.icon-theme-visible: FormStackRow {
                                         label: Tr.label-icon-theme;
                                         ComboBox {
                                             model: root.icon-themes;
                                             current-index <=> root.icon-theme-index;
                                             min-width: root.min-form-width;
                                         }
+                                        FormDivider { }
                                     }
-
-                                    FormDivider { }
 
                                     FormStackRow {
                                         label: Tr.label-color-theme;

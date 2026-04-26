@@ -63,9 +63,9 @@ pub enum TrayCommand {
     Exit,
 }
 
-enum PixmapOrName {
-    Pixmap(Icon),
-    Name(&'static str),
+struct PixmapAndName {
+    pixmap: Icon,
+    name: &'static str,
 }
 
 pub struct AppTray {
@@ -140,27 +140,24 @@ impl AppTray {
 
     fn icon_name(&self) -> &'static str {
         match &*self.status {
-            Ok(ConnectionStatus::Connected(_)) => "network-vpn-symbolic",
-            Ok(ConnectionStatus::Disconnected) => "network-vpn-disconnected-symbolic",
-            Ok(ConnectionStatus::Mfa(_) | ConnectionStatus::Connecting) => "network-vpn-acquiring-symbolic",
-            _ => "network-vpn-disabled-symbolic",
+            Ok(ConnectionStatus::Connected(_)) => "snx-rs-connected-symbolic",
+            Ok(ConnectionStatus::Disconnected) => "snx-rs-disconnected-symbolic",
+            Ok(ConnectionStatus::Mfa(_) | ConnectionStatus::Connecting) => "snx-rs-acquiring-symbolic",
+            Err(_) => "snx-rs-error-symbolic",
         }
     }
 
     async fn update(&self) {
-        // Custom pixmaps are supported under GNOME or KDE.
-        // See https://github.com/AyatanaIndicators/libayatana-appindicator-glib/issues/47
-        let icon = if self.pixmap_icons_supported() {
-            PixmapOrName::Pixmap(self.icon())
-        } else {
-            PixmapOrName::Name(self.icon_name())
+        let icon = PixmapAndName {
+            pixmap: self.icon(),
+            name: self.icon_name(),
         };
 
         if let Some(ref tray_icon) = self.tray_icon {
             let status = self.status.clone();
             tray_icon
                 .update(|tray| {
-                    tray.icon = icon;
+                    tray.icon = Some(icon);
                     tray.status = status;
                 })
                 .await;
@@ -186,17 +183,11 @@ impl AppTray {
 
         Ok(())
     }
-
-    fn pixmap_icons_supported(&self) -> bool {
-        std::env::var("XDG_CURRENT_DESKTOP")
-            .map(|s| s.to_lowercase())
-            .is_ok_and(|s| s.contains("gnome") || s.contains("kde"))
-    }
 }
 
 struct KsniTray {
     status: Arc<anyhow::Result<ConnectionStatus>>,
-    icon: PixmapOrName,
+    icon: Option<PixmapAndName>,
     event_sender: Sender<TrayEvent>,
 }
 
@@ -204,7 +195,7 @@ impl KsniTray {
     fn new(event_sender: Sender<TrayEvent>, status: Arc<anyhow::Result<ConnectionStatus>>) -> Self {
         Self {
             status,
-            icon: PixmapOrName::Name(""),
+            icon: None,
             event_sender,
         }
     }
@@ -230,19 +221,11 @@ impl ksni::Tray for KsniTray {
     }
 
     fn icon_name(&self) -> String {
-        if let PixmapOrName::Name(name) = &self.icon {
-            name.to_string()
-        } else {
-            String::new()
-        }
+        self.icon.as_ref().map(|i| i.name.to_string()).unwrap_or_default()
     }
 
     fn icon_pixmap(&self) -> Vec<Icon> {
-        if let PixmapOrName::Pixmap(icon) = &self.icon {
-            vec![icon.clone()]
-        } else {
-            vec![]
-        }
+        self.icon.as_ref().map(|i| vec![i.pixmap.clone()]).unwrap_or_default()
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {

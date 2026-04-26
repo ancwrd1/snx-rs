@@ -54,6 +54,15 @@ impl SettingsWindowController {
     }
 
     fn set_static_models(&self) {
+        let using_bundled_icons = std::fs::read_dir("/usr/share/icons/hicolor/symbolic/apps")
+            .map(|r| {
+                r.flatten()
+                    .any(|e| e.file_name().to_string_lossy().starts_with("snx-rs"))
+            })
+            .unwrap_or(false);
+
+        self.scope.window.set_icon_theme_visible(!using_bundled_icons);
+
         let tunnel_types: Vec<SharedString> = vec![tr!("tunnel-type-ipsec").into(), tr!("tunnel-type-ssl").into()];
         self.scope
             .window

@@ -3,6 +3,7 @@
 case "$1" in
 	configure)
 		systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
+		gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
 		;;
 	*)
 		;;

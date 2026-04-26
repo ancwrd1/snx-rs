@@ -27,6 +27,7 @@ cp -a $RPM_BUILDROOT/* %{buildroot}/
 /usr/bin/snxctl
 /etc/systemd/system/snx-rs.service
 /usr/share/applications/snx-rs-gui.desktop
+/usr/share/icons/hicolor/symbolic/apps/snx-rs-*.svg
 
 %pre
 case "$1" in
@@ -52,6 +53,7 @@ case "$1" in
         systemctl start snx-rs 2>/dev/null >/dev/null || true
         ;;
 esac
+gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
 exit 0
 
 %preun
