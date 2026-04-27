@@ -1,0 +1,225 @@
+name: Publish APT/DNF Repository
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (default: latest non-prerelease)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      ORIGIN: snx-rs
+      LABEL: snx-rs
+      SUITE: stable
+      COMPONENT: main
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install repo tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-utils createrepo-c gnupg dpkg-dev xz-utils
+
+      - name: Import GPG signing key
+        id: gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Resolve release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "${EVENT_TAG:-}" ]; then
+            TAG="$EVENT_TAG"
+          elif [ -n "${INPUT_TAG:-}" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG=$(gh release list --repo "${{ github.repository }}" --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName')
+          fi
+          if [ -z "$TAG" ]; then
+            echo "No release tag found" >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using tag: $TAG"
+
+      - name: Download release assets (non-webkit only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh release download "$TAG" \
+            --repo "${{ github.repository }}" \
+            --dir assets \
+            --pattern "snx-rs-${TAG}-linux-*.deb" \
+            --pattern "snx-rs-${TAG}-linux-*.rpm"
+          ls -la assets
+
+      - name: Build APT repository
+        env:
+          GPG_KEY_ID: ${{ steps.gpg.outputs.fingerprint }}
+        run: |
+          set -euo pipefail
+          ROOT=site/deb
+          POOL=$ROOT/pool/main/s/snx-rs
+          mkdir -p "$POOL"
+          cp assets/*.deb "$POOL/"
+
+          for arch in amd64 arm64; do
+            mkdir -p "$ROOT/dists/${SUITE}/${COMPONENT}/binary-$arch"
+          done
+
+          cd "$ROOT"
+          for arch in amd64 arm64; do
+            apt-ftparchive --arch "$arch" packages pool/${COMPONENT} \
+              > "dists/${SUITE}/${COMPONENT}/binary-$arch/Packages"
+            gzip -9kf "dists/${SUITE}/${COMPONENT}/binary-$arch/Packages"
+          done
+
+          cat > /tmp/aptftp.conf <<EOF
+          APT::FTPArchive::Release::Origin "${ORIGIN}";
+          APT::FTPArchive::Release::Label "${LABEL}";
+          APT::FTPArchive::Release::Suite "${SUITE}";
+          APT::FTPArchive::Release::Codename "${SUITE}";
+          APT::FTPArchive::Release::Components "${COMPONENT}";
+          APT::FTPArchive::Release::Architectures "amd64 arm64";
+          EOF
+
+          apt-ftparchive -c /tmp/aptftp.conf release "dists/${SUITE}" \
+            > "dists/${SUITE}/Release"
+
+          gpg --batch --yes --default-key "$GPG_KEY_ID" \
+            --clearsign -o "dists/${SUITE}/InRelease" "dists/${SUITE}/Release"
+          gpg --batch --yes --default-key "$GPG_KEY_ID" \
+            -abs -o "dists/${SUITE}/Release.gpg" "dists/${SUITE}/Release"
+
+      - name: Build DNF repository
+        env:
+          GPG_KEY_ID: ${{ steps.gpg.outputs.fingerprint }}
+        run: |
+          set -euo pipefail
+          ROOT=site/rpm
+          mkdir -p "$ROOT/x86_64" "$ROOT/aarch64"
+
+          for f in assets/*.rpm; do
+            case "$f" in
+              *linux-x86_64.rpm) cp "$f" "$ROOT/x86_64/" ;;
+              *linux-arm64.rpm)  cp "$f" "$ROOT/aarch64/" ;;
+            esac
+          done
+
+          for arch in x86_64 aarch64; do
+            createrepo_c "$ROOT/$arch"
+            gpg --batch --yes --default-key "$GPG_KEY_ID" \
+              --detach-sign --armor "$ROOT/$arch/repodata/repomd.xml"
+          done
+
+      - name: Export public key and config snippets
+        env:
+          GPG_KEY_ID: ${{ steps.gpg.outputs.fingerprint }}
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          gpg --armor --export "$GPG_KEY_ID" > site/KEY.gpg
+
+          BASE_URL="https://ancwrd1.github.io/snx-rs"
+
+          cat > site/snx-rs.repo <<EOF
+          [snx-rs]
+          name=snx-rs
+          baseurl=${BASE_URL}/rpm/\$basearch
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=1
+          gpgkey=${BASE_URL}/KEY.gpg
+          EOF
+
+          cat > site/snx-rs.sources <<EOF
+          Types: deb
+          URIs: ${BASE_URL}/deb
+          Suites: ${SUITE}
+          Components: ${COMPONENT}
+          Architectures: amd64 arm64
+          Signed-By: /usr/share/keyrings/snx-rs-archive-keyring.gpg
+          EOF
+
+      - name: Generate index page
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          cat > site/index.html <<EOF
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <title>snx-rs package repository</title>
+            <style>
+              body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+              code, pre { background: #f4f4f4; padding: 0.15rem 0.35rem; border-radius: 4px; }
+              pre { padding: 0.75rem; overflow-x: auto; }
+              h2 { margin-top: 2rem; }
+            </style>
+          </head>
+          <body>
+            <h1>snx-rs package repository</h1>
+            <p>Latest published release: <strong>${TAG}</strong>.
+               Only the default (non-webkit) builds are published here. The <code>-webkit</code>
+               variant remains available as a direct download from the
+               <a href="https://github.com/ancwrd1/snx-rs/releases">Releases page</a>.</p>
+
+            <h2>Fedora / RHEL / openSUSE (dnf / zypper)</h2>
+            <pre>sudo rpm --import https://ancwrd1.github.io/snx-rs/KEY.gpg
+          sudo curl -fsSL -o /etc/yum.repos.d/snx-rs.repo https://ancwrd1.github.io/snx-rs/snx-rs.repo
+          sudo dnf install snx-rs</pre>
+
+            <h2>Debian / Ubuntu (apt)</h2>
+            <pre>sudo install -d -m 0755 /usr/share/keyrings
+          curl -fsSL https://ancwrd1.github.io/snx-rs/KEY.gpg \\
+            | sudo gpg --dearmor -o /usr/share/keyrings/snx-rs-archive-keyring.gpg
+          sudo curl -fsSL -o /etc/apt/sources.list.d/snx-rs.sources \\
+            https://ancwrd1.github.io/snx-rs/snx-rs.sources
+          sudo apt update
+          sudo apt install snx-rs</pre>
+
+            <p><a href="KEY.gpg">Signing key</a> &middot;
+               <a href="deb/">deb tree</a> &middot;
+               <a href="rpm/">rpm tree</a></p>
+          </body>
+          </html>
+          EOF
+          touch site/.nojekyll
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "Publish repository for ${{ steps.tag.outputs.tag }}"
