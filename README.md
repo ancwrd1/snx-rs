@@ -14,6 +14,15 @@ This project contains the source code for an unofficial Linux client for Check P
 * OS keychain integration (GNOME Keyring, KDE KWallet)
 * Multiple connection profiles
 
+## Package Repository
+
+Signed APT and DNF repositories with the latest release builds are published at
+[ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/). The page lists the
+one-shot install commands for Debian/Ubuntu and Fedora/RHEL/openSUSE. Only the
+default (non-webkit) builds are served from the repository; the `-webkit` variant
+remains available as a direct download from the
+[Releases page](https://github.com/ancwrd1/snx-rs/releases).
+
 ## Documentation
 
 See the full documentation in the [docs](docs/README.md) directory.
