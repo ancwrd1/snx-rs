@@ -135,7 +135,10 @@ jobs:
           done
 
           gpg --armor --export "$GPG_KEY_ID" > /tmp/pubkey.asc
+          sudo rpm --initdb
           sudo rpm --import /tmp/pubkey.asc
+          echo "rpm keyring contents:"
+          rpm -qa gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE} %{SUMMARY}\n'
           rpm --checksig artifacts/*.rpm
 
       - name: Create Release
