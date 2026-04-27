@@ -151,3 +151,11 @@ jobs:
                 release_id: release.data.id
               });
             }
+
+  publish-repo:
+    needs: release
+    if: ${{ !endsWith(github.ref_name, '-test') }}
+    uses: ./.github/workflows/pages.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets: inherit

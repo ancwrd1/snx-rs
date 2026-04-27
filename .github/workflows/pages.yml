@@ -9,6 +9,12 @@ on:
         description: "Release tag to publish (default: latest non-prerelease)"
         required: false
         default: ""
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to publish"
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -46,14 +52,14 @@ jobs:
         id: tag
         env:
           GH_TOKEN: ${{ github.token }}
-          INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_TAG: ${{ inputs.tag }}
           EVENT_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
-          if [ -n "${EVENT_TAG:-}" ]; then
-            TAG="$EVENT_TAG"
-          elif [ -n "${INPUT_TAG:-}" ]; then
+          if [ -n "${INPUT_TAG:-}" ]; then
             TAG="$INPUT_TAG"
+          elif [ -n "${EVENT_TAG:-}" ]; then
+            TAG="$EVENT_TAG"
           else
             TAG=$(gh release list --repo "${{ github.repository }}" --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName')
           fi
