@@ -11,3 +11,6 @@ For manual installation using .run installer:
 
 1. Download the installer, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
+
+Signed APT and DNF repositories with the latest release builds are published at
+[ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).
