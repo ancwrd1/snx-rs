@@ -1,3 +1,10 @@
+## v6.0.2 (2026-04-27)
+Note to downstream package maintainers: this release requires to copy the `package/icons/*.svg` files to `/usr/share/icons/hicolor/symbolic/apps` directory.
+
+- Added deb and rpm repositories, published at [ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).
+- Added symbolic icons to automatically choose dark/light theme of the taskbar icon.
+- Restart frontend automatically after upgrade (beginning with next version).
+
 ## v6.0.1 (2026-04-24)
 - Fixed a bug with the .deb package which did not restart the service correctly during upgrade.
 - Fixed labels alignment in the status dialog.
