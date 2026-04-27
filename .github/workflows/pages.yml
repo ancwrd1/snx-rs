@@ -220,9 +220,7 @@ jobs:
           sudo apt update
           sudo apt install snx-rs</pre>
 
-            <p><a href="KEY.gpg">Signing key</a> &middot;
-               <a href="deb/">deb tree</a> &middot;
-               <a href="rpm/">rpm tree</a></p>
+            <p><a href="KEY.gpg">Signing key</a></p>
           </body>
           </html>
           EOF
