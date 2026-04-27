@@ -91,8 +91,14 @@ jobs:
           set -euo pipefail
           ROOT=site/deb
           POOL=$ROOT/pool/main/s/snx-rs
-          mkdir -p "$POOL"
-          cp assets/*.deb "$POOL/"
+          mkdir -p "$POOL/amd64" "$POOL/arm64"
+
+          for f in assets/*.deb; do
+            case "$f" in
+              *linux-x86_64.deb) cp "$f" "$POOL/amd64/" ;;
+              *linux-arm64.deb)  cp "$f" "$POOL/arm64/" ;;
+            esac
+          done
 
           for arch in amd64 arm64; do
             mkdir -p "$ROOT/dists/${SUITE}/${COMPONENT}/binary-$arch"
@@ -100,7 +106,7 @@ jobs:
 
           cd "$ROOT"
           for arch in amd64 arm64; do
-            apt-ftparchive --arch "$arch" packages pool/${COMPONENT} \
+            apt-ftparchive packages "pool/${COMPONENT}/s/snx-rs/$arch" \
               > "dists/${SUITE}/${COMPONENT}/binary-$arch/Packages"
             gzip -9kf "dists/${SUITE}/${COMPONENT}/binary-$arch/Packages"
           done
