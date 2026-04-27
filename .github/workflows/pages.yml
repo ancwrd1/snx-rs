@@ -172,13 +172,16 @@ jobs:
           gpgkey=${BASE_URL}/KEY.gpg
           EOF
 
+          # deb822 inline key: prefix every line with a space, blank lines become " ."
+          INLINE_KEY=$(sed -e 's/^/ /' -e 's/^ $/ ./' site/KEY.gpg)
           cat > site/snx-rs.sources <<EOF
           Types: deb
           URIs: ${BASE_URL}/deb
           Suites: ${SUITE}
           Components: ${COMPONENT}
           Architectures: amd64 arm64
-          Signed-By: /usr/share/keyrings/snx-rs-archive-keyring.gpg
+          Signed-By:
+          ${INLINE_KEY}
           EOF
 
       - name: Generate index page
@@ -206,16 +209,18 @@ jobs:
                variant remains available as a direct download from the
                <a href="https://github.com/ancwrd1/snx-rs/releases">Releases page</a>.</p>
 
-            <h2>Fedora / RHEL / openSUSE (dnf / zypper)</h2>
+            <h2>Fedora / RHEL (dnf)</h2>
             <pre>sudo rpm --import https://ancwrd1.github.io/snx-rs/KEY.gpg
           sudo curl -fsSL -o /etc/yum.repos.d/snx-rs.repo https://ancwrd1.github.io/snx-rs/snx-rs.repo
           sudo dnf install snx-rs</pre>
 
+            <h2>openSUSE (zypper)</h2>
+            <pre>sudo rpm --import https://ancwrd1.github.io/snx-rs/KEY.gpg
+          sudo zypper addrepo --refresh https://ancwrd1.github.io/snx-rs/snx-rs.repo
+          sudo zypper install snx-rs</pre>
+
             <h2>Debian / Ubuntu (apt)</h2>
-            <pre>sudo install -d -m 0755 /usr/share/keyrings
-          curl -fsSL https://ancwrd1.github.io/snx-rs/KEY.gpg \\
-            | sudo gpg --dearmor -o /usr/share/keyrings/snx-rs-archive-keyring.gpg
-          sudo curl -fsSL -o /etc/apt/sources.list.d/snx-rs.sources \\
+            <pre>sudo curl -fsSL -o /etc/apt/sources.list.d/snx-rs.sources \\
             https://ancwrd1.github.io/snx-rs/snx-rs.sources
           sudo apt update
           sudo apt install snx-rs</pre>
