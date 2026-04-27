@@ -1,3 +1,6 @@
+## v6.0.3 (2026-04-27)
+- Sign published DEB and RPM packages.
+
 ## v6.0.2 (2026-04-27)
 Note to downstream package maintainers: this release requires to copy the `package/icons/*.svg` files to `/usr/share/icons/hicolor/symbolic/apps` directory.
 
