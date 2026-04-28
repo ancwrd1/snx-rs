@@ -4,7 +4,10 @@ use i18n::tr;
 use slint::ComponentHandle;
 use snxcore::browser::{BrowserController, SystemBrowser};
 
-use crate::ui::{AboutWindow, WindowController, WindowScope, close_window};
+use crate::{
+    assets,
+    ui::{AboutWindow, WindowController, WindowScope, close_window},
+};
 
 const WEBSITE_URL: &str = "https://github.com/ancwrd1/snx-rs";
 
@@ -25,6 +28,12 @@ impl AboutWindowController {
 impl WindowController for AboutWindowController {
     fn present(&self) -> anyhow::Result<()> {
         self.scope.set_globals();
+        self.scope
+            .window
+            .set_app_icon_dark(assets::connected_icon_for_dark_bg());
+        self.scope
+            .window
+            .set_app_icon_light(assets::connected_icon_for_light_bg());
         self.scope.window.set_app_name(tr!("app-title").into());
         self.scope.window.set_version(env!("CARGO_PKG_VERSION").into());
         self.scope.window.set_authors(env!("CARGO_PKG_AUTHORS").into());

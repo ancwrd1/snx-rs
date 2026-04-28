@@ -16,7 +16,7 @@ i18n = { path = "../../crates/i18n" }
 secrecy = "0.10"
 ksni = "0.3"
 gtk4 = { version = "0.11", features = ["v4_10"], optional = true }
-png = "0.18"
+resvg = "0.47"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"

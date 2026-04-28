@@ -7,9 +7,11 @@ export component AboutWindow inherits Window {
     in property <string> authors;
     in property <string> website;
     in property <string> license;
+    in property <image> app-icon-dark;
+    in property <image> app-icon-light;
     in property <image> app-icon: Palette.color-scheme == ColorScheme.dark
-            ? @image-url("../icons/dark/network-vpn-connected.png")
-            : @image-url("../icons/light/network-vpn-connected.png");
+            ? root.app-icon-dark
+            : root.app-icon-light;
 
     title: root.app-name;
     min-width: 380px;
