@@ -27,7 +27,17 @@ impl ConnectionProfilesStore {
     }
 
     pub fn all(&self) -> Vec<Arc<TunnelParams>> {
-        self.profiles.read().unwrap().clone()
+        let mut profiles = self.profiles.read().unwrap().clone();
+        profiles.sort_by(|p1, p2| {
+            if p1.profile_id == DEFAULT_PROFILE_UUID {
+                std::cmp::Ordering::Less
+            } else if p2.profile_id == DEFAULT_PROFILE_UUID {
+                std::cmp::Ordering::Greater
+            } else {
+                p1.profile_name.cmp(&p2.profile_name)
+            }
+        });
+        profiles
     }
 
     pub fn get(&self, uuid: Uuid) -> Option<Arc<TunnelParams>> {
