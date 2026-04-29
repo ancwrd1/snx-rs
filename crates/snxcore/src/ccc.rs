@@ -15,7 +15,7 @@ use tracing::{trace, warn};
 use crate::{
     model::{
         VpnSession,
-        params::{CertType, TunnelParams},
+        params::{CertType, TlsVersion, TunnelParams},
         proto::*,
     },
     sexpr::SExpression,
@@ -174,6 +174,12 @@ impl CccHttpClient {
         let expr = SExpression::from(CccClientRequest { data: request });
 
         let mut builder = reqwest::Client::builder().connect_timeout(CONNECT_TIMEOUT);
+
+        match self.params.tls_version_max {
+            TlsVersion::Tls12 => builder = builder.tls_version_max(reqwest::tls::Version::TLS_1_2),
+            TlsVersion::Tls13 => builder = builder.tls_version_max(reqwest::tls::Version::TLS_1_3),
+            TlsVersion::Default => {}
+        }
 
         for ca_cert in &self.params.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;

@@ -2,7 +2,7 @@ use std::{net::Ipv4Addr, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use ipnet::Ipv4Net;
-use snxcore::model::params::{CertType, OperationMode, TransportType, TunnelParams, TunnelType};
+use snxcore::model::params::{CertType, OperationMode, TlsVersion, TransportType, TunnelParams, TunnelType};
 use tracing::level_filters::LevelFilter;
 
 #[derive(Parser)]
@@ -199,6 +199,12 @@ pub struct CmdlineParams {
     #[clap(long = "completions", help = "Generate shell completions for the given shell")]
     pub completions: Option<clap_complete::Shell>,
 
+    #[clap(
+        long = "tls-version-max",
+        help = "Maximum TLS version to negotiate with the gateway: 1.2, 1.3, default. Default is 1.2 to work around gateways that hang on TLS 1.3 ClientHello."
+    )]
+    pub tls_version_max: Option<TlsVersion>,
+
     #[clap(long = "ip-lease-time", short = 'P', help = "Custom IP lease time in seconds")]
     pub ip_lease_time: Option<u64>,
 
@@ -385,6 +391,10 @@ impl CmdlineParams {
 
         if let Some(allow_forwarding) = self.allow_forwarding {
             other.allow_forwarding = allow_forwarding;
+        }
+
+        if let Some(tls_version_max) = self.tls_version_max {
+            other.tls_version_max = tls_version_max;
         }
 
         if let Some(mfa_code) = self.mfa_code {

@@ -18,14 +18,17 @@ use futures::{
 use i18n::tr;
 use ipnet::Ipv4Net;
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio_native_tls::native_tls::{Certificate, TlsConnector};
+use tokio_native_tls::{
+    native_tls,
+    native_tls::{Certificate, TlsConnector},
+};
 use tracing::{debug, trace, warn};
 
 use crate::{
     ccc::CccHttpClient,
     model::{
         ConnectionInfo, VpnSession,
-        params::{TransportType, TunnelParams, TunnelType},
+        params::{TlsVersion, TransportType, TunnelParams, TunnelType},
         proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
     },
     platform::{
@@ -97,6 +100,16 @@ impl SslTunnel {
         let tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
 
         let mut builder = TlsConnector::builder();
+
+        match params.tls_version_max {
+            TlsVersion::Tls12 => {
+                builder.max_protocol_version(Some(native_tls::Protocol::Tlsv12));
+            }
+            TlsVersion::Tls13 => {
+                builder.max_protocol_version(Some(native_tls::Protocol::Tlsv13));
+            }
+            TlsVersion::Default => {}
+        }
 
         for ca_cert in &params.ca_cert {
             let data = tokio::fs::read(ca_cert).await?;

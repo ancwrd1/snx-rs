@@ -37,7 +37,7 @@ label-client-cert = Klientcertifikat eller driversti
 label-cert-password = PFX-adgangskode eller PKCS11-PIN
 label-cert-id = PKCS11-certifikatets hexadecimale ID
 label-language = Sprog
-label-system-language = Systemstandard
+label-system-default = Systemstandard
 label-username-password = Brugernavn og adgangskode
 label-auto-connect = Forbind automatisk ved opstart
 label-ip-lease-time = Brugerdefineret IP-leasetid, sekunder
@@ -54,6 +54,7 @@ label-open = Åbn
 label-select-file = Vælg en fil
 label-ca-cert-files = X.509-certifikater
 label-allow-forwarding = Tillad pakkeviderestilling
+label-tls-version-max = Maksimal TLS-version
 
 # Tabs and expanders
 tab-general = Generelt
@@ -133,6 +134,7 @@ error-identity-timeout = Timeout ved venten på identitetssvar, er adgangstypen 
 error-probing-failed = Sondering mislykkedes, serveren er ikke tilgængelig via NATT-port!
 error-no-connector-for-challenge-code = Ingen connector til at sende challenge-koden til!
 error-invalid-transport-type = Ugyldig transporttype
+error-invalid-tls-version-max = Ugyldig maksimal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering mislykkedes. Serverens certifikat er ugyldigt, udløbet eller ikke betroet.
 
 # Placeholder texts
@@ -168,7 +170,7 @@ info-server-name = Servernavn
 info-user-name = Brugernavn
 info-login-type = Logintype
 info-tunnel-type = Tunneltype
-info-transport-type = Transporttype
+info-transport-type = IPsec-transporttype
 info-ip-address = IP-adresse
 info-dns-servers = DNS-servere
 info-search-domains = Søgedomæner

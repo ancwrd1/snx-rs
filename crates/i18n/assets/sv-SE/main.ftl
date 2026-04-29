@@ -37,7 +37,7 @@ label-client-cert = Klientcertifikat eller drivrutinspath (.pem, .pfx/.p12, .so)
 label-cert-password = PFX-lösenord eller PKCS11-PIN
 label-cert-id = PKCS11-certifikatets hexadecimella ID
 label-language = Språk
-label-system-language = Systemstandard
+label-system-default = Systemstandard
 label-username-password = Användarnamn och lösenord
 label-auto-connect = Anslut automatiskt vid start
 label-ip-lease-time = Anpassad IP-leasetid, sekunder
@@ -54,6 +54,7 @@ label-open = Öppna
 label-select-file = Välj en fil
 label-ca-cert-files = X.509-certifikat
 label-allow-forwarding = Tillåt paketvidarebefordran för tunnelgränssnittet
+label-tls-version-max = Högsta TLS-version
 
 # Tabs and expanders
 tab-general = Allmänt
@@ -133,6 +134,7 @@ error-no-sender = Ingen avsändare
 error-empty-ccc-session = Tom CCC-session
 error-identity-timeout = Timeout vid väntan på identitetssvar, är åtkomsttypen korrekt?
 error-invalid-transport-type = Ogiltig transporttyp
+error-invalid-tls-version-max = Ogiltig maximal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering misslyckades. Serverns certifikat är ogiltigt, utgånget eller inte betrott.
 
 # Placeholder texts
@@ -168,7 +170,7 @@ info-server-name = Servernamn
 info-user-name = Användarnamn
 info-login-type = Inloggningstyp
 info-tunnel-type = Tunneltyp
-info-transport-type = Transporttyp
+info-transport-type = IPsec-transporttyp
 info-ip-address = IP-adress
 info-dns-servers = DNS-servrar
 info-search-domains = Sökdomäner

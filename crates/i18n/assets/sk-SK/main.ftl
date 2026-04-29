@@ -37,7 +37,7 @@ label-client-cert = Klientský certifikát alebo cesta k ovládaču (.pem, .pfx/
 label-cert-password = Heslo PFX alebo PIN PKCS11
 label-cert-id = Hexadecimálne ID certifikátu PKCS11
 label-language = Jazyk
-label-system-language = Systémové predvolené
+label-system-default = Systémové predvolené
 label-username-password = Používateľské meno a heslo
 label-auto-connect = Automaticky sa pripojiť pri štarte
 label-ip-lease-time = Vlastný čas prenájmu IP, sekundy
@@ -54,6 +54,7 @@ label-open = Otvoriť
 label-select-file = Vybrať súbor
 label-ca-cert-files = Certifikáty X.509
 label-allow-forwarding = Povoliť preposielanie paketov pre rozhranie tunela
+label-tls-version-max = Maximálna verzia TLS
 
 # Tabs and expanders
 tab-general = Všeobecné
@@ -133,6 +134,7 @@ error-no-sender = Žiadny odosielateľ
 error-empty-ccc-session = Prázdna CCC relácia
 error-identity-timeout = Časový limit pri čakaní na odpoveď identity, je typ prístupu správny?
 error-invalid-transport-type = Neplatný typ prenosu
+error-invalid-tls-version-max = Neplatná maximálna verzia TLS
 error-certificate-verify-failed = Overenie TLS certifikátu zlyhalo. Certifikát servera je neplatný, vypršal alebo nie je dôveryhodný.
 
 # Placeholder texts
@@ -168,7 +170,7 @@ info-server-name = Názov servera
 info-user-name = Používateľské meno
 info-login-type = Typ prihlásenia
 info-tunnel-type = Typ tunela
-info-transport-type = Typ transportu
+info-transport-type = Typ transportu IPsec
 info-ip-address = IP adresa
 info-dns-servers = DNS servery
 info-search-domains = Vyhľadávacie domény

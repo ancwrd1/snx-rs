@@ -37,7 +37,7 @@ label-client-cert = Asiakasvarmenne tai ajuripolku
 label-cert-password = PFX-salasana tai PKCS11-PIN
 label-cert-id = PKCS11-varmennuksen heksadesimaalinen tunniste
 label-language = Kieli
-label-system-language = Järjestelmän oletus
+label-system-default = Järjestelmän oletus
 label-username-password = Käyttäjätunnus ja salasana
 label-auto-connect = Yhdistä automaattisesti käynnistyksessä
 label-ip-lease-time = Mukautettu IP-vuokra-aika, sekuntia
@@ -54,6 +54,7 @@ label-open = Avaa
 label-select-file = Valitse tiedosto
 label-ca-cert-files = X.509-varmenteet
 label-allow-forwarding = Salli pakettien edelleenlähetys
+label-tls-version-max = TLS:n enimmäisversio
 
 # Tabs and expanders
 tab-general = Yleiset
@@ -133,6 +134,7 @@ error-no-sender = Ei lähettäjää
 error-empty-ccc-session = Tyhjä CCC-istunto
 error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kirjautumistyyppi oikea?
 error-invalid-transport-type = Virheellinen kuljetustyyppi
+error-invalid-tls-version-max = Virheellinen TLS-enimmäisversio
 error-certificate-verify-failed = TLS-varmenteen vahvistus epäonnistui. Palvelimen varmenne on virheellinen, vanhentunut tai ei luotettu.
 
 # Placeholder texts
@@ -168,7 +170,7 @@ info-server-name = Palvelimen nimi
 info-user-name = Käyttäjänimi
 info-login-type = Kirjautumistyyppi
 info-tunnel-type = Tunnelityyppi
-info-transport-type = Kuljetustyyppi
+info-transport-type = IPsec-kuljetustyyppi
 info-ip-address = IP-osoite
 info-dns-servers = DNS-palvelimet
 info-search-domains = Hakualueet

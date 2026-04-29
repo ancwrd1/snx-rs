@@ -325,6 +325,57 @@ impl From<u32> for TransportType {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum TlsVersion {
+    #[default]
+    Tls12,
+    Tls13,
+    Default,
+}
+
+impl TlsVersion {
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::Tls12 => 0,
+            Self::Tls13 => 1,
+            Self::Default => 2,
+        }
+    }
+}
+
+impl From<u32> for TlsVersion {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Tls13,
+            2 => Self::Default,
+            _ => Self::Tls12,
+        }
+    }
+}
+
+impl fmt::Display for TlsVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Tls12 => write!(f, "1.2"),
+            Self::Tls13 => write!(f, "1.3"),
+            Self::Default => write!(f, "default"),
+        }
+    }
+}
+
+impl FromStr for TlsVersion {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "1.2" | "tls1.2" | "tls12" => Ok(Self::Tls12),
+            "1.3" | "tls1.3" | "tls13" => Ok(Self::Tls13),
+            "default" | "any" => Ok(Self::Default),
+            _ => Err(anyhow!(tr!("error-invalid-tls-version-max"))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelParams {
     pub profile_name: String,
@@ -376,6 +427,7 @@ pub struct TunnelParams {
     pub mtu: u16,
     pub transport_type: TransportType,
     pub allow_forwarding: bool,
+    pub tls_version_max: TlsVersion,
     #[serde(skip)]
     pub mfa_code: Option<String>,
     #[serde(skip)]
@@ -429,6 +481,7 @@ impl Default for TunnelParams {
             mtu: DEFAULT_MTU,
             transport_type: TransportType::default(),
             allow_forwarding: false,
+            tls_version_max: TlsVersion::default(),
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
@@ -480,6 +533,7 @@ impl PartialEq for TunnelParams {
             && self.mtu == other.mtu
             && self.transport_type == other.transport_type
             && self.allow_forwarding == other.allow_forwarding
+            && self.tls_version_max == other.tls_version_max
             && self.mfa_code == other.mfa_code
             && self.reg_key == other.reg_key
             && self.client_logging_data == other.client_logging_data
@@ -554,6 +608,7 @@ impl TunnelParams {
                 "mtu" => params.mtu = v.parse().unwrap_or(DEFAULT_MTU),
                 "transport-type" => params.transport_type = v.parse().unwrap_or_default(),
                 "allow-forwarding" => params.allow_forwarding = v.parse().unwrap_or_default(),
+                "tls-version-max" => params.tls_version_max = v.parse().unwrap_or_default(),
                 "client-logging-data" => params.client_logging_data = Some(v.into()),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
@@ -668,6 +723,7 @@ impl TunnelParams {
         writeln!(buf, "mtu={}", self.mtu)?;
         writeln!(buf, "transport-type={}", self.transport_type)?;
         writeln!(buf, "allow-forwarding={}", self.allow_forwarding)?;
+        writeln!(buf, "tls-version-max={}", self.tls_version_max)?;
 
         if let Some(ref client_logging_data) = self.client_logging_data {
             writeln!(buf, "client-logging-data={}", client_logging_data.display())?;
@@ -778,6 +834,7 @@ mod tests {
             mtu: 2000,
             transport_type: TransportType::Tcpt,
             allow_forwarding: true,
+            tls_version_max: TlsVersion::Tls13,
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,

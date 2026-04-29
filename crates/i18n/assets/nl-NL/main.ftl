@@ -37,7 +37,7 @@ label-client-cert = Clientcertificaat of stuurprogrammapad
 label-cert-password = PFX-wachtwoord of PKCS11-pin
 label-cert-id = Hexadecimale ID van PKCS11-certificaat
 label-language = Taal
-label-system-language = Systeemstandaard
+label-system-default = Systeemstandaard
 label-username-password = Gebruikersnaam en wachtwoord
 label-auto-connect = Automatisch verbinden bij opstarten
 label-ip-lease-time = Aangepaste IP-leasetijd, seconden
@@ -54,6 +54,7 @@ label-open = Openen
 label-select-file = Selecteer een bestand
 label-ca-cert-files = X.509-certificaten
 label-allow-forwarding = Pakketdoorsturen toestaan
+label-tls-version-max = Maximale TLS-versie
 
 # Tabs and expanders
 tab-general = Algemeen
@@ -133,6 +134,7 @@ error-no-pkcs8 = Geen PKCS8 PEM-pad opgegeven
 error-no-pkcs11 = Geen PKCS11 PIN opgegeven
 error-no-ipsec-session = Geen IPsec-sessie
 error-invalid-transport-type = Ongeldig transporttype
+error-invalid-tls-version-max = Ongeldige maximale TLS-versie
 error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
 
 # Placeholder texts
@@ -168,7 +170,7 @@ info-server-name = Servernaam
 info-user-name = Gebruikersnaam
 info-login-type = Inlogtype
 info-tunnel-type = Tunneltype
-info-transport-type = Transporttype
+info-transport-type = IPsec-transporttype
 info-ip-address = IP-adres
 info-dns-servers = DNS-servers
 info-search-domains = Zoekdomeinen

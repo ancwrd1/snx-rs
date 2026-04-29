@@ -88,6 +88,13 @@ impl SettingsWindowController {
             .window
             .set_transport_types(ModelRc::new(VecModel::from(transport_types)));
 
+        let tls_version_max_options: Vec<SharedString> =
+            vec!["TLS 1.2".into(), "TLS 1.3".into(), tr!("label-system-default").into()];
+
+        self.scope
+            .window
+            .set_tls_version_max_options(ModelRc::new(VecModel::from(tls_version_max_options)));
+
         let theme_names: Vec<SharedString> = vec![
             tr!("theme-autodetect").into(),
             tr!("theme-dark").into(),
@@ -101,7 +108,7 @@ impl SettingsWindowController {
             .window
             .set_color_themes(ModelRc::new(VecModel::from(theme_names)));
 
-        let mut locale_labels: Vec<SharedString> = vec![tr!("label-system-language").into()];
+        let mut locale_labels: Vec<SharedString> = vec![tr!("label-system-default").into()];
         let locales = i18n::get_locales();
         for locale in &locales {
             let message = format!("language-{locale}");
@@ -476,6 +483,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
     window.set_disable_ipv6(params.disable_ipv6);
     window.set_mtu(params.mtu.to_string().into());
     window.set_transport_type_index(params.transport_type.as_u32() as i32);
+    window.set_tls_version_max_index(params.tls_version_max.as_u32() as i32);
     window.set_allow_forwarding(params.allow_forwarding);
 
     // Global (default-profile) settings
@@ -848,6 +856,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     params.no_keepalive = window.get_no_keepalive();
     params.port_knock = window.get_port_knock();
     params.transport_type = (window.get_transport_type_index() as u32).into();
+    params.tls_version_max = (window.get_tls_version_max_index() as u32).into();
     params.disable_ipv6 = window.get_disable_ipv6();
     params.allow_forwarding = window.get_allow_forwarding();
 

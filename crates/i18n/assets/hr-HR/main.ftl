@@ -37,7 +37,7 @@ label-client-cert = Certifikat klijenta ili putanja upravljačkog programa
 label-cert-password = PFX lozinka ili PKCS11 pin
 label-cert-id = Hex ID PKCS11 certifikata
 label-language = Jezik
-label-system-language = Zadano sustava
+label-system-default = Zadano sustava
 label-username-password = Korisničko ime i lozinka
 label-auto-connect = Automatski se poveži pri pokretanju
 label-ip-lease-time = Prilagođeno vrijeme zakupa IP adrese, sekunde
@@ -54,6 +54,7 @@ label-open = Otvori
 label-select-file = Odaberi datoteku
 label-ca-cert-files = X.509 certifikati
 label-allow-forwarding = Dopusti prosljeđivanje paketa
+label-tls-version-max = Najveća verzija TLS-a
 
 # Tabs and expanders
 tab-general = Općenito
@@ -133,6 +134,7 @@ error-no-sender = Nema pošiljatelja
 error-empty-ccc-session = Prazna CCC sesija
 error-identity-timeout = Istek vremena čekanja na odgovor identiteta, je li tip prijave ispravan?
 error-invalid-transport-type = Nevažeća vrsta prijenosa
+error-invalid-tls-version-max = Nevažeća maksimalna TLS verzija
 error-certificate-verify-failed = TLS validacija certifikata nije uspjela. Certifikat poslužitelja je nevažeći, istekao ili nije pouzdan.
 
 # Placeholder texts
@@ -197,7 +199,7 @@ info-server-name = Naziv poslužitelja
 info-user-name = Korisničko ime
 info-login-type = Tip prijave
 info-tunnel-type = Vrsta tunela
-info-transport-type = Vrsta prijenosa
+info-transport-type = Vrsta IPsec prijenosa
 info-ip-address = IP adresa
 info-dns-servers = DNS poslužitelji
 info-search-domains = Domene za pretraživanje

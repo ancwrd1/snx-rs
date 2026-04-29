@@ -37,7 +37,7 @@ label-client-cert = Klientsertifikat eller driversti
 label-cert-password = PFX-passord eller PKCS11-PIN
 label-cert-id = PKCS11-sertifikatets heksadesimale ID
 label-language = Språk
-label-system-language = Systemstandard
+label-system-default = Systemstandard
 label-username-password = Brukernavn og passord
 label-auto-connect = Koble til automatisk ved oppstart
 label-ip-lease-time = Tilpasset IP-leieavtale tid, sekunder
@@ -54,6 +54,7 @@ label-open = Åpne
 label-select-file = Velg en fil
 label-ca-cert-files = X.509-sertifikater
 label-allow-forwarding = Tillat pakkevideresending
+label-tls-version-max = Maksimal TLS-versjon
 
 # Tabs and expanders
 tab-general = Generelt
@@ -133,6 +134,7 @@ error-no-sender = Ingen avsender
 error-empty-ccc-session = Tom CCC-økt
 error-identity-timeout = Timeout mens du venter på identitetssvar, er tilgangstypen korrekt?
 error-invalid-transport-type = Ugyldig transporttype
+error-invalid-tls-version-max = Ugyldig maksimal TLS-versjon
 error-certificate-verify-failed = TLS-sertifikatvalidering mislyktes. Serverens sertifikat er ugyldig, utløpt eller ikke betrodd.
 
 # Placeholder texts
@@ -168,7 +170,7 @@ info-server-name = Servernavn
 info-user-name = Brukernavn
 info-login-type = Innloggingstype
 info-tunnel-type = Tunneltype
-info-transport-type = Transporttype
+info-transport-type = IPsec-transporttype
 info-ip-address = IP-adresse
 info-dns-servers = DNS-servere
 info-search-domains = Søkedomener

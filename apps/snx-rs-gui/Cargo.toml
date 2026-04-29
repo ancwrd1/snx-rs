@@ -32,7 +32,7 @@ interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
 async-channel = "2"
 itertools = "0.14"
-uuid = { version = "1.18.1", features = ["v4"] }
+uuid = { version = "1", features = ["v4"] }
 webkit6 = { version = "0.6", optional = true }
 nix = "0.31"
 rfd = "0.17"

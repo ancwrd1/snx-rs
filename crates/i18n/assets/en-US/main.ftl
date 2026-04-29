@@ -37,7 +37,7 @@ label-client-cert = Client certificate or driver path (.pem, .pfx/.p12, .so)
 label-cert-password = PFX password or PKCS11 pin
 label-cert-id = Hex ID of PKCS11 certificate
 label-language = Language
-label-system-language = System default
+label-system-default = System default
 label-username-password = Username and password
 label-auto-connect = Automatically connect on startup
 label-ip-lease-time = Custom IP lease time, seconds
@@ -54,6 +54,7 @@ label-open = Open
 label-select-file = Select a file
 label-ca-cert-files = X.509 certificates
 label-allow-forwarding = Allow packet forwarding for tunnel interface
+label-tls-version-max = Maximum TLS version
 
 # Tabs and expanders
 tab-general = General
@@ -133,6 +134,7 @@ error-no-sender = No sender
 error-empty-ccc-session = Empty CCC session
 error-identity-timeout = Timeout while waiting for identity response, is the login type correct?
 error-invalid-transport-type = Invalid transport type
+error-invalid-tls-version-max = Invalid maximum TLS version
 error-certificate-verify-failed = TLS certificate validation failed. The server’s certificate is invalid, expired, or not trusted.
 
 # Placeholder texts
@@ -197,7 +199,7 @@ info-server-name = Server name
 info-user-name = User name
 info-login-type = Login type
 info-tunnel-type = Tunnel type
-info-transport-type = Transport type
+info-transport-type = IPsec transport type
 info-ip-address = IP address
 info-dns-servers = DNS servers
 info-search-domains = Search domains

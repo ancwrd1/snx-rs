@@ -37,7 +37,7 @@ label-client-cert = Certificato client o percorso driver
 label-cert-password = Password PFX o PIN PKCS11
 label-cert-id = ID esadecimale del certificato PKCS11
 label-language = Lingua
-label-system-language = Predefinito di sistema
+label-system-default = Predefinito di sistema
 label-username-password = Nome utente e password
 label-auto-connect = Connetti automaticamente all'avvio
 label-ip-lease-time = Tempo di lease IP personalizzato, secondi
@@ -54,6 +54,7 @@ label-open = Apri
 label-select-file = Seleziona un file
 label-ca-cert-files = Certificati X.509
 label-allow-forwarding = Consenti inoltro pacchetti
+label-tls-version-max = Versione massima di TLS
 
 # Tabs and expanders
 tab-general = Generale
@@ -133,6 +134,7 @@ error-endless-challenges = Loop infinito di sfide del nome utente
 error-cannot-send-request = Impossibile inviare la richiesta al servizio
 error-cannot-read-reply = Impossibile leggere la risposta dal servizio
 error-invalid-transport-type = Tipo di trasporto non valido
+error-invalid-tls-version-max = Versione TLS massima non valida
 error-certificate-verify-failed = Validazione del certificato TLS fallita. Il certificato del server è non valido, scaduto o non attendibile.
 
 # Placeholder texts
@@ -168,7 +170,7 @@ info-server-name = Nome server
 info-user-name = Nome utente
 info-login-type = Tipo di accesso
 info-tunnel-type = Tipo di tunnel
-info-transport-type = Tipo di trasporto
+info-transport-type = Tipo di trasporto IPsec
 info-ip-address = Indirizzo IP
 info-dns-servers = Server DNS
 info-search-domains = Domini di ricerca

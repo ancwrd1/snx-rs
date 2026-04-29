@@ -75,6 +75,8 @@ export component SettingsWindow inherits Window {
     in-out property <string> mtu;
     in property <[string]> transport-types: [];
     in-out property <int> transport-type-index: 0;
+    in property <[string]> tls-version-max-options: [];
+    in-out property <int> tls-version-max-index: 0;
 
     // ui
     in property <[string]> icon-themes: [];
@@ -618,6 +620,17 @@ export component SettingsWindow inherits Window {
                                         ComboBox {
                                             model: root.transport-types;
                                             current-index <=> root.transport-type-index;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-tls-version-max;
+                                        ComboBox {
+                                            model: root.tls-version-max-options;
+                                            current-index <=> root.tls-version-max-index;
                                             min-width: root.min-form-width;
                                         }
                                     }

@@ -37,7 +37,7 @@ label-client-cert = Клиентский сертификат или путь к
 label-cert-password = Пароль PFX или PIN-код PKCS11
 label-cert-id = Шестнадцатеричный ID сертификата PKCS11
 label-language = Язык
-label-system-language = Системный по умолчанию
+label-system-default = Системный по умолчанию
 label-username-password = Имя пользователя и пароль
 label-auto-connect = Автоматически подключаться при запуске
 label-ip-lease-time = Пользовательское время аренды IP, секунды
@@ -54,6 +54,7 @@ label-open = Открыть
 label-select-file = Выбрать файл
 label-ca-cert-files = Сертификаты X.509
 label-allow-forwarding = Разрешить пересылку пакетов для интерфейса туннеля
+label-tls-version-max = Максимальная версия TLS
 
 # Tabs and expanders
 tab-general = Основные
@@ -133,6 +134,7 @@ error-no-sender = Нет отправителя
 error-empty-ccc-session = Пустая сессия CCC
 error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
 error-invalid-transport-type = Неверный тип транспорта
+error-invalid-tls-version-max = Неверная максимальная версия TLS
 error-certificate-verify-failed = Проверка TLS-сертификата не удалась. Сертификат сервера недействителен, истёк или не является доверенным.
 
 # Placeholder texts
@@ -197,7 +199,7 @@ info-server-name = Имя сервера
 info-user-name = Имя пользователя
 info-login-type = Тип входа
 info-tunnel-type = Тип туннеля
-info-transport-type = Тип транспорта
+info-transport-type = Тип транспорта IPsec
 info-ip-address = IP-адрес
 info-dns-servers = DNS-серверы
 info-search-domains = Домены поиска
