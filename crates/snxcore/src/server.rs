@@ -7,10 +7,10 @@ use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Lis
 use tokio::sync::{Mutex, RwLock, mpsc};
 use tracing::{debug, warn};
 
-use crate::model::LiveStats;
 use crate::{
     model::{
-        ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession, params::TunnelParams,
+        ConnectionStatus, LiveStats, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession,
+        params::TunnelParams,
     },
     platform::{NetworkInterface, Platform, PlatformAccess, StatsPoller},
     tunnel::{TunnelConnector, TunnelConnectorFactory, TunnelEvent},

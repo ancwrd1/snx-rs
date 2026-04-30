@@ -74,11 +74,11 @@ impl KeepaliveRunner {
                     trace!("Sending keepalive to {}", self.dst);
 
                     let data = make_keepalive_packet();
-                    let started = Instant::now();
+                    let now = Instant::now();
                     let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT, target).await;
 
                     if let Ok(reply) = result {
-                        let rtt = started.elapsed();
+                        let rtt = now.elapsed();
                         trace!(
                             "Received keepalive response from {}, size: {}, rtt: {} ms",
                             self.dst,
@@ -86,7 +86,7 @@ impl KeepaliveRunner {
                             rtt.as_millis()
                         );
                         if let Some(tx) = &self.event_sender {
-                            let _ = tx.try_send(TunnelEvent::Rtt(rtt));
+                            let _ = tx.send(TunnelEvent::Rtt(rtt)).await;
                         }
                         num_failures = 0;
                     } else {
