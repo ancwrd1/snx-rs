@@ -239,20 +239,23 @@ impl VpnTunnel for TunIPsecTunnel {
             .configure_device(&device_config)
             .await?;
 
-        self.setup_routing(&tun_name, session).await?;
+        let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
+        self.tun_device = Some(tun);
 
         let resolver_config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
             .search_domains(&session.domains)
             .dns_servers(session.dns.iter().cloned())
             .build();
 
-        if !self.params.no_dns {
-            self.setup_dns(&resolver_config, &tun_name, false).await?;
-        }
-
-        let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
-
-        self.tun_device = Some(tun);
+        let routing_fut = self.setup_routing(&tun_name, session);
+        let dns_fut = async {
+            if self.params.no_dns {
+                Ok(())
+            } else {
+                self.setup_dns(&resolver_config, &tun_name, false).await
+            }
+        };
+        tokio::try_join!(routing_fut, dns_fut)?;
 
         let mut snx_receiver = self.receiver.take().context("No receiver")?;
 

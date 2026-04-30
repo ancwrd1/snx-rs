@@ -90,6 +90,7 @@ error-connection-timeout = Yhteyden aikakatkaisu
 error-cannot-send-request = Pyyntöä ei voi lähettää palveluun
 error-cannot-read-reply = Vastausta ei voi lukea palvelusta
 error-no-ipv4 = Ei IPv4-osoitetta kohteelle {$server}
+error-sysctl-not-converged = Sysctl ei konvergoitunut: {$entry}
 error-not-challenge-state = Ei haasteiden tilaa
 error-no-challenge = Ei haastetta tiedoissa
 error-endless-challenges = Loputon silmukka käyttäjätunnushaasteita

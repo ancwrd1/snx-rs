@@ -90,6 +90,7 @@ error-cannot-acquire-access-cookie = Kan ikke hente adgangscookie!
 error-cannot-send-request = Kan ikke sende anmodning til tjenesten
 error-cannot-read-reply = Kan ikke læse svar fra tjenesten
 error-no-ipv4 = Ingen IPv4-adresse for {$server}
+error-sysctl-not-converged = Sysctl konvergerede ikke: {$entry}
 error-not-challenge-state = Ikke en udfordringsstatus
 error-no-challenge = Ingen udfordring i data
 error-endless-challenges = Uendelig løkke af brugernavnudfordringer

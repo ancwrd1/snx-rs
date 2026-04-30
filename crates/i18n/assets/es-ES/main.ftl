@@ -129,6 +129,7 @@ error-no-pkcs8 = No se ha proporcionado la ruta PEM PKCS8
 error-no-pkcs12 = No se ha proporcionado la ruta y contraseña PKCS12
 error-no-pkcs11 = No se ha proporcionado el PIN PKCS11
 error-no-ipv4 = No hay dirección IPv4 para {$server}
+error-sysctl-not-converged = Sysctl no convergió: {$entry}
 error-no-ipsec-session = No hay sesión IPsec
 error-no-challenge = No hay desafío en la carga útil
 error-endless-challenges = Bucle infinito de desafíos de nombre de usuario

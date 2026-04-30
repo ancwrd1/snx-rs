@@ -90,6 +90,7 @@ error-cannot-acquire-access-cookie = Zugriffscookie kann nicht abgerufen werden!
 error-cannot-send-request = Anfrage kann nicht an den Dienst gesendet werden
 error-cannot-read-reply = Antwort vom Dienst kann nicht gelesen werden
 error-no-ipv4 = Keine IPv4-Adresse für {$server}
+error-sysctl-not-converged = Sysctl ist nicht konvergiert: {$entry}
 error-not-challenge-state = Kein Challenge-Status
 error-no-challenge = Keine Challenge in den Daten
 error-endless-challenges = Endlosschleife von Benutzernamen-Challenges

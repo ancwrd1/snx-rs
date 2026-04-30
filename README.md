@@ -13,6 +13,7 @@ This project contains the source code for an unofficial Linux client for Check P
 * Split DNS via systemd-resolved for better privacy
 * OS keychain integration (GNOME Keyring, KDE KWallet)
 * Multiple connection profiles
+* Persistent IPsec session for fast reconnect after network drops or suspend/resume — see [`ike-persist`](docs/persistent-ipsec-session.md)
 
 ## Package Repository
 

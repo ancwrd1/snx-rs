@@ -90,6 +90,7 @@ error-connection-timeout = Connection timeout
 error-cannot-send-request = Cannot send request to the service
 error-cannot-read-reply = Cannot read reply from the service
 error-no-ipv4 = No IPv4 address for {$server}
+error-sysctl-not-converged = Sysctl did not converge: {$entry}
 error-not-challenge-state = Not a challenge state
 error-no-challenge = No challenge in payload
 error-endless-challenges = Endless loop of username challenges

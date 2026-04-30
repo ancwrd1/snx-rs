@@ -90,6 +90,7 @@ error-connection-timeout = Таймаут соединения
 error-cannot-send-request = Невозможно отправить запрос в службу
 error-cannot-read-reply = Невозможно прочитать ответ от службы
 error-no-ipv4 = Нет IPv4 адреса для {$server}
+error-sysctl-not-converged = Sysctl не сошёлся: {$entry}
 error-not-challenge-state = Не состояние запроса
 error-no-challenge = Нет запроса в данных
 error-endless-challenges = Бесконечный цикл запросов имени пользователя

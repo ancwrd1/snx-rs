@@ -127,6 +127,7 @@ error-identity-timeout = Timeout tijdens wachten op identiteitsreactie, is het t
 error-cannot-send-request = Kan verzoek niet naar service sturen
 error-cannot-read-reply = Kan antwoord van service niet lezen
 error-no-ipv4 = Geen IPv4-adres voor {$server}
+error-sysctl-not-converged = Sysctl is niet geconvergeerd: {$entry}
 error-not-challenge-state = Geen uitdagingsstatus
 error-no-challenge = Geen uitdaging in gegevens
 error-endless-challenges = Oneindige lus van gebruikersnaamuitdagingen
