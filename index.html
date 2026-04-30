@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>snx-rs package repository</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    code, pre { background: #f4f4f4; padding: 0.15rem 0.35rem; border-radius: 4px; }
+    pre { padding: 0.75rem; overflow-x: auto; }
+    h2 { margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>snx-rs package repository</h1>
+  <p>Latest published release: <strong>v6.0.4</strong>.
+     Only the default (non-webkit) builds are published here. The <code>-webkit</code>
+     variant remains available as a direct download from the
+     <a href="https://github.com/ancwrd1/snx-rs/releases">Releases page</a>.</p>
+
+  <h2>Fedora / RHEL (dnf)</h2>
+  <pre>sudo rpm --import https://ancwrd1.github.io/snx-rs/KEY.gpg
+sudo curl -fsSL -o /etc/yum.repos.d/snx-rs.repo https://ancwrd1.github.io/snx-rs/snx-rs.repo
+sudo dnf install snx-rs</pre>
+
+  <h2>openSUSE (zypper)</h2>
+  <pre>sudo rpm --import https://ancwrd1.github.io/snx-rs/KEY.gpg
+sudo zypper addrepo --refresh https://ancwrd1.github.io/snx-rs/snx-rs.repo
+sudo zypper install snx-rs</pre>
+
+  <h2>Debian / Ubuntu (apt)</h2>
+  <pre>sudo curl -fsSL -o /etc/apt/sources.list.d/snx-rs.sources \
+  https://ancwrd1.github.io/snx-rs/snx-rs.sources
+sudo apt update
+sudo apt install snx-rs</pre>
+
+  <p><a href="KEY.gpg">Signing key</a></p>
+</body>
+</html>
