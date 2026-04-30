@@ -248,7 +248,10 @@ impl SslTunnel {
         )?;
 
         let config = if self.params.no_routing {
-            RoutingConfig::Split { destination: dest_ip, routes: self.params.add_routes.clone() }
+            RoutingConfig::Split {
+                destination: dest_ip,
+                routes: self.params.add_routes.clone(),
+            }
         } else if self.params.default_route {
             RoutingConfig::Full {
                 destination: dest_ip,
