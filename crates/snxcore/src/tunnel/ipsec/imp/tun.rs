@@ -151,7 +151,7 @@ impl TunIPsecTunnel {
         let config = if self.params.no_routing {
             RoutingConfig::Split {
                 destination: self.gateway_address,
-                routes: Vec::new(),
+                routes: self.params.add_routes.clone(),
             }
         } else if self.params.default_route {
             RoutingConfig::Full {
