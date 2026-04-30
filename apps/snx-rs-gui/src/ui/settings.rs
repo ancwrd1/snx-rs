@@ -10,6 +10,7 @@ use snxcore::{
         proto::LoginOption,
     },
     platform::{Keychain, Platform, PlatformAccess},
+    profiles::ConnectionProfilesStore,
     server_info,
     util::parse_ipv4_or_subnet,
 };
@@ -17,7 +18,6 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    profiles::ConnectionProfilesStore,
     tr,
     tray::TrayCommand,
     ui::{SettingsWindow, WindowController, WindowScope, close_window},

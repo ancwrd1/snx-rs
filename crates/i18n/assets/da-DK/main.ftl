@@ -72,6 +72,7 @@ error-file-not-exist = Filen findes ikke: {$path}
 error-invalid-cert-id = Certifikat-ID er ikke i hexadecimalt format: {$id}
 error-ca-root-not-exist = CA-rodsti findes ikke: {$path}
 error-validation = Valideringsfejl
+error-profile-not-found = Profil ikke fundet: {$profile}
 error-user-input-canceled = Brugerinput annulleret
 error-connection-cancelled = Forbindelse annulleret
 error-unknown-event = Ukendt begivenhed: {$event}

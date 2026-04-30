@@ -7,6 +7,7 @@ pub mod controller;
 pub mod model;
 pub mod otp;
 pub mod platform;
+pub mod profiles;
 pub mod prompt;
 pub mod server;
 pub mod server_info;

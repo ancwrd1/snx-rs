@@ -5,13 +5,12 @@ use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionInfo, ConnectionStatus, params::DEFAULT_PROFILE_UUID},
+    profiles::ConnectionProfilesStore,
 };
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    POLL_INTERVAL,
-    profiles::ConnectionProfilesStore,
-    tr,
+    POLL_INTERVAL, tr,
     tray::TrayEvent,
     ui::{StatusEntry, StatusWindow, WindowController, WindowScope, close_window, prompt::SlintPrompt},
 };

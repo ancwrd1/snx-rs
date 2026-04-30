@@ -1,9 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use slint::{ComponentHandle, Global};
-use snxcore::model::params::ColorTheme;
-
-use crate::profiles::ConnectionProfilesStore;
+use snxcore::{model::params::ColorTheme, profiles::ConnectionProfilesStore};
 
 pub mod about;
 pub mod prompt;

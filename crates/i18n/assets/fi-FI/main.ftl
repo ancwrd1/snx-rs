@@ -72,6 +72,7 @@ error-file-not-exist = Tiedostoa ei löydy: {$path}
 error-invalid-cert-id = Varmennetunniste ei ole heksadesimaalimuodossa: {$id}
 error-ca-root-not-exist = CA-juuripolkua ei löydy: {$path}
 error-validation = Validoinnin virhe
+error-profile-not-found = Profiilia ei löytynyt: {$profile}
 error-user-input-canceled = Käyttäjän syöte peruttu
 error-connection-cancelled = Yhteys peruttu
 error-unknown-event = Tuntematon tapahtuma: {$event}

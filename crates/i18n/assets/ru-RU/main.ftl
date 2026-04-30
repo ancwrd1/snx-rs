@@ -72,6 +72,7 @@ error-file-not-exist = Файл не существует: {$path}
 error-invalid-cert-id = ID сертификата не в шестнадцатеричном формате: {$id}
 error-ca-root-not-exist = Путь к корневому сертификату CA не существует: {$path}
 error-validation = Ошибка проверки
+error-profile-not-found = Профиль не найден: {$profile}
 error-user-input-canceled = Ввод пользователя отменён
 error-connection-cancelled = Соединение отменено
 error-unknown-event = Неизвестное событие: {$event}

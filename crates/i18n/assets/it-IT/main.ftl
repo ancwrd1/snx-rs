@@ -72,6 +72,7 @@ error-file-not-exist = Il file non esiste: {$path}
 error-invalid-cert-id = ID certificato non in formato esadecimale: {$id}
 error-ca-root-not-exist = Il percorso root CA non esiste: {$path}
 error-validation = Errore di validazione
+error-profile-not-found = Profilo non trovato: {$profile}
 error-user-input-canceled = Input utente annullato
 error-connection-cancelled = Connessione annullata
 error-unknown-event = Evento sconosciuto: {$event}

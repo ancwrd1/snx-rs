@@ -10,6 +10,7 @@ use snxcore::{
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionStatus, params::TunnelParams},
     platform::{Platform, PlatformAccess, SingleInstance},
+    profiles::ConnectionProfilesStore,
     prompt::SecurePrompt,
 };
 use tokio::{
@@ -20,7 +21,6 @@ use tracing::{level_filters::LevelFilter, warn};
 
 use crate::{
     params::CmdlineParams,
-    profiles::ConnectionProfilesStore,
     tray::{TrayCommand, TrayEvent},
     ui::{
         about::AboutWindowController, open_window, prompt::SlintPrompt, settings::SettingsWindowController,
@@ -32,7 +32,6 @@ mod assets;
 mod dbus;
 mod ipc;
 mod params;
-mod profiles;
 mod theme;
 mod tray;
 mod ui;

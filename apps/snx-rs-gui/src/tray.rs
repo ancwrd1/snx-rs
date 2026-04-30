@@ -5,16 +5,18 @@ use ksni::{
     Handle, Icon, MenuItem, TrayMethods,
     menu::{StandardItem, SubMenu},
 };
-use snxcore::model::{
-    ConnectionStatus,
-    params::{ColorTheme, DEFAULT_PROFILE_UUID, TunnelParams},
+use snxcore::{
+    model::{
+        ConnectionStatus,
+        params::{ColorTheme, DEFAULT_PROFILE_UUID, TunnelParams},
+    },
+    profiles::ConnectionProfilesStore,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
 
 use crate::{
     assets,
-    profiles::ConnectionProfilesStore,
     theme::{SystemColorTheme, ThemeMonitor},
 };
 

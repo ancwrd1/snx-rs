@@ -72,6 +72,7 @@ error-file-not-exist = Bestand bestaat niet: {$path}
 error-invalid-cert-id = Certificaat-ID niet in hexadecimaal formaat: {$id}
 error-ca-root-not-exist = CA-rootpad bestaat niet: {$path}
 error-validation = Validatiefout
+error-profile-not-found = Profiel niet gevonden: {$profile}
 error-user-input-canceled = Gebruikersinvoer geannuleerd
 error-connection-cancelled = Verbinding geannuleerd
 error-unknown-event = Onbekende gebeurtenis: {$event}

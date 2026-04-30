@@ -3,10 +3,12 @@ use std::{future::Future, io, path::PathBuf, sync::Arc};
 
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
+use i18n::tr;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
     model::params::TunnelParams,
+    profiles::ConnectionProfilesStore,
     prompt::TtyPrompt,
 };
 use tokio::signal::unix;
@@ -22,6 +24,13 @@ pub struct CmdlineParams {
         help = "Configuration file to use [default: $HOME/.config/snx-rs/snx-rs.conf]"
     )]
     config_file: Option<PathBuf>,
+    #[clap(
+        long = "profile",
+        short = 'p',
+        global = true,
+        help = "Connection profile name or UUID (ignored if --config-file is given)"
+    )]
+    profile: Option<String>,
     #[clap(subcommand)]
     command: SnxCommand,
 }
@@ -90,12 +99,16 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let config_file = params
-        .config_file
-        .clone()
-        .unwrap_or_else(TunnelParams::default_config_path);
-
-    let tunnel_params = Arc::new(TunnelParams::load(config_file).unwrap_or_default());
+    let tunnel_params = if let Some(path) = params.config_file.clone() {
+        Arc::new(TunnelParams::load(path)?)
+    } else if let Some(name_or_uuid) = params.profile.as_deref() {
+        match ConnectionProfilesStore::instance().find_by_name_or_uuid(name_or_uuid) {
+            Some(p) => p,
+            None => anyhow::bail!(tr!("error-profile-not-found", profile = name_or_uuid)),
+        }
+    } else {
+        Arc::new(TunnelParams::load(TunnelParams::default_config_path()).unwrap_or_default())
+    };
 
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(

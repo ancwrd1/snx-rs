@@ -72,6 +72,7 @@ error-file-not-exist = Súbor neexistuje: {$path}
 error-invalid-cert-id = ID certifikátu nie je v hexadecimálnom formáte: {$id}
 error-ca-root-not-exist = Cesta ku koreňovému certifikátu CA neexistuje: {$path}
 error-validation = Chyba overenia
+error-profile-not-found = Profil sa nenašiel: {$profile}
 error-user-input-canceled = Vstup používateľa zrušený
 error-connection-cancelled = Pripojenie zrušené
 error-unknown-event = Neznáma udalosť: {$event}

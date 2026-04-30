@@ -1,7 +1,8 @@
 use std::sync::{Arc, LazyLock, RwLock};
 
-use snxcore::model::params::{DEFAULT_PROFILE_UUID, TunnelParams};
 use uuid::Uuid;
+
+use crate::model::params::{DEFAULT_PROFILE_UUID, TunnelParams};
 
 static CONNECTION_PROFILES_STORE: LazyLock<ConnectionProfilesStore> = LazyLock::new(ConnectionProfilesStore::new);
 
@@ -51,6 +52,17 @@ impl ConnectionProfilesStore {
             .unwrap()
             .iter()
             .find(|p| p.profile_id == uuid)
+            .cloned()
+    }
+
+    /// Look up a profile by its UUID (string form) or by display name.
+    pub fn find_by_name_or_uuid(&self, name_or_uuid: &str) -> Option<Arc<TunnelParams>> {
+        let by_uuid = name_or_uuid.parse::<Uuid>().ok();
+        self.profiles
+            .read()
+            .unwrap()
+            .iter()
+            .find(|p| Some(p.profile_id) == by_uuid || p.profile_name == name_or_uuid)
             .cloned()
     }
 

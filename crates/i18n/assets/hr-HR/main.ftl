@@ -72,6 +72,7 @@ error-file-not-exist = Datoteka ne postoji: {$path}
 error-invalid-cert-id = ID certifikata nije u hex formatu: {$id}
 error-ca-root-not-exist = CA korijenski put ne postoji: {$path}
 error-validation = Greška validacije
+error-profile-not-found = Profil nije pronađen: {$profile}
 error-user-input-canceled = Korisnički unos otkazan
 error-connection-cancelled = Veza otkazana
 error-unknown-event = Nepoznat događaj: {$event}
