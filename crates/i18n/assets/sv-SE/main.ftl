@@ -206,6 +206,7 @@ auth-dialog-message = Ange din autentiseringsfaktor:
 # Status dialog
 status-dialog-title = Anslutningsinformation
 status-button-copy = Kopiera
+status-show-stats = Visa livestatistik
 status-button-settings = Inställningar
 status-button-connect = Anslut
 status-button-disconnect = Koppla från

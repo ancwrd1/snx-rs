@@ -183,6 +183,7 @@ auth-dialog-message = Molimo unesite vaš faktor autentifikacije:
 # Status dialog
 status-dialog-title = Informacije o vezi
 status-button-copy = Kopiraj
+status-show-stats = Prikaži statistiku uživo
 status-button-settings = Postavke
 status-button-connect = Poveži
 status-button-disconnect = Prekini vezu

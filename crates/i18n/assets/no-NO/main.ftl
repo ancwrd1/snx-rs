@@ -206,6 +206,7 @@ auth-dialog-message = Skriv inn din autentiseringsfaktor:
 # Status dialog
 status-dialog-title = Tilkoblingsinformasjon
 status-button-copy = Kopier
+status-show-stats = Vis sanntidsstatistikk
 status-button-settings = Innstillinger
 status-button-connect = Koble til
 status-button-disconnect = Koble fra

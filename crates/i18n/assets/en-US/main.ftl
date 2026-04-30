@@ -183,6 +183,7 @@ auth-dialog-message = Please enter your authentication factor:
 # Status dialog
 status-dialog-title = Connection information
 status-button-copy = Copy
+status-show-stats = Show live statistics
 status-button-settings = Settings
 status-button-connect = Connect
 status-button-disconnect = Disconnect

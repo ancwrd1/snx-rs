@@ -206,6 +206,7 @@ auth-dialog-message = Zadajte váš autentifikačný faktor:
 # Status dialog
 status-dialog-title = Informácie o pripojení
 status-button-copy = Kopírovať
+status-show-stats = Zobraziť živé štatistiky
 status-button-settings = Nastavenia
 status-button-connect = Pripojiť
 status-button-disconnect = Odpojiť

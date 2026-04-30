@@ -183,6 +183,7 @@ auth-dialog-message = Bitte geben Sie Ihren Authentifizierungsfaktor ein:
 # Status dialog
 status-dialog-title = Verbindungsinformationen
 status-button-copy = Kopieren
+status-show-stats = Live-Statistiken anzeigen
 status-button-settings = Einstellungen
 status-button-connect = Verbinden
 status-button-disconnect = Trennen

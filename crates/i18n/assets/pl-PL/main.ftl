@@ -206,6 +206,7 @@ auth-dialog-message = Wprowadź swój czynnik uwierzytelniania:
 # Status dialog
 status-dialog-title = Informacje o połączeniu
 status-button-copy = Kopiuj
+status-show-stats = Pokaż statystyki na żywo
 status-button-settings = Ustawienia
 status-button-connect = Połącz
 status-button-disconnect = Rozłącz

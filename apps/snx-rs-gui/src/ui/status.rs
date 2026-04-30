@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use slint::{ComponentHandle, LogicalSize, ModelRc, SharedString, VecModel};
 use snxcore::{
@@ -31,8 +31,8 @@ fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
     }
 }
 
-fn to_status_entries(info: &ConnectionInfo) -> Vec<StatusEntry> {
-    info.to_values()
+fn to_status_entries(info: &ConnectionInfo, with_stats: bool) -> Vec<StatusEntry> {
+    info.to_values(with_stats)
         .into_iter()
         .map(|(key, value)| StatusEntry {
             label: i18n::translate(key).into(),
@@ -133,6 +133,24 @@ impl WindowController for StatusWindowController {
             slint::CloseRequestResponse::HideWindow
         });
 
+        let last_info: Rc<RefCell<ConnectionInfo>> = Rc::new(RefCell::new(ConnectionInfo::default()));
+
+        let weak_window = self.scope.window.as_weak();
+        let last_info_for_toggle = last_info.clone();
+        self.scope.window.on_show_stats_toggled(move || {
+            if let Some(window) = weak_window.upgrade() {
+                let show = window.get_show_stats();
+                let entries = to_status_entries(&last_info_for_toggle.borrow(), show);
+                window.set_entries(ModelRc::new(VecModel::from(entries)));
+                if !show {
+                    let preferred_height = window.get_preferred_content_height();
+                    let win = window.window();
+                    let current = win.size().to_logical(win.scale_factor());
+                    win.set_size(LogicalSize::new(current.width, preferred_height));
+                }
+            }
+        });
+
         self.scope.window.show()?;
 
         let (status_tx, status_rx) = async_channel::bounded::<Arc<anyhow::Result<ConnectionStatus>>>(1);
@@ -163,9 +181,11 @@ impl WindowController for StatusWindowController {
             while let Ok(status) = status_rx.recv().await {
                 if let Some(scope) = weak_scope.upgrade() {
                     let info = get_info(&status);
+                    *last_info.borrow_mut() = info.clone();
+                    let show_stats = scope.window.get_show_stats();
                     scope
                         .window
-                        .set_entries(ModelRc::new(VecModel::from(to_status_entries(&info))));
+                        .set_entries(ModelRc::new(VecModel::from(to_status_entries(&info, show_stats))));
                     scope
                         .window
                         .set_can_connect(matches!(*status, Ok(ConnectionStatus::Disconnected)));
@@ -180,7 +200,9 @@ impl WindowController for StatusWindowController {
                     let preferred_height = scope.window.get_preferred_content_height();
                     let window = scope.window.window();
                     let current = window.size().to_logical(window.scale_factor());
-                    window.set_size(LogicalSize::new(current.width, preferred_height));
+                    if preferred_height > current.height {
+                        window.set_size(LogicalSize::new(current.width, preferred_height));
+                    }
                 }
             }
         });

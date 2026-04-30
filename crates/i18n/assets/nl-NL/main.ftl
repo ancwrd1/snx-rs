@@ -206,6 +206,7 @@ auth-dialog-message = Voer uw authenticatiefactor in:
 # Status dialog
 status-dialog-title = Verbindingsinformatie
 status-button-copy = Kopiëren
+status-show-stats = Live statistieken tonen
 status-button-settings = Instellingen
 status-button-connect = Verbinden
 status-button-disconnect = Verbreken

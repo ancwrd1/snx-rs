@@ -206,6 +206,7 @@ auth-dialog-message = Syötä todennustekijäsi:
 # Status dialog
 status-dialog-title = Yhteystiedot
 status-button-copy = Kopioi
+status-show-stats = Näytä reaaliaikaiset tilastot
 status-button-settings = Asetukset
 status-button-connect = Yhdistä
 status-button-disconnect = Katkaise yhteys

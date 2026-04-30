@@ -171,8 +171,8 @@ impl ConnectionInfo {
         if self.is_connected() { f() } else { String::new() }
     }
 
-    pub fn to_values(&self) -> Vec<(&'static str, String)> {
-        vec![
+    pub fn to_values(&self, with_stats: bool) -> Vec<(&'static str, String)> {
+        let mut result = vec![
             (
                 "info-connected-since",
                 if let Some(ref since) = self.since {
@@ -200,36 +200,42 @@ impl ConnectionInfo {
                 self.or_empty(|| self.routing_configured.to_string()),
             ),
             ("info-default-route", self.or_empty(|| self.default_route.to_string())),
-            (
-                "info-rtt",
-                self.or_empty(|| match self.live.last_rtt_ms {
-                    Some(ms) => format!("{ms} ms"),
-                    None => "—".to_string(),
-                }),
-            ),
-            (
-                "info-bytes-received",
-                self.or_empty(|| format_bytes(self.live.bytes_rx)),
-            ),
-            ("info-bytes-sent", self.or_empty(|| format_bytes(self.live.bytes_tx))),
-            (
-                "info-rate-received",
-                self.or_empty(|| format!("{}/s", format_bytes(self.live.bps_rx))),
-            ),
-            (
-                "info-rate-sent",
-                self.or_empty(|| format!("{}/s", format_bytes(self.live.bps_tx))),
-            ),
-            (
-                "info-packets-received",
-                self.or_empty(|| self.live.packets_rx.to_string()),
-            ),
-            ("info-packets-sent", self.or_empty(|| self.live.packets_tx.to_string())),
-        ]
+        ];
+
+        if with_stats {
+            result.extend([
+                (
+                    "info-rtt",
+                    self.or_empty(|| match self.live.last_rtt_ms {
+                        Some(ms) => format!("{ms} ms"),
+                        None => "—".to_string(),
+                    }),
+                ),
+                (
+                    "info-bytes-received",
+                    self.or_empty(|| format_bytes(self.live.bytes_rx)),
+                ),
+                ("info-bytes-sent", self.or_empty(|| format_bytes(self.live.bytes_tx))),
+                (
+                    "info-rate-received",
+                    self.or_empty(|| format!("{}/s", format_bytes(self.live.bps_rx))),
+                ),
+                (
+                    "info-rate-sent",
+                    self.or_empty(|| format!("{}/s", format_bytes(self.live.bps_tx))),
+                ),
+                (
+                    "info-packets-received",
+                    self.or_empty(|| self.live.packets_rx.to_string()),
+                ),
+                ("info-packets-sent", self.or_empty(|| self.live.packets_tx.to_string())),
+            ]);
+        }
+        result
     }
 
     pub fn print(&self) -> String {
-        let values = self.to_values();
+        let values = self.to_values(true);
         let label_width = values
             .iter()
             .map(|(label, _)| i18n::translate(label).chars().count())

@@ -206,6 +206,7 @@ auth-dialog-message = Indtast din godkendelsesfaktor:
 # Status dialog
 status-dialog-title = Forbindelsesinformation
 status-button-copy = Kopiér
+status-show-stats = Vis live statistik
 status-button-settings = Indstillinger
 status-button-connect = Forbind
 status-button-disconnect = Afbryd

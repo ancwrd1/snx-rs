@@ -183,6 +183,7 @@ auth-dialog-message = Veuillez saisir votre facteur d'authentification :
 # Status dialog
 status-dialog-title = Informations de connexion
 status-button-copy = Copier
+status-show-stats = Afficher les statistiques en direct
 status-button-settings = Paramètres
 status-button-connect = Se connecter
 status-button-disconnect = Se déconnecter

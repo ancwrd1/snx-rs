@@ -206,6 +206,7 @@ auth-dialog-message = Introduza o seu fator de autenticação:
 # Status dialog
 status-dialog-title = Informação de ligação
 status-button-copy = Copiar
+status-show-stats = Mostrar estatísticas em direto
 status-button-settings = Definições
 status-button-connect = Ligar
 status-button-disconnect = Desligar
