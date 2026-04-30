@@ -1,4 +1,4 @@
-## v6.0.4 (TBD)
+## v6.0.4 (2026-04-30)
 - Added `tls-version-max` parameter to cap the maximum TLS version negotiated with the gateway. The default is now `1.2`, which avoids silent connect timeouts against gateways (notably Check Point SVN foundation) that fail to respond to TLS 1.3 ClientHello produced by recent OpenSSL releases. Set `tls-version-max=default` to keep the previous behavior.
 - Added connection profiles reordering in the UI.
 - Added connection profiles support to snxctl command line utility via the `--profile` option.
