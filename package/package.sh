@@ -3,7 +3,11 @@
 suffix="$1"
 basedir="$(dirname $(readlink -f $0))/.."
 target="$basedir/target"
-version="$(git -C "$basedir" describe)"
+if [ -z "$2" ]; then
+  version="$(git -C "$basedir" describe)"
+else
+  version="$2"
+fi
 deb_version="${version:1}"
 rpm_version="$(echo $version | sed 's/-/~/g')"
 arch="$(uname -m)"
