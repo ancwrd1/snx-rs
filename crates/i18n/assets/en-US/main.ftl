@@ -210,6 +210,13 @@ info-dns-configured = DNS configured
 info-routing-configured = Routing configured
 info-default-route = Default route
 info-connection-profile = Connection profile
+info-rtt = RTT
+info-bytes-received = Bytes received
+info-bytes-sent = Bytes sent
+info-rate-received = Receive rate
+info-rate-sent = Send rate
+info-packets-received = Packets received
+info-packets-sent = Packets sent
 
 # CLI Messages
 cli-identity-provider-auth = For identity provider authentication, open the following URL in your browser:

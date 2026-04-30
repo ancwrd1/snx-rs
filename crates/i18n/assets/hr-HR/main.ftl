@@ -210,6 +210,13 @@ info-dns-configured = DNS konfiguriran
 info-routing-configured = Usmjeravanje konfigurirano
 info-default-route = Zadana ruta
 info-connection-profile = Profil veze
+info-rtt = RTT
+info-bytes-received = Primljeno bajtova
+info-bytes-sent = Poslano bajtova
+info-rate-received = Brzina primanja
+info-rate-sent = Brzina slanja
+info-packets-received = Primljeno paketa
+info-packets-sent = Poslano paketa
 
 # CLI Messages
 cli-identity-provider-auth = Za autentifikaciju putem pružatelja identiteta, otvorite sljedeću URL adresu u pregledniku:

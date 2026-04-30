@@ -19,7 +19,7 @@ use sysctl::{Ctl, Sysctl};
 use tracing::debug;
 use zbus::Connection;
 
-use crate::platform::{DeviceConfig, NetworkInterface};
+use crate::platform::{DeviceConfig, NetworkInterface, StatsPoller, linux::stats::LinuxStatsPoller};
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
@@ -271,6 +271,14 @@ impl NetworkInterface for LinuxNetworkInterface {
             .await?;
 
         Ok(())
+    }
+
+    fn new_stats_poller(
+        &self,
+        device_name: &str,
+    ) -> impl Future<Output = anyhow::Result<impl StatsPoller + Send + Sync + 'static>> + Send {
+        let device_name = device_name.to_owned();
+        async move { LinuxStatsPoller::new(&device_name).await }
     }
 
     fn is_online(&self) -> bool {

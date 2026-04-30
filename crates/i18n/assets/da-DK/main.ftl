@@ -181,6 +181,13 @@ info-dns-configured = DNS konfigureret
 info-routing-configured = Routing konfigureret
 info-default-route = Standardrute
 info-connection-profile = Forbindelsesprofil
+info-rtt = RTT
+info-bytes-received = Modtagne bytes
+info-bytes-sent = Sendte bytes
+info-rate-received = Modtagelseshastighed
+info-rate-sent = Sendehastighed
+info-packets-received = Modtagne pakker
+info-packets-sent = Sendte pakker
 
 # Application
 app-title = SNX-RS VPN-klient til Linux

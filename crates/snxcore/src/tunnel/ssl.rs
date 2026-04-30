@@ -442,9 +442,10 @@ impl VpnTunnel for SslTunnel {
             default_route: self.params.default_route,
             profile_id: self.params.profile_id,
             profile_name: self.params.profile_name.clone(),
+            live: Default::default(),
         };
 
-        let _ = event_sender.send(TunnelEvent::Connected(info)).await;
+        let _ = event_sender.send(TunnelEvent::Connected(Box::new(info))).await;
 
         let command_fut = command_receiver.recv();
         pin_mut!(command_fut);

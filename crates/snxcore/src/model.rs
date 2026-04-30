@@ -110,6 +110,34 @@ pub struct MfaChallenge {
     pub prompt: String,
 }
 
+fn format_bytes(n: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
+    let mut value = n as f64;
+    let mut idx = 0;
+    while value >= 1024.0 && idx < UNITS.len() - 1 {
+        value /= 1024.0;
+        idx += 1;
+    }
+    if idx == 0 {
+        format!("{n} {}", UNITS[0])
+    } else {
+        format!("{value:.2} {}", UNITS[idx])
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+pub struct LiveStats {
+    pub last_rtt_ms: Option<u64>,
+    pub bytes_rx: u64,
+    pub bytes_tx: u64,
+    pub packets_rx: u64,
+    pub packets_tx: u64,
+    pub errors_rx: u64,
+    pub errors_tx: u64,
+    pub bps_rx: u64,
+    pub bps_tx: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ConnectionInfo {
     pub since: Option<DateTime<Local>>,
@@ -127,6 +155,8 @@ pub struct ConnectionInfo {
     pub default_route: bool,
     pub profile_id: Uuid,
     pub profile_name: String,
+    #[serde(default)]
+    pub live: LiveStats,
 }
 
 impl ConnectionInfo {
@@ -170,6 +200,31 @@ impl ConnectionInfo {
                 self.or_empty(|| self.routing_configured.to_string()),
             ),
             ("info-default-route", self.or_empty(|| self.default_route.to_string())),
+            (
+                "info-rtt",
+                self.or_empty(|| match self.live.last_rtt_ms {
+                    Some(ms) => format!("{ms} ms"),
+                    None => "—".to_string(),
+                }),
+            ),
+            (
+                "info-bytes-received",
+                self.or_empty(|| format_bytes(self.live.bytes_rx)),
+            ),
+            ("info-bytes-sent", self.or_empty(|| format_bytes(self.live.bytes_tx))),
+            (
+                "info-rate-received",
+                self.or_empty(|| format!("{}/s", format_bytes(self.live.bps_rx))),
+            ),
+            (
+                "info-rate-sent",
+                self.or_empty(|| format!("{}/s", format_bytes(self.live.bps_tx))),
+            ),
+            (
+                "info-packets-received",
+                self.or_empty(|| self.live.packets_rx.to_string()),
+            ),
+            ("info-packets-sent", self.or_empty(|| self.live.packets_tx.to_string())),
         ]
     }
 
@@ -196,13 +251,13 @@ pub enum ConnectionStatus {
     #[default]
     Disconnected,
     Connecting,
-    Connected(ConnectionInfo),
+    Connected(Box<ConnectionInfo>),
     Mfa(MfaChallenge),
 }
 
 impl ConnectionStatus {
     pub fn connected(info: ConnectionInfo) -> Self {
-        Self::Connected(info)
+        Self::Connected(Box::new(info))
     }
 
     pub fn mfa(challenge: MfaChallenge) -> Self {

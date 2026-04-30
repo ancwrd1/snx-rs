@@ -181,6 +181,13 @@ info-dns-configured = DNS määritetty
 info-routing-configured = Reititys määritetty
 info-default-route = Oletusreitti
 info-connection-profile = Yhteysprofiili
+info-rtt = RTT
+info-bytes-received = Vastaanotetut tavut
+info-bytes-sent = Lähetetyt tavut
+info-rate-received = Vastaanottonopeus
+info-rate-sent = Lähetysnopeus
+info-packets-received = Vastaanotetut paketit
+info-packets-sent = Lähetetyt paketit
 
 # Application
 app-title = SNX-RS VPN-asiakasohjelma Linuxille

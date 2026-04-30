@@ -25,7 +25,7 @@ pub fn same_status(lhs: &anyhow::Result<ConnectionStatus>, rhs: &anyhow::Result<
 
 fn get_info(status: &anyhow::Result<ConnectionStatus>) -> ConnectionInfo {
     if let Ok(ConnectionStatus::Connected(info)) = status {
-        info.clone()
+        (**info).clone()
     } else {
         ConnectionInfo::default()
     }

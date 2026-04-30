@@ -336,8 +336,9 @@ impl VpnTunnel for TunIPsecTunnel {
             default_route: self.params.default_route,
             profile_id: self.params.profile_id,
             profile_name: self.params.profile_name.clone(),
+            live: Default::default(),
         };
-        let _ = event_sender.send(TunnelEvent::Connected(info)).await;
+        let _ = event_sender.send(TunnelEvent::Connected(Box::new(info))).await;
         let ready = self.ready.clone();
 
         let esp_codec_in = esp_codec_in.clone();
@@ -403,7 +404,7 @@ impl VpnTunnel for TunIPsecTunnel {
 
         let server_info = server_info::get(&params).await?;
 
-        let keepalive_runner = KeepaliveRunner::new(
+        let mut keepalive_runner = KeepaliveRunner::new(
             server_info.connectivity_info.server_ip,
             if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
@@ -411,6 +412,7 @@ impl VpnTunnel for TunIPsecTunnel {
                 ready.clone()
             },
         );
+        keepalive_runner.set_event_sender(event_sender.clone());
 
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);

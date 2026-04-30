@@ -210,6 +210,13 @@ info-dns-configured = DNS настроен
 info-routing-configured = Маршрутизация настроена
 info-default-route = Маршрут по умолчанию
 info-connection-profile = Профиль подключения
+info-rtt = RTT
+info-bytes-received = Принято байт
+info-bytes-sent = Отправлено байт
+info-rate-received = Скорость приёма
+info-rate-sent = Скорость передачи
+info-packets-received = Принято пакетов
+info-packets-sent = Отправлено пакетов
 
 # CLI Messages
 cli-identity-provider-auth = Для аутентификации через провайдера идентификации откройте следующий URL в браузере:

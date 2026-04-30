@@ -17,7 +17,7 @@ use tokio::net::UdpSocket;
 use uuid::Uuid;
 
 use crate::model::{
-    IPsecSession,
+    IPsecSession, LiveStats,
     params::{TunnelParams, TunnelType},
 };
 
@@ -218,6 +218,11 @@ pub trait RoutingConfigurator {
 }
 
 #[async_trait]
+pub trait StatsPoller {
+    async fn poll(&self) -> anyhow::Result<LiveStats>;
+}
+
+#[async_trait]
 pub trait NetworkInterface {
     async fn start_network_state_monitoring(&self) -> anyhow::Result<()>;
     async fn get_default_ipv4(&self) -> anyhow::Result<Ipv4Addr>;
@@ -229,6 +234,11 @@ pub trait NetworkInterface {
         old_address: Ipv4Net,
         new_address: Ipv4Net,
     ) -> anyhow::Result<()>;
+
+    fn new_stats_poller(
+        &self,
+        device_name: &str,
+    ) -> impl Future<Output = anyhow::Result<impl StatsPoller + Send + Sync + 'static>> + Send;
 
     fn is_online(&self) -> bool;
 }
@@ -267,6 +277,6 @@ pub trait PlatformAccess {
         device: S,
         tunnel_type: TunnelType,
     ) -> impl Future<Output = anyhow::Result<impl RoutingConfigurator + Send + Sync>> + Send;
-    fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync;
+    fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static;
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance>;
 }
