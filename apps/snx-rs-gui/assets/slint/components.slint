@@ -73,6 +73,19 @@ export component PencilIcon inherits Path {
     LineTo { x: 1.5; y: 8.5; }
 }
 
+export component DragHandleIcon inherits Path {
+    in property <color> tint: Palette.foreground;
+    stroke: transparent;
+    fill: root.tint;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 10;
+    viewbox-height: 16;
+    width: 10px;
+    height: 16px;
+    commands: "M 3 3 m -1 0 a 1 1 0 1 0 2 0 a 1 1 0 1 0 -2 0 M 7 3 m -1 0 a 1 1 0 1 0 2 0 a 1 1 0 1 0 -2 0 M 3 8 m -1 0 a 1 1 0 1 0 2 0 a 1 1 0 1 0 -2 0 M 7 8 m -1 0 a 1 1 0 1 0 2 0 a 1 1 0 1 0 -2 0 M 3 13 m -1 0 a 1 1 0 1 0 2 0 a 1 1 0 1 0 -2 0 M 7 13 m -1 0 a 1 1 0 1 0 2 0 a 1 1 0 1 0 -2 0";
+}
+
 export component DeleteIcon inherits Path {
     in property <color> tint: #c62828;
     stroke: root.tint;

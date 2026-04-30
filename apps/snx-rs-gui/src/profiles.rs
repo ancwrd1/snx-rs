@@ -27,17 +27,22 @@ impl ConnectionProfilesStore {
     }
 
     pub fn all(&self) -> Vec<Arc<TunnelParams>> {
-        let mut profiles = self.profiles.read().unwrap().clone();
-        profiles.sort_by(|p1, p2| {
-            if p1.profile_id == DEFAULT_PROFILE_UUID {
-                std::cmp::Ordering::Less
-            } else if p2.profile_id == DEFAULT_PROFILE_UUID {
-                std::cmp::Ordering::Greater
-            } else {
-                p1.profile_name.cmp(&p2.profile_name)
-            }
-        });
-        profiles
+        self.profiles.read().unwrap().clone()
+    }
+
+    pub fn reorder(&self, from: usize, to: usize) {
+        let mut profiles = self.profiles.write().unwrap();
+        if from >= profiles.len() || to >= profiles.len() || from == to {
+            return;
+        }
+        let item = profiles.remove(from);
+        profiles.insert(to, item);
+        Self::persist_order(&profiles);
+    }
+
+    fn persist_order(profiles: &[Arc<TunnelParams>]) {
+        let order: Vec<Uuid> = profiles.iter().map(|p| p.profile_id).collect();
+        let _ = TunnelParams::save_profile_order(&order);
     }
 
     pub fn get(&self, uuid: Uuid) -> Option<Arc<TunnelParams>> {
@@ -65,12 +70,17 @@ impl ConnectionProfilesStore {
 
     pub fn save(&self, params: Arc<TunnelParams>) {
         let mut profiles = self.profiles.write().unwrap();
+        let mut added = false;
         if let Some(item) = profiles.iter_mut().find(|p| p.profile_id == params.profile_id) {
             *item = params.clone();
         } else {
             profiles.push(params.clone());
+            added = true;
         }
         let _ = params.save();
+        if added {
+            Self::persist_order(&profiles);
+        }
     }
 
     pub fn remove(&self, uuid: Uuid) {
@@ -79,5 +89,6 @@ impl ConnectionProfilesStore {
             let _ = std::fs::remove_file(&item.config_file);
         }
         profiles.retain(|p| p.profile_id != uuid);
+        Self::persist_order(&profiles);
     }
 }

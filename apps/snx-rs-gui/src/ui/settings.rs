@@ -243,6 +243,16 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            self.scope.window.on_profile_reorder(move |from, to| {
+                if let Some(w) = weak.upgrade() {
+                    on_profile_reorder(&w.window, &state, from as usize, to as usize);
+                }
+            });
+        }
+
+        {
+            let weak = self.scope.weak();
+            let state = self.state.clone();
             self.scope.window.on_profile_delete_clicked(move || {
                 let weak = weak.clone();
                 let state = state.clone();
@@ -705,6 +715,32 @@ fn on_profile_rename(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
     }
     window.set_profiles(ModelRc::new(VecModel::from(names)));
     window.set_profile_index(active as i32);
+}
+
+fn on_profile_reorder(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, from: usize, to: usize) {
+    if from == to {
+        return;
+    }
+    let active_id = state
+        .borrow()
+        .profile_ids
+        .get(window.get_profile_index() as usize)
+        .copied();
+
+    ConnectionProfilesStore::instance().reorder(from, to);
+
+    let profiles = ConnectionProfilesStore::instance().all();
+    let names: Vec<SharedString> = profiles.iter().map(|p| p.profile_name.as_str().into()).collect();
+    let ids: Vec<Uuid> = profiles.iter().map(|p| p.profile_id).collect();
+
+    window.set_profiles(ModelRc::new(VecModel::from(names)));
+    state.borrow_mut().profile_ids = ids.clone();
+    refresh_default_profile_index(window, state);
+
+    if let Some(id) = active_id {
+        let new_idx = ids.iter().position(|x| *x == id).unwrap_or(0) as i32;
+        window.set_profile_index(new_idx);
+    }
 }
 
 fn on_profile_delete(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) {

@@ -759,6 +759,25 @@ impl TunnelParams {
         Self::default_config_dir().join("snx-rs.conf")
     }
 
+    pub fn profile_order_path() -> PathBuf {
+        Self::default_config_dir().join("profiles.order")
+    }
+
+    pub fn load_profile_order() -> Vec<Uuid> {
+        fs::read_to_string(Self::profile_order_path())
+            .ok()
+            .map(|s| s.lines().filter_map(|l| l.trim().parse().ok()).collect())
+            .unwrap_or_default()
+    }
+
+    pub fn save_profile_order(order: &[Uuid]) -> anyhow::Result<()> {
+        let dir = Self::default_config_dir();
+        fs::create_dir_all(&dir)?;
+        let body: String = order.iter().map(|u| format!("{u}\n")).collect();
+        fs::write(dir.join("profiles.order"), body)?;
+        Ok(())
+    }
+
     pub fn load_all() -> Vec<Self> {
         let mut result = Vec::new();
 
@@ -772,13 +791,24 @@ impl TunnelParams {
             }
         }
 
+        let order = Self::load_profile_order();
         result.sort_by(|a, b| {
-            if a.profile_id == DEFAULT_PROFILE_UUID {
-                Ordering::Less
-            } else if b.profile_id == DEFAULT_PROFILE_UUID {
-                Ordering::Greater
-            } else {
-                a.profile_name.cmp(&b.profile_name)
+            let ai = order.iter().position(|id| *id == a.profile_id);
+            let bi = order.iter().position(|id| *id == b.profile_id);
+            match (ai, bi) {
+                (Some(x), Some(y)) => x.cmp(&y),
+                (Some(_), None) => Ordering::Less,
+                (None, Some(_)) => Ordering::Greater,
+                // unknown to the order file: default goes first, rest alphabetical
+                (None, None) => {
+                    if a.profile_id == DEFAULT_PROFILE_UUID {
+                        Ordering::Less
+                    } else if b.profile_id == DEFAULT_PROFILE_UUID {
+                        Ordering::Greater
+                    } else {
+                        a.profile_name.cmp(&b.profile_name)
+                    }
+                }
             }
         });
         result

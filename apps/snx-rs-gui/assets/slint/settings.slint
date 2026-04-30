@@ -1,7 +1,7 @@
 import { Button, CheckBox, ComboBox, HorizontalBox, LineEdit, Palette,
          ScrollView, Switch, TabWidget, VerticalBox, Palette } from "std-widgets.slint";
 import { Tr } from "tr.slint";
-import { IconButton, PlusIcon, PencilIcon, DeleteIcon, RefreshIcon, FolderIcon,
+import { IconButton, PlusIcon, PencilIcon, DeleteIcon, DragHandleIcon, RefreshIcon, FolderIcon,
          PlainLineEdit, PathLineEdit, FormStackRow, FormToggleRow, FormDivider,
          FormCard, Expander } from "components.slint";
 
@@ -19,6 +19,11 @@ export component SettingsWindow inherits Window {
     default-font-size: 14px;
 
     in property <length> min-form-width: 300px;
+
+    // profile-list row geometry — kept here so the drag-and-drop math can stay in sync.
+    property <length> profile-row-height: 32px;
+    property <length> profile-row-spacing: 2px;
+    property <length> profile-row-pitch: self.profile-row-height + self.profile-row-spacing;
 
     // profile management
     in property <[string]> profiles: [];
@@ -110,6 +115,7 @@ export component SettingsWindow inherits Window {
     callback profile-rename-clicked();
     callback profile-delete-clicked();
     callback profile-changed();
+    callback profile-reorder(int /* from */, int /* to */);
     callback auth-type-changed();
     callback machine-cert-changed();
     callback browse-ca-cert-clicked();
@@ -192,60 +198,109 @@ export component SettingsWindow inherits Window {
 
                         VerticalLayout {
                             alignment: start;
-                            spacing: 2px;
+                            spacing: root.profile-row-spacing;
 
                             for name[i] in root.profiles: Rectangle {
-                                height: 32px;
-                                border-radius: 4px;
-                                background: root.profile-index == i
-                                    ? Palette.accent-background
-                                    : row-ta.has-hover
-                                        ? Palette.control-background.darker(0.1)
-                                        : transparent;
+                                height: root.profile-row-height;
+                                clip: false;
 
-                                row-ta := TouchArea {
-                                    clicked => { root.profile-index = i; }
-                                }
+                                content := Rectangle {
+                                    width: parent.width;
+                                    height: parent.height;
+                                    y: drag-ta.pressed ? drag-ta.mouse-y - drag-ta.pressed-y : 0px;
+                                    animate y {
+                                        duration: drag-ta.pressed ? 0ms : 140ms;
+                                        easing: ease-out;
+                                    }
+                                    border-radius: 4px;
+                                    background: root.profile-index == i
+                                        ? Palette.accent-background
+                                        : row-ta.has-hover || drag-ta.pressed
+                                            ? Palette.control-background.darker(0.1)
+                                            : transparent;
+                                    drop-shadow-blur: drag-ta.pressed ? 12px : 0;
+                                    drop-shadow-color: #00000066;
+                                    drop-shadow-offset-y: drag-ta.pressed ? 2px : 0;
+                                    opacity: drag-ta.pressed ? 0.92 : 1.0;
 
-                                HorizontalLayout {
-                                    padding-left: 8px;
-                                    padding-right: 4px;
-                                    spacing: 2px;
-
-                                    Text {
-                                        text: name;
-                                        vertical-alignment: center;
-                                        horizontal-stretch: 1;
-                                        overflow: elide;
-                                        color: root.profile-index == i
-                                            ? Palette.accent-foreground
-                                            : Palette.foreground;
+                                    row-ta := TouchArea {
+                                        clicked => { root.profile-index = i; }
                                     }
 
-                                    VerticalLayout {
-                                        alignment: center;
-                                        IconButton {
-                                            clicked => {
-                                                root.profile-index = i;
-                                                root.profile-rename-clicked();
-                                            }
-                                            PencilIcon {
+                                    HorizontalLayout {
+                                        padding-left: 2px;
+                                        padding-right: 4px;
+                                        spacing: 2px;
+
+                                        Rectangle {
+                                            width: 18px;
+
+                                            DragHandleIcon {
                                                 tint: root.profile-index == i
                                                     ? Palette.accent-foreground
-                                                    : Palette.foreground;
+                                                    : Palette.foreground.transparentize(0.4);
+                                            }
+                                        }
+
+                                        Text {
+                                            text: name;
+                                            vertical-alignment: center;
+                                            horizontal-stretch: 1;
+                                            overflow: elide;
+                                            color: root.profile-index == i
+                                                ? Palette.accent-foreground
+                                                : Palette.foreground;
+                                        }
+
+                                        VerticalLayout {
+                                            alignment: center;
+                                            IconButton {
+                                                clicked => {
+                                                    root.profile-index = i;
+                                                    root.profile-rename-clicked();
+                                                }
+                                                PencilIcon {
+                                                    tint: root.profile-index == i
+                                                        ? Palette.accent-foreground
+                                                        : Palette.foreground;
+                                                }
+                                            }
+                                        }
+
+                                        VerticalLayout {
+                                            alignment: center;
+                                            IconButton {
+                                                enabled: i != root.default-profile-index;
+                                                clicked => {
+                                                    root.profile-index = i;
+                                                    root.profile-delete-clicked();
+                                                }
+                                                if i != root.default-profile-index: DeleteIcon { }
                                             }
                                         }
                                     }
+                                }
 
-                                    VerticalLayout {
-                                        alignment: center;
-                                        IconButton {
-                                            enabled: i != root.default-profile-index;
-                                            clicked => {
-                                                root.profile-index = i;
-                                                root.profile-delete-clicked();
+                                // Drag tracker stays in the OUTER (unmoving) rect to avoid
+                                // feedback when content.y follows the cursor.
+                                drag-ta := TouchArea {
+                                    x: 2px;
+                                    y: 0;
+                                    width: 20px;
+                                    height: parent.height;
+                                    property <int> drop-target:
+                                        clamp(i + round((self.mouse-y - self.pressed-y) / 1px
+                                                        / (root.profile-row-pitch / 1px)),
+                                              0,
+                                              root.profiles.length - 1);
+                                    mouse-cursor: self.pressed ? MouseCursor.grabbing : MouseCursor.grab;
+                                    pointer-event(ev) => {
+                                        if (ev.button == PointerEventButton.left
+                                            && ev.kind == PointerEventKind.up) {
+                                            root.profile-index = i;
+                                            if (self.drop-target != i) {
+                                                root.profile-reorder(i, self.drop-target);
                                             }
-                                            if i != root.default-profile-index: DeleteIcon { }
                                         }
                                     }
                                 }
