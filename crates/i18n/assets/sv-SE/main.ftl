@@ -181,6 +181,13 @@ info-dns-configured = DNS konfigurerad
 info-routing-configured = Routning konfigurerad
 info-default-route = Standardrutt
 info-connection-profile = Anslutningsprofil
+info-rtt = RTT
+info-bytes-received = Mottagna byte
+info-bytes-sent = Skickade byte
+info-rate-received = Mottagningshastighet
+info-rate-sent = Sändningshastighet
+info-packets-received = Mottagna paket
+info-packets-sent = Skickade paket
 
 # Application
 app-title = SNX-RS VPN-klient för Linux
@@ -199,6 +206,7 @@ auth-dialog-message = Ange din autentiseringsfaktor:
 # Status dialog
 status-dialog-title = Anslutningsinformation
 status-button-copy = Kopiera
+status-show-stats = Visa livestatistik
 status-button-settings = Inställningar
 status-button-connect = Anslut
 status-button-disconnect = Koppla från

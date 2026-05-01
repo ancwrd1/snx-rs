@@ -4,15 +4,17 @@ use std::{
         Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use anyhow::anyhow;
+use tokio::sync::mpsc;
 use tracing::{debug, trace, warn};
 
 use crate::{
     model::params::TunnelParams,
     platform::{NetworkInterface, Platform, PlatformAccess, UdpSocketExt},
+    tunnel::TunnelEvent,
 };
 
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
@@ -39,11 +41,20 @@ fn make_keepalive_packet() -> [u8; 12] {
 pub struct KeepaliveRunner {
     dst: Ipv4Addr,
     ready: Arc<AtomicBool>,
+    event_sender: Option<mpsc::Sender<TunnelEvent>>,
 }
 
 impl KeepaliveRunner {
     pub fn new(dst: Ipv4Addr, ready: Arc<AtomicBool>) -> Self {
-        Self { dst, ready }
+        Self {
+            dst,
+            ready,
+            event_sender: None,
+        }
+    }
+
+    pub fn set_event_sender(&mut self, event_sender: mpsc::Sender<TunnelEvent>) {
+        self.event_sender = Some(event_sender);
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
@@ -63,10 +74,20 @@ impl KeepaliveRunner {
                     trace!("Sending keepalive to {}", self.dst);
 
                     let data = make_keepalive_packet();
+                    let now = Instant::now();
                     let result = udp.send_receive(&data, KEEPALIVE_TIMEOUT, target).await;
 
                     if let Ok(reply) = result {
-                        trace!("Received keepalive response from {}, size: {}", self.dst, reply.len());
+                        let rtt = now.elapsed();
+                        trace!(
+                            "Received keepalive response from {}, size: {}, rtt: {} ms",
+                            self.dst,
+                            reply.len(),
+                            rtt.as_millis()
+                        );
+                        if let Some(tx) = &self.event_sender {
+                            let _ = tx.send(TunnelEvent::Rtt(rtt)).await;
+                        }
                         num_failures = 0;
                     } else {
                         num_failures += 1;

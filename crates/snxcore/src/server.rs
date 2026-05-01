@@ -9,8 +9,10 @@ use tracing::{debug, warn};
 
 use crate::{
     model::{
-        ConnectionStatus, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession, params::TunnelParams,
+        ConnectionStatus, LiveStats, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession,
+        params::TunnelParams,
     },
+    platform::{NetworkInterface, Platform, PlatformAccess, StatsPoller},
     tunnel::{TunnelConnector, TunnelConnectorFactory, TunnelEvent},
 };
 
@@ -28,6 +30,7 @@ struct ConnectionState {
     session: Mutex<Option<Arc<VpnSession>>>,
     connector: Mutex<Option<Box<dyn TunnelConnector + Send>>>,
     cancel_state: Arc<Mutex<CancelState>>,
+    stats_poller: RwLock<Option<Arc<dyn StatsPoller + Send + Sync>>>,
 }
 
 impl ConnectionState {
@@ -36,6 +39,7 @@ impl ConnectionState {
         *self.connector.lock().await = None;
         *self.connection_status.write().await = ConnectionStatus::Disconnected;
         self.cancel_state.lock().await.sender = None;
+        *self.stats_poller.write().await = None;
     }
 }
 
@@ -102,7 +106,14 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
 
         match event {
             TunnelEvent::Connected(info) => {
-                *state.connection_status.write().await = ConnectionStatus::connected(info);
+                if let Ok(poller) = Platform::get()
+                    .new_network_interface()
+                    .new_stats_poller(&info.interface_name)
+                    .await
+                {
+                    *state.stats_poller.write().await = Some(Arc::new(poller));
+                }
+                *state.connection_status.write().await = ConnectionStatus::Connected(info);
             }
             TunnelEvent::Disconnected => {
                 state.reset().await;
@@ -111,6 +122,12 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
                 let mut guard = state.connection_status.write().await;
                 if let ConnectionStatus::Connected(ref mut info) = *guard {
                     info.ip_address = address;
+                }
+            }
+            TunnelEvent::Rtt(rtt) => {
+                let mut guard = state.connection_status.write().await;
+                if let ConnectionStatus::Connected(ref mut info) = *guard {
+                    info.live.last_rtt_ms = Some(rtt.as_millis() as u64);
                 }
             }
             _ => {}
@@ -280,6 +297,16 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
     }
 
     async fn get_status(&self) -> ConnectionStatus {
-        self.state.connection_status.read().await.clone()
+        let mut status = self.state.connection_status.read().await.clone();
+        if let ConnectionStatus::Connected(ref mut info) = status
+            && let Some(poller) = self.state.stats_poller.read().await.as_ref().cloned()
+            && let Ok(live) = poller.poll().await
+        {
+            info.live = LiveStats {
+                last_rtt_ms: info.live.last_rtt_ms,
+                ..live
+            }
+        }
+        status
     }
 }

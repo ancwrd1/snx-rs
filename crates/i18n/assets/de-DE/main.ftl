@@ -183,6 +183,7 @@ auth-dialog-message = Bitte geben Sie Ihren Authentifizierungsfaktor ein:
 # Status dialog
 status-dialog-title = Verbindungsinformationen
 status-button-copy = Kopieren
+status-show-stats = Live-Statistiken anzeigen
 status-button-settings = Einstellungen
 status-button-connect = Verbinden
 status-button-disconnect = Trennen
@@ -210,6 +211,13 @@ info-dns-configured = DNS konfiguriert
 info-routing-configured = Routing konfiguriert
 info-default-route = Standardroute
 info-connection-profile = Verbindungsprofil
+info-rtt = RTT
+info-bytes-received = Empfangene Bytes
+info-bytes-sent = Gesendete Bytes
+info-rate-received = Empfangsrate
+info-rate-sent = Senderate
+info-packets-received = Empfangene Pakete
+info-packets-sent = Gesendete Pakete
 
 # CLI Messages
 cli-identity-provider-auth = Für die Authentifizierung über den Identitätsanbieter öffnen Sie die folgende URL in Ihrem Browser:

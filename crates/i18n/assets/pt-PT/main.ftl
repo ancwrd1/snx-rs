@@ -181,6 +181,13 @@ info-dns-configured = DNS configurado
 info-routing-configured = Encaminhamento configurado
 info-default-route = Rota predefinida
 info-connection-profile = Perfil de ligação
+info-rtt = RTT
+info-bytes-received = Bytes recebidos
+info-bytes-sent = Bytes enviados
+info-rate-received = Taxa de receção
+info-rate-sent = Taxa de envio
+info-packets-received = Pacotes recebidos
+info-packets-sent = Pacotes enviados
 
 # Application
 app-title = Cliente VPN SNX-RS para Linux
@@ -199,6 +206,7 @@ auth-dialog-message = Introduza o seu fator de autenticação:
 # Status dialog
 status-dialog-title = Informação de ligação
 status-button-copy = Copiar
+status-show-stats = Mostrar estatísticas em direto
 status-button-settings = Definições
 status-button-connect = Ligar
 status-button-disconnect = Desligar

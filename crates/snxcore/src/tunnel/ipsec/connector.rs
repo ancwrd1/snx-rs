@@ -804,6 +804,7 @@ impl TunnelConnector for IPsecTunnelConnector {
             TunnelEvent::Rekeyed(_) => {
                 debug!("Tunnel rekeyed");
             }
+            TunnelEvent::Rtt(_) => {}
         }
         Ok(())
     }

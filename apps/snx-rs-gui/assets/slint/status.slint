@@ -1,4 +1,4 @@
-import { Button, ComboBox, HorizontalBox, Palette, VerticalBox } from "std-widgets.slint";
+import { Button, CheckBox, ComboBox, HorizontalBox, Palette, VerticalBox } from "std-widgets.slint";
 import { Tr } from "tr.slint";
 import { ConnectButton } from "components.slint";
 
@@ -9,8 +9,8 @@ export struct StatusEntry {
 
 export component StatusWindow inherits Window {
     title: Tr.status-dialog-title;
-    preferred-width: 480px;
-    min-width: 480px;
+    preferred-width: 500px;
+    min-width: 500px;
     default-font-size: 14px;
 
     in property <[StatusEntry]> entries: [];
@@ -18,11 +18,13 @@ export component StatusWindow inherits Window {
     in property <bool> can-connect: true;
     in property <bool> can-disconnect: true;
     in property <bool> is-connected: false;
+    in-out property <bool> show-stats: false;
 
     callback connect-clicked(int);
     callback disconnect-clicked();
     callback settings-clicked();
     callback ok-clicked();
+    callback show-stats-toggled();
 
     out property <length> preferred-content-height: root-layout.preferred-height;
 
@@ -99,6 +101,17 @@ export component StatusWindow inherits Window {
                         }
                     }
                 }
+            }
+        }
+
+        if root.is-connected: HorizontalLayout {
+            padding-left: 4px;
+            alignment: start;
+
+            CheckBox {
+                text: Tr.status-show-stats;
+                checked <=> root.show-stats;
+                toggled => { root.show-stats-toggled(); }
             }
         }
 

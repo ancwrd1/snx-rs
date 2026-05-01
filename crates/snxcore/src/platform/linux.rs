@@ -29,6 +29,7 @@ mod keychain;
 pub mod net;
 pub mod resolver;
 mod routing;
+pub mod stats;
 pub mod xfrm;
 
 // nix does not provide these socket options yet, so we implement them here using the convenient macros.
@@ -234,7 +235,7 @@ impl PlatformAccess for LinuxPlatformAccess {
         routing::LinuxRoutingConfigurator::new(device, tunnel_type).await
     }
 
-    fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync {
+    fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static {
         net::LinuxNetworkInterface::new()
     }
 

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -26,11 +26,12 @@ pub enum TunnelCommand {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TunnelEvent {
-    Connected(ConnectionInfo),
+    Connected(Box<ConnectionInfo>),
     Disconnected,
     RekeyCheck,
     RemoteControlData(Bytes),
     Rekeyed(Ipv4Net),
+    Rtt(Duration),
 }
 
 #[async_trait]

@@ -181,6 +181,13 @@ info-dns-configured = DNS nakonfigurované
 info-routing-configured = Smerovanie nakonfigurované
 info-default-route = Predvolená trasa
 info-connection-profile = Profil pripojenia
+info-rtt = RTT
+info-bytes-received = Prijaté bajty
+info-bytes-sent = Odoslané bajty
+info-rate-received = Rýchlosť príjmu
+info-rate-sent = Rýchlosť odosielania
+info-packets-received = Prijaté pakety
+info-packets-sent = Odoslané pakety
 
 # Application
 app-title = SNX-RS VPN klient pre Linux
@@ -199,6 +206,7 @@ auth-dialog-message = Zadajte váš autentifikačný faktor:
 # Status dialog
 status-dialog-title = Informácie o pripojení
 status-button-copy = Kopírovať
+status-show-stats = Zobraziť živé štatistiky
 status-button-settings = Nastavenia
 status-button-connect = Pripojiť
 status-button-disconnect = Odpojiť
