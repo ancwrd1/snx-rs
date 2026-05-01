@@ -83,10 +83,7 @@ impl StatsPoller for LinuxStatsPoller {
             self.prev_ns.store(now_ns, ordering);
             (0, 0)
         } else if elapsed_ns < MIN_SAMPLE_NS {
-            (
-                self.last_bps_rx.load(ordering),
-                self.last_bps_tx.load(ordering),
-            )
+            (self.last_bps_rx.load(ordering), self.last_bps_tx.load(ordering))
         } else {
             let prev_rx = self.prev_rx.load(ordering);
             let prev_tx = self.prev_tx.load(ordering);
