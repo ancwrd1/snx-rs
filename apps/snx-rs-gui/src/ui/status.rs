@@ -142,12 +142,11 @@ impl WindowController for StatusWindowController {
                 let show = window.get_show_stats();
                 let entries = to_status_entries(&last_info_for_toggle.borrow(), show);
                 window.set_entries(ModelRc::new(VecModel::from(entries)));
-                if !show {
-                    let preferred_height = window.get_preferred_content_height();
-                    let win = window.window();
-                    let current = win.size().to_logical(win.scale_factor());
-                    win.set_size(LogicalSize::new(current.width, preferred_height));
-                }
+
+                let preferred_height = window.get_preferred_content_height();
+                let win = window.window();
+                let current = win.size().to_logical(win.scale_factor());
+                win.set_size(LogicalSize::new(current.width, preferred_height));
             }
         });
 

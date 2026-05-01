@@ -71,33 +71,35 @@ impl StatsPoller for LinuxStatsPoller {
             })
             .ok_or_else(|| anyhow!(i18n::tr!("error-device-not-found", device = &self.device_name)))?;
 
+        let ordering = Ordering::Relaxed;
+
         let now_ns = self.anchor.elapsed().as_nanos() as u64;
-        let prev_ns = self.prev_ns.load(Ordering::Relaxed);
+        let prev_ns = self.prev_ns.load(ordering);
         let elapsed_ns = now_ns.saturating_sub(prev_ns);
 
         let (bps_rx, bps_tx) = if prev_ns == NO_SAMPLE {
-            self.prev_rx.store(stats.rx_bytes, Ordering::Relaxed);
-            self.prev_tx.store(stats.tx_bytes, Ordering::Relaxed);
-            self.prev_ns.store(now_ns, Ordering::Relaxed);
+            self.prev_rx.store(stats.rx_bytes, ordering);
+            self.prev_tx.store(stats.tx_bytes, ordering);
+            self.prev_ns.store(now_ns, ordering);
             (0, 0)
         } else if elapsed_ns < MIN_SAMPLE_NS {
             (
-                self.last_bps_rx.load(Ordering::Relaxed),
-                self.last_bps_tx.load(Ordering::Relaxed),
+                self.last_bps_rx.load(ordering),
+                self.last_bps_tx.load(ordering),
             )
         } else {
-            let prev_rx = self.prev_rx.load(Ordering::Relaxed);
-            let prev_tx = self.prev_tx.load(Ordering::Relaxed);
+            let prev_rx = self.prev_rx.load(ordering);
+            let prev_tx = self.prev_tx.load(ordering);
             let dt = elapsed_ns as f64 / 1e9;
             let rates = (
                 (stats.rx_bytes.saturating_sub(prev_rx) as f64 / dt) as u64,
                 (stats.tx_bytes.saturating_sub(prev_tx) as f64 / dt) as u64,
             );
-            self.last_bps_rx.store(rates.0, Ordering::Relaxed);
-            self.last_bps_tx.store(rates.1, Ordering::Relaxed);
-            self.prev_rx.store(stats.rx_bytes, Ordering::Relaxed);
-            self.prev_tx.store(stats.tx_bytes, Ordering::Relaxed);
-            self.prev_ns.store(now_ns, Ordering::Relaxed);
+            self.last_bps_rx.store(rates.0, ordering);
+            self.last_bps_tx.store(rates.1, ordering);
+            self.prev_rx.store(stats.rx_bytes, ordering);
+            self.prev_tx.store(stats.tx_bytes, ordering);
+            self.prev_ns.store(now_ns, ordering);
             rates
         };
 
