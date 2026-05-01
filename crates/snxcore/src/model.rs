@@ -243,8 +243,8 @@ impl ConnectionInfo {
         result
     }
 
-    pub fn print(&self) -> String {
-        let values = self.to_values(true);
+    pub fn print(&self, with_stats: bool) -> String {
+        let values = self.to_values(with_stats);
         let label_width = values
             .iter()
             .map(|(label, _)| i18n::translate(label).chars().count())
@@ -281,7 +281,7 @@ impl ConnectionStatus {
 
     pub fn print(&self) -> String {
         match self {
-            Self::Connected(info) => info.print(),
+            Self::Connected(info) => info.print(true),
             other => other.to_string(),
         }
     }

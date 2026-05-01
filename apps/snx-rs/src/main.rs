@@ -294,7 +294,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     let _ = connector.handle_tunnel_event(event.clone()).await;
 
                     if let TunnelEvent::Connected(info) = event {
-                        println!("{}", info.print());
+                        println!("{}", info.print(false));
                         println!("{}", tr!("cli-tunnel-connected"));
                     }
                 }
