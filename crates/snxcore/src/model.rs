@@ -186,7 +186,13 @@ impl ConnectionInfo {
             ("info-user-name", self.or_empty(|| self.username.clone())),
             ("info-login-type", self.or_empty(|| self.login_type.clone())),
             ("info-tunnel-type", self.or_empty(|| self.tunnel_type.to_string())),
-            ("info-transport-type", self.or_empty(|| self.transport_type.as_i18n())),
+        ];
+
+        if self.tunnel_type == TunnelType::IPsec {
+            result.push(("info-transport-type", self.or_empty(|| self.transport_type.as_i18n())));
+        }
+
+        result.extend([
             ("info-ip-address", self.or_empty(|| self.ip_address.to_string())),
             ("info-dns-servers", self.or_empty(|| format!("{:?}", self.dns_servers))),
             (
@@ -200,17 +206,20 @@ impl ConnectionInfo {
                 self.or_empty(|| self.routing_configured.to_string()),
             ),
             ("info-default-route", self.or_empty(|| self.default_route.to_string())),
-        ];
+        ]);
 
         if with_stats {
-            result.extend([
-                (
+            if self.tunnel_type == TunnelType::IPsec {
+                result.push((
                     "info-rtt",
                     self.or_empty(|| match self.live.last_rtt_ms {
                         Some(ms) => format!("{ms} ms"),
                         None => "—".to_string(),
                     }),
-                ),
+                ));
+            }
+
+            result.extend([
                 (
                     "info-bytes-received",
                     self.or_empty(|| format_bytes(self.live.bytes_rx)),
