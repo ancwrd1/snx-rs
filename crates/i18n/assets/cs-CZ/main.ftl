@@ -90,6 +90,7 @@ error-cannot-acquire-access-cookie = Nelze získat přístupový cookie!
 error-cannot-send-request = Nelze odeslat požadavek na službu
 error-cannot-read-reply = Nelze přečíst odpověď ze služby
 error-no-ipv4 = Žádná IPv4 adresa pro {$server}
+error-sysctl-not-converged = Sysctl nekonvergoval: {$entry}
 error-not-challenge-state = Není stav výzvy
 error-no-challenge = Žádná výzva v datech
 error-endless-challenges = Nekonečná smyčka výzev uživatelského jména

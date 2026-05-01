@@ -22,3 +22,8 @@ If the desktop environment does not have a dbus SNI interface, use the `--no-tra
 1. Get the list of supported login types: `snx-rs -m info -s remote.company.com`
 2. Create a configuration file: `$HOME/.config/snx-rs/snx-rs.conf`, with desired [options](https://github.com/ancwrd1/snx-rs/blob/main/docs/options.md).
 3. Connect the tunnel with `snxctl connect` command.
+
+## Recommended for laptops: persistent IPsec session
+
+Set `ike-persist=true` and `ike-lifetime=604800` in your config file to skip the full IKE handshake on the next reconnect.
+Useful after a network blip or laptop suspend/resume — the cached session can come back online in well under a second when the gateway is responsive. See [Persistent IPsec Session](persistent-ipsec-session.md) for the trade-offs.

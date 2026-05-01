@@ -90,6 +90,7 @@ error-cannot-acquire-access-cookie = Não é possível obter o cookie de acesso!
 error-cannot-send-request = Impossível enviar pedido ao serviço
 error-cannot-read-reply = Impossível ler a resposta do serviço
 error-no-ipv4 = Sem endereço IPv4 para o servidor {$server}
+error-sysctl-not-converged = Sysctl não convergiu: {$entry}
 error-not-challenge-state = Não é um estado de negociação
 error-no-challenge = Sem negociação no payload
 error-endless-challenges = Loop infinito na negociação do nome de usuário

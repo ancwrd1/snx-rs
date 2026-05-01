@@ -23,22 +23,29 @@ use crate::platform::{DeviceConfig, NetworkInterface};
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
-// Setting the sysctl values can be flaky for new interfaces because they can acquire default values asynchronously.
-fn sysctl_set(name: &str, value: &str) -> anyhow::Result<()> {
-    let ctl = Ctl::new(name)?;
+// Setting sysctl values can be flaky for new interfaces because they can acquire default values asynchronously.
+async fn sysctl_set(name: String, value: &'static str) -> anyhow::Result<()> {
+    const POST_SET_DELAYS_MS: &[u64] = &[50, 100, 150];
 
-    for _ in 0..3 {
-        debug!("Setting sysctl {name} = {value}");
-        ctl.set_value_string(value)?;
+    tokio::task::spawn_blocking(move || {
+        let ctl = Ctl::new(&name)?;
 
-        std::thread::sleep(std::time::Duration::from_millis(100));
+        for &delay_ms in POST_SET_DELAYS_MS {
+            debug!("Setting sysctl {name} = {value}");
+            ctl.set_value_string(value)?;
 
-        if ctl.value_string()? == value {
-            break;
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+
+            if ctl.value_string()? == value {
+                return Ok(());
+            }
         }
-    }
-
-    Ok(())
+        anyhow::bail!(i18n::tr!(
+            "error-sysctl-not-converged",
+            entry = format!("{name} = {value}")
+        ))
+    })
+    .await?
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -217,14 +224,22 @@ impl NetworkInterface for LinuxNetworkInterface {
 
         let forwarding = if device_config.allow_forwarding { "1" } else { "0" };
 
-        for (name, value) in [
-            ("rp_filter", "0"),
-            ("promote_secondaries", "1"),
-            ("forwarding", forwarding),
-            ("disable_policy", forwarding),
-        ] {
-            sysctl_set(&format!("net.ipv4.conf.{}.{name}", device_config.name), value)?;
-        }
+        let prefix = format!("net.ipv4.conf.{}", device_config.name);
+        let key_rp = format!("{prefix}.rp_filter");
+        let key_promote = format!("{prefix}.promote_secondaries");
+        let key_forwarding = format!("{prefix}.forwarding");
+        let key_disable_policy = format!("{prefix}.disable_policy");
+
+        tokio::try_join!(
+            // reverse path filter must be disabled (0) or loose (2) for IPsec tunnel
+            sysctl_set(key_rp, "2"),
+            // promote secondaries must be enabled to allow IP address changes
+            sysctl_set(key_promote, "1"),
+            // forwarding depends on the user setting
+            sysctl_set(key_forwarding, forwarding),
+            // when forwarding is enabled, disable IPsec policy enforcement
+            sysctl_set(key_disable_policy, forwarding),
+        )?;
 
         Ok(())
     }

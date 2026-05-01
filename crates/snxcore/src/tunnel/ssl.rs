@@ -98,6 +98,7 @@ impl SslTunnel {
         let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
 
         let tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
+        tcp.set_nodelay(true)?;
 
         let mut builder = TlsConnector::builder();
 
@@ -378,17 +379,20 @@ impl VpnTunnel for SslTunnel {
             .configure_device(&device_config)
             .await?;
 
-        self.setup_routing(&device_config).await?;
+        let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
+        self.tun_device = Some(tun);
 
         let resolver_config = self.make_resolver_config().await;
 
-        if !self.params.no_dns {
-            self.setup_dns(&resolver_config, &tun_name, false).await?;
-        }
-
-        let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
-
-        self.tun_device = Some(tun);
+        let routing_fut = self.setup_routing(&device_config);
+        let dns_fut = async {
+            if self.params.no_dns {
+                Ok(())
+            } else {
+                self.setup_dns(&resolver_config, &tun_name, false).await
+            }
+        };
+        tokio::try_join!(routing_fut, dns_fut)?;
 
         let mut snx_receiver = self.receiver.take().unwrap();
 

@@ -90,6 +90,7 @@ error-connection-timeout = Istek vremena veze
 error-cannot-send-request = Nije moguće poslati zahtjev usluzi
 error-cannot-read-reply = Nije moguće pročitati odgovor od usluge
 error-no-ipv4 = Nema IPv4 adrese za {$server}
+error-sysctl-not-converged = Sysctl nije konvergirao: {$entry}
 error-not-challenge-state = Nije stanje izazova
 error-no-challenge = Nema izazova u sadržaju
 error-endless-challenges = Beskonačna petlja izazova korisničkog imena

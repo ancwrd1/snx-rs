@@ -60,6 +60,7 @@ impl TcptIPsecTunnel {
         let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
 
         let mut tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
+        tcp.set_nodelay(true)?;
 
         tcp.handshake(TcptDataType::Esp).await?;
 

@@ -64,16 +64,20 @@ impl NattProber {
     }
 
     async fn send_probe(&self) -> anyhow::Result<()> {
+        const TIMEOUTS: &[Duration] = &[
+            Duration::from_millis(200),
+            Duration::from_millis(500),
+            Duration::from_secs(1),
+        ];
+
         debug!("Sending NAT-T probe to {}", self.address);
-
         let udp = UdpSocket::bind("0.0.0.0:0").await?;
-
         let data = vec![0u8; 32];
 
-        let result = udp.send_receive(&data, Duration::from_secs(2), self.address).await;
-
-        match result {
-            Ok(reply) if reply.len() == 32 => {
+        for &timeout in TIMEOUTS {
+            if let Ok(reply) = udp.send_receive(&data, timeout, self.address).await
+                && reply.len() == 32
+            {
                 let source_port: [u8; 4] = reply[8..12].try_into()?;
                 let dest_port: [u8; 4] = reply[12..16].try_into()?;
                 debug!(
@@ -83,10 +87,10 @@ impl NattProber {
                     u32::from_be_bytes(dest_port),
                     hex::encode(&reply[reply.len() - 16..reply.len()])
                 );
-                Ok(())
+                return Ok(());
             }
-            _ => Err(anyhow!(i18n::tr!("error-no-natt-reply"))),
         }
+        Err(anyhow!(i18n::tr!("error-no-natt-reply")))
     }
 
     async fn send_nmap_knock(&self) -> anyhow::Result<()> {
@@ -101,6 +105,47 @@ impl NattProber {
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         Ok(())
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use std::{
+        net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+        time::Instant,
+    };
+
+    use tokio::net::UdpSocket;
+
+    use super::*;
+
+    /// Targets a UDP socket bound on localhost that never replies. The probe
+    /// schedule is [200ms, 500ms, 1s] = 1.7s per send_probe; on failure
+    /// `probe()` calls send_probe twice, so the elapsed time should land near
+    /// 3.4s. The previous fixed 2s-per-call timeout would land at exactly
+    /// 4.0s, so the upper bound below is set to fail the test in that case.
+    #[tokio::test]
+    async fn probe_failure_path_takes_around_two_send_probes() {
+        let sink = UdpSocket::bind(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0)))
+            .await
+            .expect("bind sink");
+        let target = sink.local_addr().expect("sink addr");
+
+        let prober = NattProber::new(target, false);
+
+        let started = Instant::now();
+        let result = prober.probe().await;
+        let elapsed = started.elapsed();
+
+        assert!(result.is_err(), "probe must fail when target never replies");
+        assert!(
+            elapsed >= Duration::from_secs(3),
+            "elapsed too short: {elapsed:?}, expected >= 3s"
+        );
+        assert!(
+            elapsed < Duration::from_millis(3900),
+            "elapsed too long: {elapsed:?}, expected < 3.9s (regression to old fixed 2s timeout?)"
+        );
     }
 }
 

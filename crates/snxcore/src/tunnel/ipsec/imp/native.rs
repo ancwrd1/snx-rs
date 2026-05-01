@@ -215,16 +215,20 @@ impl VpnTunnel for NativeIPsecTunnel {
             .as_ref()
             .context(tr!("error-no-ipsec-session"))?;
 
-        self.setup_routing(session).await?;
-
         let resolver_config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
             .search_domains(&session.domains)
             .dns_servers(session.dns.iter().cloned())
             .build();
 
-        if !self.params.no_dns {
-            self.setup_dns(&resolver_config, false).await?;
-        }
+        let routing_fut = self.setup_routing(session);
+        let dns_fut = async {
+            if self.params.no_dns {
+                Ok(())
+            } else {
+                self.setup_dns(&resolver_config, false).await
+            }
+        };
+        tokio::try_join!(routing_fut, dns_fut)?;
 
         let ip_address = Ipv4Net::with_netmask(session.address, session.netmask)?;
 
