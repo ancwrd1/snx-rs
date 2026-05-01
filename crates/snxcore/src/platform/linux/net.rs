@@ -23,19 +23,19 @@ use crate::platform::{DeviceConfig, NetworkInterface};
 
 static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
-// Setting the sysctl values can be flaky for new interfaces because they can acquire default values asynchronously.
-async fn sysctl_set(name: &str, value: &str) -> anyhow::Result<()> {
+// Setting sysctl values can be flaky for new interfaces because they can acquire default values asynchronously.
+async fn sysctl_set(name: String, value: &'static str) -> anyhow::Result<()> {
     const POST_SET_DELAYS_MS: &[u64] = &[50, 100, 150];
-
-    let name = name.to_owned();
-    let value = value.to_owned();
 
     tokio::task::spawn_blocking(move || {
         let ctl = Ctl::new(&name)?;
+
         for &delay_ms in POST_SET_DELAYS_MS {
             debug!("Setting sysctl {name} = {value}");
-            ctl.set_value_string(&value)?;
+            ctl.set_value_string(value)?;
+
             std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+
             if ctl.value_string()? == value {
                 return Ok(());
             }
@@ -229,11 +229,16 @@ impl NetworkInterface for LinuxNetworkInterface {
         let key_promote = format!("{prefix}.promote_secondaries");
         let key_forwarding = format!("{prefix}.forwarding");
         let key_disable_policy = format!("{prefix}.disable_policy");
+
         tokio::try_join!(
-            sysctl_set(&key_rp, "0"),
-            sysctl_set(&key_promote, "1"),
-            sysctl_set(&key_forwarding, forwarding),
-            sysctl_set(&key_disable_policy, forwarding),
+            // reverse path filter must be disabled (0) or loose (2) for IPsec tunnel
+            sysctl_set(key_rp, "2"),
+            // promote secondaries must be enabled to allow IP address changes
+            sysctl_set(key_promote, "1"),
+            // forwarding depends on the user setting
+            sysctl_set(key_forwarding, forwarding),
+            // when forwarding is enabled, disable IPsec policy enforcement
+            sysctl_set(key_disable_policy, forwarding),
         )?;
 
         Ok(())
