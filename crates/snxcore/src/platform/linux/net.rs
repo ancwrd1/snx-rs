@@ -25,7 +25,7 @@ static ONLINE_STATE: AtomicBool = AtomicBool::new(true);
 
 // Setting the sysctl values can be flaky for new interfaces because they can acquire default values asynchronously.
 async fn sysctl_set(name: &str, value: &str) -> anyhow::Result<()> {
-    const POST_SET_DELAYS_MS: &[u64] = &[100, 125, 250];
+    const POST_SET_DELAYS_MS: &[u64] = &[50, 100, 150];
 
     let name = name.to_owned();
     let value = value.to_owned();
