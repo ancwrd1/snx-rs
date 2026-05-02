@@ -132,9 +132,7 @@ impl NativeIPsecTunnel {
     }
 
     async fn setup_routing(&self, session: &IPsecSession) -> anyhow::Result<()> {
-        let platform = Platform::get();
-
-        let configurator = platform
+        let configurator = Platform::get()
             .new_routing_configurator(&self.device_name, TunnelType::IPsec)
             .await?;
 
@@ -180,9 +178,7 @@ impl NativeIPsecTunnel {
             let _ = self.setup_dns(&config, true).await;
         }
 
-        let platform = Platform::get();
-
-        if let Ok(configurator) = platform
+        if let Ok(configurator) = Platform::get()
             .new_routing_configurator(&self.device_name, TunnelType::IPsec)
             .await
         {

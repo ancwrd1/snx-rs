@@ -124,9 +124,7 @@ impl TunIPsecTunnel {
             let _ = self.setup_dns(&config, device.name(), true).await;
         }
 
-        let platform = Platform::get();
-
-        if let Ok(configurator) = platform
+        if let Ok(configurator) = Platform::get()
             .new_routing_configurator(device.name(), TunnelType::IPsec)
             .await
         {
@@ -145,8 +143,9 @@ impl TunIPsecTunnel {
     }
 
     pub async fn setup_routing(&self, dev_name: &str, session: &IPsecSession) -> anyhow::Result<()> {
-        let platform = Platform::get();
-        let configurator = platform.new_routing_configurator(dev_name, TunnelType::IPsec).await?;
+        let configurator = Platform::get()
+            .new_routing_configurator(dev_name, TunnelType::IPsec)
+            .await?;
 
         let config = if self.params.no_routing {
             RoutingConfig::Split {

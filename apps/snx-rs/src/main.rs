@@ -176,8 +176,7 @@ fn process_cert_response(path: &Path, resp: CertificateResponse) -> anyhow::Resu
 }
 
 async fn main_command() -> anyhow::Result<()> {
-    let platform = Platform::get();
-    let instance = platform.new_single_instance("/var/run/snx-rs.lock")?;
+    let instance = Platform::get().new_single_instance("/var/run/snx-rs.lock")?;
     if !instance.is_single() {
         eprintln!("{}", tr!("cli-another-instance-running"));
         return Ok(());

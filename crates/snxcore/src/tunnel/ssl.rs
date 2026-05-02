@@ -216,11 +216,11 @@ impl SslTunnel {
             return;
         };
 
-        let platform = Platform::get();
-
         if let Ok(info) = server_info::get(&self.params).await
             && let Ok(dest_ip) = util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
-            && let Ok(configurator) = platform.new_routing_configurator(device.name(), TunnelType::SSL).await
+            && let Ok(configurator) = Platform::get()
+                .new_routing_configurator(device.name(), TunnelType::SSL)
+                .await
         {
             let _ = configurator
                 .configure(&RoutingConfig::Cleanup {
@@ -251,8 +251,7 @@ impl SslTunnel {
     }
 
     pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
-        let platform = Platform::get();
-        let configurator = platform
+        let configurator = Platform::get()
             .new_routing_configurator(&device_config.name, TunnelType::SSL)
             .await?;
 

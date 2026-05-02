@@ -70,8 +70,7 @@ async fn main() -> anyhow::Result<()> {
         std::process::exit(code);
     }
 
-    let platform = Platform::get();
-    let instance = platform.new_single_instance(format!("/tmp/snx-rs-gui-{}.lock", Uid::current()))?;
+    let instance = Platform::get().new_single_instance(format!("/tmp/snx-rs-gui-{}.lock", Uid::current()))?;
     if !instance.is_single() {
         if let Some(mut command) = cmdline_params.command {
             if matches!(command, TrayEvent::Connect(_)) && default_params.server_name.is_empty() {

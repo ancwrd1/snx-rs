@@ -231,7 +231,7 @@ impl PlatformAccess for LinuxPlatformAccess {
         &self,
         device: S,
         tunnel_type: TunnelType,
-    ) -> anyhow::Result<impl RoutingConfigurator + Send + Sync> {
+    ) -> anyhow::Result<impl RoutingConfigurator + Send + Sync + 'static> {
         routing::LinuxRoutingConfigurator::new(device, tunnel_type).await
     }
 
@@ -239,18 +239,7 @@ impl PlatformAccess for LinuxPlatformAccess {
         net::LinuxNetworkInterface::new()
     }
 
-    fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance> {
+    fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static> {
         UnixSingleInstance::new(name)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    #[ignore]
-    async fn test_xfrm_check() {
-        println!("{}", is_xfrm_available().await);
     }
 }
