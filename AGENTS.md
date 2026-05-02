@@ -10,7 +10,7 @@ Repository: https://github.com/ancwrd1/snx-rs
 License: AGPL-3.0 (see `COPYING`)  
 Author: Dmitry Pankratov <dmitry@pankratov.net>  
 
-Linux-only. Other platforms are not supported and not a target.
+Linux-only. Other platforms are not supported and not a target. However, all platform-specific code must be isolated under `platform` submodule.
 
 ## Workspace layout
 
@@ -30,7 +30,7 @@ Top-level directories:
 * `apps/` — the three binary crates.
 * `docs/` — user-facing Markdown docs (`docs/README.md` is the index). Keep in sync when changing user-visible behavior.
 * `package/` — packaging assets: systemd unit (`snx-rs.service`), desktop file, Debian and RPM packaging, installer script, LTO build script.
-* `.github/workflows/` — `ci.yml` (fmt + clippy + test), `release.yml`, `automerge.yml`.
+* `.github/workflows/` — `ci.yml` (fmt + clippy + test), `release.yml`, `automerge.yml`, `pages.yml`.
 * `i18n.md` — canonical instructions for translation tasks. Re-read before doing any locale work.
 * `CHANGELOG.md` — hand-maintained. Add a user-visible entry for any user-visible change.
 
@@ -47,13 +47,13 @@ Top-level directories:
 * `prompt.rs` — tty and secure prompt abstractions.
 * `sexpr.rs` + `sexpr.pest` — parser for Check Point's S-expression wire format (`pest` grammar).
 * `model/` — protocol types: `params.rs` (tunnel config / `TunnelParams`), `proto.rs` (wire structs), `wrappers.rs`.
-* `platform/linux/` — Linux-only bits: `keychain.rs` (Secret Service), `resolver.rs` (systemd-resolved via D-Bus), `routing.rs` (rtnetlink), `xfrm.rs` (xfrmnetlink / netlink-packet-xfrm), `net.rs`.
+* `platform/linux/` — Linux-only bits: `keychain.rs` (Secret Service), `resolver.rs` (systemd-resolved via D-Bus), `routing.rs` (rtnetlink), `xfrm.rs` (xfrmnetlink / netlink-packet-xfrm), `net.rs`, `stats.rs` (interface stats poller).
 * `tunnel/` — transport implementations:
   * `ipsec/` — IPsec connector, NAT-T, keepalive, SCV policy emulation (`scv.rs`), plus the `imp/` impls selected at runtime (kernel XFRM vs. userspace TUN/TCPT).
   * `ssl/` — SSL tunnel codec, connector, keepalive (legacy fallback transport).
   * `device.rs` — tun device abstraction.
 * `util.rs` — misc helpers.
-* `tests/` — integration fixtures (`*.txt` captured wire payloads).
+* `tests/` — integration fixtures (`*.txt` captured wire payloads) and integration tests.
 
 The external `isakmp` crate (git dep: `https://github.com/ancwrd1/isakmp.git`) provides IKE/ISAKMP primitives used by the IPsec tunnel.
 
