@@ -9,7 +9,7 @@ use tracing::{debug, warn};
 use crate::{
     ccc::CccHttpClient,
     model::{
-        MfaChallenge, MfaType, SessionState, VpnSession,
+        AuthenticatedSession, MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TunnelParams},
         proto::{AuthResponse, LoginOption},
     },
@@ -47,7 +47,6 @@ impl SslTunnelConnector {
                         mfa_type,
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
                     }),
-                    ipsec_session: None,
                     username: None,
                 }));
             }
@@ -74,8 +73,7 @@ impl SslTunnelConnector {
 
         let session = Arc::new(VpnSession {
             ccc_session_id: session_id,
-            state: SessionState::Authenticated(active_key.0),
-            ipsec_session: None,
+            state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey(active_key.0)),
             username: data.username,
         });
         Ok(session)
@@ -90,7 +88,6 @@ impl TunnelConnector for SslTunnelConnector {
         if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
             return Ok(Arc::new(VpnSession {
                 ccc_session_id: String::new(),
-                ipsec_session: None,
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::MobileAccess,
                     prompt: format!("https://{}/", self.params.server_name),
@@ -109,7 +106,6 @@ impl TunnelConnector for SslTunnelConnector {
                     mfa_type: MfaType::UserNameInput,
                     prompt: tr!("label-username"),
                 }),
-                ipsec_session: None,
                 username: None,
             }))
         } else {
@@ -138,8 +134,7 @@ impl TunnelConnector for SslTunnelConnector {
         if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
             return Ok(Arc::new(VpnSession {
                 ccc_session_id: String::new(),
-                ipsec_session: None,
-                state: SessionState::Authenticated(user_input.to_owned()),
+                state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey(user_input.to_owned())),
                 username: None,
             }));
         }

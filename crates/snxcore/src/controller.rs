@@ -37,7 +37,7 @@ async fn new_stream() -> anyhow::Result<interprocess::local_socket::tokio::Strea
         )
     }
     .await
-    .context(tr!("error-no-service-connection"))
+    .with_context(|| tr!("error-no-service-connection"))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

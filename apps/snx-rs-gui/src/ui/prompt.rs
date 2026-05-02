@@ -93,7 +93,7 @@ impl SlintPrompt {
             Ok(PromptWindowController::new(prompt, secure, tx)?)
         });
 
-        rx.recv().await.context(tr!("error-user-input-canceled"))?
+        rx.recv().await.with_context(|| tr!("error-user-input-canceled"))?
     }
 }
 

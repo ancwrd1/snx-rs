@@ -114,7 +114,7 @@ impl TunIPsecTunnel {
             return;
         };
 
-        if let Some(session) = self.session.ipsec_session.as_ref()
+        if let Some(session) = self.session.ipsec_session()
             && !self.params.no_dns
         {
             let config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
@@ -214,15 +214,10 @@ impl VpnTunnel for TunIPsecTunnel {
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let Some(ref ipsec_session) = self.session.ipsec_session else {
-            anyhow::bail!(tr!("error-no-ipsec-session"));
-        };
-
         let session = self
             .session
-            .ipsec_session
-            .as_ref()
-            .context(tr!("error-no-ipsec-session"))?;
+            .ipsec_session()
+            .with_context(|| tr!("error-no-ipsec-session"))?;
 
         let mut tun = TunDevice::new(name_hint)?;
         let tun_name = tun.name().to_owned();
@@ -267,7 +262,7 @@ impl VpnTunnel for TunIPsecTunnel {
         esp_codec_in
             .write()
             .unwrap()
-            .set_params(ipsec_session.esp_in.spi, ipsec_session.esp_in.clone());
+            .set_params(session.esp_in.spi, session.esp_in.clone());
 
         let esp_codec_out = Arc::new(RwLock::new(EspCodec::new(
             session.address,
@@ -277,7 +272,7 @@ impl VpnTunnel for TunIPsecTunnel {
         esp_codec_out
             .write()
             .unwrap()
-            .set_params(ipsec_session.esp_out.spi, ipsec_session.esp_out.clone());
+            .set_params(session.esp_out.spi, session.esp_out.clone());
 
         let sender = event_sender.clone();
 
@@ -314,9 +309,8 @@ impl VpnTunnel for TunIPsecTunnel {
 
         let session = self
             .session
-            .ipsec_session
-            .as_ref()
-            .context(tr!("error-no-ipsec-session"))?;
+            .ipsec_session()
+            .with_context(|| tr!("error-no-ipsec-session"))?;
 
         let mut ip_address = Ipv4Net::with_netmask(session.address, session.netmask)?;
 

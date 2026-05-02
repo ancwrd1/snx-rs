@@ -16,11 +16,17 @@ pub mod params;
 pub mod proto;
 pub mod wrappers;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum AuthenticatedSession {
+    SslSessionKey(String),
+    IPsecSession(IPsecSession),
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum SessionState {
     #[default]
     NoState,
-    Authenticated(String),
+    Authenticated(AuthenticatedSession),
     PendingChallenge(MfaChallenge),
 }
 
@@ -62,7 +68,6 @@ impl IPsecSession {
 #[derive(Debug, Clone, PartialEq)]
 pub struct VpnSession {
     pub ccc_session_id: String,
-    pub ipsec_session: Option<IPsecSession>,
     pub state: SessionState,
     pub username: Option<String>,
 }
@@ -71,16 +76,24 @@ impl VpnSession {
     pub fn empty() -> Self {
         Self {
             ccc_session_id: String::new(),
-            ipsec_session: None,
             state: SessionState::default(),
             username: None,
         }
     }
 
-    pub fn active_key(&self) -> &str {
+    pub fn ssl_session_key(&self) -> Option<&str> {
         match self.state {
-            SessionState::Authenticated(ref active_key) => active_key.as_str(),
-            _ => "",
+            SessionState::Authenticated(AuthenticatedSession::SslSessionKey(ref active_key)) => {
+                Some(active_key.as_str())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn ipsec_session(&self) -> Option<&IPsecSession> {
+        match self.state {
+            SessionState::Authenticated(AuthenticatedSession::IPsecSession(ref ipsec_session)) => Some(ipsec_session),
+            _ => None,
         }
     }
 }

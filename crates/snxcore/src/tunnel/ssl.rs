@@ -159,7 +159,7 @@ impl SslTunnel {
             optional: Some(OptionalRequest {
                 client_type: "4".to_string(),
             }),
-            cookie: self.session.active_key().to_owned(),
+            cookie: self.session.ssl_session_key().unwrap_or_default().to_owned(),
         };
 
         if self.params.login_type != LoginOption::MOBILE_ACCESS_ID {

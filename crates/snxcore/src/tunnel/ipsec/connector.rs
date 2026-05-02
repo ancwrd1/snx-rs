@@ -24,7 +24,7 @@ use tracing::{debug, trace, warn};
 
 use crate::{
     model::{
-        IPsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
+        AuthenticatedSession, IPsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TransportType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData},
     },
@@ -207,7 +207,6 @@ impl IPsecTunnelConnector {
 
         Ok(Arc::new(VpnSession {
             ccc_session_id: self.ccc_session.clone(),
-            ipsec_session: None,
             state: SessionState::PendingChallenge(MfaChallenge {
                 mfa_type: MfaType::from_id(&id),
                 prompt,
@@ -331,7 +330,6 @@ impl IPsecTunnelConnector {
                 } else if attr == ConfigAttributeType::UserName {
                     Arc::new(VpnSession {
                         ccc_session_id: self.ccc_session.clone(),
-                        ipsec_session: None,
                         state: SessionState::PendingChallenge(MfaChallenge {
                             mfa_type: MfaType::UserNameInput,
                             prompt: tr!("label-username"),
@@ -551,8 +549,7 @@ impl IPsecTunnelConnector {
     fn new_vpn_session(&self) -> Arc<VpnSession> {
         Arc::new(VpnSession {
             ccc_session_id: self.ccc_session.clone(),
-            ipsec_session: Some(self.ipsec_session.clone()),
-            state: SessionState::Authenticated(String::new()),
+            state: SessionState::Authenticated(AuthenticatedSession::IPsecSession(self.ipsec_session.clone())),
             username: Some(self.username.clone()),
         })
     }

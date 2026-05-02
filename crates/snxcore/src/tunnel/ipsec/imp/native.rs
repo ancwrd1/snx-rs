@@ -49,7 +49,7 @@ impl NativeIPsecTunnel {
     pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
         let server_info = server_info::get(&params).await?;
 
-        let ipsec_session = session.ipsec_session.as_ref().context(tr!("error-no-ipsec-session"))?;
+        let ipsec_session = session.ipsec_session().with_context(|| tr!("error-no-ipsec-session"))?;
 
         let client = CccHttpClient::new(params.clone(), Some(session.clone()));
         let client_settings = client.get_client_settings().await?;
@@ -170,7 +170,7 @@ impl NativeIPsecTunnel {
 
     async fn cleanup(&mut self) {
         if !self.params.no_dns
-            && let Some(session) = self.session.ipsec_session.as_ref()
+            && let Some(session) = self.session.ipsec_session()
         {
             let config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
                 .search_domains(&session.domains)
@@ -211,9 +211,8 @@ impl VpnTunnel for NativeIPsecTunnel {
 
         let session = self
             .session
-            .ipsec_session
-            .as_ref()
-            .context(tr!("error-no-ipsec-session"))?;
+            .ipsec_session()
+            .with_context(|| tr!("error-no-ipsec-session"))?;
 
         let resolver_config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
             .search_domains(&session.domains)
