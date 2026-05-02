@@ -25,9 +25,9 @@ const SEND_TIMEOUT: Duration = Duration::from_secs(2);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(120);
 const SERVICE_CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
 
-async fn new_stream() -> anyhow::Result<interprocess::local_socket::tokio::Stream> {
+async fn new_stream(name: &str) -> anyhow::Result<interprocess::local_socket::tokio::Stream> {
     async {
-        let name = server::DEFAULT_NAME.to_ns_name::<GenericNamespaced>()?;
+        let name = name.to_ns_name::<GenericNamespaced>()?;
         Ok::<_, anyhow::Error>(
             tokio::time::timeout(
                 SERVICE_CONNECT_TIMEOUT,
@@ -73,6 +73,7 @@ pub struct ServiceController<B, P> {
     browser_controller: B,
     stream: Option<interprocess::local_socket::tokio::Stream>,
     otp_cancel_sender: Option<tokio::sync::oneshot::Sender<()>>,
+    server_name: String,
 }
 
 impl<B, P> ServiceController<B, P>
@@ -90,13 +91,28 @@ where
             browser_controller,
             stream: None,
             otp_cancel_sender: None,
+            server_name: server::DEFAULT_NAME.to_owned(),
+        }
+    }
+
+    pub fn new_with_server_name<N: AsRef<str>>(server_name: N, prompt: P, browser_controller: B) -> Self {
+        Self {
+            prompt,
+            mfa_prompts: None,
+            password_from_keychain: SecretString::default(),
+            username: String::new(),
+            mfa_index: 0,
+            browser_controller,
+            stream: None,
+            otp_cancel_sender: None,
+            server_name: server_name.as_ref().to_owned(),
         }
     }
 
     async fn get_stream(&mut self) -> anyhow::Result<&mut interprocess::local_socket::tokio::Stream> {
         match self.stream.take() {
             Some(stream) => Ok(self.stream.insert(stream)),
-            None => Ok(self.stream.insert(new_stream().await?)),
+            None => Ok(self.stream.insert(new_stream(&self.server_name).await?)),
         }
     }
 
@@ -324,7 +340,7 @@ where
         let mut stream = if request.is_polling() {
             self.get_stream().await?
         } else {
-            aux_stream = new_stream().await?;
+            aux_stream = new_stream(&self.server_name).await?;
             &mut aux_stream
         };
 

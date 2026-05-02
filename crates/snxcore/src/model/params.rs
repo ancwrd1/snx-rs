@@ -778,10 +778,10 @@ impl TunnelParams {
         Ok(())
     }
 
-    pub fn load_all() -> Vec<Self> {
+    pub fn load_all_from<P: AsRef<Path>>(path: P) -> Vec<Self> {
         let mut result = Vec::new();
 
-        if let Ok(mut entries) = std::fs::read_dir(TunnelParams::default_config_dir()) {
+        if let Ok(mut entries) = fs::read_dir(path) {
             while let Some(Ok(entry)) = entries.next() {
                 if entry.file_name().to_string_lossy().strip_suffix(".conf").is_some()
                     && let Ok(params) = TunnelParams::load(entry.path())
