@@ -192,16 +192,18 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            let sender = self.sender.clone();
             self.scope.window.on_profile_new_clicked(move || {
                 let weak = weak.clone();
                 let state = state.clone();
+                let sender = sender.clone();
                 let _ = slint::spawn_local(async move {
                     if let Some(w) = weak.upgrade() {
                         let name =
                             show_entry_dialog(&w.window, &tr!("profile-new-title"), &tr!("label-profile-name"), "")
                                 .await;
                         if let Some(name) = name {
-                            on_profile_new(&w.window, &state, name);
+                            on_profile_new(&w.window, &state, name, sender);
                         }
                     }
                 });
@@ -211,9 +213,11 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            let sender = self.sender.clone();
             self.scope.window.on_profile_rename_clicked(move || {
                 let weak = weak.clone();
                 let state = state.clone();
+                let sender = sender.clone();
                 let _ = slint::spawn_local(async move {
                     let Some(w) = weak.upgrade() else { return };
                     let active = w.window.get_profile_index() as usize;
@@ -233,7 +237,7 @@ impl SettingsWindowController {
                         )
                         .await;
                         if let Some(name) = name {
-                            on_profile_rename(&w.window, &state, name);
+                            on_profile_rename(&w.window, &state, name, sender);
                         }
                     }
                 });
@@ -243,9 +247,10 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            let sender = self.sender.clone();
             self.scope.window.on_profile_reorder(move |from, to| {
                 if let Some(w) = weak.upgrade() {
-                    on_profile_reorder(&w.window, &state, from as usize, to as usize);
+                    on_profile_reorder(&w.window, &state, from as usize, to as usize, sender.clone());
                 }
             });
         }
@@ -253,14 +258,16 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            let sender = self.sender.clone();
             self.scope.window.on_profile_delete_clicked(move || {
                 let weak = weak.clone();
                 let state = state.clone();
+                let sender = sender.clone();
                 let _ = slint::spawn_local(async move {
                     if let Some(w) = weak.upgrade()
                         && confirm_dialog(&w.window, &tr!("profile-delete-prompt")).await
                     {
-                        on_profile_delete(&w.window, &state);
+                        on_profile_delete(&w.window, &state, sender);
                     }
                 });
             });
@@ -671,7 +678,12 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
     });
 }
 
-fn on_profile_new(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, name: String) {
+fn on_profile_new(
+    window: &SettingsWindow,
+    state: &Rc<RefCell<SettingsState>>,
+    name: String,
+    sender: Sender<TrayCommand>,
+) {
     let profile_id = Uuid::new_v4();
     let params = Arc::new(TunnelParams {
         profile_name: name.clone(),
@@ -693,9 +705,16 @@ fn on_profile_new(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, n
     refresh_default_profile_index(window, state);
     window.set_profile_index(new_index);
     load_profile_into_window(window, state);
+
+    tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
 }
 
-fn on_profile_rename(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, name: String) {
+fn on_profile_rename(
+    window: &SettingsWindow,
+    state: &Rc<RefCell<SettingsState>>,
+    name: String,
+    sender: Sender<TrayCommand>,
+) {
     let active = window.get_profile_index() as usize;
     let id = match state.borrow().profile_ids.get(active).copied() {
         Some(id) => id,
@@ -715,9 +734,17 @@ fn on_profile_rename(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
     }
     window.set_profiles(ModelRc::new(VecModel::from(names)));
     window.set_profile_index(active as i32);
+
+    tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
 }
 
-fn on_profile_reorder(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, from: usize, to: usize) {
+fn on_profile_reorder(
+    window: &SettingsWindow,
+    state: &Rc<RefCell<SettingsState>>,
+    from: usize,
+    to: usize,
+    sender: Sender<TrayCommand>,
+) {
     if from == to {
         return;
     }
@@ -741,9 +768,11 @@ fn on_profile_reorder(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>
         let new_idx = ids.iter().position(|x| *x == id).unwrap_or(0) as i32;
         window.set_profile_index(new_idx);
     }
+
+    tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
 }
 
-fn on_profile_delete(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) {
+fn on_profile_delete(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, sender: Sender<TrayCommand>) {
     let active = window.get_profile_index() as usize;
     let id = match state.borrow().profile_ids.get(active).copied() {
         Some(id) => id,
@@ -765,6 +794,8 @@ fn on_profile_delete(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
     refresh_default_profile_index(window, state);
     window.set_profile_index(0);
     load_profile_into_window(window, state);
+
+    tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
 }
 
 fn validate(window: &SettingsWindow) -> anyhow::Result<()> {
