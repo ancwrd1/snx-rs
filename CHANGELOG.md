@@ -1,6 +1,8 @@
 ## v6.0.5 (TBD)
 - Added interface statistics in the status window.
 - Improved performance when setting up the tunnel.
+- Fixed a problem with icon file permissions in the .run installer.
+- Update the taskbar menu and Connect button in the status window after the profiles are reordered or modified. 
 
 
 ## v6.0.4 (2026-04-30)
