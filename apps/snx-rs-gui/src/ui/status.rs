@@ -76,26 +76,29 @@ impl WindowController for StatusWindowController {
         self.scope.set_globals();
 
         let profiles = ConnectionProfilesStore::instance().all();
-        let profile_names: Vec<SharedString> = profiles.iter().map(|p| p.profile_name.as_str().into()).collect();
+        let profile_names: Vec<SharedString> = profiles.into_iter().map(|p| p.profile_name.as_str().into()).collect();
         self.scope
             .window
             .set_profile_names(ModelRc::new(VecModel::from(profile_names)));
+
         self.scope.window.set_can_connect(false);
         self.scope.window.set_can_disconnect(false);
+
         self.scope
             .window
             .set_entries(ModelRc::new(VecModel::from(Vec::<StatusEntry>::new())));
 
-        let profile_ids: Rc<Vec<_>> = Rc::new(profiles.iter().map(|p| p.profile_id).collect());
-
         let sender = self.tray_event_sender.clone();
-        let profile_ids = profile_ids.clone();
 
         self.scope.window.on_connect_clicked(move |index| {
+            let profiles = ConnectionProfilesStore::instance().all();
             let uuid = if index < 0 {
-                profile_ids.first().copied().unwrap_or(DEFAULT_PROFILE_UUID)
+                profiles.first().map(|p| p.profile_id).unwrap_or(DEFAULT_PROFILE_UUID)
             } else {
-                profile_ids.get(index as usize).copied().unwrap_or(DEFAULT_PROFILE_UUID)
+                profiles
+                    .get(index as usize)
+                    .map(|p| p.profile_id)
+                    .unwrap_or(DEFAULT_PROFILE_UUID)
             };
             let sender = sender.clone();
             tokio::spawn(async move { sender.send(TrayEvent::Connect(uuid)).await });
