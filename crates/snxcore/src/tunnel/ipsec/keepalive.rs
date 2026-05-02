@@ -118,3 +118,53 @@ impl KeepaliveRunner {
         Err(anyhow!(i18n::tr!("error-keepalive-failed")))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::AtomicBool;
+
+    use tokio::net::UdpSocket;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn successful_keepalive_emits_rtt_event() {
+        let echo = UdpSocket::bind(("127.0.0.1", TunnelParams::IPSEC_KEEPALIVE_PORT))
+            .await
+            .expect("bind echo socket");
+        let echo_task = tokio::spawn(async move {
+            let mut buf = [0u8; 256];
+            while let Ok((size, peer)) = echo.recv_from(&mut buf).await {
+                let _ = echo.send_to(&buf[..size], peer).await;
+            }
+        });
+
+        let ready = Arc::new(AtomicBool::new(true));
+        let mut runner = KeepaliveRunner::new(Ipv4Addr::LOCALHOST, ready);
+        let (tx, mut rx) = mpsc::channel(8);
+        runner.set_event_sender(tx);
+
+        let runner_task = tokio::spawn(async move { runner.run().await });
+
+        let event = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+            .await
+            .expect("rtt event within timeout")
+            .expect("event channel open");
+        assert!(matches!(event, TunnelEvent::Rtt(_)));
+
+        runner_task.abort();
+        echo_task.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn failed_keepalive_returns_error_after_max_retries() {
+        // Nothing listens on 127.0.0.2:IPSEC_KEEPALIVE_PORT, so every send_receive call times out.
+        let ready = Arc::new(AtomicBool::new(true));
+        let runner = KeepaliveRunner::new(Ipv4Addr::new(127, 0, 0, 2), ready);
+
+        let result = tokio::time::timeout(Duration::from_secs(120), runner.run())
+            .await
+            .expect("runner should exit after exhausting retries");
+        assert!(result.is_err());
+    }
+}

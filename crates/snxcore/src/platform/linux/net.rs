@@ -285,15 +285,3 @@ impl NetworkInterface for LinuxNetworkInterface {
         ONLINE_STATE.load(Ordering::SeqCst)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    #[ignore]
-    async fn test_default_ip() {
-        let ip = LinuxNetworkInterface.get_default_ipv4().await;
-        println!("{ip:?}");
-    }
-}

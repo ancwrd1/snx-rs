@@ -67,6 +67,7 @@ netlink-packet-xfrm = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
+tokio = { version = "1", features = ["test-util"] }
 
 [features]
 vendored-openssl = ["openssl/vendored"]
