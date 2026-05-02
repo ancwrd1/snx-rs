@@ -14,6 +14,7 @@ use snxcore::{
     tunnel::{TunnelCommand, TunnelConnector, TunnelConnectorFactory, TunnelEvent, VpnTunnel},
 };
 use tokio::sync::mpsc::{Receiver, Sender};
+use uuid::Uuid;
 
 const USERNAME: &str = "username";
 const PASSWORD: &str = "challenge";
@@ -171,7 +172,7 @@ struct ServerFixture {
 
 impl ServerFixture {
     async fn new() -> Self {
-        let socket_name = format!("snxcore-test-{}.sock", std::process::id());
+        let socket_name = format!("snxcore-test-{}.sock", Uuid::new_v4());
 
         let server = CommandServer::with_name(&socket_name, MockTunnelConnectorFactory);
         let server_handle = tokio::spawn(server.run());
