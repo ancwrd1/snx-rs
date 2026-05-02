@@ -215,5 +215,10 @@ impl WindowController for StatusWindowController {
 
     fn update(&self) {
         self.scope.set_globals();
+        let profiles = ConnectionProfilesStore::instance().all();
+        let profile_names: Vec<SharedString> = profiles.iter().map(|p| p.profile_name.as_str().into()).collect();
+        self.scope
+            .window
+            .set_profile_names(ModelRc::new(VecModel::from(profile_names)));
     }
 }

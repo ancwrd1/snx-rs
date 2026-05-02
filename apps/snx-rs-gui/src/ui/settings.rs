@@ -321,18 +321,11 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
-            let sender = self.sender.clone();
 
             self.scope.window.on_ok_clicked(move || {
                 let Some(w) = weak.upgrade() else { return };
                 match save_settings(&w.window, &state) {
-                    Ok(()) => {
-                        let sender = sender.clone();
-                        tokio::spawn(async move {
-                            let _ = sender.send(TrayCommand::Update(None)).await;
-                        });
-                        close_window(Self::NAME);
-                    }
+                    Ok(()) => close_window(Self::NAME),
                     Err(e) => w.window.set_error_text(e.to_string().into()),
                 }
             });
@@ -341,18 +334,11 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
-            let sender = self.sender.clone();
 
             self.scope.window.on_apply_clicked(move || {
                 let Some(w) = weak.upgrade() else { return };
                 match save_settings(&w.window, &state) {
-                    Ok(()) => {
-                        w.window.set_error_text("".into());
-                        let sender = sender.clone();
-                        tokio::spawn(async move {
-                            let _ = sender.send(TrayCommand::Update(None)).await;
-                        });
-                    }
+                    Ok(()) => w.window.set_error_text("".into()),
                     Err(e) => w.window.set_error_text(e.to_string().into()),
                 }
             });
@@ -707,6 +693,7 @@ fn on_profile_new(
     load_profile_into_window(window, state);
 
     tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
+    super::update_windows();
 }
 
 fn on_profile_rename(
@@ -736,6 +723,7 @@ fn on_profile_rename(
     window.set_profile_index(active as i32);
 
     tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
+    super::update_windows();
 }
 
 fn on_profile_reorder(
@@ -770,6 +758,7 @@ fn on_profile_reorder(
     }
 
     tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
+    super::update_windows();
 }
 
 fn on_profile_delete(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, sender: Sender<TrayCommand>) {
@@ -796,6 +785,7 @@ fn on_profile_delete(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
     load_profile_into_window(window, state);
 
     tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
+    super::update_windows();
 }
 
 fn validate(window: &SettingsWindow) -> anyhow::Result<()> {
