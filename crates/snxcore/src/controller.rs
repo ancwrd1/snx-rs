@@ -17,7 +17,7 @@ use crate::{
     otp::OtpListener,
     platform::{Keychain, Platform, PlatformAccess},
     prompt::SecurePrompt,
-    server, server_info,
+    server,
 };
 
 const RECV_TIMEOUT: Duration = Duration::from_secs(2);
@@ -364,7 +364,7 @@ where
     async fn fill_mfa_prompts(&mut self, params: Arc<TunnelParams>) {
         self.mfa_index = 0;
         self.mfa_prompts
-            .replace(server_info::get_login_prompts(&params).await.unwrap_or_default());
+            .replace(self.prompt.get_server_prompts(&params).await.unwrap_or_default());
     }
 
     async fn do_info(&self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {

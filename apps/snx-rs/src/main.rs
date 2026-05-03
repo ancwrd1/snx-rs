@@ -18,7 +18,6 @@ use snxcore::{
     prompt::{SecurePrompt, TtyPrompt},
     server,
     server::CommandServer,
-    server_info,
     tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory, TunnelEvent},
     util,
 };
@@ -197,11 +196,13 @@ async fn main_command() -> anyhow::Result<()> {
 async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     let (command_sender, command_receiver) = mpsc::channel(16);
 
+    let tty_prompt = TtyPrompt;
+
     if params.server_name.is_empty() || params.login_type.is_empty() {
         anyhow::bail!(tr!("error-missing-required-parameters"));
     }
 
-    let mut mfa_prompts = server_info::get_login_prompts(&params).await.unwrap_or_default();
+    let mut mfa_prompts = tty_prompt.get_server_prompts(&params).await.unwrap_or_default();
 
     let params = Arc::new(params);
     let mut connector = CheckPointTunnelConnectorFactory.create(params.clone()).await?;
@@ -226,7 +227,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             MfaType::PasswordInput => {
                 mfa_index += 1;
 
-                let prompt = mfa_prompts
+                let prompt_info = mfa_prompts
                     .pop_front()
                     .unwrap_or_else(|| PromptInfo::new("", &challenge.prompt));
 
@@ -237,7 +238,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 {
                     Ok(mfa_code.clone())
                 } else {
-                    TtyPrompt.get_secure_input(prompt).await
+                    tty_prompt.get_secure_input(prompt_info).await
                 };
 
                 match input {
@@ -256,16 +257,16 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 session = connector.challenge_code(session, &otp).await?;
             }
             MfaType::MobileAccess => {
-                let prompt = PromptInfo::new(
+                let prompt_info = PromptInfo::new(
                     tr!("cli-mobile-access-auth", url = &challenge.prompt),
                     tr!("label-password"),
                 );
-                let input = TtyPrompt.get_secure_input(prompt).await?;
+                let input = tty_prompt.get_secure_input(prompt_info).await?;
                 session = connector.challenge_code(session, &input).await?;
             }
             MfaType::UserNameInput => {
-                let prompt = PromptInfo::new(tr!("label-username-required"), &challenge.prompt);
-                let input = TtyPrompt.get_plain_input(prompt).await?;
+                let prompt_info = PromptInfo::new(tr!("label-username-required"), &challenge.prompt);
+                let input = tty_prompt.get_plain_input(prompt_info).await?;
                 session = connector.challenge_code(session, &input).await?;
             }
         }

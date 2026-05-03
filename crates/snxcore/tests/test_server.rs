@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::VecDeque, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Local;
@@ -147,6 +147,10 @@ impl SecurePrompt for MockPrompt {
     async fn show_notification(&self, _summary: &str, _message: &str) -> anyhow::Result<()> {
         Ok(())
     }
+
+    async fn get_server_prompts(&self, _params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>> {
+        Ok(VecDeque::new())
+    }
 }
 
 struct MockBrowser;
@@ -167,7 +171,6 @@ impl BrowserController for MockBrowser {
 struct ServerFixture {
     socket_name: String,
     server_handle: tokio::task::JoinHandle<anyhow::Result<()>>,
-    port: u16,
 }
 
 impl ServerFixture {
@@ -179,14 +182,9 @@ impl ServerFixture {
 
         tokio::time::sleep(Duration::from_millis(200)).await;
 
-        let server = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let port = server.local_addr().unwrap().port();
-        tokio::spawn(async move { server.accept().await });
-
         Self {
             socket_name,
             server_handle,
-            port,
         }
     }
 }
@@ -208,7 +206,7 @@ async fn connect_with_mfa() {
     let fixture = ServerFixture::new().await;
 
     let params = Arc::new(TunnelParams {
-        server_name: format!("127.0.0.1:{}", fixture.port),
+        server_name: "127.0.0.1".to_owned(),
         login_type: "vpn_Test".to_string(),
         ..Default::default()
     });
