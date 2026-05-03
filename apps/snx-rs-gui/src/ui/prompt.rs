@@ -116,6 +116,6 @@ impl SecurePrompt for SlintPrompt {
     }
 
     async fn get_server_prompts(&self, params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>> {
-        server_info::get_login_prompts(&params).await
+        server_info::get_login_prompts(params).await
     }
 }
