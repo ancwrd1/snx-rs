@@ -42,10 +42,12 @@ where
 }
 
 pub fn update_windows() {
-    OPEN_WINDOWS.with(|slot| {
-        for controller in slot.borrow().values() {
-            controller.update();
-        }
+    let _ = slint::invoke_from_event_loop(|| {
+        OPEN_WINDOWS.with(|slot| {
+            for controller in slot.borrow().values() {
+                controller.update();
+            }
+        });
     });
 }
 
