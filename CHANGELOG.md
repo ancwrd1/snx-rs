@@ -1,9 +1,8 @@
-## v6.0.5 (TBD)
+## v6.0.5 (2026-05-07)
 - Added interface statistics in the status window.
 - Improved performance when setting up the tunnel.
 - Fixed a problem with icon file permissions in the .run installer.
 - Update the taskbar menu and Connect button in the status window after the profiles are reordered or modified. 
-
 
 ## v6.0.4 (2026-04-30)
 - Added `tls-version-max` parameter to cap the maximum TLS version negotiated with the gateway. The default is now `1.2`, which avoids silent connect timeouts against gateways (notably Check Point SVN foundation) that fail to respond to TLS 1.3 ClientHello produced by recent OpenSSL releases. Set `tls-version-max=default` to keep the previous behavior.
