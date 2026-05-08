@@ -79,8 +79,12 @@ where
     B: BrowserController + Send + Sync,
     P: SecurePrompt + Send + Sync,
 {
-    pub fn new(prompt: P, browser_controller: B, mfa_prompts: Vec<PromptInfo>) -> Self {
+    pub fn new_with_prompts(prompt: P, browser_controller: B, mfa_prompts: Vec<PromptInfo>) -> Self {
         Self::new_with_server_name(server::DEFAULT_NAME, prompt, browser_controller, mfa_prompts)
+    }
+
+    pub fn new(prompt: P, browser_controller: B) -> Self {
+        Self::new_with_prompts(prompt, browser_controller, Vec::new())
     }
 
     pub fn new_with_server_name<N: AsRef<str>>(

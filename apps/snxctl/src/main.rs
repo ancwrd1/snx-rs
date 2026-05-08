@@ -7,10 +7,10 @@ use i18n::tr;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::params::TunnelParams,
     profiles::ConnectionProfilesStore,
     prompt::TtyPrompt,
+    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory},
 };
 use tokio::signal::unix;
 use tracing::level_filters::LevelFilter;
@@ -120,7 +120,7 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let connector = CccGatewayConnector::new(tunnel_params.clone());
+    let connector = CheckPointTunnelConnectorFactory::default().new_gateway_connector(tunnel_params.clone());
     let info = connector.get_gateway_information().await?;
 
     if matches!(params.command, SnxCommand::Info) {
@@ -130,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
 
     let command = params.command.into();
 
-    let mut service_controller = ServiceController::new(
+    let mut service_controller = ServiceController::new_with_prompts(
         TtyPrompt,
         SystemBrowser::default(),
         info.get_login_prompts(&tunnel_params.login_type),

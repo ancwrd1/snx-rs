@@ -9,7 +9,7 @@ use tracing::{debug, warn};
 
 use crate::{
     model::{
-        ConnectionStatus, LiveStats, SessionState, TunnelServiceRequest, TunnelServiceResponse, VpnSession,
+        ConnectionStatus, LiveStats, SessionState, TunnelServiceRequest, TunnelServiceResponse, TunnelSession,
         params::TunnelParams,
     },
     platform::{NetworkInterface, Platform, PlatformAccess, StatsPoller},
@@ -27,7 +27,7 @@ struct CancelState {
 #[derive(Default)]
 struct ConnectionState {
     connection_status: RwLock<ConnectionStatus>,
-    session: Mutex<Option<Arc<VpnSession>>>,
+    session: Mutex<Option<Arc<TunnelSession>>>,
     connector: Mutex<Option<Box<dyn TunnelConnector + Send>>>,
     cancel_state: Arc<Mutex<CancelState>>,
     stats_poller: RwLock<Option<Arc<dyn StatsPoller + Send + Sync>>>,
@@ -50,6 +50,10 @@ pub struct CommandServer<F> {
 }
 
 impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
+    pub fn new(connector_factory: F) -> Self {
+        Self::with_name(DEFAULT_NAME, connector_factory)
+    }
+
     pub fn with_name<S: AsRef<str>>(name: S, connector_factory: F) -> Self {
         Self {
             name: name.as_ref().to_owned(),
@@ -206,7 +210,7 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
         *self.state.connection_status.read().await != ConnectionStatus::Disconnected
     }
 
-    async fn connect_for_session(&mut self, session: Arc<VpnSession>) -> anyhow::Result<TunnelServiceResponse> {
+    async fn connect_for_session(&mut self, session: Arc<TunnelSession>) -> anyhow::Result<TunnelServiceResponse> {
         *self.state.session.lock().await = Some(session.clone());
         if let SessionState::PendingChallenge(ref challenge) = session.state {
             debug!("Pending multi-factor, awaiting for it");
@@ -244,7 +248,7 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
             *self.state.connection_status.write().await = ConnectionStatus::Connecting;
             self.state.cancel_state.lock().await.sender = Some(self.cancel_sender.clone());
 
-            let mut connector = self.connector_factory.create(params.clone()).await?;
+            let mut connector = self.connector_factory.new_tunnel_connector(params.clone()).await?;
             let fut = if params.ike_persist {
                 debug!("Attempting to load IKE session");
                 match connector.restore_session().await {

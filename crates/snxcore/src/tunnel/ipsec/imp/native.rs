@@ -17,7 +17,7 @@ use tracing::{debug, warn};
 use crate::{
     gateway::GatewayConnector,
     model::{
-        ConnectionInfo, IPsecSession, VpnSession,
+        ConnectionInfo, IPsecSession, TunnelSession,
         params::{TunnelParams, TunnelType},
     },
     platform::{
@@ -38,7 +38,7 @@ pub(crate) struct NativeIPsecTunnel {
     natt_socket: Arc<UdpSocket>,
     ready: Arc<AtomicBool>,
     params: Arc<TunnelParams>,
-    session: Arc<VpnSession>,
+    session: Arc<TunnelSession>,
     device_name: String,
     gateway_address: Ipv4Addr,
     subnets: Vec<Ipv4Net>,
@@ -48,13 +48,13 @@ pub(crate) struct NativeIPsecTunnel {
 impl NativeIPsecTunnel {
     pub(crate) async fn create(
         params: Arc<TunnelParams>,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     ) -> anyhow::Result<Self> {
         let ipsec_session = session.ipsec_session().with_context(|| tr!("error-no-ipsec-session"))?;
 
         let gateway_information = gateway_connector.get_gateway_information().await?;
-        let client_settings = gateway_connector.get_client_settings(&session.ccc_session_id).await?;
+        let client_settings = gateway_connector.get_client_settings(&session.session_id).await?;
 
         let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
@@ -270,7 +270,7 @@ impl VpnTunnel for NativeIPsecTunnel {
                     TunnelCommand::Terminate(signout) => {
                         if signout || !self.params.ike_persist {
                             debug!("Signing out");
-                            let _ = self.gateway_connector.signout(&self.session.ccc_session_id).await;
+                            let _ = self.gateway_connector.signout(&self.session.session_id).await;
                         }
                         break;
                     }

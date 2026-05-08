@@ -13,7 +13,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use crate::{
     gateway::GatewayConnector,
     model::{
-        VpnSession,
+        TunnelSession,
         params::{TransportType, TunnelParams},
     },
     tunnel::{
@@ -56,7 +56,7 @@ pub(crate) struct TcptIPsecTunnel(Box<TunIPsecTunnel>);
 impl TcptIPsecTunnel {
     pub(crate) async fn create(
         params: Arc<TunnelParams>,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     ) -> anyhow::Result<Self> {
         let gateway_information = gateway_connector.get_gateway_information().await?;

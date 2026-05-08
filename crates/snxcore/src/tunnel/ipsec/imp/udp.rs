@@ -9,7 +9,7 @@ use tokio::net::UdpSocket;
 use crate::{
     gateway::GatewayConnector,
     model::{
-        VpnSession,
+        TunnelSession,
         params::{TransportType, TunnelParams},
     },
     tunnel::{
@@ -52,7 +52,7 @@ pub(crate) struct UdpIPsecTunnel(Box<TunIPsecTunnel>);
 impl UdpIPsecTunnel {
     pub(crate) async fn create(
         params: Arc<TunnelParams>,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     ) -> anyhow::Result<Self> {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;

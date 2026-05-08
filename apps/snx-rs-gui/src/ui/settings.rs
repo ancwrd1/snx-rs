@@ -5,13 +5,13 @@ use itertools::Itertools;
 use secrecy::ExposeSecret;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use snxcore::{
-    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::{
         params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
-        proto::LoginOption,
+        proto::{GatewayInformation, LoginOption},
     },
     platform::{Keychain, Platform, PlatformAccess},
     profiles::ConnectionProfilesStore,
+    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory},
     util::parse_ipv4_or_subnet,
 };
 use tokio::sync::mpsc::Sender;
@@ -34,6 +34,7 @@ struct SettingsState {
     auth_factors: Vec<Vec<String>>,
     profile_ids: Vec<Uuid>,
     locales: Vec<LanguageIdentifier>,
+    gateway_information: Option<GatewayInformation>,
 }
 
 pub struct SettingsWindowController {
@@ -430,7 +431,13 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
     window.set_username(params.user_name.as_str().into());
     window.set_password(params.password.expose_secret().into());
 
-    let is_mfa = is_multi_factor_login_type(&params);
+    let is_mfa = state
+        .borrow()
+        .gateway_information
+        .as_ref()
+        .map(|info| info.is_multi_factor_login_type(&params.login_type))
+        .unwrap_or(true);
+
     window.set_machine_cert(params.cert_type != CertType::None && is_mfa);
 
     window.set_password_factor(params.password_factor.to_string().into());
@@ -565,21 +572,6 @@ thread_local! {
     static SETTINGS_STATE: RefCell<Option<Rc<RefCell<SettingsState>>>> = const { RefCell::new(None) };
 }
 
-fn is_multi_factor_login_type(params: &TunnelParams) -> bool {
-    let (tx, rx) = async_channel::bounded(1);
-    let params = Arc::new(params.clone());
-    tokio::spawn(async move {
-        let connector = CccGatewayConnector::new(params.clone());
-        let result = connector
-            .get_gateway_information()
-            .await
-            .map(|info| info.is_multi_factor_login_type(&params.login_type))
-            .unwrap_or(true);
-        let _ = tx.send(result).await;
-    });
-    rx.recv_blocking().unwrap_or(true)
-}
-
 fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, params: &TunnelParams) {
     if window.get_server_name().is_empty() {
         window.set_auth_types(ModelRc::new(VecModel::from(Vec::<SharedString>::new())));
@@ -600,7 +592,7 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
 
     let (tx, rx) = async_channel::bounded(1);
     tokio::spawn(async move {
-        let connector = CccGatewayConnector::new(Arc::new(new_params));
+        let connector = CheckPointTunnelConnectorFactory::default().new_gateway_connector(Arc::new(new_params));
         let info = connector.get_gateway_information().await;
         let _ = tx.send(info).await;
     });
@@ -619,6 +611,8 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
 
         match response {
             Ok(server_info) => {
+                state.borrow_mut().gateway_information = Some(server_info.clone());
+
                 window.set_error_text("".into());
                 let mut options_list = server_info
                     .login_options_data

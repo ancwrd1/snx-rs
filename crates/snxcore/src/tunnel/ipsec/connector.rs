@@ -25,7 +25,7 @@ use tracing::{debug, trace, warn};
 use crate::{
     gateway::GatewayConnector,
     model::{
-        AuthenticatedSession, IPsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
+        AuthenticatedSession, IPsecSession, MfaChallenge, MfaType, SessionState, TunnelSession,
         params::{CertType, TransportType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData, GatewayInformation},
         wrappers::SessionId,
@@ -178,7 +178,7 @@ impl IPsecTunnelConnector {
         })
     }
 
-    fn do_challenge_attr(&mut self, attr: &Bytes) -> anyhow::Result<Arc<VpnSession>> {
+    fn do_challenge_attr(&mut self, attr: &Bytes) -> anyhow::Result<Arc<TunnelSession>> {
         let parts = attr
             .split(|c| *c == b'\0')
             .map(|p| String::from_utf8_lossy(p).into_owned())
@@ -211,8 +211,8 @@ impl IPsecTunnelConnector {
 
         debug!("Challenge prompt: {}", prompt);
 
-        Ok(Arc::new(VpnSession {
-            ccc_session_id: self.ccc_session.clone(),
+        Ok(Arc::new(TunnelSession {
+            session_id: self.ccc_session.clone(),
             state: SessionState::PendingChallenge(MfaChallenge {
                 mfa_type: MfaType::from_id(&id),
                 prompt,
@@ -221,7 +221,7 @@ impl IPsecTunnelConnector {
         }))
     }
 
-    async fn do_session_exchange(&mut self, username: String) -> anyhow::Result<Arc<VpnSession>> {
+    async fn do_session_exchange(&mut self, username: String) -> anyhow::Result<Arc<TunnelSession>> {
         let mac = Bytes::copy_from_slice(&util::get_device_id().as_bytes()[0..6]);
         debug!("Using dummy MAC address: {}", hex::encode(&mac));
 
@@ -296,10 +296,10 @@ impl IPsecTunnelConnector {
             warn!("Cannot save IKE session: {}", e);
         }
 
-        Ok(self.new_vpn_session())
+        Ok(self.new_session())
     }
 
-    async fn process_auth_attributes(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<VpnSession>> {
+    async fn process_auth_attributes(&mut self, id_reply: AttributesPayload) -> anyhow::Result<Arc<TunnelSession>> {
         self.last_identifier = id_reply.identifier;
         let status = get_short_attribute(&id_reply, ConfigAttributeType::Status);
         match status {
@@ -335,8 +335,8 @@ impl IPsecTunnelConnector {
                 let session = if let Some(challenge) = get_long_attribute(&id_reply, ConfigAttributeType::Challenge) {
                     self.do_challenge_attr(&challenge)?
                 } else if attr == ConfigAttributeType::UserName {
-                    Arc::new(VpnSession {
-                        ccc_session_id: self.ccc_session.clone(),
+                    Arc::new(TunnelSession {
+                        session_id: self.ccc_session.clone(),
                         state: SessionState::PendingChallenge(MfaChallenge {
                             mfa_type: MfaType::UserNameInput,
                             prompt: tr!("label-username"),
@@ -359,7 +359,7 @@ impl IPsecTunnelConnector {
                             Ok(session)
                         } else {
                             let user_name = self.params.user_name.clone();
-                            self.challenge_code(Arc::new(VpnSession::empty()), &user_name).await
+                            self.challenge_code(Arc::new(TunnelSession::empty()), &user_name).await
                         }
                     }
                     other => {
@@ -531,7 +531,7 @@ impl IPsecTunnelConnector {
         }
     }
 
-    async fn do_restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+    async fn do_restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         let office_mode = self.load_ike_session()?;
 
         match self.do_session_exchange(office_mode.username.clone()).await {
@@ -548,14 +548,14 @@ impl IPsecTunnelConnector {
 
                 self.do_esp_proposal().await?;
 
-                Ok(self.new_vpn_session())
+                Ok(self.new_session())
             }
         }
     }
 
-    fn new_vpn_session(&self) -> Arc<VpnSession> {
-        Arc::new(VpnSession {
-            ccc_session_id: self.ccc_session.clone(),
+    fn new_session(&self) -> Arc<TunnelSession> {
+        Arc::new(TunnelSession {
+            session_id: self.ccc_session.clone(),
             state: SessionState::Authenticated(AuthenticatedSession::IPsecSession(self.ipsec_session.clone())),
             username: Some(self.username.clone()),
         })
@@ -618,7 +618,7 @@ impl IPsecTunnelConnector {
 
 #[async_trait]
 impl TunnelConnector for IPsecTunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         let my_address = Platform::get().new_network_interface().get_default_ipv4().await?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
@@ -733,7 +733,7 @@ impl TunnelConnector for IPsecTunnelConnector {
         Ok(())
     }
 
-    async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         match self.do_restore_session().await {
             Ok(result) => Ok(result),
             Err(e) => {
@@ -745,7 +745,11 @@ impl TunnelConnector for IPsecTunnelConnector {
         }
     }
 
-    async fn challenge_code(&mut self, _session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
+    async fn challenge_code(
+        &mut self,
+        _session: Arc<TunnelSession>,
+        user_input: &str,
+    ) -> anyhow::Result<Arc<TunnelSession>> {
         let id_reply = self
             .service
             .send_attribute(
@@ -762,7 +766,7 @@ impl TunnelConnector for IPsecTunnelConnector {
 
     async fn create_tunnel(
         &mut self,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         command_sender: Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);

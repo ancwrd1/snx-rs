@@ -24,7 +24,7 @@ use tracing::{debug, error, warn};
 use crate::{
     gateway::GatewayConnector,
     model::{
-        ConnectionInfo, IPsecSession, VpnSession,
+        ConnectionInfo, IPsecSession, TunnelSession,
         params::{TransportType, TunnelParams, TunnelType},
         proto::GatewayInformation,
     },
@@ -46,7 +46,7 @@ pub type PacketReceiver = Receiver<Bytes>;
 
 pub(crate) struct TunIPsecTunnel {
     params: Arc<TunnelParams>,
-    session: Arc<VpnSession>,
+    session: Arc<TunnelSession>,
     sender: PacketSender,
     receiver: Option<PacketReceiver>,
     tun_device: Option<TunDevice>,
@@ -62,14 +62,14 @@ pub(crate) struct TunIPsecTunnel {
 impl TunIPsecTunnel {
     pub(crate) async fn create(
         params: Arc<TunnelParams>,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         sender: PacketSender,
         receiver: PacketReceiver,
         esp_transport: TransportType,
         gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     ) -> anyhow::Result<Self> {
         let gateway_information = gateway_connector.get_gateway_information().await?;
-        let client_settings = gateway_connector.get_client_settings(&session.ccc_session_id).await?;
+        let client_settings = gateway_connector.get_client_settings(&session.session_id).await?;
 
         let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
@@ -207,7 +207,7 @@ impl VpnTunnel for TunIPsecTunnel {
     ) -> anyhow::Result<()> {
         debug!(
             "Running IPsec ({}) tunnel for session {}",
-            self.esp_transport, self.session.ccc_session_id,
+            self.esp_transport, self.session.session_id,
         );
 
         let name_hint = self
@@ -350,7 +350,7 @@ impl VpnTunnel for TunIPsecTunnel {
                     TunnelCommand::Terminate(signout) => {
                         if signout || !params.ike_persist {
                             debug!("Signing out");
-                            let _ = connector.signout(&session.ccc_session_id).await;
+                            let _ = connector.signout(&session.session_id).await;
                         }
                         break;
                     }

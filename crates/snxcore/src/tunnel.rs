@@ -46,13 +46,17 @@ pub trait VpnTunnel {
 
 #[async_trait]
 pub trait TunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>>;
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<TunnelSession>>;
     async fn delete_session(&mut self) -> anyhow::Result<()>;
-    async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>>;
-    async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>>;
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>>;
+    async fn challenge_code(
+        &mut self,
+        session: Arc<TunnelSession>,
+        user_input: &str,
+    ) -> anyhow::Result<Arc<TunnelSession>>;
     async fn create_tunnel(
         &mut self,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         command_sender: mpsc::Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>>;
     async fn terminate_tunnel(&mut self, signout: bool) -> anyhow::Result<()>;
@@ -61,7 +65,11 @@ pub trait TunnelConnector {
 
 #[async_trait]
 pub trait TunnelConnectorFactory: Clone {
-    async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>;
+    async fn new_tunnel_connector(
+        &self,
+        params: Arc<TunnelParams>,
+    ) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>;
+    fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync>;
 }
 
 #[derive(Clone, Default)]
@@ -69,14 +77,21 @@ pub struct CheckPointTunnelConnectorFactory {}
 
 #[async_trait]
 impl TunnelConnectorFactory for CheckPointTunnelConnectorFactory {
-    async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
-        let connector: Arc<dyn GatewayConnector + Send + Sync> = Arc::new(CccGatewayConnector::new(params.clone()));
-
+    async fn new_tunnel_connector(
+        &self,
+        params: Arc<TunnelParams>,
+    ) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
         match params.tunnel_type {
-            TunnelType::IPsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
-                Ok(Box::new(IPsecTunnelConnector::new(params, connector).await?))
-            }
-            _ => Ok(Box::new(SslTunnelConnector::new(params, connector).await?)),
+            TunnelType::IPsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => Ok(Box::new(
+                IPsecTunnelConnector::new(params.clone(), self.new_gateway_connector(params)).await?,
+            )),
+            _ => Ok(Box::new(
+                SslTunnelConnector::new(params.clone(), self.new_gateway_connector(params)).await?,
+            )),
         }
+    }
+
+    fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {
+        Arc::new(CccGatewayConnector::new(params.clone()))
     }
 }

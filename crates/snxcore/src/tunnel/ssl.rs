@@ -27,7 +27,7 @@ use tracing::{debug, trace, warn};
 use crate::{
     gateway::GatewayConnector,
     model::{
-        ConnectionInfo, VpnSession,
+        ConnectionInfo, TunnelSession,
         params::{TlsVersion, TransportType, TunnelParams, TunnelType},
         proto::{
             ClientHelloData, GatewayInformation, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest,
@@ -80,7 +80,7 @@ where
 
 pub(crate) struct SslTunnel {
     params: Arc<TunnelParams>,
-    session: Arc<VpnSession>,
+    session: Arc<TunnelSession>,
     auth_timeout: Duration,
     keepalive: Duration,
     ip_address: String,
@@ -97,7 +97,7 @@ pub(crate) struct SslTunnel {
 impl SslTunnel {
     pub(crate) async fn create(
         params: Arc<TunnelParams>,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     ) -> anyhow::Result<Self> {
         let info = gateway_connector.get_gateway_information().await?;
@@ -256,7 +256,7 @@ impl SslTunnel {
 
         debug!("Signing out");
 
-        let _ = self.gateway_connector.signout(&self.session.ccc_session_id).await;
+        let _ = self.gateway_connector.signout(&self.session.session_id).await;
     }
 
     pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
@@ -285,7 +285,7 @@ impl SslTunnel {
             } else {
                 let client_settings = self
                     .gateway_connector
-                    .get_client_settings(&self.session.ccc_session_id)
+                    .get_client_settings(&self.session.session_id)
                     .await?;
                 client_settings.updated_policies.range.settings
             };
@@ -356,7 +356,7 @@ impl VpnTunnel for SslTunnel {
         mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {
-        debug!("Running SSL tunnel for session {}", self.session.ccc_session_id);
+        debug!("Running SSL tunnel for session {}", self.session.session_id);
 
         let reply = self.client_hello().await?;
         trace!("Hello reply: {:?}", reply);

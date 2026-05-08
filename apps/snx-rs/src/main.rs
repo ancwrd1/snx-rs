@@ -7,7 +7,6 @@ use i18n::tr;
 use nix::unistd::Uid;
 use secrecy::ExposeSecret;
 use snxcore::{
-    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::{
         MfaType, PromptInfo, SessionState,
         params::{OperationMode, TunnelParams, TunnelType},
@@ -16,7 +15,6 @@ use snxcore::{
     otp::OtpListener,
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
-    server,
     server::CommandServer,
     tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory, TunnelEvent},
     util,
@@ -86,34 +84,42 @@ async fn main() -> anyhow::Result<()> {
 
     debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
+    let factory = CheckPointTunnelConnectorFactory::default();
+
     match mode {
         OperationMode::Standalone => {
             debug!("Running in standalone mode");
-            main_standalone(params).await
+            main_standalone(factory, params).await
         }
         OperationMode::Command => {
             debug!("Running in command mode");
-            main_command().await
+            main_command(factory).await
         }
-        OperationMode::Info => main_info(params).await,
-        OperationMode::Enroll => main_enroll(params).await,
-        OperationMode::Renew => main_renew(params).await,
+        OperationMode::Info => main_info(factory, params).await,
+        OperationMode::Enroll => main_enroll(factory, params).await,
+        OperationMode::Renew => main_renew(factory, params).await,
     }
 }
 
-async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
+async fn main_info<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
+where
+    F: TunnelConnectorFactory + Send + Sync + 'static,
+{
     if params.server_name.is_empty() {
         anyhow::bail!(tr!("error-missing-server-name"));
     }
     let params = Arc::new(params);
-    let connector = CccGatewayConnector::new(params.clone());
+    let connector = factory.new_gateway_connector(params.clone());
     let info = connector.get_gateway_information().await?;
     info.print_login_options(&params.server_name);
 
     Ok(())
 }
 
-async fn main_enroll(params: TunnelParams) -> anyhow::Result<()> {
+async fn main_enroll<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
+where
+    F: TunnelConnectorFactory + Send + Sync + 'static,
+{
     let params = Arc::new(params);
 
     if params.server_name.is_empty() {
@@ -132,7 +138,7 @@ async fn main_enroll(params: TunnelParams) -> anyhow::Result<()> {
         anyhow::bail!(tr!("error-missing-reg-key"));
     };
 
-    let connector = CccGatewayConnector::new(params.clone());
+    let connector = factory.new_gateway_connector(params.clone());
 
     let resp = connector
         .enroll_certificate(reg_key, cert_password.expose_secret())
@@ -141,7 +147,10 @@ async fn main_enroll(params: TunnelParams) -> anyhow::Result<()> {
     process_cert_response(cert_path, resp)
 }
 
-async fn main_renew(params: TunnelParams) -> anyhow::Result<()> {
+async fn main_renew<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
+where
+    F: TunnelConnectorFactory + Send + Sync + 'static,
+{
     let params = Arc::new(params);
 
     if params.server_name.is_empty() {
@@ -158,7 +167,7 @@ async fn main_renew(params: TunnelParams) -> anyhow::Result<()> {
 
     let pkcs12 = std::fs::read(cert_path)?;
 
-    let connector = CccGatewayConnector::new(params.clone());
+    let connector = factory.new_gateway_connector(params.clone());
 
     let resp = connector
         .renew_certificate(&pkcs12, cert_password.expose_secret())
@@ -179,7 +188,10 @@ fn process_cert_response(path: &Path, resp: CertificateResponse) -> anyhow::Resu
     }
 }
 
-async fn main_command() -> anyhow::Result<()> {
+async fn main_command<F>(factory: F) -> anyhow::Result<()>
+where
+    F: TunnelConnectorFactory + Send + Sync + 'static,
+{
     let instance = Platform::get().new_single_instance("/var/run/snx-rs.lock")?;
     if !instance.is_single() {
         eprintln!("{}", tr!("cli-another-instance-running"));
@@ -193,12 +205,15 @@ async fn main_command() -> anyhow::Result<()> {
     {
         warn!("Unable to start network monitoring: {}", e);
     }
-    let server = CommandServer::with_name(server::DEFAULT_NAME, CheckPointTunnelConnectorFactory::default());
+    let server = CommandServer::new(factory);
 
     await_termination(server.run()).await
 }
 
-async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
+async fn main_standalone<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
+where
+    F: TunnelConnectorFactory + Send + Sync + 'static,
+{
     let (command_sender, command_receiver) = mpsc::channel(16);
 
     let tty_prompt = TtyPrompt;
@@ -209,26 +224,24 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
     let params = Arc::new(params);
 
-    let login_type = params.login_type.clone();
-    let connector = CccGatewayConnector::new(params.clone());
+    let connector = factory.new_gateway_connector(params.clone());
     let info = connector.get_gateway_information().await?;
 
-    let mfa_prompts = info.get_login_prompts(&login_type);
+    let mfa_prompts = info.get_login_prompts(&params.login_type);
 
-    let factory = CheckPointTunnelConnectorFactory::default();
-    let mut connector = factory.create(params.clone()).await?;
+    let mut tunnel_connector = factory.new_tunnel_connector(params.clone()).await?;
 
     let mut session = if params.ike_persist {
         debug!("Attempting to load IKE session");
-        match connector.restore_session().await {
+        match tunnel_connector.restore_session().await {
             Ok(session) => session,
             Err(_) => {
-                connector = factory.create(params.clone()).await?;
-                connector.authenticate().await?
+                tunnel_connector = factory.new_tunnel_connector(params.clone()).await?;
+                tunnel_connector.authenticate().await?
             }
         }
     } else {
-        connector.authenticate().await?
+        tunnel_connector.authenticate().await?
     };
 
     let mut mfa_index = 0;
@@ -255,7 +268,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
 
                 match input {
                     Ok(input) => {
-                        session = connector.challenge_code(session, &input).await?;
+                        session = tunnel_connector.challenge_code(session, &input).await?;
                     }
                     Err(e) => {
                         return Err(e);
@@ -266,7 +279,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                 println!("{}", tr!("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
                 let otp = OtpListener::new().await?.acquire_otp().await?;
-                session = connector.challenge_code(session, &otp).await?;
+                session = tunnel_connector.challenge_code(session, &otp).await?;
             }
             MfaType::MobileAccess => {
                 let prompt_info = PromptInfo::new(
@@ -274,17 +287,17 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
                     tr!("label-password"),
                 );
                 let input = tty_prompt.get_secure_input(prompt_info).await?;
-                session = connector.challenge_code(session, &input).await?;
+                session = tunnel_connector.challenge_code(session, &input).await?;
             }
             MfaType::UserNameInput => {
                 let prompt_info = PromptInfo::new(tr!("label-username-required"), &challenge.prompt);
                 let input = tty_prompt.get_plain_input(prompt_info).await?;
-                session = connector.challenge_code(session, &input).await?;
+                session = tunnel_connector.challenge_code(session, &input).await?;
             }
         }
     }
 
-    let tunnel = connector.create_tunnel(session.clone(), command_sender).await?;
+    let tunnel = tunnel_connector.create_tunnel(session.clone(), command_sender).await?;
 
     if let Err(e) = Platform::get()
         .new_network_interface()
@@ -303,7 +316,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         tokio::select! {
             event = event_receiver.recv() => {
                 if let Some(event) = event {
-                    let _ = connector.handle_tunnel_event(event.clone()).await;
+                    let _ = tunnel_connector.handle_tunnel_event(event.clone()).await;
 
                     if let TunnelEvent::Connected(info) = event {
                         println!("{}", info.print(false));
@@ -314,8 +327,7 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             result = &mut tunnel_fut => {
                 if params.tunnel_type == TunnelType::SSL || !params.ike_persist {
                     debug!("Signing out");
-                    let connector = CccGatewayConnector::new(params.clone());
-                    let _ = connector.signout(&session.ccc_session_id).await;
+                    let _ = connector.signout(&session.session_id).await;
                 }
                 println!("\n{}", tr!("cli-tunnel-disconnected"));
                 break result;

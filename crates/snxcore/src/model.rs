@@ -69,16 +69,16 @@ impl IPsecSession {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct VpnSession {
-    pub ccc_session_id: SessionId,
+pub struct TunnelSession {
+    pub session_id: SessionId,
     pub state: SessionState,
     pub username: Option<String>,
 }
 
-impl VpnSession {
+impl TunnelSession {
     pub fn empty() -> Self {
         Self {
-            ccc_session_id: SessionId::default(),
+            session_id: SessionId::default(),
             state: SessionState::default(),
             username: None,
         }

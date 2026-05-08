@@ -8,11 +8,11 @@ use slint::winit_030::winit::platform::{wayland::WindowAttributesExtWayland, x11
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
-    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::{ConnectionStatus, params::TunnelParams},
     platform::{Platform, PlatformAccess, SingleInstance},
     profiles::ConnectionProfilesStore,
     prompt::SecurePrompt,
+    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory},
 };
 use tokio::{
     signal::unix::{SignalKind, signal},
@@ -99,6 +99,8 @@ async fn main() -> anyhow::Result<()> {
         })
         .select()?;
 
+    let connector_factory = CheckPointTunnelConnectorFactory::default();
+
     tokio::spawn(async move {
         if let Err(e) = wait_restart_signal().await {
             warn!("Restart signal handler exited: {}", e);
@@ -122,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(async move {
         handle_tray_events(
+            connector_factory,
             tray_event_receiver,
             tray_command_sender_for_events,
             tray_event_sender_for_status,
@@ -185,12 +188,15 @@ async fn create_tray(sender: mpsc::Sender<TrayEvent>, no_tray: bool) -> anyhow::
     }
 }
 
-async fn handle_tray_events(
+async fn handle_tray_events<F>(
+    factory: F,
     mut rx: mpsc::Receiver<TrayEvent>,
     tray_command_sender: mpsc::Sender<TrayCommand>,
     tray_event_sender: mpsc::Sender<TrayEvent>,
     no_tray: bool,
-) {
+) where
+    F: TunnelConnectorFactory + Send + Sync + 'static,
+{
     let mut cancel_sender = None;
 
     while let Some(v) = rx.recv().await {
@@ -202,7 +208,8 @@ async fn handle_tray_events(
 
                 if let Some(profile) = ConnectionProfilesStore::instance().get(uuid) {
                     ConnectionProfilesStore::instance().set_connected(uuid);
-                    tokio::spawn(async move { on_connect(sender, profile, rx).await });
+                    let factory = factory.clone();
+                    tokio::spawn(async move { on_connect(factory, sender, profile, rx).await });
                 }
             }
             TrayEvent::Disconnect => {
@@ -237,7 +244,6 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
     let mut controller = ServiceController::new(
         SlintPrompt,
         new_browser_controller(ConnectionProfilesStore::instance().get_connected()),
-        Vec::new(),
     );
 
     let mut first_run = true;
@@ -292,7 +298,7 @@ async fn on_disconnect(
     params: Arc<TunnelParams>,
     cancel_sender: Option<mpsc::Sender<()>>,
 ) {
-    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()), Vec::new());
+    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()));
     let status = controller.command(ServiceCommand::Disconnect, params).await;
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
     if let Some(cancel_sender) = cancel_sender {
@@ -300,21 +306,25 @@ async fn on_disconnect(
     }
 }
 
-async fn on_connect(
+async fn on_connect<F>(
+    factory: F,
     sender: mpsc::Sender<TrayCommand>,
     params: Arc<TunnelParams>,
     mut cancel_receiver: mpsc::Receiver<()>,
-) {
+) where
+    F: TunnelConnectorFactory + Send + Sync + 'static,
+{
     let _ = sender.send(TrayCommand::Update(None)).await;
 
-    let connector = CccGatewayConnector::new(params.clone());
+    let connector = factory.new_gateway_connector(params.clone());
     let prompts = connector
         .get_gateway_information()
         .await
         .map(|info| info.get_login_prompts(&params.login_type))
         .unwrap_or_default();
 
-    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()), prompts);
+    let mut controller =
+        ServiceController::new_with_prompts(SlintPrompt, new_browser_controller(params.clone()), prompts);
 
     let mut status = tokio::select! {
         _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-cancelled"))),

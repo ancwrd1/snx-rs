@@ -9,7 +9,7 @@ use tracing::{debug, warn};
 use crate::{
     gateway::GatewayConnector,
     model::{
-        AuthenticatedSession, MfaChallenge, MfaType, SessionState, VpnSession,
+        AuthenticatedSession, MfaChallenge, MfaType, SessionState, TunnelSession,
         params::{CertType, TunnelParams},
         proto::{AuthResponse, LoginOption},
         wrappers::SessionId,
@@ -35,7 +35,7 @@ impl SslTunnelConnector {
         })
     }
 
-    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<Arc<VpnSession>> {
+    async fn process_auth_response(&self, data: AuthResponse) -> anyhow::Result<Arc<TunnelSession>> {
         let session_id = data.session_id.unwrap_or_default();
 
         match data.authn_status.as_str() {
@@ -46,8 +46,8 @@ impl SslTunnelConnector {
                     MfaType::PasswordInput
                 };
 
-                return Ok(Arc::new(VpnSession {
-                    ccc_session_id: session_id,
+                return Ok(Arc::new(TunnelSession {
+                    session_id: session_id,
                     state: SessionState::PendingChallenge(MfaChallenge {
                         mfa_type,
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
@@ -76,8 +76,8 @@ impl SslTunnelConnector {
 
         debug!("Authentication OK, session id: {session_id}");
 
-        let session = Arc::new(VpnSession {
-            ccc_session_id: session_id,
+        let session = Arc::new(TunnelSession {
+            session_id: session_id,
             state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey(active_key.0)),
             username: data.username,
         });
@@ -87,12 +87,12 @@ impl SslTunnelConnector {
 
 #[async_trait]
 impl TunnelConnector for SslTunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         debug!("Authenticating to endpoint: {}", self.params.server_name);
 
         if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
-            return Ok(Arc::new(VpnSession {
-                ccc_session_id: SessionId::default(),
+            return Ok(Arc::new(TunnelSession {
+                session_id: SessionId::default(),
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::MobileAccess,
                     prompt: format!("https://{}/", self.params.server_name),
@@ -106,8 +106,8 @@ impl TunnelConnector for SslTunnelConnector {
         let is_saml = option.is_some_and(|o| o.factors.values().any(|f| f.factor_type == "identity_provider"));
 
         if self.params.cert_type == CertType::None && self.params.user_name.is_empty() && !is_saml {
-            Ok(Arc::new(VpnSession {
-                ccc_session_id: SessionId::default(),
+            Ok(Arc::new(TunnelSession {
+                session_id: SessionId::default(),
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::UserNameInput,
                     prompt: tr!("label-username"),
@@ -125,29 +125,33 @@ impl TunnelConnector for SslTunnelConnector {
         Ok(())
     }
 
-    async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         Err(anyhow!(tr!("error-not-implemented")))
     }
 
-    async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
+    async fn challenge_code(
+        &mut self,
+        session: Arc<TunnelSession>,
+        user_input: &str,
+    ) -> anyhow::Result<Arc<TunnelSession>> {
         debug!(
             "Authenticating with challenge code to endpoint: {}",
             self.params.server_name
         );
 
         if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
-            return Ok(Arc::new(VpnSession {
-                ccc_session_id: SessionId::default(),
+            return Ok(Arc::new(TunnelSession {
+                session_id: SessionId::default(),
                 state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey(user_input.to_owned())),
                 username: None,
             }));
         }
 
-        let data = if session.ccc_session_id.is_empty() {
+        let data = if session.session_id.is_empty() {
             self.gateway_connector.authenticate(user_input).await?
         } else {
             self.gateway_connector
-                .challenge_code(&session.ccc_session_id, user_input)
+                .challenge_code(&session.session_id, user_input)
                 .await?
         };
 
@@ -156,7 +160,7 @@ impl TunnelConnector for SslTunnelConnector {
 
     async fn create_tunnel(
         &mut self,
-        session: Arc<VpnSession>,
+        session: Arc<TunnelSession>,
         command_sender: Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);

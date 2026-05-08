@@ -5,9 +5,13 @@ use chrono::Local;
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
+    gateway::GatewayConnector,
     model::{
         AuthenticatedSession, ConnectionInfo, ConnectionStatus, MfaChallenge, MfaType, PromptInfo, SessionState,
-        VpnSession, params::TunnelParams,
+        TunnelSession,
+        params::TunnelParams,
+        proto::{AuthResponse, CertificateResponse, ClientSettingsResponse, GatewayInformation},
+        wrappers::SessionId,
     },
     prompt::SecurePrompt,
     server::CommandServer,
@@ -24,11 +28,55 @@ struct MockTunnelConnectorFactory;
 
 #[async_trait]
 impl TunnelConnectorFactory for MockTunnelConnectorFactory {
-    async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
+    async fn new_tunnel_connector(
+        &self,
+        params: Arc<TunnelParams>,
+    ) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
         Ok(Box::new(MockTunnelConnector {
             params,
             command_sender: None,
         }))
+    }
+
+    fn new_gateway_connector(&self, _params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {
+        Arc::new(MockGatewayConnector)
+    }
+}
+
+struct MockGatewayConnector;
+
+#[async_trait]
+impl GatewayConnector for MockGatewayConnector {
+    async fn authenticate(&self, _username: &str) -> anyhow::Result<AuthResponse> {
+        anyhow::bail!("not implemented")
+    }
+
+    async fn challenge_code(&self, _session_id: &SessionId, _user_input: &str) -> anyhow::Result<AuthResponse> {
+        anyhow::bail!("not implemented")
+    }
+
+    async fn get_client_settings(&self, _session_id: &SessionId) -> anyhow::Result<ClientSettingsResponse> {
+        anyhow::bail!("not implemented")
+    }
+
+    async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation> {
+        anyhow::bail!("not implemented")
+    }
+
+    async fn enroll_certificate(
+        &self,
+        _registration_key: &str,
+        _password: &str,
+    ) -> anyhow::Result<CertificateResponse> {
+        anyhow::bail!("not implemented")
+    }
+
+    async fn renew_certificate(&self, _pkcs12: &[u8], _password: &str) -> anyhow::Result<CertificateResponse> {
+        anyhow::bail!("not implemented")
+    }
+
+    async fn signout(&self, _session_id: &SessionId) -> anyhow::Result<()> {
+        anyhow::bail!("not implemented")
     }
 }
 
@@ -39,9 +87,9 @@ struct MockTunnelConnector {
 
 #[async_trait]
 impl TunnelConnector for MockTunnelConnector {
-    async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
-        Ok(Arc::new(VpnSession {
-            ccc_session_id: "1234".into(),
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
+        Ok(Arc::new(TunnelSession {
+            session_id: "1234".into(),
             state: SessionState::PendingChallenge(MfaChallenge {
                 mfa_type: MfaType::UserNameInput,
                 prompt: "username".to_string(),
@@ -54,13 +102,17 @@ impl TunnelConnector for MockTunnelConnector {
         Ok(())
     }
 
-    async fn restore_session(&mut self) -> anyhow::Result<Arc<VpnSession>> {
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         anyhow::bail!("mock restore_session not implemented")
     }
 
-    async fn challenge_code(&mut self, session: Arc<VpnSession>, user_input: &str) -> anyhow::Result<Arc<VpnSession>> {
+    async fn challenge_code(
+        &mut self,
+        session: Arc<TunnelSession>,
+        user_input: &str,
+    ) -> anyhow::Result<Arc<TunnelSession>> {
         match user_input {
-            USERNAME => Ok(Arc::new(VpnSession {
+            USERNAME => Ok(Arc::new(TunnelSession {
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::PasswordInput,
                     prompt: "password".to_string(),
@@ -68,7 +120,7 @@ impl TunnelConnector for MockTunnelConnector {
                 username: None,
                 ..(*session).clone()
             })),
-            PASSWORD => Ok(Arc::new(VpnSession {
+            PASSWORD => Ok(Arc::new(TunnelSession {
                 state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey("key".to_string())),
                 username: None,
                 ..(*session).clone()
@@ -81,7 +133,7 @@ impl TunnelConnector for MockTunnelConnector {
 
     async fn create_tunnel(
         &mut self,
-        _session: Arc<VpnSession>,
+        _session: Arc<TunnelSession>,
         command_sender: Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
