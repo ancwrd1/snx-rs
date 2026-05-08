@@ -439,7 +439,7 @@ mod tests {
                 header: RequestHeader {
                     id: 0,
                     request_type: "Signout".to_string(),
-                    session_id: Some("1234".to_string()),
+                    session_id: Some("1234".into()),
                     protocol_version: Some(100),
                 },
                 data: RequestData::SignOut(SignOutRequest::default()),

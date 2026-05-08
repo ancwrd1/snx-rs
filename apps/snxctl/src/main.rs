@@ -7,6 +7,7 @@ use i18n::tr;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
+    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::params::TunnelParams,
     profiles::ConnectionProfilesStore,
     prompt::TtyPrompt,
@@ -64,8 +65,7 @@ impl From<SnxCommand> for ServiceCommand {
             SnxCommand::Disconnect => ServiceCommand::Disconnect,
             SnxCommand::Reconnect => ServiceCommand::Reconnect,
             SnxCommand::Status => ServiceCommand::Status,
-            SnxCommand::Info => ServiceCommand::Info,
-            SnxCommand::Completions { .. } => unreachable!("Handled separately in main"),
+            SnxCommand::Info | SnxCommand::Completions { .. } => unreachable!("Handled separately in main"),
         }
     }
 }
@@ -120,9 +120,21 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
+    let connector = CccGatewayConnector::new(tunnel_params.clone());
+    let info = connector.get_gateway_information().await?;
+
+    if matches!(params.command, SnxCommand::Info) {
+        info.print_login_options(&tunnel_params.server_name);
+        return Ok(());
+    }
+
     let command = params.command.into();
 
-    let mut service_controller = ServiceController::new(TtyPrompt, SystemBrowser::default());
+    let mut service_controller = ServiceController::new(
+        TtyPrompt,
+        SystemBrowser::default(),
+        info.get_login_prompts(&tunnel_params.login_type),
+    );
 
     let status = match await_termination(service_controller.command(command, tunnel_params.clone())).await {
         Some(status) => status?,
@@ -135,9 +147,7 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    if command != ServiceCommand::Info {
-        println!("{}", status.print());
-    }
+    println!("{}", status.print());
 
     Ok(())
 }

@@ -5,13 +5,13 @@ use itertools::Itertools;
 use secrecy::ExposeSecret;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use snxcore::{
+    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::{
         params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
         proto::LoginOption,
     },
     platform::{Keychain, Platform, PlatformAccess},
     profiles::ConnectionProfilesStore,
-    server_info,
     util::parse_ipv4_or_subnet,
 };
 use tokio::sync::mpsc::Sender;
@@ -567,9 +567,14 @@ thread_local! {
 
 fn is_multi_factor_login_type(params: &TunnelParams) -> bool {
     let (tx, rx) = async_channel::bounded(1);
-    let params = params.clone();
+    let params = Arc::new(params.clone());
     tokio::spawn(async move {
-        let result = server_info::is_multi_factor_login_type(&params).await.unwrap_or(true);
+        let connector = CccGatewayConnector::new(params.clone());
+        let result = connector
+            .get_gateway_information()
+            .await
+            .map(|info| info.is_multi_factor_login_type(&params.login_type))
+            .unwrap_or(true);
         let _ = tx.send(result).await;
     });
     rx.recv_blocking().unwrap_or(true)
@@ -595,8 +600,9 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
 
     let (tx, rx) = async_channel::bounded(1);
     tokio::spawn(async move {
-        let response = server_info::get(&new_params).await;
-        let _ = tx.send(response).await;
+        let connector = CccGatewayConnector::new(Arc::new(new_params));
+        let info = connector.get_gateway_information().await;
+        let _ = tx.send(info).await;
     });
 
     SETTINGS_STATE.with(|cell| *cell.borrow_mut() = Some(state.clone()));

@@ -11,11 +11,11 @@ use isakmp::transport::{
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{
+    gateway::GatewayConnector,
     model::{
         VpnSession,
         params::{TransportType, TunnelParams},
     },
-    server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIPsecTunnel},
@@ -54,10 +54,13 @@ where
 pub(crate) struct TcptIPsecTunnel(Box<TunIPsecTunnel>);
 
 impl TcptIPsecTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
-        let info = server_info::get(&params).await?;
-
-        let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
+    pub(crate) async fn create(
+        params: Arc<TunnelParams>,
+        session: Arc<VpnSession>,
+        gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    ) -> anyhow::Result<Self> {
+        let gateway_information = gateway_connector.get_gateway_information().await?;
+        let address = util::server_name_with_port(&params.server_name, gateway_information.connectivity_info.tcpt_port);
 
         let mut tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
         tcp.set_nodelay(true)?;
@@ -67,7 +70,15 @@ impl TcptIPsecTunnel {
         let (sender, receiver) = make_channel(tcp);
 
         Ok(Self(Box::new(
-            TunIPsecTunnel::create(params, session, sender, receiver, TransportType::Tcpt).await?,
+            TunIPsecTunnel::create(
+                params,
+                session,
+                sender,
+                receiver,
+                TransportType::Tcpt,
+                gateway_connector,
+            )
+            .await?,
         )))
     }
 }

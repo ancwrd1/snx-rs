@@ -7,26 +7,31 @@ use tokio::sync::mpsc::Sender;
 use tracing::{debug, warn};
 
 use crate::{
-    ccc::CccHttpClient,
+    gateway::GatewayConnector,
     model::{
         AuthenticatedSession, MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TunnelParams},
         proto::{AuthResponse, LoginOption},
+        wrappers::SessionId,
     },
-    server_info,
     tunnel::{TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel, ssl::SslTunnel},
 };
 
 pub struct SslTunnelConnector {
     params: Arc<TunnelParams>,
     command_sender: Option<Sender<TunnelCommand>>,
+    gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
 }
 
 impl SslTunnelConnector {
-    pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
+    pub async fn new(
+        params: Arc<TunnelParams>,
+        gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             params,
             command_sender: None,
+            gateway_connector,
         })
     }
 
@@ -87,7 +92,7 @@ impl TunnelConnector for SslTunnelConnector {
 
         if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
             return Ok(Arc::new(VpnSession {
-                ccc_session_id: String::new(),
+                ccc_session_id: SessionId::default(),
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::MobileAccess,
                     prompt: format!("https://{}/", self.params.server_name),
@@ -96,12 +101,13 @@ impl TunnelConnector for SslTunnelConnector {
             }));
         }
 
-        let option = server_info::get_login_option(&self.params).await?;
+        let info = self.gateway_connector.get_gateway_information().await?;
+        let option = info.get_login_option(&self.params.login_type);
         let is_saml = option.is_some_and(|o| o.factors.values().any(|f| f.factor_type == "identity_provider"));
 
         if self.params.cert_type == CertType::None && self.params.user_name.is_empty() && !is_saml {
             Ok(Arc::new(VpnSession {
-                ccc_session_id: String::new(),
+                ccc_session_id: SessionId::default(),
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::UserNameInput,
                     prompt: tr!("label-username"),
@@ -109,9 +115,7 @@ impl TunnelConnector for SslTunnelConnector {
                 username: None,
             }))
         } else {
-            let client = CccHttpClient::new(self.params.clone(), None);
-
-            let data = client.authenticate().await?;
+            let data = self.gateway_connector.authenticate(&self.params.user_name).await?;
 
             self.process_auth_response(data).await
         }
@@ -133,22 +137,18 @@ impl TunnelConnector for SslTunnelConnector {
 
         if self.params.login_type == LoginOption::MOBILE_ACCESS_ID {
             return Ok(Arc::new(VpnSession {
-                ccc_session_id: String::new(),
+                ccc_session_id: SessionId::default(),
                 state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey(user_input.to_owned())),
                 username: None,
             }));
         }
 
         let data = if session.ccc_session_id.is_empty() {
-            let params = Arc::new(TunnelParams {
-                user_name: user_input.to_owned(),
-                ..(*self.params).clone()
-            });
-            let client = CccHttpClient::new(params, Some(session.clone()));
-            client.authenticate().await?
+            self.gateway_connector.authenticate(user_input).await?
         } else {
-            let client = CccHttpClient::new(self.params.clone(), Some(session.clone()));
-            client.challenge_code(user_input).await?
+            self.gateway_connector
+                .challenge_code(&session.ccc_session_id, user_input)
+                .await?
         };
 
         self.process_auth_response(data).await
@@ -160,7 +160,9 @@ impl TunnelConnector for SslTunnelConnector {
         command_sender: Sender<TunnelCommand>,
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
-        Ok(Box::new(SslTunnel::create(self.params.clone(), session).await?))
+        Ok(Box::new(
+            SslTunnel::create(self.params.clone(), session.clone(), self.gateway_connector.clone()).await?,
+        ))
     }
 
     async fn terminate_tunnel(&mut self, signout: bool) -> anyhow::Result<()> {

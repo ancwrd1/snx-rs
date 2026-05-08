@@ -1,8 +1,13 @@
 use std::{collections::BTreeMap, net::Ipv4Addr};
 
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use tracing::trace;
 
-use crate::model::wrappers::*;
+use crate::{
+    model::{PromptInfo, wrappers::*},
+    util::snx_deobfuscate,
+};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OfficeMode {
@@ -113,7 +118,7 @@ pub struct RequestHeader {
     pub id: u32,
     #[serde(rename = "type")]
     pub request_type: String,
-    pub session_id: Option<String>,
+    pub session_id: Option<SessionId>,
     pub protocol_version: Option<u32>,
 }
 
@@ -131,7 +136,7 @@ pub struct AuthRequest {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MultiChallengeRequest {
     pub client_type: String,
-    pub auth_session_id: String,
+    pub auth_session_id: SessionId,
     pub user_input: ObfuscatedString,
 }
 
@@ -216,7 +221,7 @@ pub struct ResponseHeader {
     pub id: Maybe<u32>,
     #[serde(rename = "type")]
     pub response_type: String,
-    pub session_id: String,
+    pub session_id: SessionId,
     pub return_code: u32,
 }
 
@@ -226,7 +231,7 @@ pub struct ResponseHeader {
 pub enum ResponseData {
     Auth(AuthResponse),
     ClientSettings(ClientSettingsResponse),
-    ServerInfo(ServerInfoResponse),
+    ServerInfo(GatewayInformation),
     Certificate(CertificateResponse),
     Generic(serde_json::Value),
 }
@@ -238,7 +243,7 @@ pub struct AuthResponse {
     pub active_key: Option<ObfuscatedString>,
     pub server_fingerprint: Option<String>,
     pub server_cn: Option<String>,
-    pub session_id: Option<String>,
+    pub session_id: Option<SessionId>,
     pub active_key_timeout: Option<u64>,
     pub error_message: Option<ObfuscatedString>,
     pub error_id: Option<ObfuscatedString>,
@@ -299,10 +304,132 @@ pub struct ClientInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ServerInfoResponse {
+pub struct GatewayInformation {
     pub protocol_version: ProtocolVersion,
     pub connectivity_info: ConnectivityInfo,
     pub login_options_data: Option<LoginOptionsData>,
+}
+
+impl GatewayInformation {
+    pub fn get_login_prompts(&self, login_type: &str) -> Vec<PromptInfo> {
+        let Some(login_option) = self.get_login_option(login_type) else {
+            return Vec::new();
+        };
+
+        let result = login_option
+            .factors
+            .values()
+            .filter_map(|factor| match factor.custom_display_labels {
+                LoginDisplayLabelSelect::LoginDisplayLabel(ref map) => map.get("password").map(|label| {
+                    PromptInfo::new(
+                        map.get("header").map(ToOwned::to_owned).unwrap_or_default(),
+                        format!("{label}: "),
+                    )
+                }),
+                LoginDisplayLabelSelect::Empty(_) => None,
+            })
+            .collect();
+
+        trace!("Retrieved server prompts: {:?}", result);
+
+        result
+    }
+
+    pub fn get_login_option(&self, login_type: &str) -> Option<&LoginOption> {
+        self.login_options_data
+            .as_ref()
+            .and_then(|data| data.login_options_list.values().find(|option| option.id == login_type))
+    }
+
+    pub fn is_multi_factor_login_type(&self, login_type: &str) -> bool {
+        self.get_login_option(login_type)
+            .map(|opt| opt.is_multi_factor())
+            .unwrap_or(true)
+    }
+
+    pub fn is_certificate_login_type(&self, login_type: &str) -> bool {
+        self.get_login_option(login_type)
+            .map(|opt| opt.is_certificate())
+            .unwrap_or(true)
+    }
+
+    pub fn print_login_options(&self, server_address: &str) {
+        let mut values = vec![
+            ("login-options-server-address".to_owned(), server_address.to_owned()),
+            (
+                "login-options-server-ip".to_owned(),
+                self.connectivity_info.server_ip.to_string(),
+            ),
+            (
+                "login-options-client-enabled".to_owned(),
+                self.connectivity_info.client_enabled.to_string(),
+            ),
+            (
+                "login-options-supported-protocols".to_owned(),
+                self.connectivity_info.supported_data_tunnel_protocols.join(", "),
+            ),
+            (
+                "login-options-preferred-protocol".to_owned(),
+                self.connectivity_info.connectivity_type.clone(),
+            ),
+            (
+                "login-options-tcpt-port".to_owned(),
+                self.connectivity_info.tcpt_port.to_string(),
+            ),
+            (
+                "login-options-natt-port".to_owned(),
+                self.connectivity_info.natt_port.to_string(),
+            ),
+        ];
+
+        for fingerprint in self.connectivity_info.internal_ca_fingerprint.values() {
+            values.push((
+                "login-options-internal-ca-fingerprint".to_owned(),
+                String::from_utf8_lossy(&snx_deobfuscate(fingerprint).unwrap_or_default()).into_owned(),
+            ));
+        }
+
+        let mut options_list = self
+            .login_options_data
+            .clone()
+            .map(|data| data.login_options_list)
+            .unwrap_or_default();
+
+        if options_list.is_empty() {
+            options_list.insert(String::new(), LoginOption::unspecified());
+        }
+
+        for opt in options_list.into_values().filter(|opt| opt.show_realm != 0) {
+            let factors = opt.factors.into_values().map(|factor| factor.factor_type).join(", ");
+            values.push((format!("[{}]", opt.display_name), format!("{} ({})", opt.id, factors)));
+        }
+
+        let label_width = values
+            .iter()
+            .map(|(label, _)| {
+                if label.starts_with("[") {
+                    label.chars().count()
+                } else {
+                    i18n::translate(label).chars().count()
+                }
+            })
+            .max()
+            .unwrap_or_default();
+        let mut result = String::new();
+        for (index, (key, value)) in values.iter().enumerate() {
+            let key_str = if key.starts_with("[") {
+                key.clone()
+            } else {
+                i18n::translate(key)
+            };
+            result.push_str(&format!("{key_str:>label_width$}: {value}"));
+            if index < values.len() - 1 {
+                result.push('\n');
+            }
+        }
+
+        println!("{result}");
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

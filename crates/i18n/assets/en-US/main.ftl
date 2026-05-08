@@ -138,6 +138,7 @@ error-identity-timeout = Timeout while waiting for identity response, is the log
 error-invalid-transport-type = Invalid transport type
 error-invalid-tls-version-max = Invalid maximum TLS version
 error-certificate-verify-failed = TLS certificate validation failed. The server’s certificate is invalid, expired, or not trusted.
+error-invalid-gateway-info = Invalid gateway information response
 
 # Placeholder texts
 placeholder-domains = Comma-separated domains

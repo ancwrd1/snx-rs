@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    model::params::{TransportType, TunnelParams, TunnelType},
+    model::{
+        params::{TransportType, TunnelParams, TunnelType},
+        wrappers::SessionId,
+    },
     platform::SearchDomain,
 };
 
@@ -67,7 +70,7 @@ impl IPsecSession {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VpnSession {
-    pub ccc_session_id: String,
+    pub ccc_session_id: SessionId,
     pub state: SessionState,
     pub username: Option<String>,
 }
@@ -75,7 +78,7 @@ pub struct VpnSession {
 impl VpnSession {
     pub fn empty() -> Self {
         Self {
-            ccc_session_id: String::new(),
+            ccc_session_id: SessionId::default(),
             state: SessionState::default(),
             username: None,
         }

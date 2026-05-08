@@ -8,16 +8,11 @@ use std::{
 use anyhow::Context;
 use cached::proc_macro::cached;
 use ipnet::{Ipv4Net, Ipv4Subnets};
-use itertools::Itertools;
 use uuid::Uuid;
 
 use crate::{
-    model::{
-        params::TunnelParams,
-        proto::{LoginOption, NetworkRange},
-    },
+    model::proto::NetworkRange,
     platform::{Platform, PlatformAccess},
-    server_info,
 };
 
 const XOR_TABLE: &[u8] = &[
@@ -77,86 +72,6 @@ pub fn ranges_to_subnets(ranges: &[NetworkRange]) -> impl Iterator<Item = Ipv4Ne
         // skip default route
         .filter(|r| r.from != Ipv4Addr::new(0, 0, 0, 1))
         .flat_map(|r| Ipv4Subnets::new(r.from, r.to, 0))
-}
-
-pub async fn print_login_options(params: &TunnelParams) -> anyhow::Result<()> {
-    let info = server_info::get(params).await?;
-
-    let mut values = vec![
-        ("login-options-server-address".to_owned(), params.server_name.clone()),
-        (
-            "login-options-server-ip".to_owned(),
-            info.connectivity_info.server_ip.to_string(),
-        ),
-        (
-            "login-options-client-enabled".to_owned(),
-            info.connectivity_info.client_enabled.to_string(),
-        ),
-        (
-            "login-options-supported-protocols".to_owned(),
-            info.connectivity_info.supported_data_tunnel_protocols.join(", "),
-        ),
-        (
-            "login-options-preferred-protocol".to_owned(),
-            info.connectivity_info.connectivity_type,
-        ),
-        (
-            "login-options-tcpt-port".to_owned(),
-            info.connectivity_info.tcpt_port.to_string(),
-        ),
-        (
-            "login-options-natt-port".to_owned(),
-            info.connectivity_info.natt_port.to_string(),
-        ),
-    ];
-
-    for fingerprint in info.connectivity_info.internal_ca_fingerprint.values() {
-        values.push((
-            "login-options-internal-ca-fingerprint".to_owned(),
-            String::from_utf8_lossy(&snx_deobfuscate(fingerprint)?).into_owned(),
-        ));
-    }
-
-    let mut options_list = info
-        .login_options_data
-        .map(|data| data.login_options_list)
-        .unwrap_or_default();
-
-    if options_list.is_empty() {
-        options_list.insert(String::new(), LoginOption::unspecified());
-    }
-
-    for opt in options_list.into_values().filter(|opt| opt.show_realm != 0) {
-        let factors = opt.factors.into_values().map(|factor| factor.factor_type).join(", ");
-        values.push((format!("[{}]", opt.display_name), format!("{} ({})", opt.id, factors)));
-    }
-
-    let label_width = values
-        .iter()
-        .map(|(label, _)| {
-            if label.starts_with("[") {
-                label.chars().count()
-            } else {
-                i18n::translate(label).chars().count()
-            }
-        })
-        .max()
-        .unwrap_or_default();
-    let mut result = String::new();
-    for (index, (key, value)) in values.iter().enumerate() {
-        let key_str = if key.starts_with("[") {
-            key.clone()
-        } else {
-            i18n::translate(key)
-        };
-        result.push_str(&format!("{key_str:>label_width$}: {value}"));
-        if index < values.len() - 1 {
-            result.push('\n');
-        }
-    }
-
-    println!("{result}");
-    Ok(())
 }
 
 #[cached]

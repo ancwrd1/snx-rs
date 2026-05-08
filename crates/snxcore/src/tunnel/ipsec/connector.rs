@@ -23,13 +23,14 @@ use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
 use crate::{
+    gateway::GatewayConnector,
     model::{
         AuthenticatedSession, IPsecSession, MfaChallenge, MfaType, SessionState, VpnSession,
         params::{CertType, TransportType, TunnelParams},
-        proto::{AuthenticationRealm, ClientLoggingData},
+        proto::{AuthenticationRealm, ClientLoggingData, GatewayInformation},
+        wrappers::SessionId,
     },
     platform::{NetworkInterface, Platform, PlatformAccess},
-    server_info,
     sexpr::SExpression,
     tunnel::{
         TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
@@ -108,18 +109,22 @@ pub struct IPsecTunnelConnector {
     last_message_id: u32,
     last_identifier: u16,
     last_challenge_type: ConfigAttributeType,
-    ccc_session: String,
+    ccc_session: SessionId,
     username: String,
     ipsec_session: IPsecSession,
     last_rekey: Option<SystemTime>,
     last_ip_lease: Option<SystemTime>,
     command_sender: Option<Sender<TunnelCommand>>,
     esp_transport: TransportType,
+    gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
 }
 
 impl IPsecTunnelConnector {
-    pub async fn new(params: Arc<TunnelParams>) -> anyhow::Result<Self> {
-        let server_info = server_info::get(&params).await?;
+    pub async fn new(
+        params: Arc<TunnelParams>,
+        gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    ) -> anyhow::Result<Self> {
+        let info = gateway_connector.get_gateway_information().await?;
 
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
 
@@ -130,7 +135,7 @@ impl IPsecTunnelConnector {
         };
 
         socket
-            .connect(&format!("{host}:{}", server_info.connectivity_info.natt_port))
+            .connect(&format!("{host}:{}", info.connectivity_info.natt_port))
             .await?;
 
         let IpAddr::V4(gateway_address) = socket.peer_addr()?.ip() else {
@@ -157,18 +162,19 @@ impl IPsecTunnelConnector {
 
         Ok(Self {
             params: params.clone(),
-            service: Self::new_service(&params).await?,
+            service: Self::new_service(&params, &info).await?,
             gateway_address,
             last_message_id: 0,
             last_identifier: 0,
             last_challenge_type: ConfigAttributeType::Other(0),
-            ccc_session: String::new(),
+            ccc_session: SessionId::default(),
             username: String::new(),
             ipsec_session: IPsecSession::default(),
             last_rekey: None,
             last_ip_lease: None,
             command_sender: None,
             esp_transport,
+            gateway_connector,
         })
     }
 
@@ -229,7 +235,8 @@ impl IPsecTunnelConnector {
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
-            .context("No session in reply, VPN server may be running out of OM licenses!")?;
+            .context("No session in reply, VPN server may be running out of OM licenses!")?
+            .into();
 
         self.ipsec_session.address = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
             .context("No IPv4 in reply!")?
@@ -467,7 +474,7 @@ impl IPsecTunnelConnector {
 
     fn save_ike_session(&mut self) -> anyhow::Result<()> {
         let office_mode = OfficeMode {
-            ccc_session: self.ccc_session.clone(),
+            ccc_session: self.ccc_session.clone().into(),
             username: self.username.clone(),
             ip_address: self.ipsec_session.address,
             netmask: self.ipsec_session.netmask,
@@ -532,7 +539,7 @@ impl IPsecTunnelConnector {
             Err(e) => {
                 warn!("OM session exchange failed: {}, reusing previous settings", e);
 
-                self.ccc_session = office_mode.ccc_session;
+                self.ccc_session = office_mode.ccc_session.into();
                 self.username = office_mode.username;
                 self.ipsec_session.address = office_mode.ip_address;
                 self.ipsec_session.netmask = office_mode.netmask;
@@ -554,14 +561,12 @@ impl IPsecTunnelConnector {
         })
     }
 
-    async fn new_service(params: &TunnelParams) -> anyhow::Result<Ikev1Service> {
-        let server_info = server_info::get(params).await?;
-
-        let identity = Self::new_identity(params).await?;
+    async fn new_service(params: &TunnelParams, info: &GatewayInformation) -> anyhow::Result<Ikev1Service> {
+        let identity = Self::new_identity(params, info).await?;
 
         let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
 
-        let address = util::server_name_with_port(&params.server_name, server_info.connectivity_info.tcpt_port);
+        let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
 
         let tcpt_address = address.to_socket_addrs()?.next().context("No address!")?;
 
@@ -574,8 +579,8 @@ impl IPsecTunnelConnector {
         Ikev1Service::new(transport, ikev1_session)
     }
 
-    async fn new_identity(params: &TunnelParams) -> anyhow::Result<Identity> {
-        let hybrid_auth = !server_info::is_certificate_login_type(params).await?;
+    async fn new_identity(params: &TunnelParams, info: &GatewayInformation) -> anyhow::Result<Identity> {
+        let hybrid_auth = !info.is_certificate_login_type(&params.login_type);
 
         let identity = match params.cert_type {
             CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
@@ -618,7 +623,8 @@ impl TunnelConnector for IPsecTunnelConnector {
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
 
-        let login_option = server_info::get_login_option(&self.params).await?;
+        let info = self.gateway_connector.get_gateway_information().await?;
+        let login_option = info.get_login_option(&self.params.login_type);
 
         let machine_name = if self.service.session().hybrid_auth()
             && let Some(cert) = self.service.session().client_certificate()
@@ -667,7 +673,7 @@ impl TunnelConnector for IPsecTunnelConnector {
             protocol_version: 100,
             client_mode: self.params.client_mode.clone(),
             selected_realm_id: self.params.login_type.clone(),
-            secondary_realm_hash: login_option.map(|o| o.secondary_realm_hash),
+            secondary_realm_hash: login_option.map(|o| o.secondary_realm_hash.clone()),
             client_logging_data: Some(client_logging_data),
         };
 
@@ -675,21 +681,19 @@ impl TunnelConnector for IPsecTunnelConnector {
 
         trace!("Authentication blob: {}", realm_expr);
 
-        let info = server_info::get(&self.params).await?;
+        let info = self.gateway_connector.get_gateway_information().await?;
 
         let internal_ca_fingerprints = info
             .connectivity_info
             .internal_ca_fingerprint
-            .into_values()
+            .values()
             .flat_map(|fp| util::snx_deobfuscate(fp).ok())
             .map(|v| String::from_utf8_lossy(&v).into_owned())
             .collect();
 
         let identity_request = IdentityRequest {
             auth_blob: realm_expr.to_string(),
-            with_mfa: server_info::is_multi_factor_login_type(&self.params)
-                .await
-                .unwrap_or(true),
+            with_mfa: info.is_multi_factor_login_type(&self.params.login_type),
             internal_ca_fingerprints,
         };
 
@@ -734,7 +738,8 @@ impl TunnelConnector for IPsecTunnelConnector {
             Ok(result) => Ok(result),
             Err(e) => {
                 let _ = self.delete_session().await;
-                self.service = Self::new_service(&self.params).await?;
+                let info = self.gateway_connector.get_gateway_information().await?;
+                self.service = Self::new_service(&self.params, &info).await?;
                 Err(e)
             }
         }
@@ -762,9 +767,15 @@ impl TunnelConnector for IPsecTunnelConnector {
     ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
         self.command_sender = Some(command_sender);
         let result: anyhow::Result<Box<dyn VpnTunnel + Send>> = match self.esp_transport {
-            TransportType::Kernel => Ok(Box::new(NativeIPsecTunnel::create(self.params.clone(), session).await?)),
-            TransportType::Tcpt => Ok(Box::new(TcptIPsecTunnel::create(self.params.clone(), session).await?)),
-            TransportType::Udp => Ok(Box::new(UdpIPsecTunnel::create(self.params.clone(), session).await?)),
+            TransportType::Kernel => Ok(Box::new(
+                NativeIPsecTunnel::create(self.params.clone(), session, self.gateway_connector.clone()).await?,
+            )),
+            TransportType::Tcpt => Ok(Box::new(
+                TcptIPsecTunnel::create(self.params.clone(), session, self.gateway_connector.clone()).await?,
+            )),
+            TransportType::Udp => Ok(Box::new(
+                UdpIPsecTunnel::create(self.params.clone(), session, self.gateway_connector.clone()).await?,
+            )),
             _ => Err(anyhow!(tr!("error-invalid-transport-type"))),
         };
 

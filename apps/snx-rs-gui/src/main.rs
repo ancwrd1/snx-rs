@@ -8,6 +8,7 @@ use slint::winit_030::winit::platform::{wayland::WindowAttributesExtWayland, x11
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
+    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::{ConnectionStatus, params::TunnelParams},
     platform::{Platform, PlatformAccess, SingleInstance},
     profiles::ConnectionProfilesStore,
@@ -236,6 +237,7 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
     let mut controller = ServiceController::new(
         SlintPrompt,
         new_browser_controller(ConnectionProfilesStore::instance().get_connected()),
+        Vec::new(),
     );
 
     let mut first_run = true;
@@ -290,7 +292,7 @@ async fn on_disconnect(
     params: Arc<TunnelParams>,
     cancel_sender: Option<mpsc::Sender<()>>,
 ) {
-    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()));
+    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()), Vec::new());
     let status = controller.command(ServiceCommand::Disconnect, params).await;
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
     if let Some(cancel_sender) = cancel_sender {
@@ -305,7 +307,14 @@ async fn on_connect(
 ) {
     let _ = sender.send(TrayCommand::Update(None)).await;
 
-    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()));
+    let connector = CccGatewayConnector::new(params.clone());
+    let prompts = connector
+        .get_gateway_information()
+        .await
+        .map(|info| info.get_login_prompts(&params.login_type))
+        .unwrap_or_default();
+
+    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()), prompts);
 
     let mut status = tokio::select! {
         _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-cancelled"))),

@@ -7,11 +7,11 @@ use futures::{
 use tokio::net::UdpSocket;
 
 use crate::{
+    gateway::GatewayConnector,
     model::{
         VpnSession,
         params::{TransportType, TunnelParams},
     },
-    server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIPsecTunnel},
@@ -50,11 +50,15 @@ fn make_channel(socket: UdpSocket, address: SocketAddr) -> (PacketSender, Packet
 pub(crate) struct UdpIPsecTunnel(Box<TunIPsecTunnel>);
 
 impl UdpIPsecTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
+    pub(crate) async fn create(
+        params: Arc<TunnelParams>,
+        session: Arc<VpnSession>,
+        gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    ) -> anyhow::Result<Self> {
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
-        let server_info = server_info::get(&params).await?;
+        let gateway_information = gateway_connector.get_gateway_information().await?;
 
-        let address = util::server_name_with_port(&params.server_name, server_info.connectivity_info.natt_port);
+        let address = util::server_name_with_port(&params.server_name, gateway_information.connectivity_info.natt_port);
 
         socket.connect(address.as_ref()).await?;
 
@@ -62,7 +66,7 @@ impl UdpIPsecTunnel {
         let (sender, receiver) = make_channel(socket, address);
 
         Ok(Self(Box::new(
-            TunIPsecTunnel::create(params, session, sender, receiver, TransportType::Udp).await?,
+            TunIPsecTunnel::create(params, session, sender, receiver, TransportType::Udp, gateway_connector).await?,
         )))
     }
 }

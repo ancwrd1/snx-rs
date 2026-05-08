@@ -39,7 +39,8 @@ Top-level directories:
 `crates/snxcore/src/`:
 
 * `lib.rs` — has `#![deny(unsafe_code)]`. Keep it that way.
-* `ccc.rs` — Check Point "CCC" HTTP(S) control protocol client.
+* `gateway` — VPN gateway connectors
+  * `ccc.rs` — Check Point command gateway connector via an HTTPS client
 * `server.rs` / `server_info.rs` — command-mode server (unix socket) and server-info queries.
 * `controller.rs` — connection lifecycle orchestration.
 * `browser.rs` — browser-based SAML/IdP flow.

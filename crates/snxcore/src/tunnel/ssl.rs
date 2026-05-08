@@ -25,16 +25,17 @@ use tokio_native_tls::{
 use tracing::{debug, trace, warn};
 
 use crate::{
-    ccc::CccHttpClient,
+    gateway::GatewayConnector,
     model::{
         ConnectionInfo, VpnSession,
         params::{TlsVersion, TransportType, TunnelParams, TunnelType},
-        proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
+        proto::{
+            ClientHelloData, GatewayInformation, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest,
+        },
     },
     platform::{
         DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
     },
-    server_info,
     sexpr::SExpression,
     tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
     util,
@@ -89,11 +90,17 @@ pub(crate) struct SslTunnel {
     tun_device: Option<TunDevice>,
     hello_reply: HelloReplyData,
     terminate_sender: Option<Sender<()>>,
+    gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    gateway_information: GatewayInformation,
 }
 
 impl SslTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
-        let info = server_info::get(&params).await?;
+    pub(crate) async fn create(
+        params: Arc<TunnelParams>,
+        session: Arc<VpnSession>,
+        gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    ) -> anyhow::Result<Self> {
+        let info = gateway_connector.get_gateway_information().await?;
 
         let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
 
@@ -142,6 +149,8 @@ impl SslTunnel {
             tun_device: None,
             hello_reply: HelloReplyData::default(),
             terminate_sender: None,
+            gateway_connector,
+            gateway_information: info,
         })
     }
 
@@ -216,11 +225,12 @@ impl SslTunnel {
             return;
         };
 
-        if let Ok(info) = server_info::get(&self.params).await
-            && let Ok(dest_ip) = util::server_name_to_ipv4(&self.params.server_name, info.connectivity_info.tcpt_port)
-            && let Ok(configurator) = Platform::get()
-                .new_routing_configurator(device.name(), TunnelType::SSL)
-                .await
+        if let Ok(dest_ip) = util::server_name_to_ipv4(
+            &self.params.server_name,
+            self.gateway_information.connectivity_info.tcpt_port,
+        ) && let Ok(configurator) = Platform::get()
+            .new_routing_configurator(device.name(), TunnelType::SSL)
+            .await
         {
             let _ = configurator
                 .configure(&RoutingConfig::Cleanup {
@@ -246,8 +256,7 @@ impl SslTunnel {
 
         debug!("Signing out");
 
-        let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-        let _ = client.signout().await;
+        let _ = self.gateway_connector.signout(&self.session.ccc_session_id).await;
     }
 
     pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
@@ -257,7 +266,7 @@ impl SslTunnel {
 
         let dest_ip = util::server_name_to_ipv4(
             &self.params.server_name,
-            server_info::get(&self.params).await?.connectivity_info.tcpt_port,
+            self.gateway_information.connectivity_info.tcpt_port,
         )?;
 
         let config = if self.params.no_routing {
@@ -274,8 +283,10 @@ impl SslTunnel {
             let ranges = if let Some(ref range) = self.hello_reply.range {
                 range.clone()
             } else {
-                let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-                let client_settings = client.get_client_settings().await?;
+                let client_settings = self
+                    .gateway_connector
+                    .get_client_settings(&self.session.ccc_session_id)
+                    .await?;
                 client_settings.updated_policies.range.settings
             };
             let subnets = util::ranges_to_subnets(&ranges).collect::<Vec<_>>();

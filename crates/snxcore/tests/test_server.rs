@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Local;
@@ -41,7 +41,7 @@ struct MockTunnelConnector {
 impl TunnelConnector for MockTunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<VpnSession>> {
         Ok(Arc::new(VpnSession {
-            ccc_session_id: "1234".to_string(),
+            ccc_session_id: "1234".into(),
             state: SessionState::PendingChallenge(MfaChallenge {
                 mfa_type: MfaType::UserNameInput,
                 prompt: "username".to_string(),
@@ -147,10 +147,6 @@ impl SecurePrompt for MockPrompt {
     async fn show_notification(&self, _summary: &str, _message: &str) -> anyhow::Result<()> {
         Ok(())
     }
-
-    async fn get_server_prompts(&self, _params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>> {
-        Ok(VecDeque::new())
-    }
 }
 
 struct MockBrowser;
@@ -194,7 +190,8 @@ async fn command_server_reports_disconnected_status() {
     let fixture = ServerFixture::new().await;
 
     let params = Arc::new(TunnelParams::default());
-    let mut controller = ServiceController::new_with_server_name(&fixture.socket_name, MockPrompt, MockBrowser);
+    let mut controller =
+        ServiceController::new_with_server_name(&fixture.socket_name, MockPrompt, MockBrowser, Vec::new());
     let status = controller.command(ServiceCommand::Status, params).await.unwrap();
     assert_eq!(status, ConnectionStatus::Disconnected);
 
@@ -211,7 +208,8 @@ async fn connect_with_mfa() {
         ..Default::default()
     });
 
-    let mut controller = ServiceController::new_with_server_name(&fixture.socket_name, MockPrompt, MockBrowser);
+    let mut controller =
+        ServiceController::new_with_server_name(&fixture.socket_name, MockPrompt, MockBrowser, Vec::new());
     let status = controller
         .command(ServiceCommand::Connect, params.clone())
         .await

@@ -7,111 +7,114 @@ use std::{
 };
 
 use anyhow::anyhow;
+use async_trait::async_trait;
+use cached::proc_macro::cached;
 use i18n::tr;
 use reqwest::{Certificate, Identity};
 use secrecy::ExposeSecret;
-use tracing::{trace, warn};
+use tracing::{debug, trace, warn};
 
 use crate::{
+    gateway::GatewayConnector,
     model::{
-        VpnSession,
         params::{CertType, TlsVersion, TunnelParams},
         proto::*,
+        wrappers::SessionId,
     },
     sexpr::SExpression,
+    util,
 };
 
-static REQUEST_ID: AtomicU32 = AtomicU32::new(2);
+static REQUEST_ID: AtomicU32 = AtomicU32::new(1);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-const INFO_TIMEOUT: Duration = Duration::from_secs(10);
+const INFO_TIMEOUT: Duration = Duration::from_secs(5);
 
 fn new_request_id() -> u32 {
     REQUEST_ID.fetch_add(1, Ordering::SeqCst)
 }
 
-pub struct CccHttpClient {
+#[derive(Clone)]
+pub struct CccGatewayConnector {
     params: Arc<TunnelParams>,
-    session: Option<Arc<VpnSession>>,
 }
 
-impl CccHttpClient {
-    pub fn new(params: Arc<TunnelParams>, session: Option<Arc<VpnSession>>) -> Self {
-        Self { params, session }
+impl CccGatewayConnector {
+    pub fn new(params: Arc<TunnelParams>) -> Self {
+        Self { params }
     }
 
-    fn session_id(&self) -> Option<String> {
-        self.session.as_ref().map(|s| s.ccc_session_id.clone())
-    }
+    fn new_auth_request(&self, username: &str) -> CccClientRequestData {
+        let (request_type, username, password) = if self.params.cert_type == CertType::None {
+            ("UserPass", Some(username.into()), Some(Default::default()))
+        } else {
+            ("CertAuth", None, None)
+        };
 
-    fn new_auth_request(&self) -> CccClientRequestData {
-        let (request_type, username, password) =
-            if self.params.cert_type == CertType::None || !self.params.user_name.is_empty() {
-                (
-                    "UserPass",
-                    Some(self.params.user_name.as_str().into()),
-                    Some(Default::default()),
-                )
-            } else {
-                ("CertAuth", None, None)
-            };
+        let mut client_logging_data = self
+            .params
+            .client_logging_data
+            .as_ref()
+            .and_then(|path| ClientLoggingData::load(path).ok())
+            .unwrap_or_default();
+
+        client_logging_data.os_name.get_or_insert_with(|| "Windows".to_owned());
+        client_logging_data.device_id.get_or_insert_with(util::get_device_id);
+
+        debug!("Client logging data: {:?}", client_logging_data);
 
         CccClientRequestData {
             header: RequestHeader {
                 id: new_request_id(),
                 request_type: request_type.to_owned(),
-                session_id: self.session_id(),
+                session_id: None,
                 protocol_version: None,
             },
             data: RequestData::Auth(AuthRequest {
                 client_type: self.params.tunnel_type.as_client_type().to_owned(),
                 username,
                 password,
-                client_logging_data: Some(ClientLoggingData {
-                    os_name: Some("Windows".into()),
-                    device_id: Some(crate::util::get_device_id()),
-                    ..Default::default()
-                }),
+                client_logging_data: Some(client_logging_data),
                 selected_login_option: Some(self.params.login_type.clone()),
                 endpoint_os: None,
             }),
         }
     }
 
-    fn new_challenge_code_request(&self, user_input: &str) -> CccClientRequestData {
+    fn new_challenge_code_request(&self, session_id: &SessionId, user_input: &str) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
                 id: new_request_id(),
                 request_type: "MultiChallange".to_string(),
-                session_id: self.session_id(),
+                session_id: Some(session_id.clone()),
                 protocol_version: None,
             },
             data: RequestData::MultiChallenge(MultiChallengeRequest {
                 client_type: self.params.tunnel_type.as_client_type().to_owned(),
-                auth_session_id: self.session_id().unwrap_or_default(),
+                auth_session_id: session_id.clone(),
                 user_input: user_input.into(),
             }),
         }
     }
 
-    fn new_client_settings_request(&self) -> CccClientRequestData {
+    fn new_client_settings_request(&self, session_id: &SessionId) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
                 id: new_request_id(),
                 request_type: "ClientSettings".to_string(),
-                session_id: self.session_id(),
+                session_id: Some(session_id.clone()),
                 protocol_version: Some(100),
             },
             data: RequestData::ClientSettings(ClientSettingsRequest::default()),
         }
     }
 
-    fn new_signout_request(&self) -> CccClientRequestData {
+    fn new_signout_request(&self, session_id: &SessionId) -> CccClientRequestData {
         CccClientRequestData {
             header: RequestHeader {
                 id: new_request_id(),
                 request_type: "Signout".to_string(),
-                session_id: self.session_id(),
+                session_id: Some(session_id.clone()),
                 protocol_version: Some(100),
             },
             data: RequestData::SignOut(SignOutRequest::default()),
@@ -242,8 +245,36 @@ impl CccHttpClient {
             .into_data()
     }
 
-    pub async fn authenticate(&self) -> anyhow::Result<AuthResponse> {
-        let req = self.new_auth_request();
+    async fn get_gateway_information_uncached(&self) -> anyhow::Result<GatewayInformation> {
+        let data = self
+            .send_request(self.new_client_hello_request(), INFO_TIMEOUT)
+            .await?
+            .try_into::<CccServerResponse>()?
+            .data
+            .into_data()?;
+
+        match data {
+            ResponseData::ServerInfo(data) => Ok(data),
+            _ => Err(anyhow!(tr!("error-invalid-gateway-info"))),
+        }
+    }
+}
+
+#[cached(
+    result = true,
+    ty = "cached::UnboundCache<String, GatewayInformation>",
+    create = "{ cached::UnboundCache::new() }",
+    convert = r#"{ format!("{}", params.server_name) }"#
+)]
+async fn get_gateway_information(params: Arc<TunnelParams>) -> anyhow::Result<GatewayInformation> {
+    let connector = CccGatewayConnector::new(params);
+    connector.get_gateway_information_uncached().await
+}
+
+#[async_trait]
+impl GatewayConnector for CccGatewayConnector {
+    async fn authenticate(&self, username: &str) -> anyhow::Result<AuthResponse> {
+        let req = self.new_auth_request(username);
 
         match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
@@ -251,8 +282,8 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn challenge_code(&self, user_input: &str) -> anyhow::Result<AuthResponse> {
-        let req = self.new_challenge_code_request(user_input);
+    async fn challenge_code(&self, session_id: &SessionId, user_input: &str) -> anyhow::Result<AuthResponse> {
+        let req = self.new_challenge_code_request(session_id, user_input);
 
         match self.send_ccc_request(req).await? {
             ResponseData::Auth(data) => Ok(data),
@@ -260,8 +291,8 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn get_client_settings(&self) -> anyhow::Result<ClientSettingsResponse> {
-        let req = self.new_client_settings_request();
+    async fn get_client_settings(&self, session_id: &SessionId) -> anyhow::Result<ClientSettingsResponse> {
+        let req = self.new_client_settings_request(session_id);
 
         match self.send_ccc_request(req).await? {
             ResponseData::ClientSettings(data) => Ok(data),
@@ -269,15 +300,11 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn get_server_info(&self) -> anyhow::Result<SExpression> {
-        self.send_request(self.new_client_hello_request(), INFO_TIMEOUT).await
+    async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation> {
+        get_gateway_information(self.params.clone()).await
     }
 
-    pub async fn enroll_certificate(
-        &self,
-        registration_key: &str,
-        password: &str,
-    ) -> anyhow::Result<CertificateResponse> {
+    async fn enroll_certificate(&self, registration_key: &str, password: &str) -> anyhow::Result<CertificateResponse> {
         let req = self.new_enroll_certificate_request(registration_key, password);
 
         match self.send_ccc_request(req).await? {
@@ -286,11 +313,7 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn renew_certificate<T: AsRef<[u8]>>(
-        &self,
-        pkcs12: T,
-        password: &str,
-    ) -> anyhow::Result<CertificateResponse> {
+    async fn renew_certificate(&self, pkcs12: &[u8], password: &str) -> anyhow::Result<CertificateResponse> {
         let req = self.new_renew_certificate_request(pkcs12, password);
 
         match self.send_ccc_request(req).await? {
@@ -299,8 +322,8 @@ impl CccHttpClient {
         }
     }
 
-    pub async fn signout(&self) -> anyhow::Result<()> {
-        let req = self.new_signout_request();
+    async fn signout(&self, session_id: &SessionId) -> anyhow::Result<()> {
+        let req = self.new_signout_request(session_id);
 
         self.send_ccc_request(req).await?;
 

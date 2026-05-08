@@ -2,15 +2,14 @@
 #![allow(unexpected_cfgs)]
 
 pub mod browser;
-pub mod ccc;
 pub mod controller;
+pub mod gateway;
 pub mod model;
 pub mod otp;
 pub mod platform;
 pub mod profiles;
 pub mod prompt;
 pub mod server;
-pub mod server_info;
 pub mod sexpr;
 pub mod tunnel;
 pub mod util;

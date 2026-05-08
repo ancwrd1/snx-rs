@@ -6,6 +6,7 @@ use ipnet::Ipv4Net;
 use tokio::sync::mpsc;
 
 use crate::{
+    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::{
         params::{TunnelParams, TunnelType},
         proto::LoginOption,
@@ -63,17 +64,19 @@ pub trait TunnelConnectorFactory: Clone {
     async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>;
 }
 
-#[derive(Clone)]
-pub struct CheckPointTunnelConnectorFactory;
+#[derive(Clone, Default)]
+pub struct CheckPointTunnelConnectorFactory {}
 
 #[async_trait]
 impl TunnelConnectorFactory for CheckPointTunnelConnectorFactory {
     async fn create(&self, params: Arc<TunnelParams>) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
+        let connector: Arc<dyn GatewayConnector + Send + Sync> = Arc::new(CccGatewayConnector::new(params.clone()));
+
         match params.tunnel_type {
             TunnelType::IPsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => {
-                Ok(Box::new(IPsecTunnelConnector::new(params).await?))
+                Ok(Box::new(IPsecTunnelConnector::new(params, connector).await?))
             }
-            _ => Ok(Box::new(SslTunnelConnector::new(params).await?)),
+            _ => Ok(Box::new(SslTunnelConnector::new(params, connector).await?)),
         }
     }
 }

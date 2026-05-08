@@ -22,15 +22,15 @@ use tokio::time::MissedTickBehavior;
 use tracing::{debug, error, warn};
 
 use crate::{
-    ccc::CccHttpClient,
+    gateway::GatewayConnector,
     model::{
         ConnectionInfo, IPsecSession, VpnSession,
         params::{TransportType, TunnelParams, TunnelType},
+        proto::GatewayInformation,
     },
     platform::{
         DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
     },
-    server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         device::TunDevice,
@@ -55,6 +55,8 @@ pub(crate) struct TunIPsecTunnel {
     encap_type: EspEncapType,
     esp_transport: TransportType,
     subnets: Vec<Ipv4Net>,
+    gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    gateway_information: GatewayInformation,
 }
 
 impl TunIPsecTunnel {
@@ -64,9 +66,10 @@ impl TunIPsecTunnel {
         sender: PacketSender,
         receiver: PacketReceiver,
         esp_transport: TransportType,
+        gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     ) -> anyhow::Result<Self> {
-        let client = CccHttpClient::new(params.clone(), Some(session.clone()));
-        let client_settings = client.get_client_settings().await?;
+        let gateway_information = gateway_connector.get_gateway_information().await?;
+        let client_settings = gateway_connector.get_client_settings(&session.ccc_session_id).await?;
 
         let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
@@ -75,10 +78,8 @@ impl TunIPsecTunnel {
             _ => EspEncapType::None,
         };
 
-        let gateway_address = util::server_name_to_ipv4(
-            &params.server_name,
-            server_info::get(&params).await?.connectivity_info.tcpt_port,
-        )?;
+        let gateway_address =
+            util::server_name_to_ipv4(&params.server_name, gateway_information.connectivity_info.tcpt_port)?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",
@@ -100,6 +101,8 @@ impl TunIPsecTunnel {
             encap_type,
             esp_transport,
             subnets,
+            gateway_connector,
+            gateway_information,
         })
     }
 
@@ -338,6 +341,7 @@ impl VpnTunnel for TunIPsecTunnel {
         let esp_codec_out = esp_codec_out.clone();
 
         let params = self.params.clone();
+        let connector = self.gateway_connector.clone();
         let session = self.session.clone();
 
         let command_fut = async {
@@ -346,8 +350,7 @@ impl VpnTunnel for TunIPsecTunnel {
                     TunnelCommand::Terminate(signout) => {
                         if signout || !params.ike_persist {
                             debug!("Signing out");
-                            let client = CccHttpClient::new(params.clone(), Some(session.clone()));
-                            let _ = client.signout().await;
+                            let _ = connector.signout(&session.ccc_session_id).await;
                         }
                         break;
                     }
@@ -395,10 +398,8 @@ impl VpnTunnel for TunIPsecTunnel {
         };
         pin_mut!(command_fut);
 
-        let server_info = server_info::get(&params).await?;
-
         let mut keepalive_runner = KeepaliveRunner::new(
-            server_info.connectivity_info.server_ip,
+            self.gateway_information.connectivity_info.server_ip,
             if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
@@ -410,7 +411,7 @@ impl VpnTunnel for TunIPsecTunnel {
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);
 
-        let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
+        let scv_runner = ScvRunner::new(self.gateway_information.connectivity_info.server_ip, ready.clone());
 
         let scv_run = scv_runner.run();
         pin_mut!(scv_run);

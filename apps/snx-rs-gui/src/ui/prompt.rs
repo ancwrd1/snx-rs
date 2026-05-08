@@ -1,14 +1,10 @@
-use std::{collections::VecDeque, rc::Rc};
+use std::rc::Rc;
 
 use anyhow::{Context, anyhow};
 use async_channel::Sender;
 use i18n::tr;
 use slint::ComponentHandle;
-use snxcore::{
-    model::{PromptInfo, params::TunnelParams},
-    prompt::SecurePrompt,
-    server_info,
-};
+use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 
 use crate::{
     dbus::send_notification,
@@ -113,9 +109,5 @@ impl SecurePrompt for SlintPrompt {
 
     async fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
         send_notification(summary, message).await
-    }
-
-    async fn get_server_prompts(&self, params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>> {
-        server_info::get_login_prompts(params).await
     }
 }

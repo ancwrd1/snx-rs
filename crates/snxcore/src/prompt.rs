@@ -1,14 +1,8 @@
-use std::{
-    collections::VecDeque,
-    io::{IsTerminal, Write, stderr, stdin},
-};
+use std::io::{IsTerminal, Write, stderr, stdin};
 
 use anyhow::anyhow;
 
-use crate::{
-    model::{PromptInfo, params::TunnelParams},
-    server_info,
-};
+use crate::model::PromptInfo;
 
 #[async_trait::async_trait]
 pub trait SecurePrompt {
@@ -17,8 +11,6 @@ pub trait SecurePrompt {
     async fn get_plain_input(&self, prompt: PromptInfo) -> anyhow::Result<String>;
 
     async fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()>;
-
-    async fn get_server_prompts(&self, params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>>;
 }
 
 pub struct TtyPrompt;
@@ -64,9 +56,5 @@ impl SecurePrompt for TtyPrompt {
     async fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
         println!("{summary}: {message}");
         Ok(())
-    }
-
-    async fn get_server_prompts(&self, params: &TunnelParams) -> anyhow::Result<VecDeque<PromptInfo>> {
-        server_info::get_login_prompts(params).await
     }
 }

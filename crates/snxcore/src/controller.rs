@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, str::FromStr, sync::Arc, time::Duration};
+use std::{str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::{Context, anyhow};
 use futures::{SinkExt, StreamExt};
@@ -46,7 +46,6 @@ pub enum ServiceCommand {
     Connect,
     Disconnect,
     Reconnect,
-    Info,
 }
 
 impl FromStr for ServiceCommand {
@@ -58,7 +57,6 @@ impl FromStr for ServiceCommand {
             "connect" => Ok(Self::Connect),
             "disconnect" => Ok(Self::Disconnect),
             "reconnect" => Ok(Self::Reconnect),
-            "info" => Ok(Self::Info),
             other => Err(anyhow!(tr!("error-invalid-command", command = other))),
         }
     }
@@ -66,10 +64,10 @@ impl FromStr for ServiceCommand {
 
 pub struct ServiceController<B, P> {
     prompt: P,
-    mfa_prompts: Option<VecDeque<PromptInfo>>,
+    mfa_prompts: Vec<PromptInfo>,
+    mfa_index: usize,
     password_from_keychain: SecretString,
     username: String,
-    mfa_index: usize,
     browser_controller: B,
     stream: Option<interprocess::local_socket::tokio::Stream>,
     otp_cancel_sender: Option<tokio::sync::oneshot::Sender<()>>,
@@ -81,26 +79,21 @@ where
     B: BrowserController + Send + Sync,
     P: SecurePrompt + Send + Sync,
 {
-    pub fn new(prompt: P, browser_controller: B) -> Self {
-        Self {
-            prompt,
-            mfa_prompts: None,
-            password_from_keychain: SecretString::default(),
-            username: String::new(),
-            mfa_index: 0,
-            browser_controller,
-            stream: None,
-            otp_cancel_sender: None,
-            server_name: server::DEFAULT_NAME.to_owned(),
-        }
+    pub fn new(prompt: P, browser_controller: B, mfa_prompts: Vec<PromptInfo>) -> Self {
+        Self::new_with_server_name(server::DEFAULT_NAME, prompt, browser_controller, mfa_prompts)
     }
 
-    pub fn new_with_server_name<N: AsRef<str>>(server_name: N, prompt: P, browser_controller: B) -> Self {
+    pub fn new_with_server_name<N: AsRef<str>>(
+        server_name: N,
+        prompt: P,
+        browser_controller: B,
+        mfa_prompts: Vec<PromptInfo>,
+    ) -> Self {
         Self {
             prompt,
-            mfa_prompts: None,
             password_from_keychain: SecretString::default(),
             username: String::new(),
+            mfa_prompts,
             mfa_index: 0,
             browser_controller,
             stream: None,
@@ -129,7 +122,6 @@ where
                 let _ = self.do_disconnect(params.clone()).await;
                 self.do_connect(params).await
             }
-            ServiceCommand::Info => self.do_info(params).await,
         }
     }
 
@@ -180,13 +172,13 @@ where
     async fn get_mfa_input(&mut self, mfa: &MfaChallenge, params: Arc<TunnelParams>) -> anyhow::Result<String> {
         match mfa.mfa_type {
             MfaType::PasswordInput => {
-                self.mfa_index += 1;
-
                 let prompt = self
                     .mfa_prompts
-                    .as_mut()
-                    .and_then(|p| p.pop_front())
+                    .get(self.mfa_index)
+                    .cloned()
                     .unwrap_or_else(|| PromptInfo::new("", &mfa.prompt));
+
+                self.mfa_index += 1;
 
                 if !params.password.expose_secret().is_empty() && self.mfa_index == params.password_factor {
                     Ok(params.password.expose_secret().to_owned())
@@ -264,6 +256,8 @@ where
             anyhow::bail!(tr!("error-no-login-type"));
         }
 
+        self.mfa_index = 0;
+
         if !params.user_name.is_empty()
             && params.keychain
             && params.password.expose_secret().is_empty()
@@ -271,8 +265,6 @@ where
         {
             self.password_from_keychain = password.into();
         }
-
-        self.fill_mfa_prompts(params.clone()).await;
 
         self.username = params.user_name.clone();
 
@@ -359,17 +351,5 @@ where
             self.stream = None;
             anyhow::bail!(tr!("error-cannot-read-reply"));
         }
-    }
-
-    async fn fill_mfa_prompts(&mut self, params: Arc<TunnelParams>) {
-        self.mfa_index = 0;
-        self.mfa_prompts
-            .replace(self.prompt.get_server_prompts(&params).await.unwrap_or_default());
-    }
-
-    async fn do_info(&self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
-        crate::util::print_login_options(&params).await?;
-
-        Ok(ConnectionStatus::default())
     }
 }

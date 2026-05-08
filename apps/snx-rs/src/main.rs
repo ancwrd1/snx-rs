@@ -7,7 +7,7 @@ use i18n::tr;
 use nix::unistd::Uid;
 use secrecy::ExposeSecret;
 use snxcore::{
-    ccc::CccHttpClient,
+    gateway::{GatewayConnector, ccc::CccGatewayConnector},
     model::{
         MfaType, PromptInfo, SessionState,
         params::{OperationMode, TunnelParams, TunnelType},
@@ -105,7 +105,10 @@ async fn main_info(params: TunnelParams) -> anyhow::Result<()> {
     if params.server_name.is_empty() {
         anyhow::bail!(tr!("error-missing-server-name"));
     }
-    snxcore::util::print_login_options(&params).await?;
+    let params = Arc::new(params);
+    let connector = CccGatewayConnector::new(params.clone());
+    let info = connector.get_gateway_information().await?;
+    info.print_login_options(&params.server_name);
 
     Ok(())
 }
@@ -129,9 +132,9 @@ async fn main_enroll(params: TunnelParams) -> anyhow::Result<()> {
         anyhow::bail!(tr!("error-missing-reg-key"));
     };
 
-    let client = CccHttpClient::new(params.clone(), None);
+    let connector = CccGatewayConnector::new(params.clone());
 
-    let resp = client
+    let resp = connector
         .enroll_certificate(reg_key, cert_password.expose_secret())
         .await?;
 
@@ -155,9 +158,11 @@ async fn main_renew(params: TunnelParams) -> anyhow::Result<()> {
 
     let pkcs12 = std::fs::read(cert_path)?;
 
-    let client = CccHttpClient::new(params.clone(), None);
+    let connector = CccGatewayConnector::new(params.clone());
 
-    let resp = client.renew_certificate(&pkcs12, cert_password.expose_secret()).await?;
+    let resp = connector
+        .renew_certificate(&pkcs12, cert_password.expose_secret())
+        .await?;
 
     process_cert_response(cert_path, resp)
 }
@@ -188,7 +193,7 @@ async fn main_command() -> anyhow::Result<()> {
     {
         warn!("Unable to start network monitoring: {}", e);
     }
-    let server = CommandServer::with_name(server::DEFAULT_NAME, CheckPointTunnelConnectorFactory);
+    let server = CommandServer::with_name(server::DEFAULT_NAME, CheckPointTunnelConnectorFactory::default());
 
     await_termination(server.run()).await
 }
@@ -202,17 +207,23 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
         anyhow::bail!(tr!("error-missing-required-parameters"));
     }
 
-    let mut mfa_prompts = tty_prompt.get_server_prompts(&params).await.unwrap_or_default();
-
     let params = Arc::new(params);
-    let mut connector = CheckPointTunnelConnectorFactory.create(params.clone()).await?;
+
+    let login_type = params.login_type.clone();
+    let connector = CccGatewayConnector::new(params.clone());
+    let info = connector.get_gateway_information().await?;
+
+    let mfa_prompts = info.get_login_prompts(&login_type);
+
+    let factory = CheckPointTunnelConnectorFactory::default();
+    let mut connector = factory.create(params.clone()).await?;
 
     let mut session = if params.ike_persist {
         debug!("Attempting to load IKE session");
         match connector.restore_session().await {
             Ok(session) => session,
             Err(_) => {
-                connector = CheckPointTunnelConnectorFactory.create(params.clone()).await?;
+                connector = factory.create(params.clone()).await?;
                 connector.authenticate().await?
             }
         }
@@ -225,11 +236,12 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
             MfaType::PasswordInput => {
-                mfa_index += 1;
-
                 let prompt_info = mfa_prompts
-                    .pop_front()
+                    .get(mfa_index)
+                    .cloned()
                     .unwrap_or_else(|| PromptInfo::new("", &challenge.prompt));
+
+                mfa_index += 1;
 
                 let input = if !params.password.expose_secret().is_empty() && mfa_index == params.password_factor {
                     Ok(params.password.expose_secret().to_owned())
@@ -302,8 +314,8 @@ async fn main_standalone(params: TunnelParams) -> anyhow::Result<()> {
             result = &mut tunnel_fut => {
                 if params.tunnel_type == TunnelType::SSL || !params.ike_persist {
                     debug!("Signing out");
-                    let client = CccHttpClient::new(params.clone(), Some(session));
-                    let _ = client.signout().await;
+                    let connector = CccGatewayConnector::new(params.clone());
+                    let _ = connector.signout(&session.ccc_session_id).await;
                 }
                 println!("\n{}", tr!("cli-tunnel-disconnected"));
                 break result;

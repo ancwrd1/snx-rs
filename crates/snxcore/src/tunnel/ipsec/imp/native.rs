@@ -15,7 +15,7 @@ use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::{debug, warn};
 
 use crate::{
-    ccc::CccHttpClient,
+    gateway::GatewayConnector,
     model::{
         ConnectionInfo, IPsecSession, VpnSession,
         params::{TunnelParams, TunnelType},
@@ -24,7 +24,6 @@ use crate::{
         DeviceConfig, IPsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
         UdpEncapType, UdpSocketExt,
     },
-    server_info,
     tunnel::{
         TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener, scv::ScvRunner},
@@ -43,20 +42,24 @@ pub(crate) struct NativeIPsecTunnel {
     device_name: String,
     gateway_address: Ipv4Addr,
     subnets: Vec<Ipv4Net>,
+    gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
 }
 
 impl NativeIPsecTunnel {
-    pub(crate) async fn create(params: Arc<TunnelParams>, session: Arc<VpnSession>) -> anyhow::Result<Self> {
-        let server_info = server_info::get(&params).await?;
-
+    pub(crate) async fn create(
+        params: Arc<TunnelParams>,
+        session: Arc<VpnSession>,
+        gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
+    ) -> anyhow::Result<Self> {
         let ipsec_session = session.ipsec_session().with_context(|| tr!("error-no-ipsec-session"))?;
 
-        let client = CccHttpClient::new(params.clone(), Some(session.clone()));
-        let client_settings = client.get_client_settings().await?;
+        let gateway_information = gateway_connector.get_gateway_information().await?;
+        let client_settings = gateway_connector.get_client_settings(&session.ccc_session_id).await?;
 
         let subnets = util::ranges_to_subnets(&client_settings.updated_policies.range.settings).collect::<Vec<_>>();
 
-        let gateway_address = util::server_name_to_ipv4(&params.server_name, server_info.connectivity_info.natt_port)?;
+        let gateway_address =
+            util::server_name_to_ipv4(&params.server_name, gateway_information.connectivity_info.natt_port)?;
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}",
@@ -66,7 +69,7 @@ impl NativeIPsecTunnel {
         let ready = Arc::new(AtomicBool::new(false));
 
         let keepalive_runner = KeepaliveRunner::new(
-            server_info.connectivity_info.server_ip,
+            gateway_information.connectivity_info.server_ip,
             if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
@@ -74,7 +77,7 @@ impl NativeIPsecTunnel {
             },
         );
 
-        let scv_runner = ScvRunner::new(server_info.connectivity_info.server_ip, ready.clone());
+        let scv_runner = ScvRunner::new(gateway_information.connectivity_info.server_ip, ready.clone());
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encapsulation(UdpEncapType::EspInUdp)?;
@@ -97,7 +100,7 @@ impl NativeIPsecTunnel {
             ipsec_session.clone(),
             natt_socket.local_addr()?.port(),
             gateway_address,
-            server_info.connectivity_info.natt_port,
+            gateway_information.connectivity_info.natt_port,
         );
 
         configurator.configure().await?;
@@ -114,6 +117,7 @@ impl NativeIPsecTunnel {
             device_name,
             gateway_address,
             subnets,
+            gateway_connector,
         })
     }
 
@@ -266,8 +270,7 @@ impl VpnTunnel for NativeIPsecTunnel {
                     TunnelCommand::Terminate(signout) => {
                         if signout || !self.params.ike_persist {
                             debug!("Signing out");
-                            let client = CccHttpClient::new(self.params.clone(), Some(self.session.clone()));
-                            let _ = client.signout().await;
+                            let _ = self.gateway_connector.signout(&self.session.ccc_session_id).await;
                         }
                         break;
                     }
