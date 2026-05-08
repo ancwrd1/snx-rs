@@ -43,7 +43,7 @@ num-traits = "0.2"
 parse_int = "0.9"
 byteorder = "1"
 nix = { version = "0.31", features = ["fs", "user", "socket"] }
-uuid = { version = "1", features = ["v4", "v5"] }
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
 opener = { version = "0.8"}
 cached = {  version = "0.59",  features = ["async"] }
 openssl = "0.10"
