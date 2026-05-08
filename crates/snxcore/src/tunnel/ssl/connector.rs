@@ -47,7 +47,7 @@ impl SslTunnelConnector {
                 };
 
                 return Ok(Arc::new(TunnelSession {
-                    session_id: session_id,
+                    session_id,
                     state: SessionState::PendingChallenge(MfaChallenge {
                         mfa_type,
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
@@ -77,7 +77,7 @@ impl SslTunnelConnector {
         debug!("Authentication OK, session id: {session_id}");
 
         let session = Arc::new(TunnelSession {
-            session_id: session_id,
+            session_id,
             state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey(active_key.0)),
             username: data.username,
         });
