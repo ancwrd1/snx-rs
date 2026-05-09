@@ -138,6 +138,7 @@ error-identity-timeout = Timeout ao aguardar resposta de identidade, o tipo de a
 error-invalid-transport-type = Tipo de transporte inválido
 error-invalid-tls-version-max = Versão TLS máxima inválida
 error-certificate-verify-failed = Validação do certificado TLS falhou. O certificado do servidor é inválido, expirou ou não é confiável.
+error-invalid-gateway-info = Resposta de informações do gateway inválida
 
 # Placeholder texts
 placeholder-domains = Domínios separados por vírgulas

@@ -138,6 +138,7 @@ error-identity-timeout = Časový limit při čekání na odpověď identity, je
 error-invalid-transport-type = Neplatný typ přenosu
 error-invalid-tls-version-max = Neplatná maximální verze TLS
 error-certificate-verify-failed = Ověření TLS certifikátu selhalo. Certifikát serveru je neplatný, vypršel nebo není důvěryhodný.
+error-invalid-gateway-info = Neplatná odpověď s informacemi o bráně
 
 # Placeholder texts
 placeholder-domains = Domény oddělené čárkami

@@ -138,6 +138,7 @@ error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kir
 error-invalid-transport-type = Virheellinen kuljetustyyppi
 error-invalid-tls-version-max = Virheellinen TLS-enimmäisversio
 error-certificate-verify-failed = TLS-varmenteen vahvistus epäonnistui. Palvelimen varmenne on virheellinen, vanhentunut tai ei luotettu.
+error-invalid-gateway-info = Virheellinen yhdyskäytävän tietovastaus
 
 # Placeholder texts
 placeholder-domains = Pilkulla erotetut verkkotunnukset

@@ -138,6 +138,7 @@ error-identity-timeout = Timeout mens du venter på identitetssvar, er tilgangst
 error-invalid-transport-type = Ugyldig transporttype
 error-invalid-tls-version-max = Ugyldig maksimal TLS-versjon
 error-certificate-verify-failed = TLS-sertifikatvalidering mislyktes. Serverens sertifikat er ugyldig, utløpt eller ikke betrodd.
+error-invalid-gateway-info = Ugyldig gateway-informasjonssvar
 
 # Placeholder texts
 placeholder-domains = Domener separert med komma

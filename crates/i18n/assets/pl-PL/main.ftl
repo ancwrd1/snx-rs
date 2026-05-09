@@ -138,6 +138,7 @@ error-identity-timeout = Przekroczenie czasu oczekiwania na odpowiedź tożsamo�
 error-invalid-transport-type = Nieprawidłowy typ transportu
 error-invalid-tls-version-max = Nieprawidłowa maksymalna wersja TLS
 error-certificate-verify-failed = Weryfikacja certyfikatu TLS nie powiodła się. Certyfikat serwera jest nieprawidłowy, wygasł lub nie jest zaufany.
+error-invalid-gateway-info = Nieprawidłowa odpowiedź z informacjami o bramie
 
 # Placeholder texts
 placeholder-domains = Domeny oddzielone przecinkami

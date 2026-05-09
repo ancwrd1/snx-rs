@@ -138,6 +138,7 @@ error-cannot-read-reply = No se puede leer la respuesta del servicio
 error-invalid-transport-type = Tipo de transporte no válido
 error-invalid-tls-version-max = Versión máxima de TLS no válida
 error-certificate-verify-failed = Falló la validación del certificado TLS. El certificado del servidor es inválido, ha expirado o no es de confianza.
+error-invalid-gateway-info = Respuesta de información de gateway no válida
 
 # Placeholder texts
 placeholder-domains = Dominios separados por comas

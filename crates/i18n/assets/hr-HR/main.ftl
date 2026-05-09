@@ -138,6 +138,7 @@ error-identity-timeout = Istek vremena čekanja na odgovor identiteta, je li tip
 error-invalid-transport-type = Nevažeća vrsta prijenosa
 error-invalid-tls-version-max = Nevažeća maksimalna TLS verzija
 error-certificate-verify-failed = TLS validacija certifikata nije uspjela. Certifikat poslužitelja je nevažeći, istekao ili nije pouzdan.
+error-invalid-gateway-info = Nevažeći odgovor s informacijama pristupnika
 
 # Placeholder texts
 placeholder-domains = Domene odvojene zarezom

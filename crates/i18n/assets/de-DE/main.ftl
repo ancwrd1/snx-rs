@@ -138,6 +138,7 @@ error-identity-timeout = Timeout beim Warten auf Identitätsantwort, ist der Anm
 error-invalid-transport-type = Ungültiger Transporttyp
 error-invalid-tls-version-max = Ungültige maximale TLS-Version
 error-certificate-verify-failed = TLS-Zertifikatüberprüfung fehlgeschlagen. Das Serverzertifikat ist ungültig, abgelaufen oder nicht vertrauenswürdig.
+error-invalid-gateway-info = Ungültige Gateway-Informationsantwort
 
 # Placeholder texts
 placeholder-domains = Durch Komma getrennte Domänen

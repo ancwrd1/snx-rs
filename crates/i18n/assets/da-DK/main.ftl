@@ -138,6 +138,7 @@ error-no-connector-for-challenge-code = Ingen connector til at sende challenge-k
 error-invalid-transport-type = Ugyldig transporttype
 error-invalid-tls-version-max = Ugyldig maksimal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering mislykkedes. Serverens certifikat er ugyldigt, udløbet eller ikke betroet.
+error-invalid-gateway-info = Ugyldigt gateway-informationssvar
 
 # Placeholder texts
 placeholder-domains = Domæner adskilt med komma

@@ -138,6 +138,7 @@ error-no-ipsec-session = Geen IPsec-sessie
 error-invalid-transport-type = Ongeldig transporttype
 error-invalid-tls-version-max = Ongeldige maximale TLS-versie
 error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
+error-invalid-gateway-info = Ongeldig gateway-informatieantwoord
 
 # Placeholder texts
 placeholder-domains = Door komma's gescheiden domeinen
