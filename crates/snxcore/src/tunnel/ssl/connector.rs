@@ -7,14 +7,13 @@ use tokio::sync::mpsc::Sender;
 use tracing::{debug, warn};
 
 use crate::{
-    gateway::GatewayConnector,
     model::{
         AuthenticatedSession, MfaChallenge, MfaType, SessionState, TunnelSession,
         params::{CertType, TunnelParams},
         proto::{AuthResponse, LoginOption},
         wrappers::SessionId,
     },
-    tunnel::{TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel, ssl::SslTunnel},
+    tunnel::{GatewayConnector, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel, ssl::SslTunnel},
 };
 
 pub struct SslTunnelConnector {

@@ -9,7 +9,7 @@ use snxcore::{
     model::params::TunnelParams,
     profiles::ConnectionProfilesStore,
     prompt::TtyPrompt,
-    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory},
+    tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
 };
 use tokio::signal::unix;
 use tracing::level_filters::LevelFilter;
@@ -119,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let connector = CheckPointTunnelConnectorFactory::default().new_gateway_connector(tunnel_params.clone());
+    let connector = CheckPointConnectorFactory::default().new_gateway_connector(tunnel_params.clone());
     let info = connector.get_gateway_information().await?;
 
     if matches!(params.command, SnxCommand::Info) {

@@ -5,19 +5,18 @@ use bytes::Bytes;
 use ipnet::Ipv4Net;
 use tokio::sync::mpsc;
 
-use crate::{
-    gateway::{GatewayConnector, ccc::CccGatewayConnector},
-    model::{
-        params::{TunnelParams, TunnelType},
-        proto::LoginOption,
-        *,
-    },
-    tunnel::{ipsec::connector::IPsecTunnelConnector, ssl::connector::SslTunnelConnector},
+use crate::model::{
+    ConnectionInfo, IPsecSession, TunnelSession,
+    params::TunnelParams,
+    proto::{AuthResponse, CertificateResponse, ClientSettingsResponse, GatewayInformation},
+    wrappers::SessionId,
 };
 
+pub mod connector;
 pub mod device;
-mod ipsec;
-mod ssl;
+pub mod gateway;
+pub mod ipsec;
+pub mod ssl;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TunnelCommand {
@@ -38,7 +37,7 @@ pub enum TunnelEvent {
 #[async_trait]
 pub trait VpnTunnel {
     async fn run(
-        mut self: Box<Self>,
+        self: Box<Self>,
         command_receiver: mpsc::Receiver<TunnelCommand>,
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()>;
@@ -63,34 +62,21 @@ pub trait TunnelConnector {
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }
 
+#[async_trait]
+pub trait GatewayConnector {
+    async fn authenticate(&self, username: &str) -> anyhow::Result<AuthResponse>;
+    async fn challenge_code(&self, session_id: &SessionId, user_input: &str) -> anyhow::Result<AuthResponse>;
+    async fn get_client_settings(&self, session_id: &SessionId) -> anyhow::Result<ClientSettingsResponse>;
+    async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation>;
+    async fn enroll_certificate(&self, registration_key: &str, password: &str) -> anyhow::Result<CertificateResponse>;
+    async fn renew_certificate(&self, pkcs12: &[u8], password: &str) -> anyhow::Result<CertificateResponse>;
+    async fn signout(&self, session_id: &SessionId) -> anyhow::Result<()>;
+}
+
 pub trait TunnelConnectorFactory: Clone {
     fn new_tunnel_connector(
         &self,
         params: Arc<TunnelParams>,
     ) -> impl Future<Output = anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>> + Send;
     fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync>;
-}
-
-#[derive(Clone, Default)]
-pub struct CheckPointTunnelConnectorFactory {}
-
-impl TunnelConnectorFactory for CheckPointTunnelConnectorFactory {
-    async fn new_tunnel_connector(
-        &self,
-        params: Arc<TunnelParams>,
-    ) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
-        let result: anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> = match params.tunnel_type {
-            TunnelType::IPsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => Ok(Box::new(
-                IPsecTunnelConnector::new(params.clone(), self.new_gateway_connector(params)).await?,
-            )),
-            _ => Ok(Box::new(
-                SslTunnelConnector::new(params.clone(), self.new_gateway_connector(params)).await?,
-            )),
-        };
-        result
-    }
-
-    fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {
-        Arc::new(CccGatewayConnector::new(params.clone()))
-    }
 }

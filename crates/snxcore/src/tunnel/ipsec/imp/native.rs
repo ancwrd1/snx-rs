@@ -15,7 +15,6 @@ use tokio::{net::UdpSocket, sync::mpsc, time::MissedTickBehavior};
 use tracing::{debug, warn};
 
 use crate::{
-    gateway::GatewayConnector,
     model::{
         ConnectionInfo, IPsecSession, TunnelSession,
         params::{TunnelParams, TunnelType},
@@ -25,7 +24,7 @@ use crate::{
         UdpEncapType, UdpSocketExt,
     },
     tunnel::{
-        TunnelCommand, TunnelEvent, VpnTunnel,
+        GatewayConnector, TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::{keepalive::KeepaliveRunner, natt::start_natt_listener, scv::ScvRunner},
     },
     util,

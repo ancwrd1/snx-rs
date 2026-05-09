@@ -7,13 +7,12 @@ use futures::{
 use tokio::net::UdpSocket;
 
 use crate::{
-    gateway::GatewayConnector,
     model::{
         TunnelSession,
         params::{TransportType, TunnelParams},
     },
     tunnel::{
-        TunnelCommand, TunnelEvent, VpnTunnel,
+        GatewayConnector, TunnelCommand, TunnelEvent, VpnTunnel,
         ipsec::imp::tun::{PacketReceiver, PacketSender, TunIPsecTunnel},
     },
     util,

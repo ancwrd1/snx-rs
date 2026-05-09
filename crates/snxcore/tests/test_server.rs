@@ -5,7 +5,6 @@ use chrono::Local;
 use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
-    gateway::GatewayConnector,
     model::{
         AuthenticatedSession, ConnectionInfo, ConnectionStatus, MfaChallenge, MfaType, PromptInfo, SessionState,
         TunnelSession,
@@ -15,7 +14,7 @@ use snxcore::{
     },
     prompt::SecurePrompt,
     server::CommandServer,
-    tunnel::{TunnelCommand, TunnelConnector, TunnelConnectorFactory, TunnelEvent, VpnTunnel},
+    tunnel::{GatewayConnector, TunnelCommand, TunnelConnector, TunnelConnectorFactory, TunnelEvent, VpnTunnel},
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;

@@ -23,7 +23,6 @@ use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, trace, warn};
 
 use crate::{
-    gateway::GatewayConnector,
     model::{
         AuthenticatedSession, IPsecSession, MfaChallenge, MfaType, SessionState, TunnelSession,
         params::{CertType, TransportType, TunnelParams},
@@ -33,7 +32,7 @@ use crate::{
     platform::{NetworkInterface, Platform, PlatformAccess},
     sexpr::SExpression,
     tunnel::{
-        TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
+        GatewayConnector, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
         ipsec::{
             imp::{native::NativeIPsecTunnel, tcpt::TcptIPsecTunnel, udp::UdpIPsecTunnel},
             natt::NattProber,

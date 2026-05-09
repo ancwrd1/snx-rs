@@ -16,13 +16,13 @@ use tokio::sync::Mutex;
 use tracing::{debug, trace, warn};
 
 use crate::{
-    gateway::GatewayConnector,
     model::{
         params::{CertType, TlsVersion, TunnelParams},
         proto::*,
         wrappers::SessionId,
     },
     sexpr::SExpression,
+    tunnel::GatewayConnector,
     util,
 };
 

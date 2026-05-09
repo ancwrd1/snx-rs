@@ -11,7 +11,7 @@ use snxcore::{
     },
     platform::{Keychain, Platform, PlatformAccess},
     profiles::ConnectionProfilesStore,
-    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory},
+    tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
     util::parse_ipv4_or_subnet,
 };
 use tokio::sync::mpsc::Sender;
@@ -592,7 +592,7 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
 
     let (tx, rx) = async_channel::bounded(1);
     tokio::spawn(async move {
-        let connector = CheckPointTunnelConnectorFactory::default().new_gateway_connector(Arc::new(new_params));
+        let connector = CheckPointConnectorFactory::default().new_gateway_connector(Arc::new(new_params));
         let info = connector.get_gateway_information().await;
         let _ = tx.send(info).await;
     });

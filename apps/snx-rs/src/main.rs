@@ -15,7 +15,7 @@ use snxcore::{
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
-    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory, TunnelEvent},
+    tunnel::{TunnelConnectorFactory, TunnelEvent, connector::CheckPointConnectorFactory},
     util,
 };
 use tokio::{signal::unix, sync::mpsc};
@@ -83,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
 
     debug!(">>> Starting snx-rs client version {}", env!("CARGO_PKG_VERSION"));
 
-    let factory = CheckPointTunnelConnectorFactory::default();
+    let factory = CheckPointConnectorFactory::default();
 
     match mode {
         OperationMode::Standalone => {

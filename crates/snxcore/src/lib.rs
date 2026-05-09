@@ -1,6 +1,5 @@
 pub mod browser;
 pub mod controller;
-pub mod gateway;
 pub mod model;
 pub mod otp;
 pub mod platform;

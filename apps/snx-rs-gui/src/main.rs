@@ -11,7 +11,7 @@ use snxcore::{
     platform::{Platform, PlatformAccess, SingleInstance},
     profiles::ConnectionProfilesStore,
     prompt::SecurePrompt,
-    tunnel::{CheckPointTunnelConnectorFactory, TunnelConnectorFactory},
+    tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
 };
 use tokio::{
     signal::unix::{SignalKind, signal},
@@ -98,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
         })
         .select()?;
 
-    let connector_factory = CheckPointTunnelConnectorFactory::default();
+    let connector_factory = CheckPointConnectorFactory::default();
 
     tokio::spawn(async move {
         if let Err(e) = wait_restart_signal().await {

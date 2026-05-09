@@ -22,7 +22,6 @@ use tokio::time::MissedTickBehavior;
 use tracing::{debug, error, warn};
 
 use crate::{
-    gateway::GatewayConnector,
     model::{
         ConnectionInfo, IPsecSession, TunnelSession,
         params::{TransportType, TunnelParams, TunnelType},
@@ -32,7 +31,7 @@ use crate::{
         DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
     },
     tunnel::{
-        TunnelCommand, TunnelEvent, VpnTunnel,
+        GatewayConnector, TunnelCommand, TunnelEvent, VpnTunnel,
         device::TunDevice,
         ipsec::{keepalive::KeepaliveRunner, scv::ScvRunner},
     },

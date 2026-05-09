@@ -25,7 +25,6 @@ use tokio_native_tls::{
 use tracing::{debug, trace, warn};
 
 use crate::{
-    gateway::GatewayConnector,
     model::{
         ConnectionInfo, TunnelSession,
         params::{TlsVersion, TransportType, TunnelParams, TunnelType},
@@ -37,7 +36,9 @@ use crate::{
         DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
     },
     sexpr::SExpression,
-    tunnel::{TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner},
+    tunnel::{
+        GatewayConnector, TunnelCommand, TunnelEvent, VpnTunnel, device::TunDevice, ssl::keepalive::KeepaliveRunner,
+    },
     util,
 };
 
