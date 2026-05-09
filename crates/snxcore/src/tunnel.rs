@@ -63,32 +63,31 @@ pub trait TunnelConnector {
     async fn handle_tunnel_event(&mut self, event: TunnelEvent) -> anyhow::Result<()>;
 }
 
-#[async_trait]
 pub trait TunnelConnectorFactory: Clone {
-    async fn new_tunnel_connector(
+    fn new_tunnel_connector(
         &self,
         params: Arc<TunnelParams>,
-    ) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>;
+    ) -> impl Future<Output = anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>> + Send;
     fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync>;
 }
 
 #[derive(Clone, Default)]
 pub struct CheckPointTunnelConnectorFactory {}
 
-#[async_trait]
 impl TunnelConnectorFactory for CheckPointTunnelConnectorFactory {
     async fn new_tunnel_connector(
         &self,
         params: Arc<TunnelParams>,
     ) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
-        match params.tunnel_type {
+        let result: anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> = match params.tunnel_type {
             TunnelType::IPsec if params.login_type != LoginOption::MOBILE_ACCESS_ID => Ok(Box::new(
                 IPsecTunnelConnector::new(params.clone(), self.new_gateway_connector(params)).await?,
             )),
             _ => Ok(Box::new(
                 SslTunnelConnector::new(params.clone(), self.new_gateway_connector(params)).await?,
             )),
-        }
+        };
+        result
     }
 
     fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {

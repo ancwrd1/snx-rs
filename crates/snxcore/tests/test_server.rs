@@ -26,7 +26,6 @@ const PASSWORD: &str = "challenge";
 #[derive(Clone, Default)]
 struct MockTunnelConnectorFactory;
 
-#[async_trait]
 impl TunnelConnectorFactory for MockTunnelConnectorFactory {
     async fn new_tunnel_connector(
         &self,

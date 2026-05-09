@@ -16,6 +16,10 @@ publish = false
 [workspace.dependencies]
 clap_complete ="4"
 
+[workspace.lints.rust]
+unsafe_code = "deny"
+unexpected_cfgs = { level = "allow" }
+
 [profile.release]
 panic = "abort"
 

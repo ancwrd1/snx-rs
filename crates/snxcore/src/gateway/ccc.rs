@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     sync::{
         Arc,
         atomic::{AtomicU32, Ordering},
@@ -8,10 +9,10 @@ use std::{
 
 use anyhow::anyhow;
 use async_trait::async_trait;
-use cached::proc_macro::cached;
 use i18n::tr;
 use reqwest::{Certificate, Identity};
 use secrecy::ExposeSecret;
+use tokio::sync::Mutex;
 use tracing::{debug, trace, warn};
 
 use crate::{
@@ -26,9 +27,9 @@ use crate::{
 };
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(1);
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
+const LONG_TIMEOUT: Duration = Duration::from_secs(600);
+const SHORT_TIMEOUT: Duration = Duration::from_secs(10);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-const INFO_TIMEOUT: Duration = Duration::from_secs(5);
 
 fn new_request_id() -> u32 {
     REQUEST_ID.fetch_add(1, Ordering::SeqCst)
@@ -37,11 +38,15 @@ fn new_request_id() -> u32 {
 #[derive(Clone)]
 pub struct CccGatewayConnector {
     params: Arc<TunnelParams>,
+    gateway_information: Arc<Mutex<Option<GatewayInformation>>>,
 }
 
 impl CccGatewayConnector {
     pub fn new(params: Arc<TunnelParams>) -> Self {
-        Self { params }
+        Self {
+            params,
+            gateway_information: Arc::new(Mutex::new(None)),
+        }
     }
 
     fn new_auth_request(&self, username: &str) -> CccClientRequestData {
@@ -195,7 +200,7 @@ impl CccGatewayConnector {
             builder = builder.danger_accept_invalid_certs(true);
         }
 
-        let mut path = "/clients/";
+        let mut path = Cow::Borrowed("/clients/");
 
         if let (true, Some(client_cert)) = (with_cert, &self.params.cert_path) {
             let data = std::fs::read(client_cert)?;
@@ -211,9 +216,14 @@ impl CccGatewayConnector {
                 )?),
                 _ => None,
             };
+
             if let Some(identity) = identity {
                 builder = builder.identity(identity);
-                path = "/clients/cert/";
+                if let Some(ref info) = *self.gateway_information.lock().await {
+                    path = Cow::Owned(info.connectivity_info.connect_with_certificate_url.clone());
+                } else {
+                    path = Cow::Borrowed("/clients/cert/");
+                }
             }
         }
 
@@ -237,8 +247,8 @@ impl CccGatewayConnector {
         reply.parse::<SExpression>()
     }
 
-    async fn send_ccc_request(&self, req: CccClientRequestData) -> anyhow::Result<ResponseData> {
-        self.send_request(req, REQUEST_TIMEOUT)
+    async fn send_ccc_request(&self, req: CccClientRequestData, timeout: Duration) -> anyhow::Result<ResponseData> {
+        self.send_request(req, timeout)
             .await?
             .try_into::<CccServerResponse>()?
             .data
@@ -247,11 +257,8 @@ impl CccGatewayConnector {
 
     async fn get_gateway_information_uncached(&self) -> anyhow::Result<GatewayInformation> {
         let data = self
-            .send_request(self.new_client_hello_request(), INFO_TIMEOUT)
-            .await?
-            .try_into::<CccServerResponse>()?
-            .data
-            .into_data()?;
+            .send_ccc_request(self.new_client_hello_request(), SHORT_TIMEOUT)
+            .await?;
 
         match data {
             ResponseData::ServerInfo(data) => Ok(data),
@@ -260,23 +267,12 @@ impl CccGatewayConnector {
     }
 }
 
-#[cached(
-    result = true,
-    ty = "cached::UnboundCache<String, GatewayInformation>",
-    create = "{ cached::UnboundCache::new() }",
-    convert = r#"{ format!("{}", params.server_name) }"#
-)]
-async fn get_gateway_information(params: Arc<TunnelParams>) -> anyhow::Result<GatewayInformation> {
-    let connector = CccGatewayConnector::new(params);
-    connector.get_gateway_information_uncached().await
-}
-
 #[async_trait]
 impl GatewayConnector for CccGatewayConnector {
     async fn authenticate(&self, username: &str) -> anyhow::Result<AuthResponse> {
         let req = self.new_auth_request(username);
 
-        match self.send_ccc_request(req).await? {
+        match self.send_ccc_request(req, LONG_TIMEOUT).await? {
             ResponseData::Auth(data) => Ok(data),
             _ => Err(anyhow!(tr!("error-invalid-auth-response"))),
         }
@@ -285,7 +281,7 @@ impl GatewayConnector for CccGatewayConnector {
     async fn challenge_code(&self, session_id: &SessionId, user_input: &str) -> anyhow::Result<AuthResponse> {
         let req = self.new_challenge_code_request(session_id, user_input);
 
-        match self.send_ccc_request(req).await? {
+        match self.send_ccc_request(req, LONG_TIMEOUT).await? {
             ResponseData::Auth(data) => Ok(data),
             _ => Err(anyhow!(tr!("error-invalid-auth-response"))),
         }
@@ -294,20 +290,29 @@ impl GatewayConnector for CccGatewayConnector {
     async fn get_client_settings(&self, session_id: &SessionId) -> anyhow::Result<ClientSettingsResponse> {
         let req = self.new_client_settings_request(session_id);
 
-        match self.send_ccc_request(req).await? {
+        match self.send_ccc_request(req, SHORT_TIMEOUT).await? {
             ResponseData::ClientSettings(data) => Ok(data),
             _ => Err(anyhow!(tr!("error-invalid-client-settings"))),
         }
     }
 
     async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation> {
-        get_gateway_information(self.params.clone()).await
+        match self.gateway_information.lock().await.clone() {
+            Some(info) => Ok(info),
+            None => match self.get_gateway_information_uncached().await {
+                Ok(info) => {
+                    *self.gateway_information.lock().await = Some(info.clone());
+                    Ok(info)
+                }
+                Err(e) => Err(e),
+            },
+        }
     }
 
     async fn enroll_certificate(&self, registration_key: &str, password: &str) -> anyhow::Result<CertificateResponse> {
         let req = self.new_enroll_certificate_request(registration_key, password);
 
-        match self.send_ccc_request(req).await? {
+        match self.send_ccc_request(req, LONG_TIMEOUT).await? {
             ResponseData::Certificate(data) => Ok(data),
             _ => Err(anyhow!(tr!("error-invalid-cert-response"))),
         }
@@ -316,7 +321,7 @@ impl GatewayConnector for CccGatewayConnector {
     async fn renew_certificate(&self, pkcs12: &[u8], password: &str) -> anyhow::Result<CertificateResponse> {
         let req = self.new_renew_certificate_request(pkcs12, password);
 
-        match self.send_ccc_request(req).await? {
+        match self.send_ccc_request(req, LONG_TIMEOUT).await? {
             ResponseData::Certificate(data) => Ok(data),
             _ => Err(anyhow!(tr!("error-invalid-cert-response"))),
         }
@@ -325,7 +330,7 @@ impl GatewayConnector for CccGatewayConnector {
     async fn signout(&self, session_id: &SessionId) -> anyhow::Result<()> {
         let req = self.new_signout_request(session_id);
 
-        self.send_ccc_request(req).await?;
+        self.send_ccc_request(req, SHORT_TIMEOUT).await?;
 
         Ok(())
     }

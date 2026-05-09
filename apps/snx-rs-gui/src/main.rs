@@ -1,4 +1,3 @@
-#![deny(unsafe_code)]
 use std::{os::unix::process::CommandExt, path::PathBuf, sync::Arc, time::Duration};
 
 use clap::{CommandFactory, Parser};

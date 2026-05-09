@@ -10,6 +10,9 @@ repository.workspace = true
 keywords.workspace = true
 publish.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 isakmp = { git = "https://github.com/ancwrd1/isakmp.git" }
 i18n = { path = "../i18n" }

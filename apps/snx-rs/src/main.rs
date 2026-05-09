@@ -1,4 +1,3 @@
-#![deny(unsafe_code)]
 use std::{future::Future, path::Path, sync::Arc};
 
 use clap::{CommandFactory, Parser};

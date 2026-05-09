@@ -1,6 +1,3 @@
-#![deny(unsafe_code)]
-#![allow(unexpected_cfgs)]
-
 pub mod browser;
 pub mod controller;
 pub mod gateway;
