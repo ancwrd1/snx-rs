@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     sync::{
-        Arc,
+        Arc, Mutex, MutexGuard,
         atomic::{AtomicU32, Ordering},
     },
     time::Duration,
@@ -12,7 +12,6 @@ use async_trait::async_trait;
 use i18n::tr;
 use reqwest::{Certificate, Identity};
 use secrecy::ExposeSecret;
-use tokio::sync::Mutex;
 use tracing::{debug, trace, warn};
 
 use crate::{
@@ -47,6 +46,10 @@ impl CccGatewayConnector {
             params,
             gateway_information: Arc::new(Mutex::new(None)),
         }
+    }
+
+    fn cached_info(&self) -> MutexGuard<'_, Option<GatewayInformation>> {
+        self.gateway_information.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     fn new_auth_request(&self, username: &str) -> CccClientRequestData {
@@ -219,11 +222,15 @@ impl CccGatewayConnector {
 
             if let Some(identity) = identity {
                 builder = builder.identity(identity);
-                if let Some(ref info) = *self.gateway_information.lock().await {
-                    path = Cow::Owned(info.connectivity_info.connect_with_certificate_url.clone());
-                } else {
-                    path = Cow::Borrowed("/clients/cert/");
-                }
+                let cached_url = self
+                    .cached_info()
+                    .as_ref()
+                    .map(|info| info.connectivity_info.connect_with_certificate_url.clone());
+
+                path = match cached_url {
+                    Some(url) => Cow::Owned(url),
+                    None => Cow::Borrowed("/clients/cert/"),
+                };
             }
         }
 
@@ -297,17 +304,12 @@ impl GatewayConnector for CccGatewayConnector {
     }
 
     async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation> {
-        let info = self.gateway_information.lock().await.clone();
-        match info {
-            Some(info) => Ok(info),
-            None => match self.get_gateway_information_uncached().await {
-                Ok(info) => {
-                    *self.gateway_information.lock().await = Some(info.clone());
-                    Ok(info)
-                }
-                Err(e) => Err(e),
-            },
+        if let Some(info) = self.cached_info().clone() {
+            return Ok(info);
         }
+        let info = self.get_gateway_information_uncached().await?;
+        *self.cached_info() = Some(info.clone());
+        Ok(info)
     }
 
     async fn enroll_certificate(&self, registration_key: &str, password: &str) -> anyhow::Result<CertificateResponse> {
