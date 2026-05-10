@@ -1,7 +1,8 @@
 use std::{
     borrow::Cow,
+    collections::HashMap,
     sync::{
-        Arc,
+        Arc, LazyLock, Mutex,
         atomic::{AtomicU32, Ordering},
     },
     time::Duration,
@@ -27,6 +28,8 @@ use crate::{
 };
 
 static REQUEST_ID: AtomicU32 = AtomicU32::new(1);
+static GATEWAY_INFO_CACHE: LazyLock<Mutex<HashMap<String, Arc<OnceCell<GatewayInformation>>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 const LONG_TIMEOUT: Duration = Duration::from_secs(600);
 const SHORT_TIMEOUT: Duration = Duration::from_secs(10);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -38,15 +41,20 @@ fn new_request_id() -> u32 {
 #[derive(Clone)]
 pub struct CccGatewayConnector {
     params: Arc<TunnelParams>,
-    gateway_information: Arc<OnceCell<GatewayInformation>>,
 }
 
 impl CccGatewayConnector {
     pub fn new(params: Arc<TunnelParams>) -> Self {
-        Self {
-            params,
-            gateway_information: Arc::new(OnceCell::new()),
-        }
+        Self { params }
+    }
+
+    fn gateway_information_cell(&self) -> Arc<OnceCell<GatewayInformation>> {
+        GATEWAY_INFO_CACHE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .entry(self.params.server_name.clone())
+            .or_insert_with(|| Arc::new(OnceCell::new()))
+            .clone()
     }
 
     fn new_auth_request(&self, username: &str) -> CccClientRequestData {
@@ -219,7 +227,8 @@ impl CccGatewayConnector {
 
             if let Some(identity) = identity {
                 builder = builder.identity(identity);
-                path = match self.gateway_information.get() {
+                let cell = self.gateway_information_cell();
+                path = match cell.get() {
                     Some(info) => Cow::Owned(info.connectivity_info.connect_with_certificate_url.clone()),
                     None => Cow::Borrowed("/clients/cert/"),
                 };
@@ -296,8 +305,8 @@ impl GatewayConnector for CccGatewayConnector {
     }
 
     async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation> {
-        self.gateway_information
-            .get_or_try_init(|| self.get_gateway_information_uncached())
+        let cell = self.gateway_information_cell();
+        cell.get_or_try_init(|| self.get_gateway_information_uncached())
             .await
             .cloned()
     }

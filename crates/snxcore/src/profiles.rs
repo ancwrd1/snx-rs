@@ -1,17 +1,31 @@
 use std::{
     path::Path,
-    sync::{Arc, LazyLock, RwLock},
+    sync::{Arc, LazyLock, Mutex, MutexGuard},
 };
 
 use uuid::Uuid;
 
 use crate::model::params::{DEFAULT_PROFILE_UUID, TunnelParams};
 
-static CONNECTION_PROFILES_STORE: LazyLock<ConnectionProfilesStore> = LazyLock::new(ConnectionProfilesStore::new);
+static STORE: LazyLock<ConnectionProfilesStore> = LazyLock::new(ConnectionProfilesStore::new);
+
+struct ProfilesState {
+    profiles: Vec<Arc<TunnelParams>>,
+    connected: Uuid,
+}
+
+impl ProfilesState {
+    fn find(&self, uuid: Uuid) -> Option<Arc<TunnelParams>> {
+        self.profiles.iter().find(|p| p.profile_id == uuid).cloned()
+    }
+
+    fn order(&self) -> Vec<Uuid> {
+        self.profiles.iter().map(|p| p.profile_id).collect()
+    }
+}
 
 pub struct ConnectionProfilesStore {
-    profiles: RwLock<Vec<Arc<TunnelParams>>>,
-    connected_profile: RwLock<Uuid>,
+    state: Mutex<ProfilesState>,
 }
 
 impl ConnectionProfilesStore {
@@ -25,57 +39,58 @@ impl ConnectionProfilesStore {
             all.push(TunnelParams::default());
         }
         Self {
-            profiles: RwLock::new(all.into_iter().map(Arc::new).collect()),
-            connected_profile: RwLock::new(DEFAULT_PROFILE_UUID),
+            state: Mutex::new(ProfilesState {
+                profiles: all.into_iter().map(Arc::new).collect(),
+                connected: DEFAULT_PROFILE_UUID,
+            }),
         }
     }
 
     pub fn instance() -> &'static Self {
-        &CONNECTION_PROFILES_STORE
+        &STORE
+    }
+
+    fn lock(&self) -> MutexGuard<'_, ProfilesState> {
+        self.state.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     pub fn all(&self) -> Vec<Arc<TunnelParams>> {
-        self.profiles.read().unwrap().clone()
+        self.lock().profiles.clone()
     }
 
     pub fn reorder(&self, from: usize, to: usize) {
-        let mut profiles = self.profiles.write().unwrap();
-        if from >= profiles.len() || to >= profiles.len() || from == to {
-            return;
-        }
-        let item = profiles.remove(from);
-        profiles.insert(to, item);
-        Self::persist_order(&profiles);
-    }
-
-    fn persist_order(profiles: &[Arc<TunnelParams>]) {
-        let order: Vec<Uuid> = profiles.iter().map(|p| p.profile_id).collect();
+        let order = {
+            let mut state = self.lock();
+            if from >= state.profiles.len() || to >= state.profiles.len() || from == to {
+                return;
+            }
+            let item = state.profiles.remove(from);
+            state.profiles.insert(to, item);
+            state.order()
+        };
         let _ = TunnelParams::save_profile_order(&order);
     }
 
     pub fn get(&self, uuid: Uuid) -> Option<Arc<TunnelParams>> {
-        self.profiles
-            .read()
-            .unwrap()
-            .iter()
-            .find(|p| p.profile_id == uuid)
-            .cloned()
+        self.lock().find(uuid)
     }
 
     /// Look up a profile by its UUID (string form) or by display name.
     pub fn find_by_name_or_uuid(&self, name_or_uuid: &str) -> Option<Arc<TunnelParams>> {
         let by_uuid = name_or_uuid.parse::<Uuid>().ok();
-        self.profiles
-            .read()
-            .unwrap()
+        self.lock()
+            .profiles
             .iter()
             .find(|p| Some(p.profile_id) == by_uuid || p.profile_name == name_or_uuid)
             .cloned()
     }
 
     pub fn get_connected(&self) -> Arc<TunnelParams> {
-        self.get(*self.connected_profile.read().unwrap())
-            .unwrap_or_else(|| self.get_default())
+        let state = self.lock();
+        state
+            .find(state.connected)
+            .or_else(|| state.find(DEFAULT_PROFILE_UUID))
+            .unwrap_or_else(|| Arc::new(TunnelParams::default()))
     }
 
     pub fn get_default(&self) -> Arc<TunnelParams> {
@@ -84,31 +99,42 @@ impl ConnectionProfilesStore {
     }
 
     pub fn set_connected(&self, uuid: Uuid) {
-        *self.connected_profile.write().unwrap() = uuid;
+        self.lock().connected = uuid;
     }
 
     pub fn save(&self, params: Arc<TunnelParams>) {
-        let mut profiles = self.profiles.write().unwrap();
-        let mut added = false;
-        if let Some(item) = profiles.iter_mut().find(|p| p.profile_id == params.profile_id) {
-            *item = params.clone();
-        } else {
-            profiles.push(params.clone());
-            added = true;
-        }
         let _ = params.save();
-        if added {
-            Self::persist_order(&profiles);
+        let order = {
+            let mut state = self.lock();
+            let mut added = false;
+            if let Some(item) = state.profiles.iter_mut().find(|p| p.profile_id == params.profile_id) {
+                *item = params.clone();
+            } else {
+                state.profiles.push(params.clone());
+                added = true;
+            }
+            added.then(|| state.order())
+        };
+        if let Some(order) = order {
+            let _ = TunnelParams::save_profile_order(&order);
         }
     }
 
     pub fn remove(&self, uuid: Uuid) {
-        let mut profiles = self.profiles.write().unwrap();
-        if let Some(item) = profiles.iter_mut().find(|p| p.profile_id == uuid) {
-            let _ = std::fs::remove_file(&item.config_file);
+        let (file, order) = {
+            let mut state = self.lock();
+            let file = state
+                .profiles
+                .iter()
+                .find(|p| p.profile_id == uuid)
+                .map(|p| p.config_file.clone());
+            state.profiles.retain(|p| p.profile_id != uuid);
+            (file, state.order())
+        };
+        if let Some(path) = file {
+            let _ = std::fs::remove_file(path);
         }
-        profiles.retain(|p| p.profile_id != uuid);
-        Self::persist_order(&profiles);
+        let _ = TunnelParams::save_profile_order(&order);
     }
 }
 
