@@ -297,7 +297,8 @@ impl GatewayConnector for CccGatewayConnector {
     }
 
     async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation> {
-        match self.gateway_information.lock().await.clone() {
+        let info = self.gateway_information.lock().await.clone();
+        match info {
             Some(info) => Ok(info),
             None => match self.get_gateway_information_uncached().await {
                 Ok(info) => {
