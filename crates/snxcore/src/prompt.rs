@@ -4,21 +4,19 @@ use anyhow::anyhow;
 
 use crate::model::PromptInfo;
 
-#[async_trait::async_trait]
 pub trait SecurePrompt {
-    async fn get_secure_input(&self, prompt: PromptInfo) -> anyhow::Result<String>;
+    fn get_secure_input(&self, prompt: PromptInfo) -> impl Future<Output = anyhow::Result<String>> + Send;
 
-    async fn get_plain_input(&self, prompt: PromptInfo) -> anyhow::Result<String>;
+    fn get_plain_input(&self, prompt: PromptInfo) -> impl Future<Output = anyhow::Result<String>> + Send;
 
-    async fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()>;
+    fn show_notification(&self, summary: &str, message: &str) -> impl Future<Output = anyhow::Result<()>> + Send;
 }
 
 pub struct TtyPrompt;
 
-#[async_trait::async_trait]
 impl SecurePrompt for TtyPrompt {
     async fn get_secure_input(&self, prompt: PromptInfo) -> anyhow::Result<String> {
-        Ok(tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             if stdin().is_terminal() && stderr().is_terminal() {
                 if !prompt.header.is_empty() {
                     println!("{}", prompt.header);
@@ -32,11 +30,11 @@ impl SecurePrompt for TtyPrompt {
                 Err(anyhow!(i18n::tr!("error-no-tty")))
             }
         })
-        .await??)
+        .await?
     }
 
     async fn get_plain_input(&self, prompt: PromptInfo) -> anyhow::Result<String> {
-        Ok(tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             if stdin().is_terminal() && stderr().is_terminal() {
                 if !prompt.header.is_empty() {
                     println!("{}", prompt.header);
@@ -50,7 +48,7 @@ impl SecurePrompt for TtyPrompt {
                 Err(anyhow!(i18n::tr!("error-no-tty")))
             }
         })
-        .await??)
+        .await?
     }
 
     async fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {

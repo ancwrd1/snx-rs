@@ -97,7 +97,6 @@ impl SlintPrompt {
     }
 }
 
-#[async_trait::async_trait]
 impl SecurePrompt for SlintPrompt {
     async fn get_secure_input(&self, prompt: PromptInfo) -> anyhow::Result<String> {
         self.get_input(prompt, true).await

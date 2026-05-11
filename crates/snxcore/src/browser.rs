@@ -5,13 +5,12 @@ use crate::{
     prompt::{SecurePrompt, TtyPrompt},
 };
 
-#[async_trait::async_trait]
 pub trait BrowserController {
     fn open(&self, url: &str) -> anyhow::Result<()>;
 
     fn close(&self);
 
-    async fn acquire_tunnel_password(&self, url: &str) -> anyhow::Result<String>;
+    fn acquire_tunnel_password(&self, url: &str) -> impl Future<Output = anyhow::Result<String>> + Send;
 }
 
 pub struct SystemBrowser<P> {
@@ -30,7 +29,6 @@ impl Default for SystemBrowser<TtyPrompt> {
     }
 }
 
-#[async_trait::async_trait]
 impl<P> BrowserController for SystemBrowser<P>
 where
     P: SecurePrompt + Send + Sync + 'static,

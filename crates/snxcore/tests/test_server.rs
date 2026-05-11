@@ -184,7 +184,6 @@ impl VpnTunnel for MockTunnel {
 
 struct MockPrompt;
 
-#[async_trait]
 impl SecurePrompt for MockPrompt {
     async fn get_secure_input(&self, _prompt: PromptInfo) -> anyhow::Result<String> {
         Ok(PASSWORD.to_string())
@@ -201,7 +200,6 @@ impl SecurePrompt for MockPrompt {
 
 struct MockBrowser;
 
-#[async_trait]
 impl BrowserController for MockBrowser {
     fn open(&self, _url: &str) -> anyhow::Result<()> {
         Ok(())
