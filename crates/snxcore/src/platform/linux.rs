@@ -36,7 +36,6 @@ pub mod xfrm;
 sockopt_impl!(UdpEncap, Both, libc::SOL_UDP, libc::UDP_ENCAP, UdpEncapType);
 sockopt_impl!(NoCheck, Both, libc::SOL_SOCKET, libc::SO_NO_CHECK, bool);
 
-#[async_trait::async_trait]
 impl UdpSocketExt for UdpSocket {
     fn set_encapsulation(&self, encap_type: UdpEncapType) -> anyhow::Result<()> {
         socket::setsockopt(self, UdpEncap, &encap_type)
@@ -214,17 +213,14 @@ impl PlatformAccess for LinuxPlatformAccess {
     }
 
     fn init(&self) {
-        #[cfg(openssl3)]
-        {
-            use std::sync::OnceLock;
+        use std::sync::OnceLock;
 
-            use openssl::provider::Provider;
+        use openssl::provider::Provider;
 
-            static LEGACY_PROVIDER: OnceLock<Provider> = OnceLock::new();
+        static LEGACY_PROVIDER: OnceLock<Provider> = OnceLock::new();
 
-            if let Ok(provider) = Provider::try_load(None, "legacy", true) {
-                let _ = LEGACY_PROVIDER.set(provider);
-            }
+        if let Ok(provider) = Provider::try_load(None, "legacy", true) {
+            let _ = LEGACY_PROVIDER.set(provider);
         }
     }
 

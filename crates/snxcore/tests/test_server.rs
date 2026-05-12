@@ -159,7 +159,7 @@ struct MockTunnel {
 #[async_trait]
 impl VpnTunnel for MockTunnel {
     async fn run(
-        self: Box<Self>,
+        &mut self,
         mut command_receiver: Receiver<TunnelCommand>,
         event_sender: Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {

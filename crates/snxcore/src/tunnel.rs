@@ -37,7 +37,7 @@ pub enum TunnelEvent {
 #[async_trait]
 pub trait VpnTunnel {
     async fn run(
-        self: Box<Self>,
+        &mut self,
         command_receiver: mpsc::Receiver<TunnelCommand>,
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()>;

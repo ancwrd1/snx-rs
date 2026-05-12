@@ -382,7 +382,7 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
         }
 
         let (command_sender, command_receiver) = mpsc::channel(16);
-        let tunnel = handle.create_tunnel(session, command_sender).await?;
+        let mut tunnel = handle.create_tunnel(session, command_sender).await?;
 
         let sender = self.event_sender.clone();
         tokio::spawn(async move {

@@ -31,7 +31,7 @@ use crate::{
         DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
     },
     tunnel::{
-        GatewayConnector, TunnelCommand, TunnelEvent, VpnTunnel,
+        GatewayConnector, TunnelCommand, TunnelEvent,
         device::TunDevice,
         ipsec::{keepalive::KeepaliveRunner, scv::ScvRunner},
     },
@@ -195,12 +195,9 @@ impl TunIPsecTunnel {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl VpnTunnel for TunIPsecTunnel {
-    async fn run(
-        mut self: Box<Self>,
+    pub(super) async fn run(
+        &mut self,
         mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {

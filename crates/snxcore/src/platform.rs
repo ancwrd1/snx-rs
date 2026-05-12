@@ -65,11 +65,15 @@ pub enum UdpEncapType {
     EspInUdp = 2,
 }
 
-#[async_trait]
 pub trait UdpSocketExt {
     fn set_encapsulation(&self, encap: UdpEncapType) -> anyhow::Result<()>;
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()>;
-    async fn send_receive(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>>;
+    fn send_receive(
+        &self,
+        data: &[u8],
+        timeout: Duration,
+        target: SocketAddr,
+    ) -> impl Future<Output = anyhow::Result<Vec<u8>>> + Send;
 }
 
 async fn udp_send_receive(

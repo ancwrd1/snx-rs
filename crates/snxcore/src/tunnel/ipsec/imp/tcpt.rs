@@ -50,7 +50,7 @@ where
     (tx_out, rx_in)
 }
 
-pub(crate) struct TcptIPsecTunnel(Box<TunIPsecTunnel>);
+pub(crate) struct TcptIPsecTunnel(TunIPsecTunnel);
 
 impl TcptIPsecTunnel {
     pub(crate) async fn create(
@@ -68,7 +68,7 @@ impl TcptIPsecTunnel {
 
         let (sender, receiver) = make_channel(tcp);
 
-        Ok(Self(Box::new(
+        Ok(Self(
             TunIPsecTunnel::create(
                 params,
                 session,
@@ -78,14 +78,14 @@ impl TcptIPsecTunnel {
                 gateway_connector,
             )
             .await?,
-        )))
+        ))
     }
 }
 
 #[async_trait::async_trait]
 impl VpnTunnel for TcptIPsecTunnel {
     async fn run(
-        mut self: Box<Self>,
+        &mut self,
         command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {

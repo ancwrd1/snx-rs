@@ -203,7 +203,7 @@ impl NativeIPsecTunnel {
 #[async_trait::async_trait]
 impl VpnTunnel for NativeIPsecTunnel {
     async fn run(
-        mut self: Box<Self>,
+        &mut self,
         mut command_receiver: mpsc::Receiver<TunnelCommand>,
         event_sender: mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {

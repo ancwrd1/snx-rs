@@ -353,7 +353,7 @@ impl SslTunnel {
 #[async_trait::async_trait]
 impl VpnTunnel for SslTunnel {
     async fn run(
-        mut self: Box<Self>,
+        &mut self,
         mut command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {

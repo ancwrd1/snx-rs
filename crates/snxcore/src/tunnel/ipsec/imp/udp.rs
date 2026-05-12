@@ -46,7 +46,7 @@ fn make_channel(socket: UdpSocket, address: SocketAddr) -> (PacketSender, Packet
     (tx_out, rx_in)
 }
 
-pub(crate) struct UdpIPsecTunnel(Box<TunIPsecTunnel>);
+pub(crate) struct UdpIPsecTunnel(TunIPsecTunnel);
 
 impl UdpIPsecTunnel {
     pub(crate) async fn create(
@@ -64,16 +64,16 @@ impl UdpIPsecTunnel {
         let address = socket.peer_addr()?;
         let (sender, receiver) = make_channel(socket, address);
 
-        Ok(Self(Box::new(
+        Ok(Self(
             TunIPsecTunnel::create(params, session, sender, receiver, TransportType::Udp, gateway_connector).await?,
-        )))
+        ))
     }
 }
 
 #[async_trait::async_trait]
 impl VpnTunnel for UdpIPsecTunnel {
     async fn run(
-        mut self: Box<Self>,
+        &mut self,
         command_receiver: tokio::sync::mpsc::Receiver<TunnelCommand>,
         event_sender: tokio::sync::mpsc::Sender<TunnelEvent>,
     ) -> anyhow::Result<()> {

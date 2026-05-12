@@ -296,7 +296,7 @@ where
         }
     }
 
-    let tunnel = tunnel_connector.create_tunnel(session.clone(), command_sender).await?;
+    let mut tunnel = tunnel_connector.create_tunnel(session.clone(), command_sender).await?;
 
     if let Err(e) = Platform::get()
         .new_network_interface()
