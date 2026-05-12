@@ -127,10 +127,22 @@ async fn check_for_xfrm_state() -> bool {
     handle.state().get_sadinfo().execute().await.is_ok()
 }
 
+fn is_ipv6_enabled() -> bool {
+    // The xfrm_interface kernel module depends on the IPv6 stack. When IPv6
+    // is disabled (e.g. via `ipv6.disable=1`), creating an xfrm netdev fails
+    // with EOPNOTSUPP even though the XFRM SAD/SPD interface itself works.
+    fs::metadata("/proc/net/if_inet6").is_ok()
+}
+
 #[cached]
 async fn is_xfrm_available() -> bool {
     if is_wsl2() {
         debug!("WSL2 detected, xfrm not available");
+        return false;
+    }
+
+    if !is_ipv6_enabled() {
+        debug!("IPv6 is disabled, xfrm interface not available");
         return false;
     }
 
