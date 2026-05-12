@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use async_trait::async_trait;
 use futures::StreamExt;
 use ipnet::Ipv4Net;
 use rtnetlink::{
@@ -111,7 +110,6 @@ impl LinuxNetworkInterface {
     }
 }
 
-#[async_trait]
 impl NetworkInterface for LinuxNetworkInterface {
     async fn start_network_state_monitoring(&self) -> anyhow::Result<()> {
         let connection = Connection::system().await?;

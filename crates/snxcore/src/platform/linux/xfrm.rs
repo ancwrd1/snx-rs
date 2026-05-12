@@ -189,7 +189,7 @@ enum CommandType {
 pub struct XfrmConfigurator {
     device_config: DeviceConfig,
     ipsec_session: IPsecSession,
-    source_ip: Ipv4Addr,
+    src_ip: Ipv4Addr,
     if_id: u32,
     src_port: u16,
     dest_ip: Ipv4Addr,
@@ -200,6 +200,7 @@ impl XfrmConfigurator {
     pub fn new(
         device_config: DeviceConfig,
         ipsec_session: IPsecSession,
+        src_ip: Ipv4Addr,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
@@ -209,7 +210,7 @@ impl XfrmConfigurator {
         Self {
             device_config,
             ipsec_session,
-            source_ip: Ipv4Addr::new(0, 0, 0, 0),
+            src_ip,
             dest_ip,
             if_id,
             src_port,
@@ -266,24 +267,14 @@ impl XfrmConfigurator {
     }
 
     async fn setup_xfrm_state_and_policies(&self) -> anyhow::Result<()> {
-        self.configure_xfrm_state(
-            CommandType::Add,
-            self.source_ip,
-            self.dest_ip,
-            &self.ipsec_session.esp_out,
-        )
-        .await?;
-        self.configure_xfrm_state(
-            CommandType::Add,
-            self.dest_ip,
-            self.source_ip,
-            &self.ipsec_session.esp_in,
-        )
-        .await?;
-
-        self.configure_xfrm_policy(CommandType::Add, XFRM_POLICY_OUT, self.source_ip, self.dest_ip)
+        self.configure_xfrm_state(CommandType::Add, self.src_ip, self.dest_ip, &self.ipsec_session.esp_out)
             .await?;
-        self.configure_xfrm_policy(CommandType::Add, XFRM_POLICY_IN, self.dest_ip, self.source_ip)
+        self.configure_xfrm_state(CommandType::Add, self.dest_ip, self.src_ip, &self.ipsec_session.esp_in)
+            .await?;
+
+        self.configure_xfrm_policy(CommandType::Add, XFRM_POLICY_OUT, self.src_ip, self.dest_ip)
+            .await?;
+        self.configure_xfrm_policy(CommandType::Add, XFRM_POLICY_IN, self.dest_ip, self.src_ip)
             .await?;
 
         Ok(())
@@ -292,9 +283,8 @@ impl XfrmConfigurator {
 
 #[async_trait::async_trait]
 impl IPsecConfigurator for XfrmConfigurator {
-    async fn configure(&mut self) -> anyhow::Result<()> {
-        self.source_ip = Platform::get().new_network_interface().get_default_ipv4().await?;
-        debug!("Source IP: {}", self.source_ip);
+    async fn configure(&self) -> anyhow::Result<()> {
+        debug!("Source IP: {}", self.src_ip);
         debug!("Target IP: {}", self.dest_ip);
 
         self.new_xfrm_link()?.add().await?;
@@ -311,7 +301,7 @@ impl IPsecConfigurator for XfrmConfigurator {
         let _ = self
             .configure_xfrm_state(
                 CommandType::Delete,
-                self.source_ip,
+                self.src_ip,
                 self.dest_ip,
                 &self.ipsec_session.esp_out,
             )
@@ -321,7 +311,7 @@ impl IPsecConfigurator for XfrmConfigurator {
             .configure_xfrm_state(
                 CommandType::Delete,
                 self.dest_ip,
-                self.source_ip,
+                self.src_ip,
                 &self.ipsec_session.esp_in,
             )
             .await;
@@ -331,21 +321,11 @@ impl IPsecConfigurator for XfrmConfigurator {
 
         self.ipsec_session = session.clone();
 
-        self.configure_xfrm_state(
-            CommandType::Add,
-            self.source_ip,
-            self.dest_ip,
-            &self.ipsec_session.esp_out,
-        )
-        .await?;
+        self.configure_xfrm_state(CommandType::Add, self.src_ip, self.dest_ip, &self.ipsec_session.esp_out)
+            .await?;
 
-        self.configure_xfrm_state(
-            CommandType::Add,
-            self.dest_ip,
-            self.source_ip,
-            &self.ipsec_session.esp_in,
-        )
-        .await?;
+        self.configure_xfrm_state(CommandType::Add, self.dest_ip, self.src_ip, &self.ipsec_session.esp_in)
+            .await?;
 
         if old_address != new_address {
             debug!(
@@ -361,11 +341,11 @@ impl IPsecConfigurator for XfrmConfigurator {
         Ok(())
     }
 
-    async fn cleanup(&mut self) {
+    async fn cleanup(&self) {
         let _ = self
             .configure_xfrm_state(
                 CommandType::Delete,
-                self.source_ip,
+                self.src_ip,
                 self.dest_ip,
                 &self.ipsec_session.esp_out,
             )
@@ -375,17 +355,17 @@ impl IPsecConfigurator for XfrmConfigurator {
             .configure_xfrm_state(
                 CommandType::Delete,
                 self.dest_ip,
-                self.source_ip,
+                self.src_ip,
                 &self.ipsec_session.esp_in,
             )
             .await;
 
         let _ = self
-            .configure_xfrm_policy(CommandType::Delete, XFRM_POLICY_OUT, self.source_ip, self.dest_ip)
+            .configure_xfrm_policy(CommandType::Delete, XFRM_POLICY_OUT, self.src_ip, self.dest_ip)
             .await;
 
         let _ = self
-            .configure_xfrm_policy(CommandType::Delete, XFRM_POLICY_IN, self.dest_ip, self.source_ip)
+            .configure_xfrm_policy(CommandType::Delete, XFRM_POLICY_IN, self.dest_ip, self.src_ip)
             .await;
 
         if let Ok(link) = self.new_xfrm_link() {

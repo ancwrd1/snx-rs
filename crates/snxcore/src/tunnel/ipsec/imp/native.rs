@@ -20,8 +20,8 @@ use crate::{
         params::{TunnelParams, TunnelType},
     },
     platform::{
-        DeviceConfig, IPsecConfigurator, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
-        UdpEncapType, UdpSocketExt,
+        DeviceConfig, IPsecConfigurator, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig,
+        RoutingConfigurator, UdpEncapType, UdpSocketExt,
     },
     tunnel::{
         GatewayConnector, TunnelCommand, TunnelEvent, VpnTunnel,
@@ -94,9 +94,12 @@ impl NativeIPsecTunnel {
             allow_forwarding: params.allow_forwarding,
         };
 
-        let mut configurator = Platform::get().new_ipsec_configurator(
+        let my_address = Platform::get().new_network_interface().get_default_ipv4().await?;
+
+        let configurator = Platform::get().new_ipsec_configurator(
             device_config,
             ipsec_session.clone(),
+            my_address,
             natt_socket.local_addr()?.port(),
             gateway_address,
             gateway_information.connectivity_info.natt_port,

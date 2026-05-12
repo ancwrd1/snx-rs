@@ -54,9 +54,9 @@ pub struct PlatformFeatures {
 
 #[async_trait]
 pub trait IPsecConfigurator {
-    async fn configure(&mut self) -> anyhow::Result<()>;
+    async fn configure(&self) -> anyhow::Result<()>;
     async fn rekey(&mut self, session: &IPsecSession) -> anyhow::Result<()>;
-    async fn cleanup(&mut self);
+    async fn cleanup(&self);
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
@@ -206,11 +206,14 @@ pub trait ResolverConfigurator {
     async fn cleanup(&self, config: &ResolverConfig) -> anyhow::Result<()>;
 }
 
-#[async_trait]
 pub trait Keychain {
-    async fn acquire_password(&self, profile_id: Uuid) -> anyhow::Result<String>;
-    async fn store_password(&self, profile_id: Uuid, password: &SecretString) -> anyhow::Result<()>;
-    async fn delete_password(&self, profile_id: Uuid) -> anyhow::Result<()>;
+    fn acquire_password(&self, profile_id: Uuid) -> impl Future<Output = anyhow::Result<String>> + Send;
+    fn store_password(
+        &self,
+        profile_id: Uuid,
+        password: &SecretString,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn delete_password(&self, profile_id: Uuid) -> impl Future<Output = anyhow::Result<()>> + Send;
 }
 
 pub trait RoutingConfigurator {
@@ -222,18 +225,17 @@ pub trait StatsPoller {
     async fn poll(&self) -> anyhow::Result<LiveStats>;
 }
 
-#[async_trait]
 pub trait NetworkInterface {
-    async fn start_network_state_monitoring(&self) -> anyhow::Result<()>;
-    async fn get_default_ipv4(&self) -> anyhow::Result<Ipv4Addr>;
-    async fn delete_device(&self, device_name: &str) -> anyhow::Result<()>;
-    async fn configure_device(&self, device_config: &DeviceConfig) -> anyhow::Result<()>;
-    async fn replace_ip_address(
+    fn start_network_state_monitoring(&self) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn get_default_ipv4(&self) -> impl Future<Output = anyhow::Result<Ipv4Addr>> + Send;
+    fn delete_device(&self, device_name: &str) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn configure_device(&self, device_config: &DeviceConfig) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn replace_ip_address(
         &self,
         device_name: &str,
         old_address: Ipv4Net,
         new_address: Ipv4Net,
-    ) -> anyhow::Result<()>;
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
 
     fn new_stats_poller(
         &self,
@@ -268,6 +270,7 @@ pub trait PlatformAccess {
         &self,
         device_config: DeviceConfig,
         ipsec_session: IPsecSession,
+        src_ip: Ipv4Addr,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,

@@ -220,11 +220,12 @@ impl PlatformAccess for LinuxPlatformAccess {
         &self,
         device_config: DeviceConfig,
         ipsec_session: IPsecSession,
+        src_ip: Ipv4Addr,
         src_port: u16,
         dest_ip: Ipv4Addr,
         dest_port: u16,
     ) -> impl IPsecConfigurator + use<> + Send + Sync {
-        xfrm::XfrmConfigurator::new(device_config, ipsec_session, src_port, dest_ip, dest_port)
+        xfrm::XfrmConfigurator::new(device_config, ipsec_session, src_ip, src_port, dest_ip, dest_port)
     }
 
     async fn new_routing_configurator<S: AsRef<str>>(

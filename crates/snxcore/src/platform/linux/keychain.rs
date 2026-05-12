@@ -17,7 +17,6 @@ impl SecretServiceKeychain {
     }
 }
 
-#[async_trait::async_trait]
 impl Keychain for SecretServiceKeychain {
     async fn acquire_password(&self, profile_id: Uuid) -> anyhow::Result<String> {
         let attribute = format!("snx-rs.{}", profile_id);
