@@ -16,6 +16,7 @@ label-username = Имя пользователя
 label-username-required = Для аутентификации требуется имя пользователя
 label-password = Пароль
 label-no-dns = Не изменять настройки DNS-серверов
+label-no-split-dns = Отключить раздельный DNS для systemd-resolved
 label-dns-servers = Дополнительные DNS-серверы
 label-ignored-dns-servers = Игнорируемые DNS-серверы
 label-search-domains = Дополнительные домены поиска

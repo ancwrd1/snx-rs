@@ -16,6 +16,7 @@ label-username = Brugernavn
 label-username-required = Brugernavn er påkrævet for godkendelse
 label-password = Adgangskode
 label-no-dns = Ændr ikke DNS-konfigurationen
+label-no-split-dns = Deaktiver split-DNS for systemd-resolved
 label-dns-servers = Yderligere DNS-servere
 label-ignored-dns-servers = Ignorerede DNS-servere
 label-search-domains = Yderligere søgedomæner

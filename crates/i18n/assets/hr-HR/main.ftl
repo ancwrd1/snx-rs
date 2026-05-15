@@ -16,6 +16,7 @@ label-username = Korisničko ime
 label-username-required = Korisničko ime je potrebno za autentifikaciju
 label-password = Lozinka
 label-no-dns = Ne mijenjaj konfiguraciju DNS razrješitelja
+label-no-split-dns = Onemogući podijeljeni DNS za systemd-resolved
 label-dns-servers = Dodatni DNS poslužitelji
 label-ignored-dns-servers = Zanemareni DNS poslužitelji
 label-search-domains = Dodatne domene za pretraživanje

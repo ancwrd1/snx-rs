@@ -398,6 +398,7 @@ pub struct TunnelParams {
     pub add_routes: Vec<Ipv4Net>,
     pub ignore_routes: Vec<Ipv4Net>,
     pub no_dns: bool,
+    pub no_split_dns: bool,
     pub ignore_server_cert: bool,
     pub tunnel_type: TunnelType,
     pub ca_cert: Vec<PathBuf>,
@@ -456,6 +457,7 @@ impl Default for TunnelParams {
             add_routes: Vec::new(),
             ignore_routes: Vec::new(),
             no_dns: false,
+            no_split_dns: false,
             ignore_server_cert: false,
             tunnel_type: TunnelType::default(),
             ca_cert: Vec::new(),
@@ -576,6 +578,7 @@ impl TunnelParams {
                     params.ignore_routes = v.split(',').flat_map(|s| parse_ipv4_or_subnet(s).ok()).collect();
                 }
                 "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
+                "no-split-dns" => params.no_split_dns = v.parse().unwrap_or_default(),
                 "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
                 "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                 "ca-cert" => params.ca_cert = v.split(',').map(|s| s.trim().into()).collect(),
@@ -674,6 +677,7 @@ impl TunnelParams {
                 .join(",")
         )?;
         writeln!(buf, "no-dns={}", self.no_dns)?;
+        writeln!(buf, "no-split-dns={}", self.no_split_dns)?;
         writeln!(buf, "ignore-server-cert={}", self.ignore_server_cert)?;
         writeln!(buf, "tunnel-type={}", self.tunnel_type.as_str())?;
         writeln!(
@@ -839,6 +843,7 @@ mod tests {
             add_routes: vec![Ipv4Net::new(Ipv4Addr::new(17, 18, 19, 20), 24).unwrap()],
             ignore_routes: vec![Ipv4Net::new(Ipv4Addr::new(21, 22, 23, 24), 24).unwrap()],
             no_dns: true,
+            no_split_dns: true,
             ignore_server_cert: true,
             tunnel_type: TunnelType::SSL,
             ca_cert: vec![PathBuf::from("ca.cert")],

@@ -110,6 +110,9 @@ pub struct CmdlineParams {
     #[clap(long = "no-dns", short = 'N', help = "Do not change DNS resolver configuration")]
     pub no_dns: Option<bool>,
 
+    #[clap(long = "no-split-dns", short = 'E', help = "Disable split DNS for systemd-resolved")]
+    pub no_split_dns: Option<bool>,
+
     #[clap(
         long = "ignore-server-cert",
         short = 'X',
@@ -303,6 +306,10 @@ impl CmdlineParams {
 
         if let Some(no_dns) = self.no_dns {
             other.no_dns = no_dns;
+        }
+
+        if let Some(no_split_dns) = self.no_split_dns {
+            other.no_split_dns = no_split_dns;
         }
 
         if !self.add_routes.is_empty() {

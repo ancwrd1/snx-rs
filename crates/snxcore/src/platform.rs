@@ -106,6 +106,7 @@ pub struct DeviceConfig {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ResolverConfig {
+    pub split_dns: bool,
     pub search_domains: Vec<SearchDomain>,
     pub dns_servers: Vec<Ipv4Addr>,
 }
@@ -182,6 +183,7 @@ impl ResolverConfigBuilder {
         self.dns_servers.retain(|s| !self.params.ignore_dns_servers.contains(s));
 
         ResolverConfig {
+            split_dns: self.features.split_dns && !self.params.no_split_dns,
             search_domains: self.search_domains,
             dns_servers: self.dns_servers,
         }

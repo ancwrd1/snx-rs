@@ -16,6 +16,7 @@ label-username = Användarnamn
 label-username-required = Användarnamn krävs för autentisering
 label-password = Lösenord
 label-no-dns = Ändra inte DNS-konfigurationen
+label-no-split-dns = Inaktivera delad DNS för systemd-resolved
 label-dns-servers = Ytterligare DNS-servrar
 label-ignored-dns-servers = Ignorerade DNS-servrar
 label-search-domains = Ytterligare sökdomäner

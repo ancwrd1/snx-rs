@@ -16,6 +16,7 @@ label-username = Käyttäjätunnus
 label-username-required = Käyttäjätunnus vaaditaan todennukseen
 label-password = Salasana
 label-no-dns = Älä muuta DNS-konfiguraatiota
+label-no-split-dns = Poista jaettu DNS käytöstä systemd-resolvedille
 label-dns-servers = Lisä-DNS-palvelimet
 label-ignored-dns-servers = Ohitettavat DNS-palvelimet
 label-search-domains = Lisähakualueet

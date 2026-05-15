@@ -1,3 +1,6 @@
+## v6.0.6 (TBD)
+- Added `no-split-dns` option to disable split DNS with systemd-resolved, useful for container images.
+
 ## v6.0.5 (2026-05-07)
 - Added interface statistics in the status window.
 - Improved performance when setting up the tunnel.

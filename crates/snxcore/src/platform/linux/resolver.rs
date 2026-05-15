@@ -56,7 +56,7 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
             .collect();
 
         proxy.set_link_domains(ifindex, domains).await?;
-        proxy.set_link_default_route(ifindex, false).await?;
+        proxy.set_link_default_route(ifindex, !config.split_dns).await?;
         proxy.set_link_multicast_dns(ifindex, "no").await?;
         proxy.set_link_llmnr(ifindex, "no").await?;
         proxy.set_link_dns_over_tls(ifindex, "no").await?;
@@ -374,6 +374,7 @@ mod tests {
         };
 
         let config = ResolverConfig {
+            split_dns: false,
             search_domains: vec![
                 SearchDomain::new("dom1.com", true),
                 SearchDomain::new("dom2.net", false),
@@ -399,6 +400,7 @@ mod tests {
         };
 
         let config = ResolverConfig {
+            split_dns: false,
             search_domains: vec![
                 SearchDomain::new("dom1.com", true),
                 SearchDomain::new("dom2.net", false),

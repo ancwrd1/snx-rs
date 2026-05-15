@@ -16,6 +16,7 @@ label-username = Gebruikersnaam
 label-username-required = Gebruikersnaam is vereist voor authenticatie
 label-password = Wachtwoord
 label-no-dns = DNS-resolverconfiguratie niet wijzigen
+label-no-split-dns = Schakel split-DNS uit voor systemd-resolved
 label-dns-servers = Extra DNS-servers
 label-ignored-dns-servers = Genegeerde DNS-servers
 label-search-domains = Extra zoekdomeinen

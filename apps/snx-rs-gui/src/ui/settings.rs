@@ -442,6 +442,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
 
     window.set_password_factor(params.password_factor.to_string().into());
     window.set_no_dns(params.no_dns);
+    window.set_no_split_dns(params.no_split_dns);
     window.set_search_domains(params.search_domains.join(",").into());
     window.set_ignored_domains(params.ignore_search_domains.join(",").into());
     window.set_dns_servers(params.dns_servers.iter().map(|ip| ip.to_string()).join(",").into());
@@ -861,6 +862,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     params.password = window.get_password().to_string().into();
     params.password_factor = window.get_password_factor().parse()?;
     params.no_dns = window.get_no_dns();
+    params.no_split_dns = window.get_no_split_dns();
     params.set_routing_domains = window.get_set_routing_domains();
     params.search_domains = split_non_empty(&window.get_search_domains());
     params.ignore_search_domains = split_non_empty(&window.get_ignored_domains());

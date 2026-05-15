@@ -51,6 +51,7 @@ export component SettingsWindow inherits Window {
 
     // dns
     in-out property <bool> no-dns: false;
+    in-out property <bool> no-split-dns: false;
     in-out property <string> dns-servers;
     in-out property <string> ignored-dns-servers;
     in-out property <string> search-domains;
@@ -464,12 +465,33 @@ export component SettingsWindow inherits Window {
 
                                     FormDivider { }
 
+                                    FormToggleRow {
+                                        label: Tr.label-routing-domains;
+                                        Switch {
+                                            checked <=> root.set-routing-domains;
+                                            enabled: !root.no-dns;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-no-split-dns;
+                                        Switch {
+                                            checked <=> root.no-split-dns;
+                                            enabled: !root.no-dns;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
                                     FormStackRow {
                                         label: Tr.label-dns-servers;
                                         LineEdit {
                                             text <=> root.dns-servers;
                                             placeholder-text: Tr.placeholder-ip-addresses;
                                             min-width: root.min-form-width;
+                                            enabled: !root.no-dns;
                                         }
                                     }
 
@@ -480,6 +502,7 @@ export component SettingsWindow inherits Window {
                                         LineEdit {
                                             text <=> root.ignored-dns-servers;
                                             placeholder-text: Tr.placeholder-ip-addresses;
+                                            enabled: !root.no-dns;
                                         }
                                     }
 
@@ -490,6 +513,7 @@ export component SettingsWindow inherits Window {
                                         LineEdit {
                                             text <=> root.search-domains;
                                             placeholder-text: Tr.placeholder-domains;
+                                            enabled: !root.no-dns;
                                         }
                                     }
 
@@ -500,14 +524,8 @@ export component SettingsWindow inherits Window {
                                         LineEdit {
                                             text <=> root.ignored-domains;
                                             placeholder-text: Tr.placeholder-domains;
+                                            enabled: !root.no-dns;
                                         }
-                                    }
-
-                                    FormDivider { }
-
-                                    FormToggleRow {
-                                        label: Tr.label-routing-domains;
-                                        Switch { checked <=> root.set-routing-domains; }
                                     }
                                 }
                             }
@@ -533,6 +551,13 @@ export component SettingsWindow inherits Window {
 
                                     FormDivider { }
 
+                                    FormToggleRow {
+                                        label: Tr.label-disable-ipv6;
+                                        Switch { checked <=> root.disable-ipv6; }
+                                    }
+
+                                    FormDivider { }
+
                                     FormStackRow {
                                         label: Tr.label-add-routes;
                                         LineEdit {
@@ -552,12 +577,6 @@ export component SettingsWindow inherits Window {
                                         }
                                     }
 
-                                    FormDivider { }
-
-                                    FormToggleRow {
-                                        label: Tr.label-disable-ipv6;
-                                        Switch { checked <=> root.disable-ipv6; }
-                                    }
                                 }
                             }
 
@@ -568,6 +587,13 @@ export component SettingsWindow inherits Window {
                                 VerticalLayout {
                                     spacing: 0px;
 
+                                    FormToggleRow {
+                                        label: Tr.label-no-cert-check;
+                                        Switch { checked <=> root.no-cert-check; }
+                                    }
+
+                                    FormDivider { }
+
                                     FormStackRow {
                                         label: Tr.label-ca-cert;
                                         PathLineEdit {
@@ -576,13 +602,6 @@ export component SettingsWindow inherits Window {
                                             placeholder-text: Tr.placeholder-certs;
                                             browse-clicked => { root.browse-ca-cert-clicked(); }
                                         }
-                                    }
-
-                                    FormDivider { }
-
-                                    FormToggleRow {
-                                        label: Tr.label-no-cert-check;
-                                        Switch { checked <=> root.no-cert-check; }
                                     }
                                 }
                             }
@@ -594,30 +613,9 @@ export component SettingsWindow inherits Window {
                                 VerticalLayout {
                                     spacing: 0px;
 
-                                    FormStackRow {
-                                        label: Tr.label-password-factor;
-                                        LineEdit {
-                                            text <=> root.password-factor;
-                                            input-type: InputType.number;
-                                            min-width: root.min-form-width;
-                                        }
-                                    }
-
-                                    FormDivider { }
-
                                     FormToggleRow {
                                         label: Tr.label-keychain;
                                         Switch { checked <=> root.keychain; }
-                                    }
-
-                                    FormDivider { }
-
-                                    FormStackRow {
-                                        label: Tr.label-ike-lifetime;
-                                        LineEdit {
-                                            text <=> root.ike-lifetime;
-                                            input-type: InputType.number;
-                                        }
                                     }
 
                                     FormDivider { }
@@ -649,6 +647,28 @@ export component SettingsWindow inherits Window {
                                     }
 
                                     FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-password-factor;
+                                        LineEdit {
+                                            text <=> root.password-factor;
+                                            input-type: InputType.number;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ike-lifetime;
+                                        LineEdit {
+                                            text <=> root.ike-lifetime;
+                                            input-type: InputType.number;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
 
                                     FormStackRow {
                                         label: Tr.label-ip-lease-time;
@@ -699,6 +719,13 @@ export component SettingsWindow inherits Window {
                                 VerticalLayout {
                                     spacing: 0px;
 
+                                    FormToggleRow {
+                                        label: Tr.label-auto-connect;
+                                        Switch { checked <=> root.auto-connect; }
+                                    }
+
+                                    FormDivider { }
+
                                     if root.icon-theme-visible: FormStackRow {
                                         label: Tr.label-icon-theme;
                                         ComboBox {
@@ -726,13 +753,6 @@ export component SettingsWindow inherits Window {
                                             model: root.locales;
                                             current-index <=> root.locale-index;
                                         }
-                                    }
-
-                                    FormDivider { }
-
-                                    FormToggleRow {
-                                        label: Tr.label-auto-connect;
-                                        Switch { checked <=> root.auto-connect; }
                                     }
                                 }
                             }

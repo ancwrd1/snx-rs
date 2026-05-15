@@ -16,6 +16,7 @@ label-username = Používateľské meno
 label-username-required = Používateľské meno je potrebné na overenie
 label-password = Heslo
 label-no-dns = Nemeniť konfiguráciu DNS resolvera
+label-no-split-dns = Zakázať rozdelené DNS pre systemd-resolved
 label-dns-servers = Ďalšie DNS servery
 label-ignored-dns-servers = Ignorované DNS servery
 label-search-domains = Ďalšie vyhľadávacie domény

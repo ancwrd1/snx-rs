@@ -16,6 +16,7 @@ label-username = Benutzername
 label-username-required = Benutzername ist für die Authentifizierung erforderlich
 label-password = Passwort
 label-no-dns = DNS-Resolver-Konfiguration nicht ändern
+label-no-split-dns = Split-DNS für systemd-resolved deaktivieren
 label-dns-servers = Zusätzliche DNS-Server
 label-ignored-dns-servers = Ignorierte DNS-Server
 label-search-domains = Zusätzliche Suchdomänen
