@@ -259,7 +259,7 @@ impl TunIPsecTunnel {
         )));
         esp_codec_in
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .set_params(session.esp_in.spi, session.esp_in.clone());
 
         let esp_codec_out = Arc::new(RwLock::new(EspCodec::new(
@@ -269,7 +269,7 @@ impl TunIPsecTunnel {
         )));
         esp_codec_out
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .set_params(session.esp_out.spi, session.esp_out.clone());
 
         let sender = event_sender.clone();
@@ -288,7 +288,8 @@ impl TunIPsecTunnel {
         tokio::spawn(async move {
             while let Some(item) = snx_receiver.next().await {
                 let codec = esp_codec.clone();
-                let result = tokio::task::spawn_blocking(move || codec.read().unwrap().decode(&item));
+                let result =
+                    tokio::task::spawn_blocking(move || codec.read().unwrap_or_else(|e| e.into_inner()).decode(&item));
 
                 match result.await {
                     Ok(Ok(packet)) => {
@@ -357,7 +358,7 @@ impl TunIPsecTunnel {
                         );
                         ready.store(false, Ordering::SeqCst);
 
-                        esp_codec_in.write().unwrap().add_params(
+                        esp_codec_in.write().unwrap_or_else(|e| e.into_inner()).add_params(
                             session.esp_in.spi,
                             session.esp_in.clone(),
                             session.lifetime,
@@ -365,7 +366,7 @@ impl TunIPsecTunnel {
 
                         esp_codec_out
                             .write()
-                            .unwrap()
+                            .unwrap_or_else(|e| e.into_inner())
                             .set_params(session.esp_out.spi, session.esp_out.clone());
 
                         let new_address = Ipv4Net::with_netmask(session.address, session.netmask).unwrap_or(ip_address);
@@ -431,7 +432,10 @@ impl TunIPsecTunnel {
                 result = tun_receiver.next() => {
                     if let Some(Ok(item)) = result {
                         let codec = esp_codec_out.clone();
-                        let result = tokio::task::spawn_blocking(move || codec.read().unwrap().encode(&item)).await;
+                        let result = tokio::task::spawn_blocking(move || {
+                            codec.read().unwrap_or_else(|e| e.into_inner()).encode(&item)
+                        })
+                        .await;
                         match result {
                             Ok(Ok(packet)) => {
                                 self.send(packet).await?;

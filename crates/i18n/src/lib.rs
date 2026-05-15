@@ -51,15 +51,19 @@ where
 #[cached]
 pub fn get_user_locale() -> LanguageIdentifier {
     let lang = sys_locale::get_locale().unwrap_or_else(|| "en-US".to_string());
-    lang.parse().or_else(|_| "en-US".parse()).unwrap()
+    lang.parse().or_else(|_| "en-US".parse()).unwrap_or_default()
 }
 
 pub fn set_locale(lang: Option<LanguageIdentifier>) {
-    *APP_LOCALE.write().unwrap() = lang;
+    *APP_LOCALE.write().unwrap_or_else(|e| e.into_inner()) = lang;
 }
 
 pub fn get_locale() -> LanguageIdentifier {
-    APP_LOCALE.read().unwrap().clone().unwrap_or_else(get_user_locale)
+    APP_LOCALE
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+        .unwrap_or_else(get_user_locale)
 }
 
 #[cached]
