@@ -21,3 +21,5 @@ Routing domains are prefixed with `~` character and when configured only request
 will be forwarded through the tunnel. For further explanation, please check [this article](https://systemd.io/RESOLVED-VPNS/).
 
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
+
+For container images which have `systemd-resovled` enabled, it may be necessary to disable split DNS via the `no-slit-dns=true` option.
