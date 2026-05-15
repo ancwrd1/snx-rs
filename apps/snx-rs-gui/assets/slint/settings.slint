@@ -48,6 +48,10 @@ export component SettingsWindow inherits Window {
     in-out property <string> cert-path;
     in-out property <string> cert-password;
     in-out property <string> cert-id;
+    property <bool> show-cert-fields: root.show-cert-auth || root.machine-cert;
+    property <bool> show-cert-path: root.show-cert-fields && root.cert-type-index != 0;
+    property <bool> show-cert-password: root.show-cert-fields && (root.cert-type-index == 1 || root.cert-type-index == 3);
+    property <bool> show-cert-id: root.show-cert-fields && root.cert-type-index == 3;
 
     // dns
     in-out property <bool> no-dns: false;
@@ -411,8 +415,8 @@ export component SettingsWindow inherits Window {
                                         }
                                     }
 
-                                    if root.show-cert-auth || root.machine-cert: FormDivider { }
-                                    if root.show-cert-auth || root.machine-cert: FormStackRow {
+                                    if root.show-cert-path: FormDivider { }
+                                    if root.show-cert-path: FormStackRow {
                                         label: Tr.label-client-cert;
                                         PathLineEdit {
                                             text <=> root.cert-path;
@@ -420,8 +424,8 @@ export component SettingsWindow inherits Window {
                                         }
                                     }
 
-                                    if root.show-cert-auth || root.machine-cert: FormDivider { }
-                                    if root.show-cert-auth || root.machine-cert: FormStackRow {
+                                    if root.show-cert-password: FormDivider { }
+                                    if root.show-cert-password: FormStackRow {
                                         label: Tr.label-cert-password;
                                         LineEdit {
                                             text <=> root.cert-password;
@@ -429,8 +433,8 @@ export component SettingsWindow inherits Window {
                                         }
                                     }
 
-                                    if root.show-cert-auth || root.machine-cert: FormDivider { }
-                                    if root.show-cert-auth || root.machine-cert: FormStackRow {
+                                    if root.show-cert-id: FormDivider { }
+                                    if root.show-cert-id: FormStackRow {
                                         label: Tr.label-cert-id;
                                         LineEdit {
                                             text <=> root.cert-id;
