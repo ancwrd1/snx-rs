@@ -1,5 +1,6 @@
 ## v6.0.6 (TBD)
 - Added `no-split-dns` option to disable split DNS with systemd-resolved, useful for container images.
+- Fixed native kernel IPsec support detection when IPv6 is disabled.
 
 ## v6.0.5 (2026-05-07)
 - Added interface statistics in the status window.
