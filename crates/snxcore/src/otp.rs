@@ -133,12 +133,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_otp_lister_get() {
+    async fn test_otp_listener_get() {
         test_otp_listener(Method::GET).await.unwrap();
     }
 
     #[tokio::test]
-    async fn test_otp_lister_options() {
+    async fn test_otp_listener_options() {
         test_otp_listener(Method::OPTIONS).await.unwrap();
     }
 }
