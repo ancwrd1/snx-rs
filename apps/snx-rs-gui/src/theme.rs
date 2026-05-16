@@ -4,11 +4,6 @@ use std::sync::{
 };
 
 use anyhow::anyhow;
-use futures::StreamExt;
-use tracing::debug;
-use zbus::Connection;
-
-use crate::dbus::DesktopSettingsProxy;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SystemColorTheme {
@@ -45,38 +40,12 @@ impl ThemeMonitor {
     pub fn new() -> Self {
         let theme = Arc::new(AtomicU32::new(0));
 
-        let theme_clone = theme.clone();
-        tokio::spawn(async move { Self::init_theme_monitoring(theme_clone).await });
+        crate::platform::spawn_theme_monitor(theme.clone());
 
         Self { theme }
     }
 
     pub fn current_theme(&self) -> SystemColorTheme {
         self.theme.load(Ordering::SeqCst).try_into().unwrap_or_default()
-    }
-
-    async fn init_theme_monitoring(theme: Arc<AtomicU32>) -> anyhow::Result<()> {
-        let connection = Connection::session().await?;
-        let proxy = DesktopSettingsProxy::new(&connection).await?;
-        let scheme = proxy.read_one("org.freedesktop.appearance", "color-scheme").await?;
-        let scheme = u32::try_from(scheme)?;
-        theme.store(scheme, Ordering::SeqCst);
-
-        debug!("System color scheme: {}", scheme);
-
-        tokio::spawn(async move {
-            let mut stream = proxy.receive_setting_changed().await?;
-            while let Some(signal) = stream.next().await {
-                let args = signal.args()?;
-                if args.namespace == "org.freedesktop.appearance" && args.key == "color-scheme" {
-                    let scheme = u32::try_from(args.value)?;
-                    debug!("New system color scheme: {}", scheme);
-                    theme.store(scheme, Ordering::SeqCst);
-                }
-            }
-            Ok::<_, anyhow::Error>(())
-        });
-
-        Ok(())
     }
 }

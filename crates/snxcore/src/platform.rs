@@ -15,6 +15,8 @@ use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
+#[cfg(target_os = "windows")]
+use windows::WindowsPlatformAccess as PlatformAccessImpl;
 
 use crate::model::{
     IPsecSession, LiveStats,
@@ -23,6 +25,8 @@ use crate::model::{
 
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "windows")]
+mod windows;
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SearchDomain {
@@ -271,6 +275,7 @@ pub trait PlatformAccess {
     ) -> anyhow::Result<Box<dyn ResolverConfigurator + Send + Sync>>;
     fn new_keychain(&self) -> impl Keychain + Send + Sync;
     fn get_machine_uuid(&self) -> anyhow::Result<Uuid>;
+    fn is_root(&self) -> bool;
     fn init(&self);
     fn new_ipsec_configurator(
         &self,

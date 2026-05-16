@@ -3,7 +3,6 @@ use std::{future::Future, path::Path, sync::Arc};
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
-use nix::unistd::Uid;
 use secrecy::ExposeSecret;
 use snxcore::{
     model::{
@@ -18,12 +17,14 @@ use snxcore::{
     tunnel::{TunnelConnectorFactory, TunnelEvent, connector::CheckPointConnectorFactory},
     util,
 };
-use tokio::{signal::unix, sync::mpsc};
+use tokio::sync::mpsc;
 use tracing::{debug, metadata::LevelFilter, warn};
 
 use crate::cmdline::CmdlineParams;
 
 mod cmdline;
+#[cfg(target_os = "windows")]
+mod service;
 
 async fn await_termination<F, R>(f: F) -> anyhow::Result<()>
 where
@@ -32,11 +33,18 @@ where
     let ctrl_c = tokio::signal::ctrl_c();
     pin_mut!(ctrl_c);
 
-    let mut sig = unix::signal(unix::SignalKind::terminate())?;
-    let term = sig.recv();
-    pin_mut!(term);
+    #[cfg(unix)]
+    let term_signal = {
+        use tokio::signal::unix;
+        let mut sig = unix::signal(unix::SignalKind::terminate())?;
+        async move { sig.recv().await }
+    };
+    #[cfg(not(unix))]
+    let term_signal = std::future::pending::<Option<()>>();
 
-    let select = futures::future::select(ctrl_c, term);
+    pin_mut!(term_signal);
+
+    let select = futures::future::select(ctrl_c, term_signal);
 
     tokio::select! {
         result = f => {
@@ -51,8 +59,7 @@ where
     }
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     let cmdline_params = CmdlineParams::parse();
 
     // Handle completions immediately and exit
@@ -61,10 +68,25 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if cmdline_params.mode.requires_root() && !Uid::effective().is_root() {
+    if cmdline_params.mode.requires_root() && !Platform::get().is_root() {
         anyhow::bail!(tr!("error-no-root-privileges"));
     }
 
+    #[cfg(target_os = "windows")]
+    match cmdline_params.mode {
+        OperationMode::Service => return service::run(),
+        OperationMode::Install => return service::install(),
+        OperationMode::Uninstall => return service::uninstall(),
+        _ => {}
+    }
+
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(async_main(cmdline_params))
+}
+
+async fn async_main(cmdline_params: CmdlineParams) -> anyhow::Result<()> {
     Platform::get().init();
 
     let mode = cmdline_params.mode;
@@ -97,6 +119,8 @@ async fn main() -> anyhow::Result<()> {
         OperationMode::Info => main_info(factory, params).await,
         OperationMode::Enroll => main_enroll(factory, params).await,
         OperationMode::Renew => main_renew(factory, params).await,
+        #[cfg(target_os = "windows")]
+        OperationMode::Service | OperationMode::Install | OperationMode::Uninstall => unreachable!(),
     }
 }
 

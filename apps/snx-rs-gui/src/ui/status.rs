@@ -10,8 +10,9 @@ use snxcore::{
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    POLL_INTERVAL, tr,
-    tray::TrayEvent,
+    POLL_INTERVAL,
+    platform::TrayEvent,
+    tr,
     ui::{StatusEntry, StatusWindow, WindowController, WindowScope, close_window, prompt::SlintPrompt},
 };
 

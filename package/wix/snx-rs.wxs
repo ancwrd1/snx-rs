@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+    Name="SNX-RS VPN Client"
+    Manufacturer="Dmitry Pankratov"
+    Version="$(var.Version)"
+    UpgradeCode="b9c8f7a4-2a14-4abc-9def-0123456789ab"
+    Scope="perMachine"
+    InstallerVersion="500">
+
+    <SummaryInformation Description="SNX-RS VPN Client" />
+
+    <!-- Schedule="afterInstallInitialize" removes the old product (including
+         its UninstallService CA, which stops + deletes the service) before
+         any new file write, so in-use file handles on snx-rs.exe / wintun.dll
+         are released first. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+                  Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="snx-rs" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="SNX-RS VPN Client" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="SNX-RS VPN Client" Level="1">
+      <ComponentGroupRef Id="MainFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="ToastAppId" />
+    </Feature>
+
+    <!-- Deferred Type 34 CAs run with a very restricted property environment;
+         [INSTALLFOLDER] / [SystemFolder] do NOT resolve in ExeCommand. Use
+         [#FileId] (file-table tokens, which DO resolve in the deferred script)
+         for our own binary, and absolute paths via [System64Folder] for OS
+         tools. -->
+    <CustomAction Id="InstallService"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="&quot;[#SnxRsExeFile]&quot; -m install"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="UninstallService"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="&quot;[#SnxRsExeFile]&quot; -m uninstall"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="StartService"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="[System64Folder]sc.exe start snx-rs"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Force-stop the service and kill the GUI (running in the user session)
+         so the exes are no longer file-locked. Best-effort: non-zero exit
+         when the target isn't running is fine. -->
+    <CustomAction Id="StopServiceForce"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="[System64Folder]sc.exe stop snx-rs"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="KillGui"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="[System64Folder]taskkill.exe /F /IM snx-rs-gui.exe /T"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Delete any leftover snx-rs service before (re)creating it. Covers the
+         case where the old product's UninstallService didn't run (e.g.
+         upgrading from a pre-CA MSI, or the old CA failed silently). sc.exe
+         delete on a missing service returns 1060 — Return="ignore". -->
+    <CustomAction Id="DeleteServiceForce"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="[System64Folder]sc.exe delete snx-rs"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <!-- On upgrade RemoveExistingProducts (scheduled afterInstallInitialize)
+           runs the OLD product's uninstall sequence, which includes its own
+           UninstallService. Our StopServiceForce + KillGui guard the fresh-
+           install-over-running-instance case and belt-and-suspenders the
+           upgrade path. -->
+      <Custom Action="StopServiceForce" Before="InstallFiles" Condition="NOT REMOVE=&quot;ALL&quot;" />
+      <Custom Action="KillGui" After="StopServiceForce" Condition="NOT REMOVE=&quot;ALL&quot;" />
+      <Custom Action="UninstallService" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
+      <Custom Action="DeleteServiceForce" After="InstallFiles" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
+      <Custom Action="InstallService" After="DeleteServiceForce" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
+      <Custom Action="StartService" After="InstallService" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="MainFiles" Directory="INSTALLFOLDER">
+      <Component Id="SnxRsExe" Bitness="always64">
+        <File Id="SnxRsExeFile" Source="$(var.StageDir)\snx-rs.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="SnxctlExe" Bitness="always64">
+        <File Source="$(var.StageDir)\snxctl.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="SnxRsGuiExe" Bitness="always64">
+        <File Source="$(var.StageDir)\snx-rs-gui.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="WintunDll" Bitness="always64">
+        <File Source="$(var.StageDir)\wintun.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="SnxRsPng" Bitness="always64">
+        <File Id="SnxRsPng" Source="$(var.StageDir)\snx-rs.png" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="b9c8f7a4-2a14-4abc-9def-0123456789ac">
+      <Shortcut Id="GuiShortcut"
+                Name="SNX-RS VPN Client"
+                Description="SNX-RS VPN Client"
+                Target="[INSTALLFOLDER]snx-rs-gui.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveAppMenu" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\snx-rs" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="ToastAppId" Directory="INSTALLFOLDER" Guid="b9c8f7a4-2a14-4abc-9def-0123456789ad" Bitness="always64">
+      <RegistryKey Root="HKCR" Key="AppUserModelId\com.github.snx-rs">
+        <RegistryValue Type="string" Name="DisplayName" Value="SNX-RS VPN Client" />
+        <RegistryValue Type="string" Name="IconUri" Value="[INSTALLFOLDER]snx-rs.png" />
+      </RegistryKey>
+    </Component>
+  </Fragment>
+</Wix>

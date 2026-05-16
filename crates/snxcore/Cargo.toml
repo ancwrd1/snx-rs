@@ -45,7 +45,6 @@ enum-as-inner = "0.7"
 num-traits = "0.2"
 parse_int = "0.9"
 byteorder = "1"
-nix = { version = "0.31", features = ["fs", "user", "socket"] }
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
 opener = { version = "0.8"}
 cached = {  version = "0.59",  features = ["async"] }
@@ -64,6 +63,23 @@ sysctl = "0.7"
 rtnetlink = "0.21"
 xfrmnetlink = "0.3"
 netlink-packet-xfrm = "0.4"
+nix = { version = "0.31", features = ["fs", "user", "socket"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
+windows = { version = "0.62", features = [
+    "Win32_System_Threading",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Credentials",
+    "Win32_System_Registry",
+    "Win32_System_SystemServices",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+] }
+widestring = "1"
 
 [dev-dependencies]
 tempfile = "3"

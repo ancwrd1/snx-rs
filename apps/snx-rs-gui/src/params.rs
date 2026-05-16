@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::tray::TrayEvent;
+use crate::platform::TrayEvent;
 
 #[derive(Parser, Clone)]
 #[clap(about = "VPN client for Check Point security gateway", name = "snx-rs-gui", version = env!("CARGO_PKG_VERSION"))]

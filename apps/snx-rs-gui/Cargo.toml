@@ -17,8 +17,6 @@ workspace = true
 snxcore = { path = "../../crates/snxcore" }
 i18n = { path = "../../crates/i18n" }
 secrecy = "0.10"
-ksni = "0.3"
-gtk4 = { version = "0.11", features = ["v4_10"], optional = true }
 resvg = "0.47"
 tracing = "0.1"
 tracing-subscriber = "0.3"
@@ -28,17 +26,32 @@ tokio = { version = "1", features = ["rt-multi-thread", "process", "signal"] }
 clap = { version = "4", features = ["derive"] }
 clap_complete = { workspace = true }
 hex = "0.4"
-zbus = { version = "5", default-features = false, features = ["tokio"] }
 futures = "0.3"
-async-trait = "0.1"
 interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
 async-channel = "2"
 itertools = "0.14"
 uuid = { version = "1", features = ["v4"] }
-webkit6 = { version = "0.6", optional = true }
-nix = "0.31"
 rfd = "0.17"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ksni = "0.3"
+gtk4 = { version = "0.11", features = ["v4_10"], optional = true }
+nix = "0.31"
+webkit6 = { version = "0.6", optional = true }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+
+[target.'cfg(windows)'.dependencies]
+tray-icon = "0.24"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_OpenGL",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Registry",
+    "Win32_UI_WindowsAndMessaging",
+] }
+tauri-winrt-notification = "0.7"
 
 [dependencies.slint]
 version = "1"

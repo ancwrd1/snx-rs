@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::anyhow;
 use ksni::{
@@ -13,57 +13,12 @@ use snxcore::{
     profiles::ConnectionProfilesStore,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
-use uuid::Uuid;
 
 use crate::{
     assets,
+    platform::{TrayCommand, TrayEvent},
     theme::{SystemColorTheme, ThemeMonitor},
 };
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum TrayEvent {
-    Connect(Uuid),
-    Disconnect,
-    Settings,
-    Status,
-    Exit,
-    About,
-}
-
-impl TrayEvent {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            TrayEvent::Connect(_) => "connect",
-            TrayEvent::Disconnect => "disconnect",
-            TrayEvent::Settings => "settings",
-            TrayEvent::Status => "status",
-            TrayEvent::Exit => "exit",
-            TrayEvent::About => "about",
-        }
-    }
-}
-
-impl FromStr for TrayEvent {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "connect" => Ok(TrayEvent::Connect(DEFAULT_PROFILE_UUID)),
-            "disconnect" => Ok(TrayEvent::Disconnect),
-            "settings" => Ok(TrayEvent::Settings),
-            "status" => Ok(TrayEvent::Status),
-            "exit" => Ok(TrayEvent::Exit),
-            "about" => Ok(TrayEvent::About),
-            _ => Err(anyhow!(crate::tr!("error-unknown-event", event = s))),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum TrayCommand {
-    Update(Option<Arc<anyhow::Result<ConnectionStatus>>>),
-    Exit,
-}
 
 struct PixmapAndName {
     pixmap: Icon,
