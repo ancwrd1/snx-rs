@@ -1,10 +1,12 @@
 use std::{net::SocketAddr, sync::Arc};
 
+use anyhow::anyhow;
 use futures::{
     SinkExt, StreamExt, TryStreamExt,
     channel::mpsc::{self},
 };
-use tokio::net::UdpSocket;
+use tokio::net::{UdpSocket, lookup_host};
+use tracing::warn;
 
 use crate::{
     model::{
@@ -38,7 +40,18 @@ fn make_channel(socket: UdpSocket, address: SocketAddr) -> (PacketSender, Packet
             .map_err(Into::into)
             .forward(&mut tx);
 
-        futures::future::select(to_wire, from_wire).await;
+        match futures::future::select(to_wire, from_wire).await {
+            futures::future::Either::Left((res, _)) => {
+                if let Err(e) = res {
+                    warn!("IPsec UDP tx channel terminated: {e}");
+                }
+            }
+            futures::future::Either::Right((res, _)) => {
+                if let Err(e) = res {
+                    warn!("IPsec UDP rx channel terminated: {e}");
+                }
+            }
+        }
     };
 
     tokio::spawn(channel);
@@ -54,14 +67,24 @@ impl UdpIPsecTunnel {
         session: Arc<TunnelSession>,
         gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     ) -> anyhow::Result<Self> {
-        let socket = UdpSocket::bind("0.0.0.0:0").await?;
+        let socket = {
+            use crate::platform::{NetworkInterface, Platform, PlatformAccess};
+            let local_ip = Platform::get().new_network_interface().get_default_ipv4().await?;
+            UdpSocket::bind(SocketAddr::from((local_ip, 0))).await?
+        };
+
         let gateway_information = gateway_connector.get_gateway_information().await?;
 
-        let address = util::server_name_with_port(&params.server_name, gateway_information.connectivity_info.natt_port);
+        let address_str =
+            util::server_name_with_port(&params.server_name, gateway_information.connectivity_info.natt_port);
 
-        socket.connect(address.as_ref()).await?;
+        let address: SocketAddr = lookup_host(address_str.as_ref())
+            .await?
+            .next()
+            .ok_or_else(|| anyhow!("Failed to resolve {}", address_str.as_ref()))?;
 
-        let address = socket.peer_addr()?;
+        socket.connect(address).await?;
+
         let (sender, receiver) = make_channel(socket, address);
 
         Ok(Self(

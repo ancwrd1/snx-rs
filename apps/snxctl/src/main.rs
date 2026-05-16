@@ -11,7 +11,6 @@ use snxcore::{
     prompt::TtyPrompt,
     tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
 };
-use tokio::signal::unix;
 use tracing::level_filters::LevelFilter;
 
 #[derive(Parser)]
@@ -76,11 +75,18 @@ where
     let ctrl_c = tokio::signal::ctrl_c();
     pin_mut!(ctrl_c);
 
-    let mut sig = unix::signal(unix::SignalKind::terminate()).ok()?;
-    let term = sig.recv();
-    pin_mut!(term);
+    #[cfg(unix)]
+    let term_signal = {
+        use tokio::signal::unix;
+        let mut sig = unix::signal(unix::SignalKind::terminate()).ok()?;
+        async move { sig.recv().await }
+    };
+    #[cfg(not(unix))]
+    let term_signal = std::future::pending::<Option<()>>();
 
-    let select = futures::future::select(ctrl_c, term);
+    pin_mut!(term_signal);
+
+    let select = futures::future::select(ctrl_c, term_signal);
 
     tokio::select! {
         result = f => Some(result),

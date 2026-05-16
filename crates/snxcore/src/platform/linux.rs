@@ -212,6 +212,10 @@ impl PlatformAccess for LinuxPlatformAccess {
         get_machine_uuid()
     }
 
+    fn is_root(&self) -> bool {
+        nix::unistd::Uid::effective().is_root()
+    }
+
     fn init(&self) {
         use std::sync::OnceLock;
 

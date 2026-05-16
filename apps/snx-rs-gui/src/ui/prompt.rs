@@ -7,7 +7,7 @@ use slint::ComponentHandle;
 use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 
 use crate::{
-    dbus::send_notification,
+    platform::send_notification,
     ui::{PromptWindow, WindowController, WindowScope, close_window, open_window},
 };
 

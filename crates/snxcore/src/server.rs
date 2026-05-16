@@ -231,9 +231,22 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
     pub async fn run(self) -> anyhow::Result<()> {
         debug!("Starting command server: {}", self.name);
 
-        let listener = interprocess::local_socket::ListenerOptions::new()
-            .name(self.name.to_ns_name::<GenericNamespaced>()?)
-            .create_tokio()?;
+        let options =
+            interprocess::local_socket::ListenerOptions::new().name(self.name.to_ns_name::<GenericNamespaced>()?);
+
+        #[cfg(target_os = "windows")]
+        let options = {
+            use interprocess::os::windows::{
+                local_socket::ListenerOptionsExt, security_descriptor::SecurityDescriptor,
+            };
+            let sddl = widestring::U16CString::from_str("D:(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGWGX;;;IU)")
+                .map_err(|e| anyhow!("invalid SDDL string: {e}"))?;
+            let sd = SecurityDescriptor::deserialize(&sddl)
+                .map_err(|e| anyhow!("failed to build pipe security descriptor: {e}"))?;
+            options.security_descriptor(sd)
+        };
+
+        let listener = options.create_tokio()?;
 
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 

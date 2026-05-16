@@ -25,4 +25,6 @@ clap = { version = "4.5", features = ["derive"] }
 clap_complete = { workspace = true }
 ipnet = {  version = "2", features = ["serde"] }
 secrecy = "0.10"
-nix = "0.31"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-service = "0.8"

@@ -67,11 +67,24 @@ pub enum OperationMode {
     Info,
     Enroll,
     Renew,
+    #[cfg(target_os = "windows")]
+    Service,
+    #[cfg(target_os = "windows")]
+    Install,
+    #[cfg(target_os = "windows")]
+    Uninstall,
 }
 
 impl OperationMode {
     pub fn requires_root(&self) -> bool {
-        matches!(self, Self::Standalone | Self::Command)
+        #[cfg(target_os = "windows")]
+        {
+            matches!(self, Self::Standalone | Self::Command | Self::Install | Self::Uninstall)
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            matches!(self, Self::Standalone | Self::Command)
+        }
     }
 }
 
@@ -85,6 +98,12 @@ impl FromStr for OperationMode {
             "info" => Ok(Self::Info),
             "enroll" => Ok(Self::Enroll),
             "renew" => Ok(Self::Renew),
+            #[cfg(target_os = "windows")]
+            "service" => Ok(Self::Service),
+            #[cfg(target_os = "windows")]
+            "install" => Ok(Self::Install),
+            #[cfg(target_os = "windows")]
+            "uninstall" => Ok(Self::Uninstall),
             _ => Err(anyhow!(tr!("error-invalid-operation-mode"))),
         }
     }

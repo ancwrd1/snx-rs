@@ -4,12 +4,11 @@ use interprocess::local_socket::{
     GenericNamespaced, Name, ToNsName,
     traits::tokio::{Listener, Stream},
 };
-use nix::unistd::Uid;
 use tokio::sync::mpsc::Sender;
 use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::debug;
 
-use crate::tray::TrayEvent;
+use crate::platform::{TrayEvent, user_tag};
 
 pub async fn send_event(event: TrayEvent) -> anyhow::Result<()> {
     debug!("Sending event: {:?}", event);
@@ -37,7 +36,7 @@ pub fn start_ipc_listener(sender: Sender<TrayEvent>) -> anyhow::Result<()> {
 }
 
 fn ipc_name() -> anyhow::Result<Name<'static>> {
-    Ok(format!("snx-rs-gui-{}", Uid::current()).to_ns_name::<GenericNamespaced>()?)
+    Ok(format!("snx-rs-gui-{}", user_tag()).to_ns_name::<GenericNamespaced>()?)
 }
 
 async fn handle_connection(

@@ -9,7 +9,7 @@ use snxcore::{
         params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
         proto::{GatewayInformation, LoginOption},
     },
-    platform::{Keychain, Platform, PlatformAccess},
+    platform::{Keychain, Platform, PlatformAccess, PlatformFeatures},
     profiles::ConnectionProfilesStore,
     tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
     util::parse_ipv4_or_subnet,
@@ -18,8 +18,8 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
+    platform::TrayCommand,
     tr,
-    tray::TrayCommand,
     ui::{SettingsWindow, WindowController, WindowScope, close_window},
 };
 
@@ -41,16 +41,18 @@ pub struct SettingsWindowController {
     scope: Rc<WindowScope<SettingsWindow>>,
     sender: Sender<TrayCommand>,
     state: Rc<RefCell<SettingsState>>,
+    platform_features: PlatformFeatures,
 }
 
 impl SettingsWindowController {
     pub const NAME: &str = "settings";
 
-    pub fn new(sender: Sender<TrayCommand>) -> anyhow::Result<Rc<Self>> {
+    pub fn new(sender: Sender<TrayCommand>, platform_features: PlatformFeatures) -> anyhow::Result<Rc<Self>> {
         Ok(Rc::new(Self {
             scope: WindowScope::new(SettingsWindow::new()?),
             sender,
             state: Rc::new(RefCell::new(SettingsState::default())),
+            platform_features,
         }))
     }
 
@@ -79,12 +81,12 @@ impl SettingsWindowController {
             .window
             .set_cert_types(ModelRc::new(VecModel::from(cert_types)));
 
-        let transport_types: Vec<SharedString> = vec![
-            tr!("transport-type-autodetect").into(),
-            tr!("transport-type-kernel").into(),
-            tr!("transport-type-udp").into(),
-            tr!("transport-type-tcpt").into(),
-        ];
+        let mut transport_types: Vec<SharedString> = vec![tr!("transport-type-autodetect").into()];
+        if self.platform_features.ipsec_native {
+            transport_types.push(tr!("transport-type-kernel").into());
+        }
+        transport_types.extend([tr!("transport-type-udp").into(), tr!("transport-type-tcpt").into()]);
+
         self.scope
             .window
             .set_transport_types(ModelRc::new(VecModel::from(transport_types)));
@@ -322,10 +324,11 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            let features = self.platform_features.clone();
 
             self.scope.window.on_ok_clicked(move || {
                 let Some(w) = weak.upgrade() else { return };
-                match save_settings(&w.window, &state) {
+                match save_settings(&w.window, &state, &features) {
                     Ok(()) => close_window(Self::NAME),
                     Err(e) => w.window.set_error_text(e.to_string().into()),
                 }
@@ -335,10 +338,11 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            let features = self.platform_features.clone();
 
             self.scope.window.on_apply_clicked(move || {
                 let Some(w) = weak.upgrade() else { return };
-                match save_settings(&w.window, &state) {
+                match save_settings(&w.window, &state, &features) {
                     Ok(()) => w.window.set_error_text("".into()),
                     Err(e) => w.window.set_error_text(e.to_string().into()),
                 }
@@ -622,7 +626,7 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
                 if options_list.is_empty() {
                     options_list.push(LoginOption::unspecified());
                 }
-                #[cfg(feature = "mobile-access")]
+                #[cfg(all(feature = "mobile-access", target_os = "linux"))]
                 options_list.push(LoginOption::mobile_access());
 
                 let mut names: Vec<SharedString> = Vec::new();
@@ -842,7 +846,11 @@ fn validate(window: &SettingsWindow) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) -> anyhow::Result<()> {
+fn save_settings(
+    window: &SettingsWindow,
+    state: &Rc<RefCell<SettingsState>>,
+    features: &PlatformFeatures,
+) -> anyhow::Result<()> {
     validate(window)?;
 
     let Some(current) = current_profile_params(window, state) else {
@@ -914,7 +922,12 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     params.ike_persist = window.get_ike_persist();
     params.no_keepalive = window.get_no_keepalive();
     params.port_knock = window.get_port_knock();
-    params.transport_type = (window.get_transport_type_index() as u32).into();
+    let index = window.get_transport_type_index() as u32;
+    params.transport_type = if features.ipsec_native || index == 0 {
+        index.into()
+    } else {
+        (index + 1).into()
+    };
     params.tls_version_max = (window.get_tls_version_max_index() as u32).into();
     params.disable_ipv6 = window.get_disable_ipv6();
     params.allow_forwarding = window.get_allow_forwarding();

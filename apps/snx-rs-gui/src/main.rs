@@ -1,11 +1,10 @@
-use std::{os::unix::process::CommandExt, path::PathBuf, sync::Arc, time::Duration};
+#![windows_subsystem = "windows"]
+
+use std::{sync::Arc, time::Duration};
 
 use clap::{CommandFactory, Parser};
 use i18n::tr;
-use nix::unistd::Uid;
-use slint::winit_030::winit::platform::{wayland::WindowAttributesExtWayland, x11::WindowAttributesExtX11};
 use snxcore::{
-    browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
     model::{ConnectionStatus, params::TunnelParams},
     platform::{Platform, PlatformAccess, SingleInstance},
@@ -13,15 +12,12 @@ use snxcore::{
     prompt::SecurePrompt,
     tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
 };
-use tokio::{
-    signal::unix::{SignalKind, signal},
-    sync::mpsc,
-};
+use tokio::sync::mpsc;
 use tracing::{level_filters::LevelFilter, warn};
 
 use crate::{
     params::CmdlineParams,
-    tray::{TrayCommand, TrayEvent},
+    platform::{TrayCommand, TrayEvent},
     ui::{
         about::AboutWindowController, open_window, prompt::SlintPrompt, settings::SettingsWindowController,
         status::StatusWindowController,
@@ -29,18 +25,13 @@ use crate::{
 };
 
 mod assets;
-mod dbus;
 mod ipc;
 mod params;
+mod platform;
 mod theme;
-mod tray;
 mod ui;
-#[cfg(feature = "mobile-access")]
-mod webkit;
 
 pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
-
-const APP_ID: &str = env!("CARGO_PKG_NAME");
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -66,11 +57,11 @@ async fn main() -> anyhow::Result<()> {
 
     #[cfg(feature = "mobile-access")]
     if let Some(url) = cmdline_params.webkit.as_deref() {
-        let code = tokio::task::block_in_place(|| webkit::webkit_main(url, cmdline_params.webkit_ignore_cert));
+        let code = tokio::task::block_in_place(|| platform::webkit_main(url, cmdline_params.webkit_ignore_cert));
         std::process::exit(code);
     }
 
-    let instance = Platform::get().new_single_instance(format!("/tmp/snx-rs-gui-{}.lock", Uid::current()))?;
+    let instance = Platform::get().new_single_instance(format!("/tmp/snx-rs-gui-{}.lock", platform::user_tag()))?;
     if !instance.is_single() {
         if let Some(mut command) = cmdline_params.command {
             if matches!(command, TrayEvent::Connect(_)) && default_params.server_name.is_empty() {
@@ -91,17 +82,12 @@ async fn main() -> anyhow::Result<()> {
         warn!("Failed to start IPC listener: {}", e);
     }
 
-    slint::BackendSelector::new()
-        .with_winit_window_attributes_hook(|attr| {
-            let attr = WindowAttributesExtWayland::with_name(attr, APP_ID, "");
-            WindowAttributesExtX11::with_name(attr, APP_ID, APP_ID)
-        })
-        .select()?;
+    platform::init_gui_backend()?;
 
     let connector_factory = CheckPointConnectorFactory::default();
 
     tokio::spawn(async move {
-        if let Err(e) = wait_restart_signal().await {
+        if let Err(e) = platform::wait_restart_signal().await {
             warn!("Restart signal handler exited: {}", e);
         }
     });
@@ -149,31 +135,21 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn wait_restart_signal() -> anyhow::Result<()> {
-    let mut sig = signal(SignalKind::user_defined1())?;
-    if sig.recv().await.is_some() {
-        let exe = current_exe_path()?;
-        let args: Vec<String> = std::env::args().skip(1).collect();
-        let err = std::process::Command::new(exe).args(args).exec();
-        anyhow::bail!("re-exec failed: {}", err);
-    }
-    Ok(())
-}
-
-fn current_exe_path() -> anyhow::Result<PathBuf> {
+#[cfg(unix)]
+fn current_exe_path() -> anyhow::Result<std::path::PathBuf> {
     let exe = std::env::current_exe()?;
     let s = exe.to_string_lossy();
     if let Some(stripped) = s.strip_suffix(" (deleted)") {
-        Ok(PathBuf::from(stripped))
+        Ok(std::path::PathBuf::from(stripped))
     } else {
         Ok(exe)
     }
 }
 
-async fn create_tray(sender: mpsc::Sender<TrayEvent>, no_tray: bool) -> anyhow::Result<tray::AppTray> {
+async fn create_tray(sender: mpsc::Sender<TrayEvent>, no_tray: bool) -> anyhow::Result<platform::AppTray> {
     let mut retry_count = 5;
     loop {
-        match tray::AppTray::new(sender.clone(), no_tray).await {
+        match platform::AppTray::new(sender.clone(), no_tray).await {
             Ok(tray) => return Ok(tray),
             Err(e) => {
                 if retry_count == 0 {
@@ -217,7 +193,7 @@ async fn handle_tray_events<F>(
                 let params = ConnectionProfilesStore::instance().get_connected();
                 tokio::spawn(async move { on_disconnect(sender, params, cancel_sender).await });
             }
-            TrayEvent::Settings => on_settings(tray_command_sender.clone()),
+            TrayEvent::Settings => on_settings(tray_command_sender.clone()).await,
             TrayEvent::Exit => {
                 let _ = tray_command_sender.send(TrayCommand::Exit).await;
                 let _ = slint::quit_event_loop();
@@ -242,7 +218,7 @@ fn init_logging(params: &TunnelParams) {
 async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mpsc::Sender<TrayEvent>) {
     let mut controller = ServiceController::new(
         SlintPrompt,
-        new_browser_controller(ConnectionProfilesStore::instance().get_connected()),
+        platform::new_browser_controller(ConnectionProfilesStore::instance().get_connected()),
     );
 
     let mut first_run = true;
@@ -286,9 +262,11 @@ fn on_status(sender: mpsc::Sender<TrayEvent>, exit_on_close: bool) {
     })
 }
 
-fn on_settings(sender: mpsc::Sender<TrayCommand>) {
+async fn on_settings(sender: mpsc::Sender<TrayCommand>) {
+    let features = Platform::get().get_features().await;
+
     open_window(SettingsWindowController::NAME, move || {
-        Ok(SettingsWindowController::new(sender)?)
+        Ok(SettingsWindowController::new(sender, features)?)
     })
 }
 
@@ -297,7 +275,7 @@ async fn on_disconnect(
     params: Arc<TunnelParams>,
     cancel_sender: Option<mpsc::Sender<()>>,
 ) {
-    let mut controller = ServiceController::new(SlintPrompt, new_browser_controller(params.clone()));
+    let mut controller = ServiceController::new(SlintPrompt, platform::new_browser_controller(params.clone()));
     let status = controller.command(ServiceCommand::Disconnect, params).await;
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
     if let Some(cancel_sender) = cancel_sender {
@@ -323,7 +301,7 @@ async fn on_connect<F>(
         .unwrap_or_default();
 
     let mut controller =
-        ServiceController::new_with_prompts(SlintPrompt, new_browser_controller(params.clone()), prompts);
+        ServiceController::new_with_prompts(SlintPrompt, platform::new_browser_controller(params.clone()), prompts);
 
     let mut status = tokio::select! {
         _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-cancelled"))),
@@ -342,14 +320,4 @@ async fn on_connect<F>(
     };
 
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
-}
-
-#[cfg(feature = "mobile-access")]
-fn new_browser_controller(params: Arc<TunnelParams>) -> impl BrowserController {
-    webkit::WebKitBrowser::new(params)
-}
-
-#[cfg(not(feature = "mobile-access"))]
-fn new_browser_controller(_params: Arc<TunnelParams>) -> impl BrowserController {
-    snxcore::browser::SystemBrowser::new(SlintPrompt)
 }
