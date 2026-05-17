@@ -192,7 +192,7 @@ info-packets-received = Vastaanotetut paketit
 info-packets-sent = Lähetetyt paketit
 
 # Application
-app-title = SNX-RS VPN-asiakasohjelma Linuxille
+app-title = SNX-RS VPN-asiakasohjelma
 app-connection-error = Yhteysvirhe
 app-connection-success = Yhteys onnistui
 

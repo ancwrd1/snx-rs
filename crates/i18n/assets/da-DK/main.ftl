@@ -192,7 +192,7 @@ info-packets-received = Modtagne pakker
 info-packets-sent = Sendte pakker
 
 # Application
-app-title = SNX-RS VPN-klient til Linux
+app-title = SNX-RS VPN-klient
 app-connection-error = Forbindelsesfejl
 app-connection-success = Forbindelse lykkedes
 

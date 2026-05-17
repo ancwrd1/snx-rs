@@ -169,7 +169,7 @@ theme-dark = Тёмная
 theme-light = Светлая
 
 # Application
-app-title = VPN-клиент SNX-RS для Linux
+app-title = VPN-клиент SNX-RS
 app-connection-error = Ошибка соединения
 app-connection-success = Соединение установлено
 
