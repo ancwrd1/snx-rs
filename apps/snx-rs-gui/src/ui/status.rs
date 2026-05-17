@@ -15,8 +15,19 @@ use crate::{
     ui::{StatusEntry, StatusWindow, WindowController, WindowScope, close_window, prompt::SlintPrompt},
 };
 
-pub fn same_status(lhs: &anyhow::Result<ConnectionStatus>, rhs: &anyhow::Result<ConnectionStatus>) -> bool {
+pub fn same_status(
+    lhs: &anyhow::Result<ConnectionStatus>,
+    rhs: &anyhow::Result<ConnectionStatus>,
+    with_stats: bool,
+) -> bool {
     match (lhs, rhs) {
+        (Ok(ConnectionStatus::Connected(lhs)), Ok(ConnectionStatus::Connected(rhs))) => {
+            if with_stats {
+                lhs == rhs
+            } else {
+                lhs.without_stats() == rhs.without_stats()
+            }
+        }
         (Ok(lhs), Ok(rhs)) => lhs == rhs,
         (Err(e1), Err(e2)) => e1.to_string() == e2.to_string(),
         _ => false,
@@ -163,7 +174,7 @@ impl WindowController for StatusWindowController {
             loop {
                 let params = ConnectionProfilesStore::instance().get_connected();
                 let new_status = controller.command(ServiceCommand::Status, params).await;
-                if !same_status(&new_status, &old_status) {
+                if !same_status(&new_status, &old_status, true) {
                     old_status = Arc::new(new_status);
                     if status_tx.send(old_status.clone()).await.is_err() {
                         break;

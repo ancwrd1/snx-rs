@@ -252,7 +252,7 @@ async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mp
         let params = ConnectionProfilesStore::instance().get_connected();
         let status = controller.command(ServiceCommand::Status, params.clone()).await;
 
-        if !ui::status::same_status(&status, &old_status) {
+        if !ui::status::same_status(&status, &old_status, false) {
             if let Ok(ConnectionStatus::Connected(ref info)) = status {
                 ConnectionProfilesStore::instance().set_connected(info.profile_id);
             }

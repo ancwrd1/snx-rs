@@ -275,6 +275,13 @@ impl ConnectionInfo {
         }
         result
     }
+
+    pub fn without_stats(&self) -> Self {
+        Self {
+            live: LiveStats::default(),
+            ..self.clone()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
