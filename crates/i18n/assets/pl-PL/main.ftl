@@ -192,7 +192,7 @@ info-packets-received = Odebrane pakiety
 info-packets-sent = Wysłane pakiety
 
 # Application
-app-title = Klient VPN SNX-RS dla Linux
+app-title = Klient VPN SNX-RS
 app-connection-error = Błąd połączenia
 app-connection-success = Połączenie udane
 

@@ -192,7 +192,7 @@ info-packets-received = Pacotes recebidos
 info-packets-sent = Pacotes enviados
 
 # Application
-app-title = Cliente VPN SNX-RS para Linux
+app-title = Cliente VPN SNX-RS
 app-connection-error = Erro de ligação
 app-connection-success = Ligação bem-sucedida
 
