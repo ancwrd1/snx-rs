@@ -180,6 +180,3 @@ fn luid_for_alias(alias: &str) -> anyhow::Result<NET_LUID_LH> {
 fn luids_equal(a: NET_LUID_LH, b: NET_LUID_LH) -> bool {
     unsafe { a.Value == b.Value }
 }
-
-// SAFETY: `MIB_IPFORWARD_ROW2` is a POD struct; `NET_LUID_LH` is a `Copy` union of
-// 64-bit integers. Stashing copies behind a `Mutex` is safe to share across threads.
