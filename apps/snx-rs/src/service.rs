@@ -46,11 +46,7 @@ fn service_main(_arguments: Vec<OsString>) {
 }
 
 fn log_path() -> PathBuf {
-    let base = std::env::var("PROGRAMDATA").unwrap_or_else(|_| String::from(r"C:\ProgramData"));
-    let mut p = PathBuf::from(base);
-    p.push("snx-rs");
-    p.push("snx-rs.log");
-    p
+    Platform::get().data_dir().join("snx-rs.log")
 }
 
 fn init_file_logging() -> anyhow::Result<()> {
