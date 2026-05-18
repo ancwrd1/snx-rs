@@ -81,11 +81,20 @@ impl SettingsWindowController {
             .window
             .set_cert_types(ModelRc::new(VecModel::from(cert_types)));
 
-        let mut transport_types: Vec<SharedString> = vec![tr!("transport-type-autodetect").into()];
-        if self.platform_features.ipsec_native {
-            transport_types.push(tr!("transport-type-kernel").into());
-        }
-        transport_types.extend([tr!("transport-type-udp").into(), tr!("transport-type-tcpt").into()]);
+        let transport_types: Vec<SharedString> = if self.platform_features.ipsec_native {
+            vec![
+                tr!("transport-type-autodetect").into(),
+                tr!("transport-type-udp").into(),
+                tr!("transport-type-tcpt").into(),
+                tr!("transport-type-kernel").into(),
+            ]
+        } else {
+            vec![
+                tr!("transport-type-autodetect").into(),
+                tr!("transport-type-udp").into(),
+                tr!("transport-type-tcpt").into(),
+            ]
+        };
 
         self.scope
             .window
@@ -922,12 +931,7 @@ fn save_settings(
     params.ike_persist = window.get_ike_persist();
     params.no_keepalive = window.get_no_keepalive();
     params.port_knock = window.get_port_knock();
-    let index = window.get_transport_type_index() as u32;
-    params.transport_type = if features.ipsec_native || index == 0 {
-        index.into()
-    } else {
-        (index + 1).into()
-    };
+    params.transport_type = (window.get_transport_type_index() as u32).into();
     params.tls_version_max = (window.get_tls_version_max_index() as u32).into();
     params.disable_ipv6 = window.get_disable_ipv6();
     params.allow_forwarding = window.get_allow_forwarding();

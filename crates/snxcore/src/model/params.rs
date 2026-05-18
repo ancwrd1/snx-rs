@@ -283,27 +283,27 @@ impl FromStr for ColorTheme {
 pub enum TransportType {
     #[default]
     AutoDetect,
-    Kernel,
     Udp,
     Tcpt,
+    Kernel,
 }
 
 impl TransportType {
     pub fn as_i18n(&self) -> String {
         match self {
             Self::AutoDetect => tr!("transport-type-autodetect"),
-            Self::Kernel => tr!("transport-type-kernel"),
             Self::Udp => tr!("transport-type-udp"),
             Self::Tcpt => tr!("transport-type-tcpt"),
+            Self::Kernel => tr!("transport-type-kernel"),
         }
     }
 
     pub fn as_u32(&self) -> u32 {
         match self {
             Self::AutoDetect => 0,
-            Self::Kernel => 1,
-            Self::Udp => 2,
-            Self::Tcpt => 3,
+            Self::Udp => 1,
+            Self::Tcpt => 2,
+            Self::Kernel => 3,
         }
     }
 }
@@ -336,9 +336,9 @@ impl FromStr for TransportType {
 impl From<u32> for TransportType {
     fn from(value: u32) -> Self {
         match value {
-            1 => Self::Kernel,
-            2 => Self::Udp,
-            3 => Self::Tcpt,
+            1 => Self::Udp,
+            2 => Self::Tcpt,
+            3 => Self::Kernel,
             _ => Self::AutoDetect,
         }
     }
