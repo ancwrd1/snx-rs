@@ -422,6 +422,8 @@ impl WindowController for SettingsWindowController {
 
     fn update(&self) {
         self.scope.set_globals();
+        let sender = self.sender.clone();
+        tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
     }
 }
 

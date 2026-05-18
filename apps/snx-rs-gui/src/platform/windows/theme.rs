@@ -6,6 +6,7 @@ use std::{
     },
 };
 
+use tokio::sync::mpsc::Sender;
 use tracing::{debug, warn};
 use windows::{
     Win32::{
@@ -23,13 +24,15 @@ use windows::{
     core::w,
 };
 
-pub fn spawn_theme_monitor(theme: Arc<AtomicU32>) {
+use crate::platform::TrayCommand;
+
+pub fn spawn_theme_monitor(theme: Arc<AtomicU32>, tray_sender: Sender<TrayCommand>) {
     theme.store(read_system_theme(), Ordering::SeqCst);
 
     std::thread::Builder::new()
         .name("snx-rs-gui-theme".into())
         .spawn(move || {
-            if let Err(e) = run_message_window(theme) {
+            if let Err(e) = run_message_window(theme, tray_sender) {
                 warn!("Theme message window exited: {e}");
             }
         })
@@ -62,6 +65,7 @@ fn read_system_theme() -> u32 {
 
 struct WindowState {
     theme: Arc<AtomicU32>,
+    tray_sender: Sender<TrayCommand>,
 }
 
 unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -75,6 +79,8 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                     let prev = state.theme.swap(new_value, Ordering::SeqCst);
                     if prev != new_value {
                         debug!("System color scheme: {}", new_value);
+                        let sender = state.tray_sender.clone();
+                        tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
                     }
                 }
             }
@@ -94,7 +100,7 @@ unsafe fn read_wide_str(mut ptr: *const u16) -> String {
     }
 }
 
-fn run_message_window(theme: Arc<AtomicU32>) -> anyhow::Result<()> {
+fn run_message_window(theme: Arc<AtomicU32>, tray_sender: Sender<TrayCommand>) -> anyhow::Result<()> {
     unsafe {
         let class_name = w!("SnxRsGuiThemeWindow");
         let hinstance = GetModuleHandleW(None)?;
@@ -110,7 +116,7 @@ fn run_message_window(theme: Arc<AtomicU32>) -> anyhow::Result<()> {
             return Err(std::io::Error::last_os_error().into());
         }
 
-        let state = Box::new(WindowState { theme });
+        let state = Box::new(WindowState { theme, tray_sender });
         let state_ptr = Box::into_raw(state);
 
         let hwnd = match CreateWindowExW(

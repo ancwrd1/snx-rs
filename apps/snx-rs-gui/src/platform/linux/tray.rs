@@ -36,6 +36,7 @@ pub struct AppTray {
 impl AppTray {
     pub async fn new(event_sender: Sender<TrayEvent>, no_tray: bool) -> anyhow::Result<Self> {
         let (tx, rx) = tokio::sync::mpsc::channel(16);
+        let theme_monitor = ThemeMonitor::new(tx.clone());
 
         let status = Arc::new(Err(anyhow!(crate::tr!("error-no-service-connection"))));
         let handle = if !no_tray {
@@ -50,7 +51,7 @@ impl AppTray {
             command_receiver: Some(rx),
             status,
             tray_icon: handle,
-            theme_monitor: ThemeMonitor::new(),
+            theme_monitor,
         };
 
         app_tray.update().await;
