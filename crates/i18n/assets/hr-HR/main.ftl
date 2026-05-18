@@ -34,8 +34,10 @@ label-no-routing = Zanemari sve dobivene rute
 label-default-routing = Postavi zadanu rutu kroz tunel
 label-add-routes = Dodatne statičke rute
 label-ignored-routes = Rute za zanemariti
-label-client-cert = Certifikat klijenta ili putanja upravljačkog programa
-label-cert-password = PFX lozinka ili PKCS11 pin
+label-client-cert = Datoteka klijentskog certifikata
+label-driver-file = Datoteka PKCS11 upravljačkog programa
+label-cert-password = PFX lozinka
+label-pkcs11-pin = PKCS11 pin
 label-cert-id = Hex ID PKCS11 certifikata
 label-language = Jezik
 label-system-default = Zadano sustava
@@ -48,7 +50,7 @@ label-profile-name = Naziv profila
 label-confirmation = Molimo potvrdite
 label-mobile-access = Mobilni pristup
 label-machine-cert-auth = Provjera autentičnosti strojnim certifikatom
-label-keychain-files = Datoteke privjeska za ključeve
+label-supported-files = Podržane vrste datoteka
 label-all-files = Sve datoteke
 label-cancel = Odustani
 label-open = Otvori
@@ -153,8 +155,8 @@ tunnel-type-ssl = SSL
 
 # Certificate types
 cert-type-none = Ništa
-cert-type-pfx = PFX datoteka
-cert-type-pem = PEM datoteka
+cert-type-pfx = PFX (PKCS12) spremište ključeva
+cert-type-pem = PEM datoteka s certifikatom i privatnim ključem
 cert-type-hw = HSM uređaj
 
 # Transport types

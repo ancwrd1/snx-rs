@@ -34,8 +34,10 @@ label-no-routing = Ignorovať všetky získané trasy
 label-default-routing = Nastaviť predvolenú trasu cez tunel
 label-add-routes = Ďalšie statické trasy
 label-ignored-routes = Trasy na ignorovanie
-label-client-cert = Klientský certifikát alebo cesta k ovládaču (.pem, .pfx/.p12, .so)
-label-cert-password = Heslo PFX alebo PIN PKCS11
+label-client-cert = Súbor klientskeho certifikátu
+label-driver-file = Súbor ovládača PKCS11
+label-cert-password = Heslo PFX
+label-pkcs11-pin = PIN PKCS11
 label-cert-id = Hexadecimálne ID certifikátu PKCS11
 label-language = Jazyk
 label-system-default = Systémové predvolené
@@ -48,7 +50,7 @@ label-profile-name = Názov profilu
 label-confirmation = Prosím potvrďte
 label-mobile-access = Mobilný prístup
 label-machine-cert-auth = Overovanie strojovým certifikátom
-label-keychain-files = Súbory úložiska kľúčov
+label-supported-files = Podporované typy súborov
 label-all-files = Všetky súbory
 label-cancel = Zrušiť
 label-open = Otvoriť
@@ -153,8 +155,8 @@ tunnel-type-ssl = SSL (zastaralé)
 
 # Certificate types
 cert-type-none = Žiadny
-cert-type-pfx = Súbor PFX
-cert-type-pem = Súbor PEM
+cert-type-pfx = Úložisko kľúčov PFX (PKCS12)
+cert-type-pem = Súbor PEM s certifikátom a súkromným kľúčom
 cert-type-hw = Zariadenie HSM
 
 # Transport types

@@ -312,17 +312,25 @@ impl SettingsWindowController {
             self.scope.window.on_browse_cert_path_clicked(move || {
                 let weak = weak.clone();
                 let _ = slint::spawn_local(async move {
+                    let Some(w) = weak.upgrade() else { return };
+                    let file_exts = match w.window.get_cert_type_index() {
+                        1 => vec!["*.pfx", "*.p12"],
+                        2 => vec!["*.pem"],
+                        3 => vec![if cfg!(windows) { "*.dll" } else { "*.so" }],
+                        _ => vec![],
+                    };
+
                     let picked = pick_files(
                         false,
                         &[
-                            (tr!("label-keychain-files"), vec!["*.pfx", "*.p12", "*.pem", "*.so"]),
+                            (tr!("label-supported-files"), file_exts),
                             (tr!("label-all-files"), vec!["*"]),
                         ],
                     )
                     .await;
+
                     if let Some(paths) = picked
                         && let Some(first) = paths.into_iter().next()
-                        && let Some(w) = weak.upgrade()
                     {
                         w.window.set_cert_path(first.into());
                     }

@@ -34,8 +34,10 @@ label-no-routing = Alle erworbenen Routen ignorieren
 label-default-routing = Standardroute über den Tunnel setzen
 label-add-routes = Zusätzliche statische Routen
 label-ignored-routes = Zu ignorierende Routen
-label-client-cert = Client-Zertifikat oder Treiberpfad
-label-cert-password = PFX-Passwort oder PKCS11-PIN
+label-client-cert = Client-Zertifikatsdatei
+label-driver-file = PKCS11-Treiberdatei
+label-cert-password = PFX-Passwort
+label-pkcs11-pin = PKCS11-PIN
 label-cert-id = Hex-ID des PKCS11-Zertifikats
 label-language = Sprache
 label-system-default = Systemstandard
@@ -48,7 +50,7 @@ label-profile-name = Profilname
 label-confirmation = Bitte bestätigen
 label-mobile-access = Mobiler Zugriff
 label-machine-cert-auth = Maschinenzertifikat-Authentifizierung
-label-keychain-files = Schlüsselbunddateien
+label-supported-files = Unterstützte Dateitypen
 label-all-files = Alle Dateien
 label-cancel = Abbrechen
 label-open = Öffnen
@@ -153,8 +155,8 @@ tunnel-type-ssl = SSL (veraltet)
 
 # Certificate types
 cert-type-none = Keine
-cert-type-pfx = PFX-Datei
-cert-type-pem = PEM-Datei
+cert-type-pfx = PFX (PKCS12)-Schlüsselspeicher
+cert-type-pem = PEM-Datei mit Zertifikat und privatem Schlüssel
 cert-type-hw = HSM-Gerät
 
 # Transport types

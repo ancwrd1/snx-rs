@@ -417,7 +417,7 @@ export component SettingsWindow inherits Window {
 
                                     if root.show-cert-path: FormDivider { }
                                     if root.show-cert-path: FormStackRow {
-                                        label: Tr.label-client-cert;
+                                        label: root.cert-type-index != 3 ? Tr.label-client-cert : Tr.label-driver-file;
                                         PathLineEdit {
                                             text <=> root.cert-path;
                                             browse-clicked => { root.browse-cert-path-clicked(); }
@@ -426,7 +426,7 @@ export component SettingsWindow inherits Window {
 
                                     if root.show-cert-password: FormDivider { }
                                     if root.show-cert-password: FormStackRow {
-                                        label: Tr.label-cert-password;
+                                        label: root.cert-type-index != 3 ? Tr.label-cert-password : Tr.label-pkcs11-pin;
                                         LineEdit {
                                             text <=> root.cert-password;
                                             input-type: InputType.password;

@@ -34,8 +34,10 @@ label-no-routing = Ignorer alle modtagne ruter
 label-default-routing = Angiv standardrute gennem tunnellen
 label-add-routes = Yderligere statiske ruter
 label-ignored-routes = Ruter der skal ignoreres
-label-client-cert = Klientcertifikat eller driversti
-label-cert-password = PFX-adgangskode eller PKCS11-PIN
+label-client-cert = Klientcertifikatfil
+label-driver-file = PKCS11-driverfil
+label-cert-password = PFX-adgangskode
+label-pkcs11-pin = PKCS11-PIN
 label-cert-id = PKCS11-certifikatets hexadecimale ID
 label-language = Sprog
 label-system-default = Systemstandard
@@ -48,7 +50,7 @@ label-profile-name = Profilnavn
 label-confirmation = Bekræft venligst
 label-mobile-access = Mobiladgang
 label-machine-cert-auth = Maskincertifikatgodkendelse
-label-keychain-files = Nøglering-filer
+label-supported-files = Understøttede filtyper
 label-all-files = Alle filer
 label-cancel = Annuller
 label-open = Åbn
@@ -153,8 +155,8 @@ tunnel-type-ssl = SSL (forældet)
 
 # Certificate types
 cert-type-none = Ingen
-cert-type-pfx = PFX-fil
-cert-type-pem = PEM-fil
+cert-type-pfx = PFX (PKCS12)-nøglelager
+cert-type-pem = PEM-fil med certifikat og privat nøgle
 cert-type-hw = HSM-enhed
 
 # Transport types

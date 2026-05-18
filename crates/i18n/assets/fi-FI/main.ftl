@@ -34,8 +34,10 @@ label-no-routing = Ohita kaikki vastaanotetut reitit
 label-default-routing = Aseta oletusreitti tunnelin kautta
 label-add-routes = Lisästaattiset reitit
 label-ignored-routes = Ohitettavat reitit
-label-client-cert = Asiakasvarmenne tai ajuripolku
-label-cert-password = PFX-salasana tai PKCS11-PIN
+label-client-cert = Asiakasvarmenne tiedosto
+label-driver-file = PKCS11-ajuritiedosto
+label-cert-password = PFX-salasana
+label-pkcs11-pin = PKCS11-PIN
 label-cert-id = PKCS11-varmennuksen heksadesimaalinen tunniste
 label-language = Kieli
 label-system-default = Järjestelmän oletus
@@ -48,7 +50,7 @@ label-profile-name = Profiilin nimi
 label-confirmation = Vahvista
 label-mobile-access = Mobiilikäyttö
 label-machine-cert-auth = Koneen varmenteen todennus
-label-keychain-files = Avainketjutiedostot
+label-supported-files = Tuetut tiedostotyypit
 label-all-files = Kaikki tiedostot
 label-cancel = Peruuta
 label-open = Avaa
@@ -153,8 +155,8 @@ tunnel-type-ssl = SSL (vanhentunut)
 
 # Certificate types
 cert-type-none = Ei mitään
-cert-type-pfx = PFX-tiedosto
-cert-type-pem = PEM-tiedosto
+cert-type-pfx = PFX (PKCS12) -avainvarasto
+cert-type-pem = PEM-tiedosto, jossa varmenne ja yksityinen avain
 cert-type-hw = HSM-laite
 
 # Transport types

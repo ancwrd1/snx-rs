@@ -34,8 +34,10 @@ label-no-routing = Alle verkregen routes negeren
 label-default-routing = Standaardroute via tunnel instellen
 label-add-routes = Extra statische routes
 label-ignored-routes = Te negeren routes
-label-client-cert = Clientcertificaat of stuurprogrammapad
-label-cert-password = PFX-wachtwoord of PKCS11-pin
+label-client-cert = Clientcertificaatbestand
+label-driver-file = PKCS11-stuurprogrammabestand
+label-cert-password = PFX-wachtwoord
+label-pkcs11-pin = PKCS11-pin
 label-cert-id = Hexadecimale ID van PKCS11-certificaat
 label-language = Taal
 label-system-default = Systeemstandaard
@@ -48,7 +50,7 @@ label-profile-name = Profielnaam
 label-confirmation = Bevestig alstublieft
 label-mobile-access = Mobiele toegang
 label-machine-cert-auth = Computercertificaat-authenticatie
-label-keychain-files = Sleutelhanger-bestanden
+label-supported-files = Ondersteunde bestandstypen
 label-all-files = Alle bestanden
 label-cancel = Annuleren
 label-open = Openen
@@ -153,8 +155,8 @@ tunnel-type-ssl = SSL (verouderd)
 
 # Certificate types
 cert-type-none = Geen
-cert-type-pfx = PFX-bestand
-cert-type-pem = PEM-bestand
+cert-type-pfx = PFX (PKCS12)-sleutelarchief
+cert-type-pem = PEM-bestand met certificaat en privésleutel
 cert-type-hw = HSM-apparaat
 
 # Transport types

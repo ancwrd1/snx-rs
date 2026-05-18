@@ -32,9 +32,11 @@ export global Tr {
     in property <string> label-username: "Username";
     in property <string> label-password: "Password";
     in property <string> label-cert-auth-type: "Certificate auth type";
-    in property <string> label-client-cert: "Client certificate or driver path";
-    in property <string> label-cert-password: "PFX password or PKCS11 pin";
-    in property <string> label-cert-id: "Hex ID of PKCS11 certificate";
+    in property <string> label-client-cert: "Client certificate file";
+    in property <string> label-driver-file: "PKCS11 driver file";
+    in property <string> label-cert-password: "PFX password";
+    in property <string> label-pkcs11-pin: "PKCS11 pin";
+        in property <string> label-cert-id: "Hex ID of PKCS11 certificate";
 
     // profile management
     in property <string> profiles-header: "Connection profiles";
