@@ -98,8 +98,8 @@
            UninstallService. Our StopServiceForce + KillGui guard the fresh-
            install-over-running-instance case and belt-and-suspenders the
            upgrade path. -->
-      <Custom Action="StopServiceForce" Before="InstallFiles" Condition="NOT REMOVE=&quot;ALL&quot;" />
-      <Custom Action="KillGui" After="StopServiceForce" Condition="NOT REMOVE=&quot;ALL&quot;" />
+      <Custom Action="StopServiceForce" Before="InstallFiles" Condition="Installed AND NOT REMOVE=&quot;ALL&quot;" />
+      <Custom Action="KillGui" After="StopServiceForce" Condition="Installed AND NOT REMOVE=&quot;ALL&quot;" />
       <Custom Action="UninstallService" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
       <Custom Action="DeleteServiceForce" After="InstallFiles" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
       <Custom Action="InstallService" After="DeleteServiceForce" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
