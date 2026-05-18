@@ -333,11 +333,10 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
-            let features = self.platform_features.clone();
 
             self.scope.window.on_ok_clicked(move || {
                 let Some(w) = weak.upgrade() else { return };
-                match save_settings(&w.window, &state, &features) {
+                match save_settings(&w.window, &state) {
                     Ok(()) => close_window(Self::NAME),
                     Err(e) => w.window.set_error_text(e.to_string().into()),
                 }
@@ -347,11 +346,10 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
-            let features = self.platform_features.clone();
 
             self.scope.window.on_apply_clicked(move || {
                 let Some(w) = weak.upgrade() else { return };
-                match save_settings(&w.window, &state, &features) {
+                match save_settings(&w.window, &state) {
                     Ok(()) => w.window.set_error_text("".into()),
                     Err(e) => w.window.set_error_text(e.to_string().into()),
                 }
@@ -855,11 +853,7 @@ fn validate(window: &SettingsWindow) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn save_settings(
-    window: &SettingsWindow,
-    state: &Rc<RefCell<SettingsState>>,
-    features: &PlatformFeatures,
-) -> anyhow::Result<()> {
+fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) -> anyhow::Result<()> {
     validate(window)?;
 
     let Some(current) = current_profile_params(window, state) else {
