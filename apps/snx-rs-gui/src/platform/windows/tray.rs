@@ -57,12 +57,12 @@ impl AppTray {
         let status = Arc::new(Err(anyhow!(crate::tr!("error-no-service-connection"))));
 
         Ok(Self {
-            command_sender: tx,
+            command_sender: tx.clone(),
             command_receiver: Some(rx),
             event_sender,
             status,
             no_tray,
-            theme_monitor: ThemeMonitor::new(),
+            theme_monitor: ThemeMonitor::new(tx),
         })
     }
 

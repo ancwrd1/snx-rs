@@ -4,20 +4,22 @@ use std::sync::{
 };
 
 use futures::StreamExt;
+use tokio::sync::mpsc::Sender;
 use tracing::debug;
 use zbus::Connection;
 
 use super::dbus::DesktopSettingsProxy;
+use crate::platform::TrayCommand;
 
-pub fn spawn_theme_monitor(theme: Arc<AtomicU32>) {
+pub fn spawn_theme_monitor(theme: Arc<AtomicU32>, tray_sender: Sender<TrayCommand>) {
     tokio::spawn(async move {
-        if let Err(e) = init_theme_monitoring(theme).await {
+        if let Err(e) = init_theme_monitoring(theme, tray_sender).await {
             tracing::warn!("Theme monitor exited: {e}");
         }
     });
 }
 
-async fn init_theme_monitoring(theme: Arc<AtomicU32>) -> anyhow::Result<()> {
+async fn init_theme_monitoring(theme: Arc<AtomicU32>, tray_sender: Sender<TrayCommand>) -> anyhow::Result<()> {
     let connection = Connection::session().await?;
     let proxy = DesktopSettingsProxy::new(&connection).await?;
     let scheme = proxy.read_one("org.freedesktop.appearance", "color-scheme").await?;
@@ -34,6 +36,7 @@ async fn init_theme_monitoring(theme: Arc<AtomicU32>) -> anyhow::Result<()> {
                 let scheme = u32::try_from(args.value)?;
                 debug!("New system color scheme: {}", scheme);
                 theme.store(scheme, Ordering::SeqCst);
+                let _ = tray_sender.send(TrayCommand::Update(None)).await;
             }
         }
         Ok::<_, anyhow::Error>(())

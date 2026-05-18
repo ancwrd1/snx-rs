@@ -4,6 +4,9 @@ use std::sync::{
 };
 
 use anyhow::anyhow;
+use tokio::sync::mpsc::Sender;
+
+use crate::platform::TrayCommand;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SystemColorTheme {
@@ -37,10 +40,10 @@ pub struct ThemeMonitor {
 }
 
 impl ThemeMonitor {
-    pub fn new() -> Self {
+    pub fn new(tray_sender: Sender<TrayCommand>) -> Self {
         let theme = Arc::new(AtomicU32::new(0));
 
-        crate::platform::spawn_theme_monitor(theme.clone());
+        crate::platform::spawn_theme_monitor(theme.clone(), tray_sender);
 
         Self { theme }
     }
