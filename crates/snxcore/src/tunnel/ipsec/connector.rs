@@ -1,6 +1,5 @@
 use std::{
     net::{IpAddr, Ipv4Addr, ToSocketAddrs},
-    path::Path,
     sync::Arc,
     time::{Duration, SystemTime},
 };
@@ -45,7 +44,7 @@ const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 const ESP_LIFETIME_LEEWAY: Duration = Duration::from_secs(60);
 const ADDRESS_LIFETIME_LEEWAY: Duration = Duration::from_secs(300);
 
-const SESSIONS_PATH: &str = "/var/cache/snx-rs/ike-sessions.db";
+const SESSIONS_NAME: &str = "ike-sessions.db";
 
 const SQL_SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS ike_session(
@@ -503,11 +502,10 @@ impl IPsecTunnelConnector {
     }
 
     fn new_session_db_connection(&self) -> anyhow::Result<rusqlite::Connection> {
-        Path::new(SESSIONS_PATH).parent().iter().for_each(|path| {
-            let _ = std::fs::create_dir_all(path);
-        });
+        let _ = std::fs::create_dir_all(Platform::get().data_dir());
+        let sessions_db = Platform::get().data_dir().join(SESSIONS_NAME);
 
-        let conn = rusqlite::Connection::open(SESSIONS_PATH)?;
+        let conn = rusqlite::Connection::open(&sessions_db)?;
         conn.execute(SQL_SCHEMA, rusqlite::params![])?;
         Ok(conn)
     }
@@ -521,7 +519,7 @@ impl IPsecTunnelConnector {
         )?;
         let office_mode = self.service.session().load(&data)?;
 
-        debug!("Loaded IKE session from: {}: {:?}", SESSIONS_PATH, office_mode);
+        debug!("Loaded IKE session: {:?}", office_mode);
 
         if !office_mode.ccc_session.is_empty() {
             Ok(office_mode)

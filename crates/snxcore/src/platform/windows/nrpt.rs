@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -18,7 +15,7 @@ use windows::{
     core::{HSTRING, PCWSTR},
 };
 
-use crate::platform::SearchDomain;
+use crate::platform::{Platform, PlatformAccess, SearchDomain};
 
 const POLICY_BASE: &str = r"SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig";
 
@@ -38,9 +35,8 @@ pub struct Nrpt {
 
 impl Nrpt {
     pub fn new() -> Self {
-        let base = std::env::var("PROGRAMDATA").unwrap_or_else(|_| String::from(r"C:\ProgramData"));
         Self {
-            state_path: Path::new(&base).join("snx-rs").join("nrpt-rules.json"),
+            state_path: Platform::get().data_dir().join("nrpt-rules.json"),
         }
     }
 

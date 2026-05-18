@@ -1,10 +1,10 @@
 #![allow(unsafe_code)]
 
+use std::path::PathBuf;
 use std::{
     net::{Ipv4Addr, SocketAddr},
     time::Duration,
 };
-
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 
@@ -151,5 +151,9 @@ impl PlatformAccess for WindowsPlatformAccess {
 
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static> {
         single_instance::WindowsSingleInstance::new(name)
+    }
+
+    fn data_dir(&self) -> PathBuf {
+        PathBuf::from(std::env::var("PROGRAMDATA").unwrap_or_else(|_| "C:\\ProgramData".to_owned())).join("snx-rs")
     }
 }

@@ -1,10 +1,3 @@
-use std::{
-    fs,
-    net::{Ipv4Addr, SocketAddr},
-    os::fd::{AsFd, OwnedFd},
-    time::Duration,
-};
-
 use anyhow::anyhow;
 use cached::proc_macro::cached;
 use nix::{
@@ -12,6 +5,13 @@ use nix::{
     getsockopt_impl, setsockopt_impl, sockopt_impl,
     sys::{socket, stat::Mode},
     unistd,
+};
+use std::path::PathBuf;
+use std::{
+    fs,
+    net::{Ipv4Addr, SocketAddr},
+    os::fd::{AsFd, OwnedFd},
+    time::Duration,
 };
 use tokio::net::UdpSocket;
 use tracing::debug;
@@ -254,5 +254,9 @@ impl PlatformAccess for LinuxPlatformAccess {
 
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static> {
         UnixSingleInstance::new(name)
+    }
+
+    fn data_dir(&self) -> PathBuf {
+        PathBuf::from("/var/cache/snx-rs")
     }
 }
