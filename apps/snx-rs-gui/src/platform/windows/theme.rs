@@ -79,8 +79,7 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                     let prev = state.theme.swap(new_value, Ordering::SeqCst);
                     if prev != new_value {
                         debug!("System color scheme: {}", new_value);
-                        let sender = state.tray_sender.clone();
-                        tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
+                        let _ = state.tray_sender.try_send(TrayCommand::Update(None));
                     }
                 }
             }
