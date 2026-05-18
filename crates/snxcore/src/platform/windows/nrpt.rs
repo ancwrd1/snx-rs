@@ -48,7 +48,7 @@ impl Nrpt {
                 warn!("Failed to delete leftover NRPT rule {rule}: {e}");
             }
         }
-        if let Err(e) = self.save_state(&State::default()) {
+        if let Err(e) = self.clear_state() {
             warn!("Failed to clear NRPT state file: {e}");
         }
     }
@@ -70,19 +70,7 @@ impl Nrpt {
     }
 
     pub fn uninstall(&self) {
-        let Ok(state) = self.load_state() else {
-            return;
-        };
-
-        for rule in &state.rules {
-            if let Err(e) = delete_rule(rule) {
-                warn!("Failed to delete NRPT rule {rule}: {e}");
-            }
-        }
-        if let Err(e) = self.clear_state() {
-            warn!("Failed to clear NRPT state file: {e}");
-        }
-
+        self.purge_previous();
         flush_dns_cache();
     }
 
@@ -100,7 +88,7 @@ impl Nrpt {
     }
 
     fn clear_state(&self) -> anyhow::Result<()> {
-        fs::remove_file(self.state_path.parent().unwrap())?;
+        fs::remove_file(&self.state_path)?;
         Ok(())
     }
 }
