@@ -109,6 +109,7 @@ impl WindowsRoutingConfigurator {
     }
 }
 
+#[async_trait::async_trait]
 impl RoutingConfigurator for WindowsRoutingConfigurator {
     async fn configure(&self, config: &RoutingConfig) -> anyhow::Result<()> {
         match config {

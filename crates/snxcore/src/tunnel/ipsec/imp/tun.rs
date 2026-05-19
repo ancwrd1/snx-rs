@@ -49,6 +49,7 @@ pub(crate) struct TunIPsecTunnel {
     sender: PacketSender,
     receiver: Option<PacketReceiver>,
     tun_device: Option<TunDevice>,
+    routing_configurator: Option<Box<dyn RoutingConfigurator + Send + Sync>>,
     ready: Arc<AtomicBool>,
     gateway_address: Ipv4Addr,
     encap_type: EspEncapType,
@@ -93,6 +94,7 @@ impl TunIPsecTunnel {
             sender,
             receiver: Some(receiver),
             tun_device: None,
+            routing_configurator: None,
             ready,
             gateway_address,
             encap_type,
@@ -124,10 +126,7 @@ impl TunIPsecTunnel {
             let _ = self.setup_dns(&config, device.name(), true).await;
         }
 
-        if let Ok(configurator) = Platform::get()
-            .new_routing_configurator(device.name(), TunnelType::IPsec)
-            .await
-        {
+        if let Some(configurator) = self.routing_configurator.take() {
             let _ = configurator
                 .configure(&RoutingConfig::Cleanup {
                     destination: self.gateway_address,
@@ -142,7 +141,7 @@ impl TunIPsecTunnel {
             .await;
     }
 
-    pub async fn setup_routing(&self, dev_name: &str, session: &IPsecSession) -> anyhow::Result<()> {
+    pub async fn setup_routing(&mut self, dev_name: &str, session: &IPsecSession) -> anyhow::Result<()> {
         let configurator = Platform::get()
             .new_routing_configurator(dev_name, TunnelType::IPsec)
             .await?;
@@ -173,6 +172,7 @@ impl TunIPsecTunnel {
         };
 
         configurator.configure(&config).await?;
+        self.routing_configurator = Some(configurator);
 
         Ok(())
     }
@@ -213,7 +213,8 @@ impl TunIPsecTunnel {
         let session = self
             .session
             .ipsec_session()
-            .with_context(|| tr!("error-no-ipsec-session"))?;
+            .with_context(|| tr!("error-no-ipsec-session"))?
+            .clone();
 
         let mut tun = TunDevice::new(name_hint)?;
         let tun_name = tun.name().to_owned();
@@ -238,15 +239,12 @@ impl TunIPsecTunnel {
             .dns_servers(session.dns.iter().cloned())
             .build();
 
-        let routing_fut = self.setup_routing(&tun_name, session);
-        let dns_fut = async {
-            if self.params.no_dns {
-                Ok(())
-            } else {
-                self.setup_dns(&resolver_config, &tun_name, false).await
-            }
-        };
-        tokio::try_join!(routing_fut, dns_fut)?;
+        // Routing first (needs &mut self to stash the configurator), then DNS.
+        // Borrowing constraints prevent the earlier try_join.
+        self.setup_routing(&tun_name, &session).await?;
+        if !self.params.no_dns {
+            self.setup_dns(&resolver_config, &tun_name, false).await?;
+        }
 
         let mut snx_receiver = self.receiver.take().context("No receiver")?;
 

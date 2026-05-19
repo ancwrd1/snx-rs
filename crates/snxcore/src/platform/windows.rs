@@ -185,8 +185,8 @@ impl PlatformAccess for WindowsPlatformAccess {
         &self,
         device: S,
         tunnel_type: TunnelType,
-    ) -> anyhow::Result<impl RoutingConfigurator + Send + Sync + 'static> {
-        routing::WindowsRoutingConfigurator::new(device, tunnel_type).await
+    ) -> anyhow::Result<Box<dyn RoutingConfigurator + Send + Sync>> {
+        Ok(Box::new(routing::WindowsRoutingConfigurator::new(device, tunnel_type).await?))
     }
 
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static {

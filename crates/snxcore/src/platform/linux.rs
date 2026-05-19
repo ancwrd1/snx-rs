@@ -249,8 +249,8 @@ impl PlatformAccess for LinuxPlatformAccess {
         &self,
         device: S,
         tunnel_type: TunnelType,
-    ) -> anyhow::Result<impl RoutingConfigurator + Send + Sync + 'static> {
-        routing::LinuxRoutingConfigurator::new(device, tunnel_type).await
+    ) -> anyhow::Result<Box<dyn RoutingConfigurator + Send + Sync>> {
+        Ok(Box::new(routing::LinuxRoutingConfigurator::new(device, tunnel_type).await?))
     }
 
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static {

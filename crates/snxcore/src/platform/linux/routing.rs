@@ -189,6 +189,7 @@ impl LinuxRoutingConfigurator {
     }
 }
 
+#[async_trait::async_trait]
 impl RoutingConfigurator for LinuxRoutingConfigurator {
     async fn configure(&self, config: &RoutingConfig) -> anyhow::Result<()> {
         match config {

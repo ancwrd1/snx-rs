@@ -89,6 +89,7 @@ pub(crate) struct SslTunnel {
     receiver: Option<PacketReceiver>,
     keepalive_counter: Arc<AtomicI64>,
     tun_device: Option<TunDevice>,
+    routing_configurator: Option<Box<dyn RoutingConfigurator + Send + Sync>>,
     hello_reply: HelloReplyData,
     terminate_sender: Option<Sender<()>>,
     gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
@@ -148,6 +149,7 @@ impl SslTunnel {
             receiver: Some(receiver),
             keepalive_counter: Arc::new(AtomicI64::default()),
             tun_device: None,
+            routing_configurator: None,
             hello_reply: HelloReplyData::default(),
             terminate_sender: None,
             gateway_connector,
@@ -229,9 +231,7 @@ impl SslTunnel {
         if let Ok(dest_ip) = util::server_name_to_ipv4(
             &self.params.server_name,
             self.gateway_information.connectivity_info.tcpt_port,
-        ) && let Ok(configurator) = Platform::get()
-            .new_routing_configurator(device.name(), TunnelType::SSL)
-            .await
+        ) && let Some(configurator) = self.routing_configurator.take()
         {
             let _ = configurator
                 .configure(&RoutingConfig::Cleanup {
@@ -260,7 +260,7 @@ impl SslTunnel {
         let _ = self.gateway_connector.signout(&self.session.session_id).await;
     }
 
-    pub async fn setup_routing(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
+    pub async fn setup_routing(&mut self, device_config: &DeviceConfig) -> anyhow::Result<()> {
         let configurator = Platform::get()
             .new_routing_configurator(&device_config.name, TunnelType::SSL)
             .await?;
@@ -308,6 +308,7 @@ impl SslTunnel {
         };
 
         configurator.configure(&config).await?;
+        self.routing_configurator = Some(configurator);
 
         Ok(())
     }
@@ -395,15 +396,10 @@ impl VpnTunnel for SslTunnel {
 
         let resolver_config = self.make_resolver_config().await;
 
-        let routing_fut = self.setup_routing(&device_config);
-        let dns_fut = async {
-            if self.params.no_dns {
-                Ok(())
-            } else {
-                self.setup_dns(&resolver_config, &tun_name, false).await
-            }
-        };
-        tokio::try_join!(routing_fut, dns_fut)?;
+        self.setup_routing(&device_config).await?;
+        if !self.params.no_dns {
+            self.setup_dns(&resolver_config, &tun_name, false).await?;
+        }
 
         let mut snx_receiver = self.receiver.take().unwrap();
 
