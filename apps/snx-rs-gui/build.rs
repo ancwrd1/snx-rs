@@ -17,21 +17,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn canonicalize_path(path: &str) -> Result<String, Box<dyn Error>> {
+    Ok(format!("{}", Path::new(path).canonicalize()?.display()).replace('\\', "\\\\"))
+}
+
 fn compile_resources() -> Result<(), Box<dyn Error>> {
     let template = fs::read_to_string("assets/snx-rs-gui.rc.in")?;
     let version = env!("CARGO_PKG_VERSION");
-
     let win_version = format!("{},0", version.replace('.', ","));
 
     let rc = template
-        .replace(
-            "{{icon}}",
-            &format!("{}", Path::new("assets/snx-rs-gui.ico").canonicalize()?.display()).replace('\\', "\\\\"),
-        )
-        .replace(
-            "{{manifest}}",
-            &format!("{}", Path::new("assets/snx-rs-gui.manifest").canonicalize()?.display()).replace('\\', "\\\\"),
-        )
+        .replace("{{icon}}", &canonicalize_path("assets/snx-rs-gui.ico")?)
+        .replace("{{manifest}}", &canonicalize_path("assets/snx-rs-gui.manifest")?)
         .replace("{{app_version}}", version)
         .replace("{{app_version_windows}}", &win_version);
 
