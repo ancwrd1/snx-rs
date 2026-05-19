@@ -65,9 +65,6 @@ struct WebKitState {
 }
 
 pub fn webkit_main(url: &str, ignore_cert: bool) -> i32 {
-    // Best-effort DPI awareness so the WebView2 rendering doesn't look blurry on
-    // hi-DPI displays. Safe to ignore the error — older Windows just renders at
-    // system DPI.
     let _ = unsafe { SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) };
 
     // WebView2 requires STA on the UI thread.
@@ -96,14 +93,13 @@ fn run(url: &str, ignore_cert: bool) -> anyhow::Result<i32> {
     let state_ptr = Rc::as_ptr(&state) as isize;
     unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, state_ptr) };
 
-    create_webview(hwnd, url, ignore_cert, state.clone())?;
-
     let _ = unsafe { ShowWindow(hwnd, SW_SHOW) };
+
+    create_webview(hwnd, url, ignore_cert, state.clone())?;
 
     spawn_timeout_thread(hwnd);
     pump_messages(hwnd);
 
-    // Clear the userdata pointer before `state` drops.
     unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0) };
 
     match state.password.borrow().as_ref() {
@@ -157,8 +153,13 @@ fn create_webview(hwnd: HWND, url: &str, ignore_cert: bool, state: Rc<WebKitStat
     let controller = wait_controller(&environment, hwnd)?;
 
     let mut rc = RECT::default();
-    unsafe { GetClientRect(hwnd, &mut rc) }?;
-    unsafe { controller.SetBounds(rc) }?;
+
+    unsafe {
+        GetClientRect(hwnd, &mut rc)?;
+        controller.SetBounds(rc)?;
+        controller.SetIsVisible(true)?;
+    }
+
     *state.controller.borrow_mut() = Some(controller.clone());
 
     let webview: ICoreWebView2 = unsafe { controller.CoreWebView2() }?;
