@@ -82,6 +82,8 @@ jobs:
         run: dotnet tool install --global wix
 
       - name: Build project
+        env:
+          RUSTFLAGS: "-C target-feature=+crt-static"
         run: cargo build --target x86_64-pc-windows-msvc --profile lto
 
       - name: Build MSI installer
