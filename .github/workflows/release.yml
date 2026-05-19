@@ -64,8 +64,38 @@ jobs:
           name: artifacts-${{ matrix.arch }}${{ matrix.suffix }}
           path: target/snx-rs-*
 
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Install Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup target add x86_64-pc-windows-msvc
+
+      - name: Install WiX
+        run: dotnet tool install --global wix
+
+      - name: Build project
+        run: cargo build --target x86_64-pc-windows-msvc --profile lto
+
+      - name: Build MSI installer
+        shell: pwsh
+        run: ./package/wix/build.ps1
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-x86_64-windows
+          path: target/snx-rs-*.msi
+
   release:
-    needs: build
+    needs: [build, build-windows]
     runs-on: ubuntu-24.04
 
     steps:
@@ -173,6 +203,17 @@ jobs:
                 }
               }
             }
+
+            const msiVersion = tagName.replace(/^v/, '');
+            const msiName = `snx-rs-${msiVersion}-x64.msi`;
+            const msiArtifact = fs.readFileSync(`artifacts/${msiName}`);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: msiName,
+              data: msiArtifact
+            });
 
             if (tagName.endsWith("-test")) {
               await github.rest.repos.deleteRelease({
