@@ -250,7 +250,9 @@ impl PlatformAccess for LinuxPlatformAccess {
         device: S,
         tunnel_type: TunnelType,
     ) -> anyhow::Result<Box<dyn RoutingConfigurator + Send + Sync>> {
-        Ok(Box::new(routing::LinuxRoutingConfigurator::new(device, tunnel_type).await?))
+        Ok(Box::new(
+            routing::LinuxRoutingConfigurator::new(device, tunnel_type).await?,
+        ))
     }
 
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static {
