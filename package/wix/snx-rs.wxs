@@ -19,6 +19,15 @@
                   Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" />
 
+    <!-- Suppress MSI's RestartManager / FilesInUse dialog. It fires during
+         InstallValidate, before any deferred CA can run, so the user sees a
+         "these apps are running" prompt that can't actually stop our
+         service-hosted exe. Our StopServiceForce + KillGui CAs (scheduled
+         Before InstallFiles) handle the lock release instead. -->
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+    <Property Id="MSIDISABLERMRESTART" Value="1" />
+    <Property Id="RESTART_MANAGER_DISABLED" Value="1" />
+
     <ui:WixUI Id="WixUI_InstallDir" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <UIRef Id="WixUI_ErrorProgressText" />
