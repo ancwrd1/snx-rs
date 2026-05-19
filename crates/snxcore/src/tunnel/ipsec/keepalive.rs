@@ -40,14 +40,16 @@ fn make_keepalive_packet() -> [u8; 12] {
 
 pub struct KeepaliveRunner {
     dst: Ipv4Addr,
+    tunnel_device: String,
     ready: Arc<AtomicBool>,
     event_sender: Option<mpsc::Sender<TunnelEvent>>,
 }
 
 impl KeepaliveRunner {
-    pub fn new(dst: Ipv4Addr, ready: Arc<AtomicBool>) -> Self {
+    pub fn new(dst: Ipv4Addr, tunnel_device: String, ready: Arc<AtomicBool>) -> Self {
         Self {
             dst,
+            tunnel_device,
             ready,
             event_sender: None,
         }
@@ -65,6 +67,11 @@ impl KeepaliveRunner {
         // Disable UDP checksum validation for incoming packets.
         // Checkpoint gateway doesn't set it correctly.
         udp.set_no_check(true)?;
+
+        // Force egress via the tunnel adapter. Without this, the /32 host
+        // exclusion installed by Full routing on Windows would leak these
+        // packets out of the physical adapter in plaintext.
+        udp.bind_to_tunnel(&self.tunnel_device)?;
 
         let mut num_failures = 0;
 
@@ -140,7 +147,7 @@ mod tests {
         });
 
         let ready = Arc::new(AtomicBool::new(true));
-        let mut runner = KeepaliveRunner::new(Ipv4Addr::LOCALHOST, ready);
+        let mut runner = KeepaliveRunner::new(Ipv4Addr::LOCALHOST, String::new(), ready);
         let (tx, mut rx) = mpsc::channel(8);
         runner.set_event_sender(tx);
 
@@ -160,7 +167,7 @@ mod tests {
     async fn failed_keepalive_returns_error_after_max_retries() {
         // Nothing listens on 127.0.0.2:IPSEC_KEEPALIVE_PORT, so every send_receive call times out.
         let ready = Arc::new(AtomicBool::new(true));
-        let runner = KeepaliveRunner::new(Ipv4Addr::new(127, 0, 0, 2), ready);
+        let runner = KeepaliveRunner::new(Ipv4Addr::new(127, 0, 0, 2), String::new(), ready);
 
         let result = tokio::time::timeout(Duration::from_secs(120), runner.run())
             .await

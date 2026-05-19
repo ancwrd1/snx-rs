@@ -139,11 +139,8 @@ impl NetworkInterface for WindowsNetworkInterface {
         ipv4_from_sockaddr(&best_src).ok_or_else(|| anyhow!(i18n::tr!("error-cannot-determine-ip")))
     }
 
-    async fn delete_device(&self, device_name: &str) -> anyhow::Result<()> {
-        // Wintun adapters disappear when the `AsyncDevice` handle drops; nothing to do
-        // here for the adapter itself. Address rows attached to the adapter are removed
-        // along with it. We log so a missing-name situation isn't silent.
-        debug!("delete_device({device_name}) — no-op on Windows (wintun handle owns lifecycle)");
+    async fn delete_device(&self, _device_name: &str) -> anyhow::Result<()> {
+        // handled by wintun
         Ok(())
     }
 

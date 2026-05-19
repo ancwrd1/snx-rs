@@ -1,3 +1,11 @@
+use std::{
+    fs,
+    net::{Ipv4Addr, SocketAddr},
+    os::fd::{AsFd, OwnedFd},
+    path::PathBuf,
+    time::Duration,
+};
+
 use anyhow::anyhow;
 use cached::proc_macro::cached;
 use nix::{
@@ -5,13 +13,6 @@ use nix::{
     getsockopt_impl, setsockopt_impl, sockopt_impl,
     sys::{socket, stat::Mode},
     unistd,
-};
-use std::path::PathBuf;
-use std::{
-    fs,
-    net::{Ipv4Addr, SocketAddr},
-    os::fd::{AsFd, OwnedFd},
-    time::Duration,
 };
 use tokio::net::UdpSocket;
 use tracing::debug;
@@ -44,6 +45,10 @@ impl UdpSocketExt for UdpSocket {
 
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()> {
         socket::setsockopt(self, NoCheck, &flag).map_err(|e| anyhow!(i18n::tr!("error-so-no-check-failed", code = e)))
+    }
+
+    fn bind_to_tunnel(&self, _device: &str) -> anyhow::Result<()> {
+        Ok(())
     }
 
     async fn send_receive(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>> {

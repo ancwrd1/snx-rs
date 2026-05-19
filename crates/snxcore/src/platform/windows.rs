@@ -1,12 +1,24 @@
 #![allow(unsafe_code)]
 
-use std::path::PathBuf;
 use std::{
     net::{Ipv4Addr, SocketAddr},
+    os::windows::io::AsRawSocket,
+    path::PathBuf,
     time::Duration,
 };
+
 use tokio::net::UdpSocket;
 use uuid::Uuid;
+use windows::{
+    Win32::{
+        NetworkManagement::{
+            IpHelper::{ConvertInterfaceAliasToLuid, ConvertInterfaceLuidToIndex},
+            Ndis::NET_LUID_LH,
+        },
+        Networking::WinSock::{IP_UNICAST_IF, IPPROTO_IP, SOCKET, WSAGetLastError, setsockopt},
+    },
+    core::PCWSTR,
+};
 
 use crate::{
     model::{IPsecSession, params::TunnelType},
@@ -16,6 +28,7 @@ use crate::{
     },
 };
 
+mod firewall;
 mod ipsec_stub;
 mod keychain;
 mod machine_uuid;
@@ -49,6 +62,37 @@ impl UdpSocketExt for UdpSocket {
         if rc != 0 {
             let err = unsafe { WSAGetLastError() };
             anyhow::bail!("UDP_NOCHECKSUM failed: {err:?}");
+        }
+        Ok(())
+    }
+
+    fn bind_to_tunnel(&self, device: &str) -> anyhow::Result<()> {
+        let wide: Vec<u16> = device.encode_utf16().chain(std::iter::once(0)).collect();
+        let mut luid = NET_LUID_LH::default();
+        unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }
+            .ok()
+            .map_err(|e| anyhow::anyhow!("ConvertInterfaceAliasToLuid({device}) failed: {e}"))?;
+
+        let mut index: u32 = 0;
+        unsafe { ConvertInterfaceLuidToIndex(&luid, &mut index) }
+            .ok()
+            .map_err(|e| anyhow::anyhow!("ConvertInterfaceLuidToIndex({device}) failed: {e}"))?;
+
+        // IP_UNICAST_IF takes the interface index in network byte order — a
+        // documented quirk of this specific setsockopt.
+        let value_be = index.to_be();
+        let bytes = value_be.to_ne_bytes();
+        let rc = unsafe {
+            setsockopt(
+                SOCKET(self.as_raw_socket() as _),
+                IPPROTO_IP.0,
+                IP_UNICAST_IF,
+                Some(&bytes),
+            )
+        };
+        if rc != 0 {
+            let err = unsafe { WSAGetLastError() };
+            anyhow::bail!("IP_UNICAST_IF({device}, idx={index}) failed: {err:?}");
         }
         Ok(())
     }

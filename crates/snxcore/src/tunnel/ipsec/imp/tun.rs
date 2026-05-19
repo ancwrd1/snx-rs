@@ -395,6 +395,7 @@ impl TunIPsecTunnel {
 
         let mut keepalive_runner = KeepaliveRunner::new(
             self.gateway_information.connectivity_info.server_ip,
+            tun_name.clone(),
             if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
@@ -406,7 +407,11 @@ impl TunIPsecTunnel {
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);
 
-        let scv_runner = ScvRunner::new(self.gateway_information.connectivity_info.server_ip, ready.clone());
+        let scv_runner = ScvRunner::new(
+            self.gateway_information.connectivity_info.server_ip,
+            tun_name.clone(),
+            ready.clone(),
+        );
 
         let scv_run = scv_runner.run();
         pin_mut!(scv_run);

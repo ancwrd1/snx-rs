@@ -11,7 +11,7 @@ use tracing::trace;
 
 use crate::{
     model::params::TunnelParams,
-    platform::{NetworkInterface, Platform, PlatformAccess},
+    platform::{NetworkInterface, Platform, PlatformAccess, UdpSocketExt},
 };
 
 const SCV_INTERVAL: Duration = Duration::from_secs(20);
@@ -25,16 +25,24 @@ const SCV_COMPLIANCE_DATA: &[u8] = &[
 
 pub struct ScvRunner {
     dst: Ipv4Addr,
+    tunnel_device: String,
     ready: Arc<AtomicBool>,
 }
 
 impl ScvRunner {
-    pub fn new(dst: Ipv4Addr, ready: Arc<AtomicBool>) -> Self {
-        Self { dst, ready }
+    pub fn new(dst: Ipv4Addr, tunnel_device: String, ready: Arc<AtomicBool>) -> Self {
+        Self {
+            dst,
+            tunnel_device,
+            ready,
+        }
     }
 
     pub async fn run(&self) -> anyhow::Result<()> {
         let udp = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
+
+        // Force egress via the tunnel adapter — see KeepaliveRunner for why.
+        udp.bind_to_tunnel(&self.tunnel_device)?;
 
         loop {
             if Platform::get().new_network_interface().is_online() && self.ready.load(Ordering::SeqCst) {

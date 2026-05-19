@@ -1,5 +1,9 @@
-use std::path::Path;
-use std::{env, error::Error, fs, path::PathBuf};
+use std::{
+    env,
+    error::Error,
+    fs,
+    path::{Path, PathBuf},
+};
 
 const SLINT_ENTRY: &str = "assets/slint/all.slint";
 const TR_SLINT: &str = "assets/slint/tr.slint";

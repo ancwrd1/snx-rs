@@ -20,7 +20,7 @@ use windows::{
 
 use crate::{
     model::params::TunnelType,
-    platform::{RoutingConfig, RoutingConfigurator},
+    platform::{RoutingConfig, RoutingConfigurator, windows::firewall::WfpIpv6Block},
 };
 
 const TUNNEL_ROUTE_METRIC: u32 = 1;
@@ -30,6 +30,7 @@ pub struct WindowsRoutingConfigurator {
     tunnel_luid: NET_LUID_LH,
     _tunnel_type: TunnelType,
     added_rows: Mutex<Vec<MIB_IPFORWARD_ROW2>>,
+    ipv6_block: Mutex<Option<WfpIpv6Block>>,
 }
 
 impl WindowsRoutingConfigurator {
@@ -41,6 +42,7 @@ impl WindowsRoutingConfigurator {
             tunnel_luid,
             _tunnel_type: tunnel_type,
             added_rows: Mutex::new(Vec::new()),
+            ipv6_block: Mutex::new(None),
         })
     }
 
@@ -124,11 +126,16 @@ impl RoutingConfigurator for WindowsRoutingConfigurator {
                 self.add_route_via_tunnel(Ipv4Net::new(Ipv4Addr::new(128, 0, 0, 0), 1)?)?;
 
                 if *disable_ipv6 {
-                    // Linux toggles `net.ipv6.conf.all.disable_ipv6`. The Windows
-                    // equivalent is a registry edit + reboot, which is too invasive
-                    // for a VPN client. Document and move on; the wintun adapter has
-                    // no v6 address so v6 traffic continues on the physical adapter.
-                    warn!("disable_ipv6 requested but not implemented on Windows");
+                    // WFP block at the ALE connect/recv-accept v6 layers under a
+                    // dynamic session — filters auto-vanish if the daemon dies.
+                    // Loopback (::1) is permitted via a higher-weight rule.
+                    match WfpIpv6Block::install() {
+                        Ok(block) => {
+                            *self.ipv6_block.lock().expect("ipv6_block mutex poisoned") = Some(block);
+                            debug!("IPv6 traffic blocked via WFP");
+                        }
+                        Err(e) => warn!("Failed to install WFP IPv6 block: {e:#}"),
+                    }
                 }
             }
             RoutingConfig::Split { destination, routes } => {
@@ -144,7 +151,13 @@ impl RoutingConfigurator for WindowsRoutingConfigurator {
             } => {
                 debug!("Cleaning up routing rules for {}", self.device);
                 let _ = destination;
+                // `enable_ipv6` mirrors the original `disable_ipv6` setting. Drop the
+                // WFP block on cleanup regardless — if we never installed it, the
+                // Option is None and Drop is a no-op.
                 let _ = enable_ipv6;
+                if let Some(block) = self.ipv6_block.lock().expect("ipv6_block mutex poisoned").take() {
+                    drop(block);
+                }
                 self.delete_all();
             }
         }

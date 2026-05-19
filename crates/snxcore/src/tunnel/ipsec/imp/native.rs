@@ -67,8 +67,15 @@ impl NativeIPsecTunnel {
 
         let ready = Arc::new(AtomicBool::new(false));
 
+        let device_name = params
+            .if_name
+            .as_deref()
+            .unwrap_or(TunnelParams::DEFAULT_IPSEC_IF_NAME)
+            .to_owned();
+
         let keepalive_runner = KeepaliveRunner::new(
             gateway_information.connectivity_info.server_ip,
+            device_name.clone(),
             if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
             } else {
@@ -76,16 +83,14 @@ impl NativeIPsecTunnel {
             },
         );
 
-        let scv_runner = ScvRunner::new(gateway_information.connectivity_info.server_ip, ready.clone());
+        let scv_runner = ScvRunner::new(
+            gateway_information.connectivity_info.server_ip,
+            device_name.clone(),
+            ready.clone(),
+        );
 
         let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
         natt_socket.set_encapsulation(UdpEncapType::EspInUdp)?;
-
-        let device_name = params
-            .if_name
-            .as_deref()
-            .unwrap_or(TunnelParams::DEFAULT_IPSEC_IF_NAME)
-            .to_owned();
 
         let device_config = DeviceConfig {
             name: device_name.clone(),
