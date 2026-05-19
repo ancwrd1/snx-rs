@@ -26,11 +26,11 @@ fn compile_resources() -> Result<(), Box<dyn Error>> {
     let rc = template
         .replace(
             "{{icon}}",
-            &format!("{}", Path::new("assets/snx-rs-gui.ico").canonicalize()?.display()),
+            &format!("{}", Path::new("assets/snx-rs-gui.ico").canonicalize()?.display()).replace('\\', "\\\\"),
         )
         .replace(
             "{{manifest}}",
-            &format!("{}", Path::new("assets/snx-rs-gui.manifest").canonicalize()?.display()),
+            &format!("{}", Path::new("assets/snx-rs-gui.manifest").canonicalize()?.display()).replace('\\', "\\\\"),
         )
         .replace("{{app_version}}", version)
         .replace("{{app_version_windows}}", &win_version);
