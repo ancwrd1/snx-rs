@@ -153,7 +153,12 @@ pub fn install() -> anyhow::Result<()> {
         start_type: ServiceStartType::AutoStart,
         error_control: ServiceErrorControl::Normal,
         executable_path: exe,
-        launch_arguments: vec![OsString::from("-m"), OsString::from("service")],
+        launch_arguments: vec![
+            OsString::from("-m"),
+            OsString::from("service"),
+            OsString::from("-l"),
+            OsString::from("info"),
+        ],
         dependencies: vec![ServiceDependency::from_system_identifier("tcpip")],
         account_name: None, // LocalSystem
         account_password: None,
