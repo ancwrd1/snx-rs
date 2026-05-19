@@ -48,11 +48,15 @@ windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_Graphics_OpenGL",
+    "Win32_System_Com",
     "Win32_System_LibraryLoader",
     "Win32_System_Registry",
+    "Win32_System_Threading",
+    "Win32_UI_HiDpi",
     "Win32_UI_WindowsAndMessaging",
 ] }
 tauri-winrt-notification = "0.7"
+webview2-com = { version = "0.39", optional = true }
 
 [dependencies.slint]
 version = "1"
@@ -65,4 +69,4 @@ glob = "0.3"
 embed-resource = "3"
 
 [features]
-mobile-access = ["dep:webkit6", "dep:gtk4"]
+mobile-access = ["dep:webkit6", "dep:gtk4", "dep:webview2-com"]

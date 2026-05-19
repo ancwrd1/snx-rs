@@ -647,7 +647,7 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
                 if options_list.is_empty() {
                     options_list.push(LoginOption::unspecified());
                 }
-                #[cfg(all(feature = "mobile-access", target_os = "linux"))]
+                #[cfg(feature = "mobile-access")]
                 options_list.push(LoginOption::mobile_access());
 
                 let mut names: Vec<SharedString> = Vec::new();

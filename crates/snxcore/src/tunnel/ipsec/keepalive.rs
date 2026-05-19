@@ -68,10 +68,12 @@ impl KeepaliveRunner {
         // Checkpoint gateway doesn't set it correctly.
         udp.set_no_check(true)?;
 
-        // Force egress via the tunnel adapter. Without this, the /32 host
-        // exclusion installed by Full routing on Windows would leak these
-        // packets out of the physical adapter in plaintext.
-        udp.bind_to_tunnel(&self.tunnel_device)?;
+        if !self.tunnel_device.is_empty() {
+            // Force egress via the tunnel adapter.
+            // Without this, the /32 host exclusion installed by Full routing on Windows would leak these
+            // packets out of the physical adapter in plaintext.
+            udp.bind_to_tunnel(&self.tunnel_device)?;
+        }
 
         let mut num_failures = 0;
 

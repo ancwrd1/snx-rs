@@ -2,6 +2,11 @@
 
 pub mod theme;
 pub mod tray;
+#[cfg(feature = "mobile-access")]
+pub mod webkit;
+
+#[cfg(feature = "mobile-access")]
+pub use webkit::webkit_main;
 
 use std::{env, mem, sync::Arc};
 
@@ -49,6 +54,12 @@ pub fn user_tag() -> String {
         .collect()
 }
 
+#[cfg(feature = "mobile-access")]
+pub fn new_browser_controller(params: Arc<TunnelParams>) -> impl BrowserController {
+    webkit::WebKitBrowser::new(params)
+}
+
+#[cfg(not(feature = "mobile-access"))]
 pub fn new_browser_controller(_params: Arc<TunnelParams>) -> impl BrowserController {
     snxcore::browser::SystemBrowser::new(crate::ui::prompt::SlintPrompt)
 }
