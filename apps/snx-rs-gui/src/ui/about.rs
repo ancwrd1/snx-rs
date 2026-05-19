@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use i18n::tr;
-use slint::ComponentHandle;
+use slint::{ComponentHandle, Window};
 use snxcore::browser::{BrowserController, SystemBrowser};
 
 use crate::{
@@ -62,5 +62,9 @@ impl WindowController for AboutWindowController {
 
     fn update(&self) {
         self.scope.set_globals();
+    }
+
+    fn window(&self) -> &Window {
+        self.scope.window.window()
     }
 }

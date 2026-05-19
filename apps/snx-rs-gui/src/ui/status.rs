@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use slint::{ComponentHandle, LogicalSize, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, LogicalSize, ModelRc, SharedString, VecModel, Window};
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
@@ -235,5 +235,9 @@ impl WindowController for StatusWindowController {
         self.scope
             .window
             .set_profile_names(ModelRc::new(VecModel::from(profile_names)));
+    }
+
+    fn window(&self) -> &Window {
+        self.scope.window.window()
     }
 }

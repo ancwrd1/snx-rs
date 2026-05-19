@@ -3,7 +3,7 @@ use std::{cell::RefCell, net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Dur
 use i18n::fluent_templates::LanguageIdentifier;
 use itertools::Itertools;
 use secrecy::ExposeSecret;
-use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Window};
 use snxcore::{
     model::{
         params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
@@ -432,6 +432,10 @@ impl WindowController for SettingsWindowController {
         self.scope.set_globals();
         let sender = self.sender.clone();
         tokio::spawn(async move { sender.send(TrayCommand::Update(None)).await });
+    }
+
+    fn window(&self) -> &Window {
+        self.scope.window.window()
     }
 }
 

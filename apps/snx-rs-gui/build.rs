@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{env, error::Error, fs, path::PathBuf};
 
 const SLINT_ENTRY: &str = "assets/slint/all.slint";
@@ -10,7 +11,34 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     slint_build::compile(SLINT_ENTRY)?;
 
+    compile_resources()?;
     generate_tr_setters()?;
+
+    Ok(())
+}
+
+fn compile_resources() -> Result<(), Box<dyn Error>> {
+    let template = fs::read_to_string("assets/snx-rs-gui.rc.in")?;
+    let version = env!("CARGO_PKG_VERSION");
+
+    let win_version = format!("{},0", version.replace('.', ","));
+
+    let rc = template
+        .replace(
+            "{{icon}}",
+            &format!("{}", Path::new("assets/snx-rs-gui.ico").canonicalize()?.display()),
+        )
+        .replace(
+            "{{manifest}}",
+            &format!("{}", Path::new("assets/snx-rs-gui.manifest").canonicalize()?.display()),
+        )
+        .replace("{{app_version}}", version)
+        .replace("{{app_version_windows}}", &win_version);
+
+    let rc_path = Path::new(&env::var("OUT_DIR")?).join("snx-rs-gui.rc");
+    fs::write(&rc_path, rc.as_bytes())?;
+
+    let _ = embed_resource::compile(rc_path, embed_resource::NONE);
 
     Ok(())
 }

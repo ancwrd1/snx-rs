@@ -54,10 +54,31 @@ pub fn update_windows() {
 fn store_window(name: &'static str, controller: Rc<dyn WindowController>) {
     let this = controller.clone();
     OPEN_WINDOWS.with(move |slot| slot.borrow_mut().insert(name, this));
+
+    slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+        set_icon(controller.window());
+    });
 }
 
 fn close_window(name: &'static str) {
     OPEN_WINDOWS.with(move |slot| slot.borrow_mut().remove(name));
+}
+
+#[cfg(not(windows))]
+fn set_icon(_window: &slint::Window) {}
+
+#[cfg(windows)]
+fn set_icon(window: &slint::Window) {
+    use i_slint_backend_winit::{
+        WinitWindowAccessor,
+        winit::{self, platform::windows::IconExtWindows},
+    };
+
+    let Ok(icon) = winit::window::Icon::from_resource(1000, None) else {
+        return;
+    };
+
+    window.with_winit_window(|w| w.set_window_icon(Some(icon)));
 }
 
 pub trait WindowController {
@@ -66,6 +87,8 @@ pub trait WindowController {
     fn name(&self) -> &'static str;
 
     fn update(&self);
+
+    fn window(&self) -> &slint::Window;
 }
 
 struct WindowScope<C: ComponentHandle> {

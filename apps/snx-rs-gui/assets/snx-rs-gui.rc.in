@@ -1,0 +1,36 @@
+#include <winver.h>
+
+#define IDI_MAINICON 1000
+#define RT_MANIFEST 24
+
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION {{app_version_windows}}
+    PRODUCTVERSION {{app_version_windows}}
+    FILEFLAGSMASK 0x0L
+#ifdef _DEBUG
+    FILEFLAGS VS_FF_DEBUG
+#else
+    FILEFLAGS 0x0L
+#endif
+    FILEOS VOS__WINDOWS32
+    FILETYPE VFT_APP
+    FILESUBTYPE 0x0L
+    BEGIN
+        BLOCK "StringFileInfo"
+        BEGIN
+            BLOCK "040904B0"
+            BEGIN
+                VALUE "FileDescription", "SNX-RS VPN Client frontend\0"
+                VALUE "OriginalFilename", "snx-rs-gui.exe\0"
+                VALUE "ProductName", "SNX-RS VPN Client\0"
+                VALUE "FileVersion", "{{app_version}}\0"
+            END
+        END
+        BLOCK "VarFileInfo"
+        BEGIN
+            VALUE "Translation", 0x409, 1200
+        END
+    END
+
+IDI_MAINICON ICON DISCARDABLE "{{icon}}"
+1 RT_MANIFEST "{{manifest}}"

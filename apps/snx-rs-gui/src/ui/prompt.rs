@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::{Context, anyhow};
 use async_channel::Sender;
 use i18n::tr;
-use slint::ComponentHandle;
+use slint::{ComponentHandle, Window};
 use snxcore::{model::PromptInfo, prompt::SecurePrompt};
 
 use crate::{
@@ -80,6 +80,10 @@ impl WindowController for PromptWindowController {
 
     fn update(&self) {
         self.scope.set_globals();
+    }
+
+    fn window(&self) -> &Window {
+        self.scope.window.window()
     }
 }
 
