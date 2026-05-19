@@ -15,14 +15,18 @@ pub struct WindowsSingleInstance {
 }
 
 fn mutex_name(slug: &str) -> String {
-    let sanitized: String = slug
-        .chars()
-        .map(|c| match c {
+    let mut sanitized = String::with_capacity(slug.len());
+    for c in slug.chars() {
+        let mapped = match c {
             '\\' | '/' | ':' => '_',
             c if c.is_control() => '_',
             c => c,
-        })
-        .collect();
+        };
+        if mapped == '_' && sanitized.ends_with('_') {
+            continue;
+        }
+        sanitized.push(mapped);
+    }
     let sanitized = sanitized.trim_matches('_');
     format!("Global\\snx-rs-{sanitized}")
 }
