@@ -33,6 +33,10 @@
     <UIRef Id="WixUI_ErrorProgressText" />
     <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
 
+    <!-- Pre-accept the license so the LicenseAgreementDlg's "I accept" checkbox
+         is not a gate on Next. AGPL doesn't require click-through acceptance. -->
+    <Property Id="LicenseAccepted" Value="1" />
+
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="snx-rs" />
     </StandardDirectory>
