@@ -139,7 +139,7 @@ impl AppTray {
                 let mut slot = cell.borrow_mut();
                 match slot.as_mut() {
                     Some(tray) => {
-                        let _ = tray.set_menu(Some(Box::new(menu)));
+                        tray.set_menu(Some(Box::new(menu)));
                         let _ = tray.set_icon(icon);
                         let _ = tray.set_tooltip(Some(&tooltip));
                     }

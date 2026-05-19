@@ -10,7 +10,6 @@ use std::{
 
 use anyhow::anyhow;
 use base64::Engine;
-use directories_next::ProjectDirs;
 use i18n::tr;
 use ipnet::Ipv4Net;
 use secrecy::{ExposeSecret, SecretString};
@@ -772,10 +771,19 @@ impl TunnelParams {
     }
 
     pub fn default_config_dir() -> PathBuf {
-        ProjectDirs::from("", "", "snx-rs")
-            .expect("No home directory!")
-            .config_dir()
-            .to_owned()
+        #[cfg(windows)]
+        {
+            let base = std::env::var_os("APPDATA").expect("No APPDATA directory!");
+            PathBuf::from(base).join("snx-rs")
+        }
+        #[cfg(not(windows))]
+        {
+            let base = std::env::var_os("XDG_CONFIG_HOME")
+                .map(PathBuf::from)
+                .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
+                .expect("No home directory!");
+            base.join("snx-rs")
+        }
     }
 
     pub fn default_config_path() -> PathBuf {
