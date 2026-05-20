@@ -84,7 +84,7 @@ jobs:
       - name: Build project
         env:
           RUSTFLAGS: "-C target-feature=+crt-static"
-        run: cargo build --target x86_64-pc-windows-msvc --profile lto
+        run: cargo build --target x86_64-pc-windows-msvc --profile lto --features mobile-access
 
       - name: Build MSI installer
         shell: pwsh
