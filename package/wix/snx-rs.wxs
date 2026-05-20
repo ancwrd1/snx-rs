@@ -16,7 +16,8 @@
          any new file write, so in-use file handles on snx-rs.exe / wintun.dll
          are released first. -->
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
-                  Schedule="afterInstallInitialize" />
+                  Schedule="afterInstallInitialize"
+                  AllowSameVersionUpgrades="yes" />
     <MediaTemplate EmbedCab="yes" />
 
     <!-- Suppress MSI's RestartManager / FilesInUse dialog. It fires during

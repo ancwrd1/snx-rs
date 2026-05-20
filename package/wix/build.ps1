@@ -29,8 +29,18 @@ if ($env:VERSION) {
 } else {
     $version = (& git -C $basedir describe --tags --always).Trim() -replace '^v',''
 }
-# WiX wants Major.Minor.Build.Revision (numeric only); strip any pre-release suffix.
-$msiVersion = ($version -split '-')[0]
+# WiX wants Major.Minor.Build.Revision (numeric only). MSI ignores the 4th
+# field for upgrade detection, but we need *some* difference between dev
+# builds, so encode `git describe`'s commits-since-tag into the revision
+# field. Combined with AllowSameVersionUpgrades="yes" in the wxs, this keeps
+# upgrades working between tagged releases AND between untagged dev builds
+# off the same tag.
+if ($version -match '^(\d+\.\d+\.\d+)(?:-(\d+)-g[0-9a-f]+)?') {
+    $rev = if ($matches[2]) { [int]$matches[2] } else { 0 }
+    $msiVersion = "$($matches[1]).$rev"
+} else {
+    $msiVersion = ($version -split '-')[0]
+}
 
 $stage = Join-Path ([System.IO.Path]::GetTempPath()) ("snx-rs-wix-" + [System.Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
