@@ -1,11 +1,7 @@
-use std::{cell::RefCell, process::Stdio, rc::Rc, sync::Arc, time::Duration};
+use std::{cell::RefCell, rc::Rc};
 
 use gtk4::{Application, ApplicationWindow, glib, glib::clone, prelude::*};
 use i18n::tr;
-use snxcore::{
-    browser::{BrowserController, SystemBrowser},
-    model::params::TunnelParams,
-};
 use webkit6::{LoadEvent, NetworkSession, TLSErrorsPolicy, WebView, prelude::*};
 
 pub fn webkit_main(url: &str, ignore_cert: bool) -> i32 {
