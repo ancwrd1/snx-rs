@@ -7,10 +7,10 @@ For Arch Linux and derivatives, the [AUR package](https://aur.archlinux.org/pack
 For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/docs/nixos.md).<br/>
 For Ubuntu/Debian, a DEB package is provided in the release assets.<br/>
 For RPM-based distros (Fedora, CentOS, openSUSE) use the provided RPM package.<br/>
+For Windows, use the msi installer from the release page.<br/>
 For manual installation using .run installer:
 
 1. Download the installer, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
 
-Signed APT and DNF repositories with the latest release builds are published at
-[ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).
+Signed APT and DNF repositories with the latest release builds are published at [ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).

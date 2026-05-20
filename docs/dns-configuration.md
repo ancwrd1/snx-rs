@@ -1,6 +1,6 @@
 # DNS Resolver Configuration and Privacy
 
-By default, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
+On Linux, if systemd-resolved is not detected as a global DNS resolver, snx-rs will fall back
 to modify the /etc/resolv.conf file directly and DNS servers acquired from the tunnel will be used globally.
 For better privacy, use the split DNS provided by systemd-resolved.
 
@@ -22,4 +22,4 @@ will be forwarded through the tunnel. For further explanation, please check [thi
 
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
-For container images which have `systemd-resovled` enabled, it may be necessary to disable split DNS via the `no-slit-dns=true` option.
+For container images which have `systemd-resovled` enabled, it may be necessary to disable split DNS via the `no-split-dns=true` option.
