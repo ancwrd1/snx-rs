@@ -57,6 +57,7 @@ windows = { version = "0.62", features = [
 tauri-winrt-notification = "0.7"
 webview2-com = { version = "0.39", optional = true }
 winreg = "0.56"
+tempfile = "3"
 
 [dependencies.slint]
 version = "1"

@@ -6450,6 +6450,7 @@ dependencies = [
  "slint-build",
  "snxcore",
  "tauri-winrt-notification",
+ "tempfile",
  "tokio",
  "tokio-util",
  "tracing",

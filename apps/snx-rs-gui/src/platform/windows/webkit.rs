@@ -94,7 +94,8 @@ fn run(url: &str, ignore_cert: bool) -> anyhow::Result<i32> {
 
     let _ = unsafe { ShowWindow(hwnd, SW_SHOW) };
 
-    create_webview(hwnd, url, ignore_cert, state.clone())?;
+    let user_data_dir = tempfile::tempdir()?;
+    create_webview(hwnd, url, ignore_cert, user_data_dir.path(), state.clone())?;
 
     spawn_timeout_thread(hwnd);
     pump_messages(hwnd);
@@ -144,10 +145,16 @@ fn create_window() -> anyhow::Result<HWND> {
     Ok(hwnd)
 }
 
-fn create_webview(hwnd: HWND, url: &str, ignore_cert: bool, state: Rc<WebKitState>) -> anyhow::Result<()> {
+fn create_webview(
+    hwnd: HWND,
+    url: &str,
+    ignore_cert: bool,
+    user_data_dir: &std::path::Path,
+    state: Rc<WebKitState>,
+) -> anyhow::Result<()> {
     let url = url.to_owned();
 
-    let environment = wait_env()?;
+    let environment = wait_env(user_data_dir)?;
 
     let controller = wait_controller(&environment, hwnd)?;
 
@@ -175,16 +182,17 @@ fn create_webview(hwnd: HWND, url: &str, ignore_cert: bool, state: Rc<WebKitStat
     Ok(())
 }
 
-fn wait_env() -> anyhow::Result<ICoreWebView2Environment> {
+fn wait_env(user_data_dir: &std::path::Path) -> anyhow::Result<ICoreWebView2Environment> {
     let slot: Rc<RefCell<Option<ICoreWebView2Environment>>> = Rc::new(RefCell::new(None));
 
     let slot_cb = slot.clone();
+    let user_data_dir = HSTRING::from(user_data_dir.as_os_str());
 
     CreateCoreWebView2EnvironmentCompletedHandler::wait_for_async_operation(
-        Box::new(|handler| unsafe {
+        Box::new(move |handler| unsafe {
             CreateCoreWebView2EnvironmentWithOptions(
                 PCWSTR::null(),
-                PCWSTR::null(),
+                PCWSTR(user_data_dir.as_ptr()),
                 None::<&ICoreWebView2EnvironmentOptions>,
                 &handler,
             )
