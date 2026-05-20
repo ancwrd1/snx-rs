@@ -13,9 +13,9 @@ use windows::{
     Win32::{
         NetworkManagement::{
             IpHelper::{ConvertInterfaceAliasToLuid, ConvertInterfaceLuidToIndex},
-            Ndis::NET_LUID_LH,
+            Ndis::{IF_MAX_STRING_SIZE, NET_LUID_LH},
         },
-        Networking::WinSock::{IP_UNICAST_IF, IPPROTO_IP, SOCKET, WSAGetLastError, setsockopt},
+        Networking::WinSock::{AF_INET, IP_UNICAST_IF, IPPROTO_IP, SOCKADDR_INET, SOCKET, WSAGetLastError, setsockopt},
     },
     core::PCWSTR,
 };
@@ -38,6 +38,39 @@ mod resolver;
 mod routing;
 mod single_instance;
 mod stats;
+
+#[macro_export]
+macro_rules! utf16z {
+    ($str: expr) => {
+        $str.encode_utf16().chain([0]).collect::<Vec<_>>()
+    };
+}
+
+fn luid_for_alias(alias: &str) -> anyhow::Result<NET_LUID_LH> {
+    let wide = utf16z!(alias);
+    if wide.len() > IF_MAX_STRING_SIZE as usize {
+        return Err(anyhow::anyhow!("interface alias too long: {alias}"));
+    }
+    let mut luid = NET_LUID_LH::default();
+    unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }
+        .ok()
+        .map_err(|e| anyhow::anyhow!("ConvertInterfaceAliasToLuid({alias}) failed: {e}"))?;
+    Ok(luid)
+}
+
+fn luid_to_index(luid: &NET_LUID_LH) -> anyhow::Result<u32> {
+    let mut index: u32 = 0;
+    unsafe { ConvertInterfaceLuidToIndex(luid, &mut index) }.ok()?;
+    Ok(index)
+}
+
+fn sockaddr_ipv4(addr: Ipv4Addr) -> SOCKADDR_INET {
+    let mut sa = SOCKADDR_INET::default();
+    let ipv4 = unsafe { &mut sa.Ipv4 };
+    ipv4.sin_family = AF_INET;
+    ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(addr.octets());
+    sa
+}
 
 impl UdpSocketExt for UdpSocket {
     fn set_encapsulation(&self, _encap_type: UdpEncapType) -> anyhow::Result<()> {
@@ -67,16 +100,8 @@ impl UdpSocketExt for UdpSocket {
     }
 
     fn bind_to_tunnel(&self, device: &str) -> anyhow::Result<()> {
-        let wide: Vec<u16> = device.encode_utf16().chain(std::iter::once(0)).collect();
-        let mut luid = NET_LUID_LH::default();
-        unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }
-            .ok()
-            .map_err(|e| anyhow::anyhow!("ConvertInterfaceAliasToLuid({device}) failed: {e}"))?;
-
-        let mut index: u32 = 0;
-        unsafe { ConvertInterfaceLuidToIndex(&luid, &mut index) }
-            .ok()
-            .map_err(|e| anyhow::anyhow!("ConvertInterfaceLuidToIndex({device}) failed: {e}"))?;
+        let luid = luid_for_alias(device)?;
+        let index = luid_to_index(&luid)?;
 
         // IP_UNICAST_IF takes the interface index in network byte order — a
         // documented quirk of this specific setsockopt.

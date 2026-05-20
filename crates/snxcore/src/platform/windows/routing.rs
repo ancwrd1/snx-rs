@@ -3,19 +3,15 @@ use std::{net::Ipv4Addr, sync::Mutex};
 use anyhow::anyhow;
 use ipnet::Ipv4Net;
 use tracing::{debug, warn};
-use windows::{
-    Win32::{
-        Foundation::{ERROR_NOT_FOUND, ERROR_OBJECT_ALREADY_EXISTS, NO_ERROR},
-        NetworkManagement::{
-            IpHelper::{
-                ConvertInterfaceAliasToLuid, CreateIpForwardEntry2, DeleteIpForwardEntry2, GetBestRoute2,
-                InitializeIpForwardEntry, MIB_IPFORWARD_ROW2,
-            },
-            Ndis::NET_LUID_LH,
+use windows::Win32::{
+    Foundation::{ERROR_NOT_FOUND, ERROR_OBJECT_ALREADY_EXISTS, NO_ERROR},
+    NetworkManagement::{
+        IpHelper::{
+            CreateIpForwardEntry2, DeleteIpForwardEntry2, GetBestRoute2, InitializeIpForwardEntry, MIB_IPFORWARD_ROW2,
         },
-        Networking::WinSock::{AF_INET, SOCKADDR_INET},
+        Ndis::NET_LUID_LH,
     },
-    core::PCWSTR,
+    Networking::WinSock::SOCKADDR_INET,
 };
 
 use crate::{
@@ -36,7 +32,7 @@ pub struct WindowsRoutingConfigurator {
 impl WindowsRoutingConfigurator {
     pub async fn new<S: AsRef<str>>(device: S, tunnel_type: TunnelType) -> anyhow::Result<Self> {
         let device = device.as_ref().to_owned();
-        let tunnel_luid = luid_for_alias(&device)?;
+        let tunnel_luid = super::luid_for_alias(&device)?;
         Ok(Self {
             device,
             tunnel_luid,
@@ -49,17 +45,17 @@ impl WindowsRoutingConfigurator {
     fn add_route_via_tunnel(&self, prefix: Ipv4Net) -> anyhow::Result<()> {
         let mut row = new_forward_row();
         row.InterfaceLuid = self.tunnel_luid;
-        row.DestinationPrefix.Prefix = sockaddr_ipv4(prefix.network());
+        row.DestinationPrefix.Prefix = super::sockaddr_ipv4(prefix.network());
         row.DestinationPrefix.PrefixLength = prefix.prefix_len();
         // Point-to-point tunnel: leave NextHop as unspecified (on-link via adapter).
-        row.NextHop = sockaddr_ipv4(Ipv4Addr::UNSPECIFIED);
+        row.NextHop = super::sockaddr_ipv4(Ipv4Addr::UNSPECIFIED);
         row.Metric = TUNNEL_ROUTE_METRIC;
 
         self.create_row(row, &format!("{prefix} via {}", self.device))
     }
 
     fn add_host_exclusion(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
-        let dest_sa = sockaddr_ipv4(destination);
+        let dest_sa = super::sockaddr_ipv4(destination);
         let mut best = MIB_IPFORWARD_ROW2::default();
         let mut best_src = SOCKADDR_INET::default();
 
@@ -170,25 +166,6 @@ fn new_forward_row() -> MIB_IPFORWARD_ROW2 {
     let mut row = MIB_IPFORWARD_ROW2::default();
     unsafe { InitializeIpForwardEntry(&mut row) };
     row
-}
-
-fn sockaddr_ipv4(addr: Ipv4Addr) -> SOCKADDR_INET {
-    let mut sa = SOCKADDR_INET::default();
-    let ipv4 = unsafe { &mut sa.Ipv4 };
-    ipv4.sin_family = AF_INET;
-    ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(addr.octets());
-    sa
-}
-
-fn luid_for_alias(alias: &str) -> anyhow::Result<NET_LUID_LH> {
-    let wide: Vec<u16> = alias.encode_utf16().chain(std::iter::once(0)).collect();
-    let mut luid = NET_LUID_LH::default();
-
-    unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }
-        .ok()
-        .map_err(|e| anyhow!("ConvertInterfaceAliasToLuid({alias}) failed: {e}"))?;
-
-    Ok(luid)
 }
 
 fn luids_equal(a: NET_LUID_LH, b: NET_LUID_LH) -> bool {

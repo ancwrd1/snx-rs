@@ -5,14 +5,13 @@ pub mod tray;
 #[cfg(feature = "mobile-access")]
 pub mod webkit;
 
-#[cfg(feature = "mobile-access")]
-pub use webkit::webkit_main;
-
 use std::{env, mem, sync::Arc};
 
 use snxcore::{browser::BrowserController, model::params::TunnelParams};
 use tauri_winrt_notification::Toast;
 use tracing::{debug, warn};
+#[cfg(feature = "mobile-access")]
+pub use webkit::webkit_main;
 use windows::{
     Win32::{
         Foundation::HWND,

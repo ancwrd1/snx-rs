@@ -9,7 +9,7 @@ use windows::{
     core::{HSTRING, PWSTR},
 };
 
-use crate::platform::Keychain;
+use crate::{platform::Keychain, utf16z};
 
 #[derive(Default)]
 pub struct WindowsKeychain;
@@ -51,11 +51,8 @@ impl Keychain for WindowsKeychain {
 
     async fn store_password(&self, profile_id: Uuid, password: &SecretString) -> anyhow::Result<()> {
         debug!("Storing password in Credential Manager for profile {profile_id}");
-        let mut name_w: Vec<u16> = target_name(profile_id)
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .collect();
-        let mut user_w: Vec<u16> = "snx-rs".encode_utf16().chain(std::iter::once(0)).collect();
+        let mut name_w = utf16z!(target_name(profile_id));
+        let mut user_w = utf16z!("snx-rs");
         let mut blob = password.expose_secret().as_bytes().to_vec();
 
         let cred = CREDENTIALW {

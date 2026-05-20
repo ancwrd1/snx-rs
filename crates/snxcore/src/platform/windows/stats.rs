@@ -6,12 +6,9 @@ use std::{
 
 use anyhow::anyhow;
 use async_trait::async_trait;
-use windows::{
-    Win32::NetworkManagement::{
-        IpHelper::{ConvertInterfaceAliasToLuid, GetIfEntry2, MIB_IF_ROW2},
-        Ndis::NET_LUID_LH,
-    },
-    core::PCWSTR,
+use windows::Win32::NetworkManagement::{
+    IpHelper::{GetIfEntry2, MIB_IF_ROW2},
+    Ndis::NET_LUID_LH,
 };
 
 use crate::{model::LiveStats, platform::StatsPoller};
@@ -33,7 +30,7 @@ pub struct WindowsStatsPoller {
 
 impl WindowsStatsPoller {
     pub fn new(device_name: &str) -> anyhow::Result<Self> {
-        let luid = luid_for_alias(device_name)?;
+        let luid = super::luid_for_alias(device_name)?;
         let row = read_row(luid)?;
 
         Ok(Self {
@@ -111,15 +108,4 @@ fn read_row(luid: NET_LUID_LH) -> anyhow::Result<MIB_IF_ROW2> {
         .map_err(|e| anyhow!("GetIfEntry2 failed: {:?}", e))?;
 
     Ok(row)
-}
-
-fn luid_for_alias(alias: &str) -> anyhow::Result<NET_LUID_LH> {
-    let wide: Vec<u16> = alias.encode_utf16().chain(std::iter::once(0)).collect();
-    let mut luid = NET_LUID_LH::default();
-
-    unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }
-        .ok()
-        .map_err(|e| anyhow!("ConvertInterfaceAliasToLuid({alias}) failed: {e}"))?;
-
-    Ok(luid)
 }

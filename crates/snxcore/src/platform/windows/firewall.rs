@@ -13,12 +13,10 @@ use windows::{
         },
         System::Rpc::RPC_C_AUTHN_DEFAULT,
     },
-    core::{GUID, HSTRING, PWSTR},
+    core::{GUID, PWSTR},
 };
 
-fn pwstr(s: &HSTRING) -> PWSTR {
-    PWSTR(s.as_ptr() as *mut u16)
-}
+use crate::utf16z;
 
 // Random GUIDs unique for the application.
 const PROVIDER_KEY: GUID = GUID::from_u128(0x93355376_a6f6_454d_b3f5_8f41e1de5178);
@@ -72,11 +70,11 @@ impl WfpIpv6Block {
     }
 
     fn add_provider(&self) -> anyhow::Result<()> {
-        let name = HSTRING::from(PROVIDER_NAME);
+        let mut name = utf16z!(PROVIDER_NAME);
         let provider = FWPM_PROVIDER0 {
             providerKey: PROVIDER_KEY,
             displayData: FWPM_DISPLAY_DATA0 {
-                name: pwstr(&name),
+                name: PWSTR(name.as_mut_ptr()),
                 description: PWSTR::null(),
             },
             ..Default::default()
@@ -89,12 +87,12 @@ impl WfpIpv6Block {
     }
 
     fn add_sublayer(&self) -> anyhow::Result<()> {
-        let name = HSTRING::from(SUBLAYER_NAME);
+        let mut name = utf16z!(SUBLAYER_NAME);
         let mut provider_key = PROVIDER_KEY;
         let sublayer = FWPM_SUBLAYER0 {
             subLayerKey: SUBLAYER_KEY,
             displayData: FWPM_DISPLAY_DATA0 {
-                name: pwstr(&name),
+                name: PWSTR(name.as_mut_ptr()),
                 description: PWSTR::null(),
             },
             providerKey: &mut provider_key,
@@ -110,13 +108,13 @@ impl WfpIpv6Block {
     }
 
     fn add_block(&self, layer: GUID) -> anyhow::Result<()> {
-        let name = HSTRING::from("snx-rs block IPv6");
-        let filter = build_filter(&name, layer, FWP_ACTION_BLOCK, WEIGHT_BLOCK, &[]);
+        let mut name = utf16z!("snx-rs block IPv6");
+        let filter = build_filter(&mut name, layer, FWP_ACTION_BLOCK, WEIGHT_BLOCK, &[]);
         self.add_filter(&filter)
     }
 
     fn add_loopback_permit(&self, layer: GUID) -> anyhow::Result<()> {
-        let name = HSTRING::from("snx-rs permit IPv6 loopback");
+        let mut name = utf16z!("snx-rs permit IPv6 loopback");
         let condition = FWPM_FILTER_CONDITION0 {
             fieldKey: FWPM_CONDITION_FLAGS,
             matchType: FWP_MATCH_FLAGS_ANY_SET,
@@ -128,7 +126,7 @@ impl WfpIpv6Block {
             },
         };
         let conditions = [condition];
-        let filter = build_filter(&name, layer, FWP_ACTION_PERMIT, WEIGHT_PERMIT_LOOPBACK, &conditions);
+        let filter = build_filter(&mut name, layer, FWP_ACTION_PERMIT, WEIGHT_PERMIT_LOOPBACK, &conditions);
         self.add_filter(&filter)
     }
 
@@ -153,7 +151,7 @@ impl Drop for WfpIpv6Block {
 }
 
 fn build_filter(
-    name: &HSTRING,
+    name: &mut [u16],
     layer: GUID,
     action_type: FWP_ACTION_TYPE,
     weight: u8,
@@ -161,7 +159,7 @@ fn build_filter(
 ) -> FWPM_FILTER0 {
     FWPM_FILTER0 {
         displayData: FWPM_DISPLAY_DATA0 {
-            name: pwstr(name),
+            name: PWSTR(name.as_mut_ptr()),
             description: PWSTR::null(),
         },
         layerKey: layer,

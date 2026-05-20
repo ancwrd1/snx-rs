@@ -33,8 +33,7 @@ use windows::{
             },
         },
     },
-    core::Interface,
-    core::{HSTRING, PCWSTR, w},
+    core::{HSTRING, Interface, PCWSTR, w},
 };
 
 const PASSWORD_TIMEOUT: Duration = Duration::from_secs(120);

@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
+use itertools::Itertools;
 use tracing::debug;
 use windows::{
     Win32::{
@@ -16,7 +17,10 @@ use windows::{
 };
 
 use super::nrpt::Nrpt;
-use crate::platform::{ResolverConfig, ResolverConfigurator, SearchDomain};
+use crate::{
+    platform::{ResolverConfig, ResolverConfigurator, SearchDomain},
+    utf16z,
+};
 
 const DNS_INTERFACE_SETTINGS_VERSION1: u32 = 1;
 
@@ -102,26 +106,17 @@ where
     Ok(Box::new(WindowsResolverConfigurator::new(device)))
 }
 
-fn to_wide_nul(s: &str) -> Vec<u16> {
-    s.encode_utf16().chain(std::iter::once(0)).collect()
-}
-
 fn wide_csv<I, S>(parts: I) -> Vec<u16>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
-    let joined = parts
-        .into_iter()
-        .map(|p| p.as_ref().to_owned())
-        .collect::<Vec<_>>()
-        .join(",");
-
-    to_wide_nul(&joined)
+    let joined = parts.into_iter().map(|p| p.as_ref().to_owned()).join(",");
+    utf16z!(joined)
 }
 
 fn alias_to_guid(alias: &str) -> anyhow::Result<GUID> {
-    let wide = to_wide_nul(alias);
+    let wide = utf16z!(alias);
     let mut luid = NET_LUID_LH::default();
 
     unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }

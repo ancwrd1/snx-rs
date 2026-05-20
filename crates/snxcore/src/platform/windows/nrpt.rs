@@ -1,18 +1,11 @@
 use std::{fs, path::PathBuf};
 
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 use uuid::Uuid;
-use windows::{
-    Win32::{
-        Foundation::{ERROR_FILE_NOT_FOUND, NO_ERROR},
-        System::Registry::{
-            HKEY, HKEY_LOCAL_MACHINE, KEY_WRITE, REG_DWORD, REG_MULTI_SZ, REG_OPTION_NON_VOLATILE, REG_SZ, RegCloseKey,
-            RegCreateKeyExW, RegDeleteTreeW, RegSetValueExW,
-        },
-    },
-    core::{HSTRING, PCWSTR},
+use winreg::{
+    RegKey,
+    enums::{HKEY_LOCAL_MACHINE, KEY_WRITE, REG_OPTION_NON_VOLATILE},
 };
 
 use crate::platform::{Platform, PlatformAccess, SearchDomain};
@@ -102,25 +95,12 @@ fn flush_dns_cache() {
 
 fn create_rule(rule_name: &str, domains: &[&SearchDomain], dns_servers: &[String]) -> anyhow::Result<()> {
     let subkey = format!(r"{POLICY_BASE}\{rule_name}");
-    let subkey_w = HSTRING::from(&subkey);
 
-    let mut hkey = HKEY::default();
-    let rc = unsafe {
-        RegCreateKeyExW(
-            HKEY_LOCAL_MACHINE,
-            &subkey_w,
-            None,
-            PCWSTR::null(),
-            REG_OPTION_NON_VOLATILE,
-            KEY_WRITE,
-            None,
-            &mut hkey,
-            None,
-        )
-    };
-    if rc != NO_ERROR {
-        return Err(anyhow!("RegCreateKeyExW({subkey}) failed: {:?}", rc));
-    }
+    let (hkey, _) = RegKey::predef(HKEY_LOCAL_MACHINE).create_subkey_with_options_flags(
+        &subkey,
+        REG_OPTION_NON_VOLATILE,
+        KEY_WRITE,
+    )?;
 
     let result = (|| -> anyhow::Result<()> {
         // NRPT suffix-match entries begin with a dot.
@@ -128,15 +108,17 @@ fn create_rule(rule_name: &str, domains: &[&SearchDomain], dns_servers: &[String
             .iter()
             .map(|d| format!(".{}", d.name.trim_matches('.')))
             .collect();
-        set_multi_sz(hkey, "Name", &names)?;
-        set_string(hkey, "GenericDNSServers", &dns_servers.join(";"))?;
+        hkey.set_value("Name", &names)?;
+        hkey.set_value("GenericDNSServers", &dns_servers.join(";"))?;
         // Version = 2 (NRPT v2 schema), ConfigOptions = 0x8 (DnsServers).
-        set_dword(hkey, "Version", 2)?;
-        set_dword(hkey, "ConfigOptions", 0x8)?;
+        hkey.set_value("Version", &2u32)?;
+        hkey.set_value("ConfigOptions", &0x8u32)?;
         Ok(())
     })();
 
-    let _ = unsafe { RegCloseKey(hkey) };
+    // Close the handle before delete_rule runs on failure — delete_subkey_all
+    // on the same path can fail or race while the key is still open.
+    drop(hkey);
 
     if result.is_err() {
         let _ = delete_rule(rule_name);
@@ -147,59 +129,5 @@ fn create_rule(rule_name: &str, domains: &[&SearchDomain], dns_servers: &[String
 
 fn delete_rule(rule_name: &str) -> anyhow::Result<()> {
     let subkey = format!(r"{POLICY_BASE}\{rule_name}");
-    let subkey_w = HSTRING::from(&subkey);
-    let rc = unsafe { RegDeleteTreeW(HKEY_LOCAL_MACHINE, &subkey_w) };
-    if rc == NO_ERROR || rc == ERROR_FILE_NOT_FOUND {
-        Ok(())
-    } else {
-        Err(anyhow!("RegDeleteTreeW({subkey}) failed: {:?}", rc))
-    }
-}
-
-fn set_string(hkey: HKEY, name: &str, value: &str) -> anyhow::Result<()> {
-    let bytes = wide_bytes_nul(value);
-    let rc = unsafe { RegSetValueExW(hkey, &HSTRING::from(name), None, REG_SZ, Some(&bytes)) };
-    if rc != NO_ERROR {
-        return Err(anyhow!("RegSetValueExW({name}) failed: {:?}", rc));
-    }
-    Ok(())
-}
-
-fn set_multi_sz(hkey: HKEY, name: &str, items: &[String]) -> anyhow::Result<()> {
-    let bytes = multi_sz_bytes(items);
-    let rc = unsafe { RegSetValueExW(hkey, &HSTRING::from(name), None, REG_MULTI_SZ, Some(&bytes)) };
-    if rc != NO_ERROR {
-        return Err(anyhow!("RegSetValueExW({name}) failed: {:?}", rc));
-    }
-    Ok(())
-}
-
-fn set_dword(hkey: HKEY, name: &str, value: u32) -> anyhow::Result<()> {
-    let rc = unsafe { RegSetValueExW(hkey, &HSTRING::from(name), None, REG_DWORD, Some(&value.to_le_bytes())) };
-    if rc != NO_ERROR {
-        return Err(anyhow!("RegSetValueExW({name}) failed: {:?}", rc));
-    }
-    Ok(())
-}
-
-fn wide_bytes_nul(s: &str) -> Vec<u8> {
-    let mut out = Vec::with_capacity((s.len() + 1) * 2);
-    for u in s.encode_utf16() {
-        out.extend_from_slice(&u.to_le_bytes());
-    }
-    out.extend_from_slice(&[0u8, 0u8]);
-    out
-}
-
-fn multi_sz_bytes(items: &[String]) -> Vec<u8> {
-    let mut out = Vec::new();
-    for item in items {
-        for u in item.encode_utf16() {
-            out.extend_from_slice(&u.to_le_bytes());
-        }
-        out.extend_from_slice(&[0u8, 0u8]);
-    }
-    // Block terminator (extra NUL after the last string).
-    out.extend_from_slice(&[0u8, 0u8]);
-    out
+    Ok(RegKey::predef(HKEY_LOCAL_MACHINE).delete_subkey_all(&subkey)?)
 }

@@ -72,7 +72,6 @@ windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Security",
     "Win32_Security_Credentials",
-    "Win32_System_Registry",
     "Win32_System_SystemServices",
     "Win32_NetworkManagement_IpHelper",
     "Win32_NetworkManagement_Ndis",
@@ -81,6 +80,7 @@ windows = { version = "0.62", features = [
     "Win32_System_Rpc",
 ] }
 widestring = "1"
+winreg = "0.56"
 
 [dev-dependencies]
 tempfile = "3"

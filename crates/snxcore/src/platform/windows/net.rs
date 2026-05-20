@@ -7,25 +7,21 @@ use std::{
 use anyhow::anyhow;
 use ipnet::Ipv4Net;
 use tracing::{debug, trace, warn};
-use windows::{
-    Win32::{
-        Foundation::{ERROR_NOT_FOUND, HANDLE, NO_ERROR},
-        NetworkManagement::{
-            IpHelper::{
-                ConvertInterfaceAliasToLuid, CreateUnicastIpAddressEntry, DeleteUnicastIpAddressEntry, GetBestRoute2,
-                GetIpInterfaceEntry, GetNetworkConnectivityHint, InitializeUnicastIpAddressEntry, MIB_IPFORWARD_ROW2,
-                MIB_IPINTERFACE_ROW, MIB_NOTIFICATION_TYPE, MIB_UNICASTIPADDRESS_ROW, NotifyRouteChange2,
-                SetIpInterfaceEntry,
-            },
-            Ndis::{IF_MAX_STRING_SIZE, NET_LUID_LH},
+use windows::Win32::{
+    Foundation::{ERROR_NOT_FOUND, HANDLE, NO_ERROR},
+    NetworkManagement::{
+        IpHelper::{
+            CreateUnicastIpAddressEntry, DeleteUnicastIpAddressEntry, GetBestRoute2, GetIpInterfaceEntry,
+            GetNetworkConnectivityHint, InitializeUnicastIpAddressEntry, MIB_IPFORWARD_ROW2, MIB_IPINTERFACE_ROW,
+            MIB_NOTIFICATION_TYPE, MIB_UNICASTIPADDRESS_ROW, NotifyRouteChange2, SetIpInterfaceEntry,
         },
-        Networking::WinSock::{
-            AF_INET, AF_UNSPEC, NL_NETWORK_CONNECTIVITY_HINT, NL_NETWORK_CONNECTIVITY_LEVEL_HINT,
-            NetworkConnectivityLevelHintConstrainedInternetAccess, NetworkConnectivityLevelHintInternetAccess,
-            SOCKADDR_INET,
-        },
+        Ndis::NET_LUID_LH,
     },
-    core::PCWSTR,
+    Networking::WinSock::{
+        AF_INET, AF_UNSPEC, NL_NETWORK_CONNECTIVITY_HINT, NL_NETWORK_CONNECTIVITY_LEVEL_HINT,
+        NetworkConnectivityLevelHintConstrainedInternetAccess, NetworkConnectivityLevelHintInternetAccess,
+        SOCKADDR_INET,
+    },
 };
 
 use crate::platform::{DeviceConfig, NetworkInterface, StatsPoller};
@@ -41,30 +37,6 @@ impl WindowsNetworkInterface {
     }
 }
 
-fn to_wide_nul(s: &str) -> Vec<u16> {
-    s.encode_utf16().chain(std::iter::once(0)).collect()
-}
-
-fn luid_for_alias(alias: &str) -> anyhow::Result<NET_LUID_LH> {
-    if alias.len() >= IF_MAX_STRING_SIZE as usize {
-        return Err(anyhow!("interface alias too long: {alias}"));
-    }
-    let wide = to_wide_nul(alias);
-    let mut luid = NET_LUID_LH::default();
-    unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }
-        .ok()
-        .map_err(|e| anyhow!("ConvertInterfaceAliasToLuid({alias}) failed: {e}"))?;
-    Ok(luid)
-}
-
-fn sockaddr_ipv4(addr: Ipv4Addr) -> SOCKADDR_INET {
-    let mut sa = SOCKADDR_INET::default();
-    let ipv4 = unsafe { &mut sa.Ipv4 };
-    ipv4.sin_family = AF_INET;
-    ipv4.sin_addr.S_un.S_addr = u32::from_ne_bytes(addr.octets());
-    sa
-}
-
 fn ipv4_from_sockaddr(sa: &SOCKADDR_INET) -> Option<Ipv4Addr> {
     let family = unsafe { sa.si_family };
     if family != AF_INET {
@@ -78,7 +50,7 @@ fn unicast_row(luid: NET_LUID_LH, addr: Ipv4Net) -> MIB_UNICASTIPADDRESS_ROW {
     let mut row = MIB_UNICASTIPADDRESS_ROW::default();
     unsafe { InitializeUnicastIpAddressEntry(&mut row) };
     row.InterfaceLuid = luid;
-    row.Address = sockaddr_ipv4(addr.addr());
+    row.Address = super::sockaddr_ipv4(addr.addr());
     row.OnLinkPrefixLength = addr.prefix_len();
     row
 }
@@ -128,7 +100,7 @@ impl NetworkInterface for WindowsNetworkInterface {
     }
 
     async fn get_default_ipv4(&self) -> anyhow::Result<Ipv4Addr> {
-        let dest = sockaddr_ipv4(Ipv4Addr::UNSPECIFIED);
+        let dest = super::sockaddr_ipv4(Ipv4Addr::UNSPECIFIED);
         let mut row = MIB_IPFORWARD_ROW2::default();
         let mut best_src = SOCKADDR_INET::default();
 
@@ -146,7 +118,7 @@ impl NetworkInterface for WindowsNetworkInterface {
 
     async fn configure_device(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
         debug!("Configuring device: {:?}", device_config);
-        let luid = luid_for_alias(&device_config.name)?;
+        let luid = super::luid_for_alias(&device_config.name)?;
 
         let mut iface = MIB_IPINTERFACE_ROW {
             Family: AF_INET,
@@ -180,7 +152,7 @@ impl NetworkInterface for WindowsNetworkInterface {
         old_address: Ipv4Net,
         new_address: Ipv4Net,
     ) -> anyhow::Result<()> {
-        let luid = luid_for_alias(device_name)?;
+        let luid = super::luid_for_alias(device_name)?;
         let new_row = unicast_row(luid, new_address);
         unsafe { CreateUnicastIpAddressEntry(&new_row) }
             .ok()

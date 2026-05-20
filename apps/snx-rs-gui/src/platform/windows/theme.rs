@@ -11,10 +11,7 @@ use tracing::{debug, warn};
 use windows::{
     Win32::{
         Foundation::{HWND, LPARAM, LRESULT, WPARAM},
-        System::{
-            LibraryLoader::GetModuleHandleW,
-            Registry::{HKEY, HKEY_CURRENT_USER, KEY_READ, RegCloseKey, RegOpenKeyExW, RegQueryValueExW},
-        },
+        System::LibraryLoader::GetModuleHandleW,
         UI::WindowsAndMessaging::{
             CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GWLP_USERDATA, GetMessageW,
             GetWindowLongPtrW, MSG, RegisterClassExW, SetWindowLongPtrW, TranslateMessage, WINDOW_EX_STYLE,
@@ -23,8 +20,11 @@ use windows::{
     },
     core::w,
 };
+use winreg::{RegKey, enums::HKEY_CURRENT_USER};
 
 use crate::platform::TrayCommand;
+
+const THEME_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 
 pub fn spawn_theme_monitor(theme: Arc<AtomicU32>, tray_sender: Sender<TrayCommand>) {
     theme.store(read_system_theme(), Ordering::SeqCst);
@@ -40,27 +40,12 @@ pub fn spawn_theme_monitor(theme: Arc<AtomicU32>, tray_sender: Sender<TrayComman
 }
 
 fn read_system_theme() -> u32 {
-    unsafe {
-        let mut hkey = HKEY::default();
-        let subkey = w!(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-        if RegOpenKeyExW(HKEY_CURRENT_USER, subkey, Some(0), KEY_READ, &mut hkey).is_ok() {
-            let mut value: u32 = 0;
-            let mut size: u32 = mem::size_of::<u32>() as u32;
-            let rc = RegQueryValueExW(
-                hkey,
-                w!("SystemUsesLightTheme"),
-                None,
-                None,
-                Some(&mut value as *mut u32 as *mut u8),
-                Some(&mut size),
-            );
-            let _ = RegCloseKey(hkey);
-            if rc.is_ok() {
-                return if value == 0 { 1 } else { 2 };
-            }
-        }
-        0
-    }
+    let value = RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey(THEME_KEY)
+        .and_then(|hkey| hkey.get_value("SystemUsesLightTheme"))
+        .unwrap_or(0u32);
+
+    if value == 0 { 1 } else { 2 }
 }
 
 struct WindowState {
