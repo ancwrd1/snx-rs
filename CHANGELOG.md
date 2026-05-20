@@ -1,3 +1,7 @@
+## v6.1.0 (TBD)
+- Fixed a bug where tray icon was updated too often.
+- More consistent UI for machine certificate authentication settings.
+
 ## v6.0.6 (2026-05-15)
 - Added `no-split-dns` option to disable split DNS for systemd-resolved, required in the container images.
 - Fixed native kernel IPsec support detection when IPv6 is disabled.
