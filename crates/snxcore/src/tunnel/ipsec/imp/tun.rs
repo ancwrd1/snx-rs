@@ -87,8 +87,6 @@ impl TunIPsecTunnel {
 
         let ready = Arc::new(AtomicBool::new(false));
 
-        ready.store(true, Ordering::SeqCst);
-
         Ok(Self {
             params,
             session,
@@ -412,6 +410,8 @@ impl TunIPsecTunnel {
 
         let scv_run = scv_runner.run();
         pin_mut!(scv_run);
+
+        ready.store(true, Ordering::SeqCst);
 
         let result = loop {
             tokio::select! {

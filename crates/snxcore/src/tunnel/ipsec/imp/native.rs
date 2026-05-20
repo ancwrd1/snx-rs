@@ -106,7 +106,6 @@ impl NativeIPsecTunnel {
         );
 
         configurator.configure().await?;
-        ready.store(true, Ordering::SeqCst);
 
         Ok(Self {
             xfrm_configurator: Box::new(configurator),
@@ -290,6 +289,9 @@ impl VpnTunnel for NativeIPsecTunnel {
                 }
             }
         };
+
+        self.ready.store(true, Ordering::SeqCst);
+
         let result = tokio::select! {
             () = fut => {
                 debug!("Terminating IPsec tunnel due to stop command");
