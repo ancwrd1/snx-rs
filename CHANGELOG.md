@@ -1,6 +1,12 @@
 ## v6.1.0 (TBD)
+This version adds experimental support to run snx-rs on Windows, still considered beta quality.
+MSI installer can be downloaded from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
+All original functionality is available in the Windows version, except for kernel-based (xfrm) IPsec support.
+Important note: MSI and binaries are not signed yet.
+
+Additional fixes in this release:  
 - Fixed a bug where tray icon was updated too often.
-- More consistent UI for machine certificate authentication settings.
+- More consistent UI for the machine certificate authentication settings.
 
 ## v6.0.6 (2026-05-15)
 - Added `no-split-dns` option to disable split DNS for systemd-resolved, required in the container images.
