@@ -24,7 +24,7 @@ use windows::{
             LibraryLoader::GetModuleHandleW,
         },
         UI::{
-            HiDpi::{PROCESS_PER_MONITOR_DPI_AWARE, SetProcessDpiAwareness},
+            HiDpi::{GetDpiForSystem, PROCESS_PER_MONITOR_DPI_AWARE, SetProcessDpiAwareness},
             WindowsAndMessaging::{
                 CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DispatchMessageW, GWLP_USERDATA, GetClientRect,
                 GetMessageW, GetWindowLongPtrW, IDC_ARROW, LoadCursorW, MSG, PostQuitMessage, RegisterClassW, SW_SHOW,
@@ -125,6 +125,13 @@ fn create_window() -> anyhow::Result<HWND> {
     unsafe { RegisterClassW(&wc) };
 
     let title = HSTRING::from(tr!("label-mobile-access"));
+    // Process is PROCESS_PER_MONITOR_DPI_AWARE, so CreateWindowExW takes
+    // physical pixels. The WebView2 content scales with monitor DPI, so we
+    // scale the window by the same factor — otherwise at 200% the window
+    // gets ~half the room the content expects and looks cropped.
+    let dpi = unsafe { GetDpiForSystem() } as i32;
+    let width = 900 * dpi / 96;
+    let height = 650 * dpi / 96;
     let hwnd = unsafe {
         CreateWindowExW(
             WINDOW_EX_STYLE(0),
@@ -133,8 +140,8 @@ fn create_window() -> anyhow::Result<HWND> {
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            900,
-            650,
+            width,
+            height,
             None,
             None,
             Some(hinstance.into()),
