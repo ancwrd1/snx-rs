@@ -4,17 +4,17 @@ Guidance for AI coding agents (Claude Code, Copilot, Cursor, etc.) working in th
 
 ## Project overview
 
-`snx-rs` is an unofficial open-source Linux client for Check Point VPN tunnels, written in Rust. It speaks both the IPsec and SSL flavors of Check Point's remote access protocol and supports the full matrix of authentication flows the official Windows client supports (password + MFA, certificate, HSM token, browser-based SSO / identity provider, Mobile Access web portal, hybrid machine-certificate + user).
+`snx-rs` is an unofficial open-source client for Check Point VPN tunnels, written in Rust. It speaks both the IPsec and SSL flavors of Check Point's remote access protocol and supports the full matrix of authentication flows the official Windows client supports (password + MFA, certificate, HSM token, browser-based SSO / identity provider, Mobile Access web portal, hybrid machine-certificate + user).
 
 Repository: https://github.com/ancwrd1/snx-rs  
 License: AGPL-3.0 (see `COPYING`)  
 Author: Dmitry Pankratov <dmitry@pankratov.net>  
 
-Linux-only. Other platforms are not supported and not a target. However, all platform-specific code must be isolated under `platform` submodule.
+Currently supported platforms: Linux, Windows. All platform-specific code must be isolated under `platform` submodule.
 
 ## Workspace layout
 
-This is a Cargo workspace (`resolver = "2"`, `edition = "2024"`) declared in the root `Cargo.toml`. Five members:
+This is a Cargo workspace (`resolver = "2"`, `edition = "2024"`) declared in the root `Cargo.toml`. Members:
 
 | Member       | Path              | Kind    | Purpose                                                                                    |
 |--------------|-------------------|---------|--------------------------------------------------------------------------------------------|
@@ -38,23 +38,29 @@ Top-level directories:
 
 `crates/snxcore/src/`:
 
-* `lib.rs` — has `#![deny(unsafe_code)]`. Keep it that way.
-* `gateway` — VPN gateway connectors
-  * `ccc.rs` — Check Point command gateway connector via an HTTPS client
-* `server.rs` / `server_info.rs` — command-mode server (unix socket) and server-info queries.
+* `lib.rs` — crate root. Historically carried `#![deny(unsafe_code)]`; this was relaxed when Windows platform support landed (the Windows platform module needs FFI). Keep `unsafe` confined to `platform/windows/` and justify any new usage.
+* `server.rs` — command-mode server (unix socket on Linux / named pipe on Windows).
 * `controller.rs` — connection lifecycle orchestration.
 * `browser.rs` — browser-based SAML/IdP flow.
 * `otp.rs` — OTP listener (used by browser / MFA flows).
+* `profiles.rs` — saved connection profiles.
 * `prompt.rs` — tty and secure prompt abstractions.
 * `sexpr.rs` + `sexpr.pest` — parser for Check Point's S-expression wire format (`pest` grammar).
-* `model/` — protocol types: `params.rs` (tunnel config / `TunnelParams`), `proto.rs` (wire structs), `wrappers.rs`.
-* `platform/linux/` — Linux-only bits: `keychain.rs` (Secret Service), `resolver.rs` (systemd-resolved via D-Bus), `routing.rs` (rtnetlink), `xfrm.rs` (xfrmnetlink / netlink-packet-xfrm), `net.rs`, `stats.rs` (interface stats poller).
+* `model.rs` + `model/` — protocol types: `params.rs` (tunnel config / `TunnelParams`), `proto.rs` (wire structs), `wrappers.rs`.
+* `platform.rs` + `platform/` — `Platform` trait abstraction seam plus per-OS implementations (see below).
 * `tunnel/` — transport implementations:
-  * `ipsec/` — IPsec connector, NAT-T, keepalive, SCV policy emulation (`scv.rs`), plus the `imp/` impls selected at runtime (kernel XFRM vs. userspace TUN/TCPT).
-  * `ssl/` — SSL tunnel codec, connector, keepalive (legacy fallback transport).
+  * `connector.rs` — common tunnel connector trait.
+  * `gateway.rs` — Check Point command/gateway HTTPS client (CCC protocol).
   * `device.rs` — tun device abstraction.
+  * `ipsec/` — IPsec `connector.rs`, `natt.rs`, `keepalive.rs`, SCV policy emulation (`scv.rs`), plus the `imp/` impls selected at runtime (kernel XFRM vs. userspace TUN/TCPT).
+  * `ssl/` — SSL tunnel `codec.rs`, `connector.rs`, `keepalive.rs` (legacy fallback transport).
 * `util.rs` — misc helpers.
 * `tests/` — integration fixtures (`*.txt` captured wire payloads) and integration tests.
+
+Per-OS platform modules under `crates/snxcore/src/platform/`:
+
+* `linux/` — `keychain.rs` (Secret Service), `resolver.rs` (systemd-resolved via D-Bus), `routing.rs` (rtnetlink), `xfrm.rs` (xfrmnetlink / netlink-packet-xfrm), `net.rs`, `stats.rs` (interface stats poller).
+* `windows/` — `firewall.rs`, `ipsec_stub.rs` (IPsec is not yet implemented on Windows), `keychain.rs` (Credential Manager), `machine_uuid.rs`, `net.rs`, `nrpt.rs` (Name Resolution Policy Table for split DNS), `resolver.rs`, `routing.rs`, `single_instance.rs`, `stats.rs`. Marked `#![allow(unsafe_code)]` because the Windows APIs require FFI.
 
 The external `isakmp` crate (git dep: `https://github.com/ancwrd1/isakmp.git`) provides IKE/ISAKMP primitives used by the IPsec tunnel.
 
@@ -87,10 +93,12 @@ CI runs on `ubuntu-latest` / `x86_64-unknown-linux-gnu` / stable. Clippy is `-D 
 
 ### System dependencies
 
-Required for the default build: C toolchain, OpenSSL, SQLite3, fontconfig. GTK 4.10+ and WebKit 6.0+ are required only when the `mobile-access` feature is enabled.
+Required for the default Linux build: C toolchain, OpenSSL, SQLite3, fontconfig. GTK 4.10+ and WebKit 6.0+ are required only when the `mobile-access` feature is enabled.
 
 * Debian/Ubuntu: `build-essential libssl-dev libfontconfig1-dev libsqlite3-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev libjavascriptcoregtk-6.0-dev`
 * openSUSE: `libopenssl-3-devel sqlite3-devel fontconfig-devel gtk4-devel webkit2gtk4-devel`
+
+On Windows, use `vendored-openssl` and `vendored-sqlite` features to avoid system library dependencies. The `mobile-access` feature on Windows pulls in WebView2 via the `webview2-com` crate (no extra system package needed; WebView2 runtime ships with modern Windows).
 
 ### Cargo features
 
@@ -108,12 +116,12 @@ Defined on `snx-rs-gui`:
 ## Code style and conventions
 
 * `rustfmt.toml` sets `max_width = 120`. Run `cargo fmt` before committing.
-* `#![deny(unsafe_code)]` is set in `crates/snxcore/src/lib.rs` and `apps/snx-rs/src/main.rs`. Do not introduce `unsafe` there. If you genuinely need FFI, discuss with maintainers first — the preference is to use safe wrapper crates (`nix`, `rtnetlink`, `xfrmnetlink`, `tun`, etc.).
+* Prefer safe wrapper crates (`nix`, `rtnetlink`, `xfrmnetlink`, `tun`, etc.) over raw FFI. The only place `unsafe` is expected is `crates/snxcore/src/platform/windows/`, which opts in via `#![allow(unsafe_code)]` to call Win32 APIs. Do not introduce `unsafe` outside that module without discussing with maintainers.
 * Errors flow through `anyhow::Result` at app boundaries; library code also uses `anyhow` (there is no custom error type at present).
 * Async runtime is `tokio` (multi-thread). Prefer `tokio::spawn` + channels over ad-hoc threading.
 * Secrets go through `secrecy::SecretString` / `ExposeSecret`. Do not log, format, or embed passwords / tokens into error strings.
 * Logging uses `tracing` + `tracing-subscriber`. Respect the `log-level` config option. `trace` level is documented as sensitive — do not downgrade that warning.
-* Platform-specific code belongs under `crates/snxcore/src/platform/linux/` behind `#[cfg(target_os = "linux")]` where applicable. The `Platform` trait in `platform.rs` is the abstraction seam.
+* Platform-specific code belongs under `crates/snxcore/src/platform/<os>/` behind `#[cfg(target_os = "linux")]` / `#[cfg(target_os = "windows")]`. The `Platform` trait in `platform.rs` is the abstraction seam; add new functionality there first, then implement for each OS.
 * Comments: the maintainer's stated AI policy (`docs/contributing.md`) is explicit — *no redundant per-line or per-function comments*. Only comment the non-obvious *why*. Machine-generated boilerplate comments will be rejected.
 
 ## User-facing strings must be localized
@@ -157,8 +165,8 @@ The GUI (`snx-rs-gui`) always runs unprivileged and talks to a `command`-mode `s
 
 * **Don't add redundant comments.** The contributing guide says so explicitly; this is the single most common cause of rejected AI patches in this repo.
 * **Don't hard-code user-visible English strings.** Route them through `tr!` and update the Fluent files.
-* **Don't run external commands to configure networking.** Since v5.3.0 the project deliberately uses Linux APIs directly (`rtnetlink`, `xfrmnetlink`, systemd-resolved over D-Bus, `sysctl` crate). Do not regress this by shelling out to `ip`, `resolvectl`, `iptables`, etc.
-* **Don't introduce `unsafe` in `snxcore` or `snx-rs`.** Both crates `#![deny(unsafe_code)]`.
+* **Don't run external commands to configure networking.** Since v5.3.0 the project deliberately uses OS APIs directly (Linux: `rtnetlink`, `xfrmnetlink`, systemd-resolved over D-Bus, `sysctl` crate; Windows: Win32 IpHelper / NRPT / WinSock via the `windows` crate). Do not regress this by shelling out to `ip`, `resolvectl`, `iptables`, `netsh`, `route`, etc.
+* **Don't introduce `unsafe` outside `platform/windows/`.** That module is the only place that opts into `unsafe` (it needs Win32 FFI). Everywhere else, use safe wrappers.
 * **Don't add backwards-compat shims** for config flags that were renamed (e.g. `no-keychain` → `keychain` was flipped deliberately in 5.3.0). If you're changing a flag, change it cleanly and document in `CHANGELOG.md`.
 * **Don't bypass `secrecy`.** Passwords, IKE keys, tokens, and cert passwords must stay inside `SecretString` until the exact point of use.
 * **Don't forget MSRV.** Edition 2024 features are fine; `rustc 1.88+` features are fine; anything newer is not.

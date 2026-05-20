@@ -30,6 +30,8 @@ mod params;
 mod platform;
 mod theme;
 mod ui;
+#[cfg(feature = "mobile-access")]
+mod webkit;
 
 pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
 

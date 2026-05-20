@@ -1,7 +1,6 @@
-use std::{os::unix::process::CommandExt, sync::Arc};
+use std::os::unix::process::CommandExt;
 
 use slint::winit_030::winit::platform::{wayland::WindowAttributesExtWayland, x11::WindowAttributesExtX11};
-use snxcore::{browser::BrowserController, model::params::TunnelParams};
 use tokio::signal::unix::{SignalKind, signal};
 
 pub mod dbus;
@@ -31,16 +30,6 @@ pub fn init_gui_backend() -> anyhow::Result<()> {
         .select()?;
 
     Ok(())
-}
-
-#[cfg(feature = "mobile-access")]
-pub fn new_browser_controller(params: Arc<TunnelParams>) -> impl BrowserController {
-    webkit::WebKitBrowser::new(params)
-}
-
-#[cfg(not(feature = "mobile-access"))]
-pub fn new_browser_controller(_params: Arc<TunnelParams>) -> impl BrowserController {
-    snxcore::browser::SystemBrowser::new(crate::ui::prompt::SlintPrompt)
 }
 
 pub async fn wait_restart_signal() -> anyhow::Result<()> {

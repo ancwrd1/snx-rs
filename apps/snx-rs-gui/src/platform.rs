@@ -14,9 +14,9 @@ use linux as platform_impl;
 #[cfg(feature = "mobile-access")]
 pub use platform_impl::webkit_main;
 pub use platform_impl::{
-    init_gui_backend, new_browser_controller, send_notification, theme::spawn_theme_monitor, tray::AppTray, user_tag,
-    wait_restart_signal,
+    init_gui_backend, send_notification, theme::spawn_theme_monitor, tray::AppTray, user_tag, wait_restart_signal,
 };
+use snxcore::{browser::BrowserController, model::params::TunnelParams};
 #[cfg(windows)]
 use windows as platform_impl;
 
@@ -63,4 +63,14 @@ impl FromStr for TrayEvent {
 pub enum TrayCommand {
     Update(Option<Arc<anyhow::Result<ConnectionStatus>>>),
     Exit,
+}
+
+#[cfg(feature = "mobile-access")]
+pub fn new_browser_controller(params: Arc<TunnelParams>) -> impl BrowserController {
+    crate::webkit::WebKitBrowser::new(params)
+}
+
+#[cfg(not(feature = "mobile-access"))]
+pub fn new_browser_controller(_params: Arc<TunnelParams>) -> impl BrowserController {
+    snxcore::browser::SystemBrowser::new(crate::ui::prompt::SlintPrompt)
 }

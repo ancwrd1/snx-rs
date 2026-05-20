@@ -1,10 +1,6 @@
-use std::{cell::RefCell, process::Stdio, rc::Rc, sync::Arc, time::Duration};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use i18n::tr;
-use snxcore::{
-    browser::{BrowserController, SystemBrowser},
-    model::params::TunnelParams,
-};
 use tracing::warn;
 use webview2_com::{
     CreateCoreWebView2ControllerCompletedHandler, CreateCoreWebView2EnvironmentCompletedHandler,
@@ -38,25 +34,6 @@ use windows::{
 
 const PASSWORD_TIMEOUT: Duration = Duration::from_secs(120);
 const WINDOW_CLASS: PCWSTR = w!("SnxRsWebViewWindow");
-
-const JS_PASSWORD_SCRIPT: &str = r#"
-(function() {
-  const regexes = [
-    /sPropertyName = "password";\n\s*SNXParams\.addProperty\(sPropertyName, Function\.READ_WRITE, "([^"]+)"\);/,
-    /Extender\.password\s*=\s*"([^"]+)"/,
-  ];
-
-  const scripts = document.querySelectorAll("script:not([src])");
-  for (const s of scripts) {
-    for (const regex of regexes) {
-      const match = s.textContent.match(regex);
-      if (match) return match[1];
-    }
-  }
-
-  return "";
-})();
-"#;
 
 struct WebKitState {
     controller: RefCell<Option<ICoreWebView2Controller>>,
@@ -270,7 +247,7 @@ fn install_navigation_completed(webview: &ICoreWebView2, state: Rc<WebKitState>)
     let handler = NavigationCompletedEventHandler::create(Box::new(move |_sender, _args| {
         let state = state.clone();
         let webview = webview_for_js.clone();
-        let script = HSTRING::from(JS_PASSWORD_SCRIPT);
+        let script = HSTRING::from(crate::webkit::JS_PASSWORD_SCRIPT);
 
         let result_handler = ExecuteScriptCompletedHandler::create(Box::new(move |error_code, json_result| {
             if error_code.is_err() {
@@ -337,50 +314,5 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
             LRESULT(0)
         }
         _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
-    }
-}
-
-pub struct WebKitBrowser {
-    params: Arc<TunnelParams>,
-}
-
-impl WebKitBrowser {
-    pub fn new(params: Arc<TunnelParams>) -> Self {
-        Self { params }
-    }
-}
-
-impl BrowserController for WebKitBrowser {
-    fn open(&self, url: &str) -> anyhow::Result<()> {
-        SystemBrowser::default().open(url)
-    }
-
-    fn close(&self) {}
-
-    async fn acquire_tunnel_password(&self, url: &str) -> anyhow::Result<String> {
-        let exe = std::env::current_exe()?;
-
-        let mut cmd = tokio::process::Command::new(exe);
-        cmd.arg("--webkit").arg(url);
-        if self.params.ignore_server_cert {
-            cmd.arg("--webkit-ignore-cert");
-        }
-        cmd.stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .kill_on_drop(true);
-
-        let output = tokio::time::timeout(PASSWORD_TIMEOUT, cmd.output()).await;
-
-        if let Ok(Ok(output)) = output
-            && output.status.success()
-        {
-            let password = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !password.is_empty() {
-                return Ok(password);
-            }
-        }
-
-        anyhow::bail!(tr!("error-cannot-acquire-access-cookie"))
     }
 }
