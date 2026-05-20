@@ -107,17 +107,20 @@
                   Return="ignore" />
 
     <InstallExecuteSequence>
-      <!-- On upgrade RemoveExistingProducts (scheduled afterInstallInitialize)
-           runs the OLD product's uninstall sequence, which includes its own
-           UninstallService. Our StopServiceForce + KillGui guard the fresh-
-           install-over-running-instance case and belt-and-suspenders the
-           upgrade path. -->
-      <Custom Action="StopServiceForce" Before="InstallFiles" Condition="NOT REMOVE=&quot;ALL&quot;" />
-      <Custom Action="KillGui" After="StopServiceForce" Condition="NOT REMOVE=&quot;ALL&quot;" />
+      <!-- Stop the OLD product's processes BEFORE RemoveExistingProducts kicks
+           off the old MSI's uninstall — otherwise the old uninstall hits
+           locked snx-rs.exe / snx-rs-gui.exe and RemoveFiles errors out with
+           2911. Unconditional so it also runs on plain uninstall/repair. -->
+      <Custom Action="StopServiceForce" Before="RemoveExistingProducts" />
+      <Custom Action="KillGui" After="StopServiceForce" />
       <Custom Action="UninstallService" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
-      <Custom Action="DeleteServiceForce" After="InstallFiles" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
-      <Custom Action="InstallService" After="DeleteServiceForce" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
-      <Custom Action="StartService" After="InstallService" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
+      <!-- UPGRADINGPRODUCTCODE is set on the OLD product during its
+           upgrade-triggered uninstall; we must NOT (re)install the service
+           from that session. `NOT Installed` is true for the NEW product's
+           install/upgrade session, which is when we actually want to run. -->
+      <Custom Action="DeleteServiceForce" After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="InstallService" After="DeleteServiceForce" Condition="NOT Installed" />
+      <Custom Action="StartService" After="InstallService" Condition="NOT Installed" />
     </InstallExecuteSequence>
   </Package>
 
