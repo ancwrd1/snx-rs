@@ -144,7 +144,7 @@ impl RoutingConfigurator for WindowsRoutingConfigurator {
             }
             RoutingConfig::Cleanup { .. } => {
                 debug!("Cleaning up routing rules for {}", self.device);
-                self.ipv6_block.lock().unwrap_or_else(|e| e.into_inner()).take();
+                *self.ipv6_block.lock().unwrap_or_else(|e| e.into_inner()) = None;
                 self.delete_all();
             }
         }
