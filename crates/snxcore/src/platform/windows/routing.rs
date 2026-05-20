@@ -83,11 +83,11 @@ impl WindowsRoutingConfigurator {
         debug!("Adding route: {label}");
         let rc = unsafe { CreateIpForwardEntry2(&row) };
         if rc == NO_ERROR {
-            self.added_rows.lock().expect("routing mutex poisoned").push(row);
+            self.added_rows.lock().unwrap_or_else(|e| e.into_inner()).push(row);
             Ok(())
         } else if rc == ERROR_OBJECT_ALREADY_EXISTS {
             debug!("Route already exists, tracking for cleanup: {label}");
-            self.added_rows.lock().expect("routing mutex poisoned").push(row);
+            self.added_rows.lock().unwrap_or_else(|e| e.into_inner()).push(row);
             Ok(())
         } else {
             Err(anyhow!("CreateIpForwardEntry2 failed for {label}: {:?}", rc))
@@ -95,7 +95,7 @@ impl WindowsRoutingConfigurator {
     }
 
     fn delete_all(&self) {
-        let rows = std::mem::take(&mut *self.added_rows.lock().expect("routing mutex poisoned"));
+        let rows = std::mem::take(&mut *self.added_rows.lock().unwrap_or_else(|e| e.into_inner()));
         for row in rows {
             let rc = unsafe { DeleteIpForwardEntry2(&row) };
             if rc != NO_ERROR && rc != ERROR_NOT_FOUND {
@@ -128,7 +128,7 @@ impl RoutingConfigurator for WindowsRoutingConfigurator {
                     // Loopback (::1) is permitted via a higher-weight rule.
                     match WfpIpv6Block::install() {
                         Ok(block) => {
-                            *self.ipv6_block.lock().expect("ipv6_block mutex poisoned") = Some(block);
+                            *self.ipv6_block.lock().unwrap_or_else(|e| e.into_inner()) = Some(block);
                             debug!("IPv6 traffic blocked via WFP");
                         }
                         Err(e) => warn!("Failed to install WFP IPv6 block: {e:#}"),
@@ -142,19 +142,9 @@ impl RoutingConfigurator for WindowsRoutingConfigurator {
                     self.add_route_via_tunnel(*route)?;
                 }
             }
-            RoutingConfig::Cleanup {
-                destination,
-                enable_ipv6,
-            } => {
+            RoutingConfig::Cleanup { .. } => {
                 debug!("Cleaning up routing rules for {}", self.device);
-                let _ = destination;
-                // `enable_ipv6` mirrors the original `disable_ipv6` setting. Drop the
-                // WFP block on cleanup regardless — if we never installed it, the
-                // Option is None and Drop is a no-op.
-                let _ = enable_ipv6;
-                if let Some(block) = self.ipv6_block.lock().expect("ipv6_block mutex poisoned").take() {
-                    drop(block);
-                }
+                self.ipv6_block.lock().unwrap_or_else(|e| e.into_inner()).take();
                 self.delete_all();
             }
         }
