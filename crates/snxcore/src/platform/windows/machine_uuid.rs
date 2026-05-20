@@ -2,13 +2,12 @@ use anyhow::anyhow;
 use cached::proc_macro::cached;
 use tracing::warn;
 use uuid::Uuid;
-use winreg::{RegKey, enums::HKEY_LOCAL_MACHINE};
 
 const SUBKEY: &str = r"SOFTWARE\Microsoft\Cryptography";
 const VALUE: &str = "MachineGuid";
 
 fn read_machine_guid() -> anyhow::Result<String> {
-    let hkey = RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(SUBKEY)?;
+    let hkey = winreg::HKLM.open_subkey(SUBKEY)?;
     Ok(hkey.get_value(VALUE)?)
 }
 

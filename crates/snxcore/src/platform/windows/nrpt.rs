@@ -3,10 +3,7 @@ use std::{fs, path::PathBuf};
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 use uuid::Uuid;
-use winreg::{
-    RegKey,
-    enums::{HKEY_LOCAL_MACHINE, KEY_WRITE, REG_OPTION_NON_VOLATILE},
-};
+use winreg::enums::{KEY_WRITE, REG_OPTION_NON_VOLATILE};
 
 use crate::platform::{Platform, PlatformAccess, SearchDomain};
 
@@ -96,11 +93,7 @@ fn flush_dns_cache() {
 fn create_rule(rule_name: &str, domains: &[&SearchDomain], dns_servers: &[String]) -> anyhow::Result<()> {
     let subkey = format!(r"{POLICY_BASE}\{rule_name}");
 
-    let (hkey, _) = RegKey::predef(HKEY_LOCAL_MACHINE).create_subkey_with_options_flags(
-        &subkey,
-        REG_OPTION_NON_VOLATILE,
-        KEY_WRITE,
-    )?;
+    let (hkey, _) = winreg::HKLM.create_subkey_with_options_flags(&subkey, REG_OPTION_NON_VOLATILE, KEY_WRITE)?;
 
     let result = (|| -> anyhow::Result<()> {
         // NRPT suffix-match entries begin with a dot.
@@ -129,5 +122,5 @@ fn create_rule(rule_name: &str, domains: &[&SearchDomain], dns_servers: &[String
 
 fn delete_rule(rule_name: &str) -> anyhow::Result<()> {
     let subkey = format!(r"{POLICY_BASE}\{rule_name}");
-    Ok(RegKey::predef(HKEY_LOCAL_MACHINE).delete_subkey_all(&subkey)?)
+    Ok(winreg::HKLM.delete_subkey_all(&subkey)?)
 }

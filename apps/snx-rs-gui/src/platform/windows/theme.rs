@@ -20,7 +20,6 @@ use windows::{
     },
     core::w,
 };
-use winreg::{RegKey, enums::HKEY_CURRENT_USER};
 
 use crate::platform::TrayCommand;
 
@@ -40,7 +39,7 @@ pub fn spawn_theme_monitor(theme: Arc<AtomicU32>, tray_sender: Sender<TrayComman
 }
 
 fn read_system_theme() -> u32 {
-    let value = RegKey::predef(HKEY_CURRENT_USER)
+    let value = winreg::HKCU
         .open_subkey(THEME_KEY)
         .and_then(|hkey| hkey.get_value("SystemUsesLightTheme"))
         .unwrap_or(0u32);
