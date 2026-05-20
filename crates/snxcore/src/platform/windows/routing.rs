@@ -32,7 +32,7 @@ pub struct WindowsRoutingConfigurator {
 impl WindowsRoutingConfigurator {
     pub async fn new<S: AsRef<str>>(device: S, tunnel_type: TunnelType) -> anyhow::Result<Self> {
         let device = device.as_ref().to_owned();
-        let tunnel_luid = super::luid_for_alias(&device)?;
+        let tunnel_luid = super::alias_to_luid(&device)?;
         Ok(Self {
             device,
             tunnel_luid,

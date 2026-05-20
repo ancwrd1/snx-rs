@@ -7,17 +7,18 @@ use std::{
     time::Duration,
 };
 
+use anyhow::anyhow;
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 use windows::{
     Win32::{
         NetworkManagement::{
-            IpHelper::{ConvertInterfaceAliasToLuid, ConvertInterfaceLuidToIndex},
+            IpHelper::{ConvertInterfaceAliasToLuid, ConvertInterfaceLuidToGuid, ConvertInterfaceLuidToIndex},
             Ndis::{IF_MAX_STRING_SIZE, NET_LUID_LH},
         },
         Networking::WinSock::{AF_INET, IP_UNICAST_IF, IPPROTO_IP, SOCKADDR_INET, SOCKET, WSAGetLastError, setsockopt},
     },
-    core::PCWSTR,
+    core::{GUID, PCWSTR},
 };
 
 use crate::{
@@ -46,7 +47,7 @@ macro_rules! utf16z {
     };
 }
 
-fn luid_for_alias(alias: &str) -> anyhow::Result<NET_LUID_LH> {
+fn alias_to_luid(alias: &str) -> anyhow::Result<NET_LUID_LH> {
     let wide = utf16z!(alias);
     if wide.len() > IF_MAX_STRING_SIZE as usize {
         return Err(anyhow::anyhow!("interface alias too long: {alias}"));
@@ -56,6 +57,17 @@ fn luid_for_alias(alias: &str) -> anyhow::Result<NET_LUID_LH> {
         .ok()
         .map_err(|e| anyhow::anyhow!("ConvertInterfaceAliasToLuid({alias}) failed: {e}"))?;
     Ok(luid)
+}
+
+fn alias_to_guid(alias: &str) -> anyhow::Result<GUID> {
+    let luid = alias_to_luid(alias)?;
+    let mut guid = GUID::default();
+
+    unsafe { ConvertInterfaceLuidToGuid(&luid, &mut guid) }
+        .ok()
+        .map_err(|e| anyhow!("ConvertInterfaceLuidToGuid failed: {e}"))?;
+
+    Ok(guid)
 }
 
 fn luid_to_index(luid: &NET_LUID_LH) -> anyhow::Result<u32> {
@@ -100,7 +112,7 @@ impl UdpSocketExt for UdpSocket {
     }
 
     fn bind_to_tunnel(&self, device: &str) -> anyhow::Result<()> {
-        let luid = luid_for_alias(device)?;
+        let luid = alias_to_luid(device)?;
         let index = luid_to_index(&luid)?;
 
         // IP_UNICAST_IF takes the interface index in network byte order — a

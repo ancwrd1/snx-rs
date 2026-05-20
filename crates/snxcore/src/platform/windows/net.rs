@@ -118,7 +118,7 @@ impl NetworkInterface for WindowsNetworkInterface {
 
     async fn configure_device(&self, device_config: &DeviceConfig) -> anyhow::Result<()> {
         debug!("Configuring device: {:?}", device_config);
-        let luid = super::luid_for_alias(&device_config.name)?;
+        let luid = super::alias_to_luid(&device_config.name)?;
 
         let mut iface = MIB_IPINTERFACE_ROW {
             Family: AF_INET,
@@ -152,7 +152,7 @@ impl NetworkInterface for WindowsNetworkInterface {
         old_address: Ipv4Net,
         new_address: Ipv4Net,
     ) -> anyhow::Result<()> {
-        let luid = super::luid_for_alias(device_name)?;
+        let luid = super::alias_to_luid(device_name)?;
         let new_row = unicast_row(luid, new_address);
         unsafe { CreateUnicastIpAddressEntry(&new_row) }
             .ok()

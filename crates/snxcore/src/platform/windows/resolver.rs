@@ -5,15 +5,11 @@ use tracing::debug;
 use windows::{
     Win32::{
         Foundation::NO_ERROR,
-        NetworkManagement::{
-            IpHelper::{
-                ConvertInterfaceAliasToLuid, ConvertInterfaceLuidToGuid, DNS_INTERFACE_SETTINGS,
-                DNS_SETTING_NAMESERVER, DNS_SETTING_SEARCHLIST, SetInterfaceDnsSettings,
-            },
-            Ndis::NET_LUID_LH,
+        NetworkManagement::IpHelper::{
+            DNS_INTERFACE_SETTINGS, DNS_SETTING_NAMESERVER, DNS_SETTING_SEARCHLIST, SetInterfaceDnsSettings,
         },
     },
-    core::{GUID, PCWSTR, PWSTR},
+    core::PWSTR,
 };
 
 use super::nrpt::Nrpt;
@@ -38,7 +34,7 @@ impl WindowsResolverConfigurator {
     }
 
     fn apply(&self, nameserver: PWSTR, searchlist: PWSTR) -> anyhow::Result<()> {
-        let guid = alias_to_guid(&self.device)?;
+        let guid = super::alias_to_guid(&self.device)?;
 
         let settings = DNS_INTERFACE_SETTINGS {
             Version: DNS_INTERFACE_SETTINGS_VERSION1,
@@ -113,21 +109,4 @@ where
 {
     let joined = parts.into_iter().map(|p| p.as_ref().to_owned()).join(",");
     utf16z!(joined)
-}
-
-fn alias_to_guid(alias: &str) -> anyhow::Result<GUID> {
-    let wide = utf16z!(alias);
-    let mut luid = NET_LUID_LH::default();
-
-    unsafe { ConvertInterfaceAliasToLuid(PCWSTR(wide.as_ptr()), &mut luid) }
-        .ok()
-        .map_err(|e| anyhow!("ConvertInterfaceAliasToLuid({alias}) failed: {e}"))?;
-
-    let mut guid = GUID::default();
-
-    unsafe { ConvertInterfaceLuidToGuid(&luid, &mut guid) }
-        .ok()
-        .map_err(|e| anyhow!("ConvertInterfaceLuidToGuid failed: {e}"))?;
-
-    Ok(guid)
 }

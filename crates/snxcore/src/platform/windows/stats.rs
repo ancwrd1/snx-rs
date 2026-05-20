@@ -30,7 +30,7 @@ pub struct WindowsStatsPoller {
 
 impl WindowsStatsPoller {
     pub fn new(device_name: &str) -> anyhow::Result<Self> {
-        let luid = super::luid_for_alias(device_name)?;
+        let luid = super::alias_to_luid(device_name)?;
         let row = read_row(luid)?;
 
         Ok(Self {
