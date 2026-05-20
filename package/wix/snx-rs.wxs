@@ -80,25 +80,28 @@
 
     <!-- Force-stop the service and kill the GUI (running in the user session)
          so the exes are no longer file-locked. Best-effort: non-zero exit
-         when the target isn't running is fine. -->
+         when the target isn't running is fine. Immediate (not deferred): we
+         must run BEFORE RemoveExistingProducts so the old MSI's uninstall
+         can delete unlocked files, and deferred CAs can't be scheduled
+         before MajorUpgrade's afterInstallInitialize REP slot. The MSI
+         already runs elevated, so sc.exe / taskkill have the rights they
+         need. -->
     <CustomAction Id="StopServiceForce"
                   Directory="INSTALLFOLDER"
                   ExeCommand="[System64Folder]sc.exe stop snx-rs"
-                  Execute="deferred"
-                  Impersonate="no"
+                  Execute="immediate"
                   Return="ignore" />
 
     <CustomAction Id="KillGui"
                   Directory="INSTALLFOLDER"
                   ExeCommand="[System64Folder]taskkill.exe /F /IM snx-rs-gui.exe /T"
-                  Execute="deferred"
-                  Impersonate="no"
+                  Execute="immediate"
                   Return="ignore" />
 
     <!-- Delete any leftover snx-rs service before (re)creating it. Covers the
          case where the old product's UninstallService didn't run (e.g.
          upgrading from a pre-CA MSI, or the old CA failed silently). sc.exe
-         delete on a missing service returns 1060 — Return="ignore". -->
+         delete on a missing service returns 1060 - Return="ignore". -->
     <CustomAction Id="DeleteServiceForce"
                   Directory="INSTALLFOLDER"
                   ExeCommand="[System64Folder]sc.exe delete snx-rs"
@@ -108,7 +111,7 @@
 
     <InstallExecuteSequence>
       <!-- Stop the OLD product's processes BEFORE RemoveExistingProducts kicks
-           off the old MSI's uninstall — otherwise the old uninstall hits
+           off the old MSI's uninstall - otherwise the old uninstall hits
            locked snx-rs.exe / snx-rs-gui.exe and RemoveFiles errors out with
            2911. Unconditional so it also runs on plain uninstall/repair. -->
       <Custom Action="StopServiceForce" Before="RemoveExistingProducts" />
