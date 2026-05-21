@@ -176,6 +176,7 @@ pub enum CertType {
     Pkcs12,
     Pkcs8,
     Pkcs11,
+    System,
 }
 
 impl CertType {
@@ -185,6 +186,7 @@ impl CertType {
             Self::Pkcs12 => 1,
             Self::Pkcs8 => 2,
             Self::Pkcs11 => 3,
+            Self::System => 4,
         }
     }
 }
@@ -195,6 +197,7 @@ impl From<u32> for CertType {
             1 => Self::Pkcs12,
             2 => Self::Pkcs8,
             3 => Self::Pkcs11,
+            4 => Self::System,
             _ => Self::None,
         }
     }
@@ -207,6 +210,7 @@ impl fmt::Display for CertType {
             Self::Pkcs12 => "pkcs12",
             Self::Pkcs8 => "pkcs8",
             Self::Pkcs11 => "pkcs11",
+            Self::System => "system",
         };
         write!(f, "{s}")
     }
@@ -221,6 +225,7 @@ impl FromStr for CertType {
             "pkcs12" => Ok(CertType::Pkcs12),
             "pkcs8" => Ok(CertType::Pkcs8),
             "pkcs11" => Ok(CertType::Pkcs11),
+            "system" => Ok(CertType::System),
             _ => Err(anyhow!(tr!("error-invalid-cert-type"))),
         }
     }

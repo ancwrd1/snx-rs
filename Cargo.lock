@@ -2757,6 +2757,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hostname"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "617aaa3557aef3810a6369d0a99fac8a080891b68bd9f9812a1eeda0c0730cbd"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "windows-link 0.2.1",
+]
+
+[[package]]
 name = "htmlparser"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3513,7 +3524,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "isakmp"
 version = "0.1.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#daa0c9416553b63ff4e952a6747162860281d9cf"
+source = "git+https://github.com/ancwrd1/isakmp.git?branch=port%2Fwindows#5f72b71ba5571e320b46dee57bdab131e9564b9b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3536,6 +3547,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6437,6 +6449,7 @@ dependencies = [
  "glob",
  "gtk4",
  "hex",
+ "hostname",
  "i-slint-backend-winit",
  "i18n",
  "interprocess",
@@ -6479,6 +6492,7 @@ dependencies = [
  "enum-as-inner 0.7.0",
  "futures",
  "hex",
+ "hostname",
  "http-body-util",
  "hyper",
  "hyper-util",

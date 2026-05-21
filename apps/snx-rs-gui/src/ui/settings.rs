@@ -71,12 +71,24 @@ impl SettingsWindowController {
             .window
             .set_tunnel_types(ModelRc::new(VecModel::from(tunnel_types)));
 
-        let cert_types: Vec<SharedString> = vec![
+        let mut cert_types: Vec<SharedString> = vec![
             tr!("cert-type-none").into(),
             tr!("cert-type-pfx").into(),
             tr!("cert-type-pem").into(),
             tr!("cert-type-hw").into(),
         ];
+
+        if cfg!(windows) {
+            cert_types.push(tr!("cert-type-system").into());
+            self.scope.window.set_cert_id_placeholder(
+                hostname::get()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned()
+                    .into(),
+            );
+        }
+
         self.scope
             .window
             .set_cert_types(ModelRc::new(VecModel::from(cert_types)));
@@ -824,9 +836,12 @@ fn validate(window: &SettingsWindow) -> anyhow::Result<()> {
         anyhow::bail!(tr!("error-file-not-exist", path = cert_path.to_string()));
     }
 
-    let cert_id = window.get_cert_id().to_string().replace(':', "");
-    if !cert_id.is_empty() && hex::decode(&cert_id).is_err() {
-        anyhow::bail!(tr!("error-invalid-cert-id", id = cert_id));
+    let cert_type: CertType = (window.get_cert_type_index() as u32).into();
+    if cert_type == CertType::Pkcs11 {
+        let cert_id = window.get_cert_id().to_string().replace(':', "");
+        if !cert_id.is_empty() && hex::decode(&cert_id).is_err() {
+            anyhow::bail!(tr!("error-invalid-cert-id", id = cert_id));
+        }
     }
 
     let ca_cert = window.get_ca_cert();

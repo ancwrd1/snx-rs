@@ -607,6 +607,16 @@ impl IPsecTunnelConnector {
                 },
                 None => anyhow::bail!(tr!("error-no-pkcs11")),
             },
+            #[cfg(windows)]
+            CertType::System => {
+                let common_name = match params.cert_id {
+                    Some(ref id) => id.clone(),
+                    None => hostname::get()?.to_string_lossy().into_owned(),
+                };
+                Identity::System { common_name }
+            }
+            #[cfg(not(windows))]
+            CertType::System => anyhow::bail!(tr!("error-not-implemented")),
             CertType::None => Identity::None,
         };
         Ok(identity)
