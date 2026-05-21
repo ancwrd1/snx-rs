@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use cached::proc_macro::cached;
+use cached::cached;
 use nix::{
     fcntl::{self, FcntlArg, OFlag},
     getsockopt_impl, setsockopt_impl, sockopt_impl,

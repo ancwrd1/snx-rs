@@ -14,7 +14,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-isakmp = { git = "https://github.com/ancwrd1/isakmp.git", branch = "port/windows" }
+isakmp = { git = "https://github.com/ancwrd1/isakmp.git" }
 i18n = { path = "../i18n" }
 
 pest = "2"
@@ -46,7 +46,7 @@ parse_int = "0.9"
 byteorder = "1"
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
 opener = { version = "0.8"}
-cached = {  version = "0.59",  features = ["async"] }
+cached = {  version = "1",  features = ["async"] }
 openssl = "0.10"
 itertools = "0.14"
 interprocess = { version = "2", features = ["tokio"] }

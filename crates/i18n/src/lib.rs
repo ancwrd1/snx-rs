@@ -3,7 +3,7 @@ use std::{
     sync::{LazyLock, RwLock},
 };
 
-use cached::proc_macro::cached;
+use cached::cached;
 pub use fluent_templates;
 use fluent_templates::{LanguageIdentifier, Loader, fluent_bundle::FluentValue, static_loader};
 

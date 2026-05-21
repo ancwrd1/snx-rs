@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
-use cached::proc_macro::cached;
+use cached::cached;
 use ipnet::{Ipv4Net, Ipv4Subnets};
 use uuid::Uuid;
 
