@@ -10,8 +10,10 @@
 # Output: target/snx-rs-<version>-x64.msi
 #
 # Requires the WixToolset.UI.wixext extension (for the WixUI_InstallDir dialog
-# set). The script auto-installs it via `wix extension add -g` — that's
-# idempotent and a no-op if it's already present.
+# set) and WixToolset.Util.wixext (for util:WixQuietExec64, which runs our
+# service/process control commands without flashing a console window). The
+# script auto-installs both via `wix extension add -g` — that's idempotent
+# and a no-op if they're already present.
 
 [CmdletBinding()]
 param()
@@ -72,11 +74,14 @@ try {
     $wixVersion = $matches[1]
     & wix extension add -g "WixToolset.UI.wixext/$wixVersion" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "failed to install WixToolset.UI.wixext/$wixVersion" }
+    & wix extension add -g "WixToolset.Util.wixext/$wixVersion" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "failed to install WixToolset.Util.wixext/$wixVersion" }
 
     $out = Join-Path $target ("snx-rs-$version-x64.msi")
     & wix build `
         -arch x64 `
         -ext "WixToolset.UI.wixext/$wixVersion" `
+        -ext "WixToolset.Util.wixext/$wixVersion" `
         -d "Version=$msiVersion" `
         -d "StageDir=$stage" `
         -d "LicenseRtf=$(Join-Path $PSScriptRoot 'license.rtf')" `

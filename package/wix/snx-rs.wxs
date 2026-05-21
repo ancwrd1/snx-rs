@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package
     Name="SNX-RS VPN Client"
     Manufacturer="Dmitry Pankratov"
@@ -52,28 +53,46 @@
       <ComponentRef Id="ToastAppId" />
     </Feature>
 
-    <!-- Deferred Type 34 CAs run with a very restricted property environment;
-         [INSTALLFOLDER] / [SystemFolder] do NOT resolve in ExeCommand. Use
-         [#FileId] (file-table tokens, which DO resolve in the deferred script)
-         for our own binary, and absolute paths via [System64Folder] for OS
-         tools. -->
+    <!-- All command CAs run via util:WixQuietExec64 (Wix4UtilCA_X64) so the
+         child process is launched with a hidden window - sc.exe / net.exe /
+         taskkill.exe are console-subsystem and would otherwise flash a
+         console. Deferred CAs read the command line from CustomActionData;
+         we set that via a paired immediate "setter" CA whose Property
+         attribute matches the deferred CA Id. Immediate CAs read it from
+         the WixQuietExec64CmdLine property, set with SetProperty just
+         before each invocation. -->
+
+    <!-- InstallService: "<snx-rs.exe> -m install" (deferred, elevated) -->
+    <CustomAction Id="SetInstallServiceCmd"
+                  Property="InstallService"
+                  Value="&quot;[#SnxRsExeFile]&quot; -m install" />
     <CustomAction Id="InstallService"
-                  Directory="INSTALLFOLDER"
-                  ExeCommand="&quot;[#SnxRsExeFile]&quot; -m install"
+                  DllEntry="WixQuietExec64"
+                  BinaryRef="Wix4UtilCA_X64"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
 
+    <!-- UninstallService: "<snx-rs.exe> -m uninstall" (deferred, elevated) -->
+    <CustomAction Id="SetUninstallServiceCmd"
+                  Property="UninstallService"
+                  Value="&quot;[#SnxRsExeFile]&quot; -m uninstall" />
     <CustomAction Id="UninstallService"
-                  Directory="INSTALLFOLDER"
-                  ExeCommand="&quot;[#SnxRsExeFile]&quot; -m uninstall"
+                  DllEntry="WixQuietExec64"
+                  BinaryRef="Wix4UtilCA_X64"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- StartService: sc.exe start snx-rs (deferred, elevated). sc.exe returns
+         immediately without waiting for the service to reach RUNNING, which
+         is what we want - net.exe would block until startup completes. -->
+    <CustomAction Id="SetStartServiceCmd"
+                  Property="StartService"
+                  Value="&quot;[System64Folder]sc.exe&quot; start snx-rs" />
     <CustomAction Id="StartService"
-                  Directory="INSTALLFOLDER"
-                  ExeCommand="[System64Folder]sc.exe start snx-rs"
+                  DllEntry="WixQuietExec64"
+                  BinaryRef="Wix4UtilCA_X64"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -84,17 +103,25 @@
          must run BEFORE RemoveExistingProducts so the old MSI's uninstall
          can delete unlocked files, and deferred CAs can't be scheduled
          before MajorUpgrade's afterInstallInitialize REP slot. The MSI
-         already runs elevated, so sc.exe / taskkill have the rights they
+         already runs elevated, so net.exe / taskkill have the rights they
          need. -->
+    <SetProperty Id="WixQuietExec64CmdLine"
+                 Value="&quot;[System64Folder]net.exe&quot; stop snx-rs /y"
+                 Before="StopServiceForce"
+                 Sequence="execute" />
     <CustomAction Id="StopServiceForce"
-                  Directory="INSTALLFOLDER"
-                  ExeCommand="[System64Folder]sc.exe stop snx-rs"
+                  DllEntry="WixQuietExec64"
+                  BinaryRef="Wix4UtilCA_X64"
                   Execute="immediate"
                   Return="ignore" />
 
+    <SetProperty Id="WixQuietExec64CmdLine"
+                 Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM snx-rs-gui.exe /T"
+                 Before="KillGui"
+                 Sequence="execute" />
     <CustomAction Id="KillGui"
-                  Directory="INSTALLFOLDER"
-                  ExeCommand="[System64Folder]taskkill.exe /F /IM snx-rs-gui.exe /T"
+                  DllEntry="WixQuietExec64"
+                  BinaryRef="Wix4UtilCA_X64"
                   Execute="immediate"
                   Return="ignore" />
 
@@ -102,9 +129,12 @@
          case where the old product's UninstallService didn't run (e.g.
          upgrading from a pre-CA MSI, or the old CA failed silently). sc.exe
          delete on a missing service returns 1060 - Return="ignore". -->
+    <CustomAction Id="SetDeleteServiceForceCmd"
+                  Property="DeleteServiceForce"
+                  Value="&quot;[System64Folder]sc.exe&quot; delete snx-rs" />
     <CustomAction Id="DeleteServiceForce"
-                  Directory="INSTALLFOLDER"
-                  ExeCommand="[System64Folder]sc.exe delete snx-rs"
+                  DllEntry="WixQuietExec64"
+                  BinaryRef="Wix4UtilCA_X64"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -116,14 +146,18 @@
            2911. Unconditional so it also runs on plain uninstall/repair. -->
       <Custom Action="StopServiceForce" Before="RemoveExistingProducts" />
       <Custom Action="KillGui" After="StopServiceForce" />
+      <Custom Action="SetUninstallServiceCmd" Before="UninstallService" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
       <Custom Action="UninstallService" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
       <!-- UPGRADINGPRODUCTCODE is set on the OLD product during its
            upgrade-triggered uninstall; we must NOT (re)install the service
            from that session. `NOT Installed` is true for the NEW product's
            install/upgrade session, which is when we actually want to run. -->
-      <Custom Action="DeleteServiceForce" After="InstallFiles" Condition="NOT Installed" />
-      <Custom Action="InstallService" After="DeleteServiceForce" Condition="NOT Installed" />
-      <Custom Action="StartService" After="InstallService" Condition="NOT Installed" />
+      <Custom Action="SetDeleteServiceForceCmd" After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="DeleteServiceForce" After="SetDeleteServiceForceCmd" Condition="NOT Installed" />
+      <Custom Action="SetInstallServiceCmd" After="DeleteServiceForce" Condition="NOT Installed" />
+      <Custom Action="InstallService" After="SetInstallServiceCmd" Condition="NOT Installed" />
+      <Custom Action="SetStartServiceCmd" After="InstallService" Condition="NOT Installed" />
+      <Custom Action="StartService" After="SetStartServiceCmd" Condition="NOT Installed" />
     </InstallExecuteSequence>
   </Package>
 
