@@ -106,6 +106,7 @@
          already runs elevated, so net.exe / taskkill have the rights they
          need. -->
     <SetProperty Id="WixQuietExec64CmdLine"
+                 Action="SetStopServiceForceCmd"
                  Value="&quot;[System64Folder]net.exe&quot; stop snx-rs /y"
                  Before="StopServiceForce"
                  Sequence="execute" />
@@ -116,6 +117,7 @@
                   Return="ignore" />
 
     <SetProperty Id="WixQuietExec64CmdLine"
+                 Action="SetKillGuiCmd"
                  Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM snx-rs-gui.exe /T"
                  Before="KillGui"
                  Sequence="execute" />
