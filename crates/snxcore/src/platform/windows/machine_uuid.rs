@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use cached::proc_macro::cached;
+use cached::cached;
 use tracing::warn;
 use uuid::Uuid;
 
