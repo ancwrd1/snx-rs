@@ -7,10 +7,10 @@
 | `user-name=<username>`                    | User name to authenticate, not used for SAML or certificate authentication                                                                               |
 | `password=<pass>`                         | Optional password in base64 encoding                                                                                                                     |
 | `password-factor=<1..N>`                  | Index of the password authentication factor which is used for keychain storage and for reading the password from config file. Default is 1 (first).      |
-| `cert-type=<cert_type>`                   | Enable certificate-based authentication using given type: pkcs8, pkcs11, pkcs12, none                                                                    |
+| `cert-type=<cert_type>`                   | Enable certificate-based authentication using given type: pkcs8, pkcs11, pkcs12 (all platforms), system (Windows only)                                   |
 | `cert-path=<cert_path>`                   | Path to PEM file for PKCS8, path to PFX file for PKCS12, path to driver file for PKCS11                                                                  |
 | `cert-password=<cert_password>`           | Password for PKCS12 or pin for PKCS11                                                                                                                    |
-| `cert-id=<cert_id>`                       | Hexadecimal ID of PKCS11 certificate, bytes could be optionally separated with colon                                                                     |
+| `cert-id=<cert_id>`                       | Hexadecimal ID of PKCS11 certificate, bytes could be optionally separated with colon, or certificate common name for cert-type=system.                   |
 | `search-domains=<search_domains>`         | Additional search domains for DNS resolver, comma-separated                                                                                              |
 | `ignore-search-domains=<ignored_domains>` | Acquired search domains to ignore                                                                                                                        |
 | `dns-servers=<dns_servers>`               | Additional DNS servers, comma-separated                                                                                                                  |
