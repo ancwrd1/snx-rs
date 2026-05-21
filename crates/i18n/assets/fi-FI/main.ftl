@@ -39,6 +39,7 @@ label-driver-file = PKCS11-ajuritiedosto
 label-cert-password = PFX-salasana
 label-pkcs11-pin = PKCS11-PIN
 label-cert-id = PKCS11-varmennuksen heksadesimaalinen tunniste
+label-cert-name = Varmenteen yleinen nimi
 label-language = Kieli
 label-system-default = Järjestelmän oletus
 label-username-password = Käyttäjätunnus ja salasana
@@ -158,6 +159,7 @@ cert-type-none = Ei mitään
 cert-type-pfx = PFX (PKCS12) -avainvarasto
 cert-type-pem = PEM-tiedosto, jossa varmenne ja yksityinen avain
 cert-type-hw = HSM-laite
+cert-type-system = Järjestelmän varmennevarasto
 
 # Transport types
 transport-type-autodetect = Automaattinen tunnistus

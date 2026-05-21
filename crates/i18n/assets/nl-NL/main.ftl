@@ -39,6 +39,7 @@ label-driver-file = PKCS11-stuurprogrammabestand
 label-cert-password = PFX-wachtwoord
 label-pkcs11-pin = PKCS11-pin
 label-cert-id = Hexadecimale ID van PKCS11-certificaat
+label-cert-name = Algemene naam van certificaat
 label-language = Taal
 label-system-default = Systeemstandaard
 label-username-password = Gebruikersnaam en wachtwoord
@@ -158,6 +159,7 @@ cert-type-none = Geen
 cert-type-pfx = PFX (PKCS12)-sleutelarchief
 cert-type-pem = PEM-bestand met certificaat en privésleutel
 cert-type-hw = HSM-apparaat
+cert-type-system = Systeemcertificaatarchief
 
 # Transport types
 transport-type-autodetect = Automatisch detecteren

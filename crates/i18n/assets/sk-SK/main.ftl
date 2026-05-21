@@ -39,6 +39,7 @@ label-driver-file = Súbor ovládača PKCS11
 label-cert-password = Heslo PFX
 label-pkcs11-pin = PIN PKCS11
 label-cert-id = Hexadecimálne ID certifikátu PKCS11
+label-cert-name = Spoločný názov certifikátu
 label-language = Jazyk
 label-system-default = Systémové predvolené
 label-username-password = Používateľské meno a heslo
@@ -158,6 +159,7 @@ cert-type-none = Žiadny
 cert-type-pfx = Úložisko kľúčov PFX (PKCS12)
 cert-type-pem = Súbor PEM s certifikátom a súkromným kľúčom
 cert-type-hw = Zariadenie HSM
+cert-type-system = Systémové úložisko certifikátov
 
 # Transport types
 transport-type-autodetect = Automatická detekcia

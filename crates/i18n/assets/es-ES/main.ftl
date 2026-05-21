@@ -39,6 +39,7 @@ label-driver-file = Archivo de controlador PKCS11
 label-cert-password = Contraseña PFX
 label-pkcs11-pin = PIN PKCS11
 label-cert-id = ID hexadecimal del certificado PKCS11
+label-cert-name = Nombre común del certificado
 label-language = Idioma
 label-system-default = Predeterminado del sistema
 label-username-password = Nombre de usuario y contraseña
@@ -158,6 +159,7 @@ cert-type-none = Ninguno
 cert-type-pfx = Almacén de claves PFX (PKCS12)
 cert-type-pem = Archivo PEM con certificado y clave privada
 cert-type-hw = Dispositivo HSM
+cert-type-system = Almacén de certificados del sistema
 
 # Transport types
 transport-type-autodetect = Detección automática

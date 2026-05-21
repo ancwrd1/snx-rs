@@ -39,6 +39,7 @@ label-driver-file = Datoteka PKCS11 upravljačkog programa
 label-cert-password = PFX lozinka
 label-pkcs11-pin = PKCS11 pin
 label-cert-id = Hex ID PKCS11 certifikata
+label-cert-name = Uobičajeno ime certifikata
 label-language = Jezik
 label-system-default = Zadano sustava
 label-username-password = Korisničko ime i lozinka
@@ -158,6 +159,7 @@ cert-type-none = Ništa
 cert-type-pfx = PFX (PKCS12) spremište ključeva
 cert-type-pem = PEM datoteka s certifikatom i privatnim ključem
 cert-type-hw = HSM uređaj
+cert-type-system = Sistemska pohrana certifikata
 
 # Transport types
 transport-type-autodetect = Automatsko otkrivanje
