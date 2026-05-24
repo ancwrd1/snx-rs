@@ -122,10 +122,7 @@ where
             ServiceCommand::Status => self.do_status(params, false).await,
             ServiceCommand::Connect => self.do_connect(params).await,
             ServiceCommand::Disconnect => self.do_disconnect(params).await,
-            ServiceCommand::Reconnect => {
-                let _ = self.do_disconnect(params.clone()).await;
-                self.do_connect(params).await
-            }
+            ServiceCommand::Reconnect => self.do_reconnect(params).await,
         }
     }
 
@@ -323,6 +320,12 @@ where
         self.send_receive(TunnelServiceRequest::Disconnect, RECV_TIMEOUT)
             .await?;
         self.do_status(params, false).await
+    }
+
+    async fn do_reconnect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
+        let _ = self.do_disconnect(params.clone()).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        self.do_connect(params).await
     }
 
     async fn send_receive(
