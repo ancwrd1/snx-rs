@@ -131,7 +131,7 @@ unsafe fn probe_gl_function() -> bool {
                 // wglGetProcAddress returns 1/2/3/-1 as "not found" sentinels on
                 // some drivers in addition to NULL. Treat all of those as missing.
                 result = match ptr.map(|f| f as usize) {
-                    None | Some(1) | Some(2) | Some(3) | Some(usize::MAX) => false,
+                    None | Some(1 | 2 | 3 | usize::MAX) => false,
                     Some(_) => true,
                 };
                 let _ = wglMakeCurrent(hdc, HGLRC::default());
