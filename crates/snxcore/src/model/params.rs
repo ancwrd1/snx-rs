@@ -10,6 +10,7 @@ use std::{
 
 use anyhow::anyhow;
 use base64::Engine;
+use cached::cached;
 use i18n::tr;
 use ipnet::Ipv4Net;
 use secrecy::{ExposeSecret, SecretString};
@@ -18,6 +19,26 @@ use tracing::warn;
 use uuid::Uuid;
 
 use crate::util::{self, ipv4net_to_string, parse_ipv4_or_subnet};
+
+#[cached]
+pub fn default_config_dir_cached() -> PathBuf {
+    #[cfg(windows)]
+    {
+        let base = std::env::var_os("APPDATA")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("ProgramData").map(PathBuf::from))
+            .unwrap_or_else(|| PathBuf::from("C:\\ProgramData"));
+        base.join("snx-rs")
+    }
+    #[cfg(not(windows))]
+    {
+        let base = std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
+            .unwrap_or_else(|| PathBuf::from("/etc"));
+        base.join("snx-rs")
+    }
+}
 
 fn serialize_secret_string<S>(secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -776,19 +797,7 @@ impl TunnelParams {
     }
 
     pub fn default_config_dir() -> PathBuf {
-        #[cfg(windows)]
-        {
-            let base = std::env::var_os("APPDATA").expect("No APPDATA directory!");
-            PathBuf::from(base).join("snx-rs")
-        }
-        #[cfg(not(windows))]
-        {
-            let base = std::env::var_os("XDG_CONFIG_HOME")
-                .map(PathBuf::from)
-                .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
-                .expect("No home directory!");
-            base.join("snx-rs")
-        }
+        default_config_dir_cached()
     }
 
     pub fn default_config_path() -> PathBuf {
@@ -807,7 +816,7 @@ impl TunnelParams {
     }
 
     pub fn save_profile_order(order: &[Uuid]) -> anyhow::Result<()> {
-        let dir = Self::default_config_dir();
+        let dir = default_config_dir_cached();
         fs::create_dir_all(&dir)?;
         let body: String = order.iter().map(|u| format!("{u}\n")).collect();
         fs::write(dir.join("profiles.order"), body)?;
