@@ -1,4 +1,4 @@
-# Certificate Authentication
+# Certificates
 
 ## Certificate Validation
 
@@ -13,10 +13,14 @@ Note that enabling the insecure option may compromise the channel security.
 
 The following parameters control certificate-based authentication:
 
-* `cert-type`: One of `none`, `pkcs12`, `pkcs8` or `pkcs11`. Choose `pkcs12` to read the certificate from an external PFX file. Choose `pkcs8` to read the certificate from an external PEM file (containing both private key and x509 cert). Private key must come first in this file. Choose `pkcs11` to use a hardware token via a PKCS11 driver.
+* `cert-type`: Certificate type to use: 
+  - `pkcs12` - read the certificate from an external PFX/PKCS12 file.
+  - `pkcs8` - read the certificate from an external PEM file (containing both private key and x509 cert). Private key must come first in this file.
+  - `pkcs11` - use a hardware token via a PKCS11 driver.
+  - `system` - read the certificate from Windows system certificate store.
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed.
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
-* `cert-id`: Optional hexadecimal ID of the certificate for the PKCS11 type. Could be in the form of `xx:xx:xx` or `xxxxxx`.
+* `cert-id`: For `pkcs11`, an optional hexadecimal ID of the certificate. Could be in the form of `xx:xx:xx` or `xxxxxx`. For `system`, a common name of the certificate from the system certificate store. The defualt is the PC host name. 
 
 Certificate authentication should be used with the appropriate vpn_XXX login type which has a "certificate" as its authentication factor.
 
