@@ -150,6 +150,7 @@ impl SettingsWindowController {
             .set_locales(ModelRc::new(VecModel::from(locale_labels)));
 
         self.state.borrow_mut().locales = locales;
+        self.scope.window.set_show_no_split_dns(!cfg!(windows));
     }
 
     fn populate_profiles(&self) {
