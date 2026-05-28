@@ -79,7 +79,9 @@ jobs:
           rustup target add x86_64-pc-windows-msvc
 
       - name: Install WiX
-        run: dotnet tool install --global wix
+        run: |
+          dotnet tool install --global wix
+          wix eula accept wix7
 
       - name: Build project
         env:
