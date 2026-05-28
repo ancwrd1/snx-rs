@@ -1,4 +1,4 @@
-## v6.1.0 (TBD)
+## v6.1.0 (2026-05-28)
 This version adds experimental support to run snx-rs on Windows, using wintun driver.
 MSI installer can be downloaded from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
 All original functionality is available in the Windows version, except for the kernel-based (xfrm) IPsec support.
