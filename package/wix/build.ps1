@@ -72,10 +72,10 @@ try {
         throw "could not parse wix version from '$wixVersionRaw'"
     }
     $wixVersion = $matches[1]
-    & wix extension add -g "WixToolset.UI.wixext/$wixVersion" | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "failed to install WixToolset.UI.wixext/$wixVersion" }
-    & wix extension add -g "WixToolset.Util.wixext/$wixVersion" | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "failed to install WixToolset.Util.wixext/$wixVersion" }
+    $extOutput = & wix extension add -g "WixToolset.UI.wixext/$wixVersion" 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "failed to install WixToolset.UI.wixext/$wixVersion (exit $LASTEXITCODE): $extOutput" }
+    $extOutput = & wix extension add -g "WixToolset.Util.wixext/$wixVersion" 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "failed to install WixToolset.Util.wixext/$wixVersion (exit $LASTEXITCODE): $extOutput" }
 
     $out = Join-Path $target ("snx-rs-$version-x64.msi")
     & wix build `
