@@ -11,6 +11,7 @@ use std::{
 use anyhow::anyhow;
 use async_trait::async_trait;
 use i18n::tr;
+use itertools::Itertools;
 use reqwest::{Certificate, Identity};
 use secrecy::ExposeSecret;
 use tokio::sync::OnceCell;
@@ -49,10 +50,16 @@ impl CccGatewayConnector {
     }
 
     fn gateway_information_cell(&self) -> Arc<OnceCell<GatewayInformation>> {
+        let key = format!(
+            "{}/{}/{}",
+            self.params.server_name,
+            self.params.ignore_server_cert,
+            self.params.ca_cert.iter().map(|s| s.to_string_lossy()).join(",")
+        );
         GATEWAY_INFO_CACHE
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .entry(self.params.server_name.clone())
+            .entry(key)
             .or_insert_with(|| Arc::new(OnceCell::new()))
             .clone()
     }
