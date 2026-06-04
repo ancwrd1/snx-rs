@@ -293,14 +293,25 @@ async fn on_connect<F>(
 ) where
     F: TunnelConnectorFactory + Send + Sync + 'static,
 {
-    let _ = sender.send(TrayCommand::Update(None)).await;
+    let _ = sender
+        .send(TrayCommand::Update(Some(Arc::new(Ok(ConnectionStatus::Connecting)))))
+        .await;
 
     let connector = factory.new_gateway_connector(params.clone());
-    let prompts = connector
-        .get_gateway_information()
-        .await
-        .map(|info| info.get_login_prompts(&params.login_type))
-        .unwrap_or_default();
+
+    let prompts = match connector.get_gateway_information().await {
+        Ok(info) => info.get_login_prompts(&params.login_type),
+        Err(e) => {
+            let _ = SlintPrompt
+                .show_notification(&tr!("app-connection-error"), &e.to_string())
+                .await;
+
+            let _ = sender
+                .send(TrayCommand::Update(Some(Arc::new(Ok(ConnectionStatus::Disconnected)))))
+                .await;
+            return;
+        }
+    };
 
     let mut controller =
         ServiceController::new_with_prompts(SlintPrompt, platform::new_browser_controller(params.clone()), prompts);
