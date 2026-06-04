@@ -126,7 +126,7 @@ async fn async_main(cmdline_params: CmdlineParams) -> anyhow::Result<()> {
 
 async fn main_info<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
 where
-    F: TunnelConnectorFactory + Send + Sync + 'static,
+    F: TunnelConnectorFactory,
 {
     if params.server_name.is_empty() {
         anyhow::bail!(tr!("error-missing-server-name"));
@@ -141,7 +141,7 @@ where
 
 async fn main_enroll<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
 where
-    F: TunnelConnectorFactory + Send + Sync + 'static,
+    F: TunnelConnectorFactory,
 {
     let params = Arc::new(params);
 
@@ -172,7 +172,7 @@ where
 
 async fn main_renew<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
 where
-    F: TunnelConnectorFactory + Send + Sync + 'static,
+    F: TunnelConnectorFactory,
 {
     let params = Arc::new(params);
 
@@ -235,7 +235,7 @@ where
 
 async fn main_standalone<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
 where
-    F: TunnelConnectorFactory + Send + Sync + 'static,
+    F: TunnelConnectorFactory,
 {
     let (command_sender, command_receiver) = mpsc::channel(16);
 

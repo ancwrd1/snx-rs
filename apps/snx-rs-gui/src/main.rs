@@ -172,7 +172,7 @@ async fn handle_tray_events<F>(
     tray_event_sender: mpsc::Sender<TrayEvent>,
     no_tray: bool,
 ) where
-    F: TunnelConnectorFactory + Send + Sync + 'static,
+    F: TunnelConnectorFactory + Send + 'static,
 {
     let mut cancel_sender = None;
 
@@ -291,7 +291,7 @@ async fn on_connect<F>(
     params: Arc<TunnelParams>,
     mut cancel_receiver: mpsc::Receiver<()>,
 ) where
-    F: TunnelConnectorFactory + Send + Sync + 'static,
+    F: TunnelConnectorFactory,
 {
     let _ = sender
         .send(TrayCommand::Update(Some(Arc::new(Ok(ConnectionStatus::Connecting)))))
