@@ -16,4 +16,4 @@ workspace = true
 [dependencies]
 fluent-templates = "0.14"
 sys-locale = "0.3"
-cached = "1"
+cached = "2"

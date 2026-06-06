@@ -119,7 +119,7 @@ fn read_symlinks(path: PathBuf, depth: u8) -> anyhow::Result<PathBuf> {
     }
 }
 
-#[cached(result = true)]
+#[cached]
 fn detect_resolver(path: PathBuf) -> anyhow::Result<ResolverType> {
     let resolve_conf_path = read_symlinks(path, 10)?;
 

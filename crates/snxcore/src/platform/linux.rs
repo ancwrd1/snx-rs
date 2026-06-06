@@ -108,7 +108,7 @@ impl SingleInstance for UnixSingleInstance {
     }
 }
 
-#[cached(result = true)]
+#[cached]
 pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
     let data = fs::read_to_string("/etc/machine-id")?;
     Ok(Uuid::try_parse(data.trim())?)
