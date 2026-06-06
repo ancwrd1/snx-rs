@@ -11,7 +11,7 @@ fn read_machine_guid() -> anyhow::Result<String> {
     Ok(hkey.get_value(VALUE)?)
 }
 
-#[cached(result = true)]
+#[cached]
 pub fn get_machine_uuid() -> anyhow::Result<Uuid> {
     match read_machine_guid() {
         Ok(s) => Uuid::try_parse(s.trim()).map_err(|e| anyhow!("MachineGuid parse failed: {e}")),
