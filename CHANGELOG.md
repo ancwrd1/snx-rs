@@ -1,3 +1,7 @@
+## v6.1.1 (2026-06-09)
+- Fixed a problem with inconsistent caching of gateway information when certificate settings are changed.
+- Improve visual feedback and notification in the frontend when gateway address is not accessible.
+
 ## v6.1.0 (2026-05-28)
 This version adds experimental support to run snx-rs on Windows, using wintun driver.
 MSI installer can be downloaded from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
