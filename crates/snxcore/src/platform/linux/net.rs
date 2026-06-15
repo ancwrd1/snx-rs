@@ -76,7 +76,7 @@ impl From<u32> for NetworkManagerState {
 
 impl NetworkManagerState {
     fn is_online(self) -> bool {
-        matches!(self, Self::ConnectedGlobal)
+        matches!(self, Self::ConnectedSite | Self::ConnectedGlobal)
     }
 }
 
