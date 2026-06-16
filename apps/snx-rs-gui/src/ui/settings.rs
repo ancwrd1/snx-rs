@@ -9,7 +9,7 @@ use snxcore::{
         params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
         proto::{GatewayInformation, LoginOption},
     },
-    platform::{Keychain, Platform, PlatformAccess, PlatformFeatures},
+    platform::{Keychain, Platform, PlatformAccess},
     profiles::ConnectionProfilesStore,
     tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
     util::parse_ipv4_or_subnet,
@@ -41,18 +41,16 @@ pub struct SettingsWindowController {
     scope: Rc<WindowScope<SettingsWindow>>,
     sender: Sender<TrayCommand>,
     state: Rc<RefCell<SettingsState>>,
-    platform_features: PlatformFeatures,
 }
 
 impl SettingsWindowController {
     pub const NAME: &str = "settings";
 
-    pub fn new(sender: Sender<TrayCommand>, platform_features: PlatformFeatures) -> anyhow::Result<Rc<Self>> {
+    pub fn new(sender: Sender<TrayCommand>) -> anyhow::Result<Rc<Self>> {
         Ok(Rc::new(Self {
             scope: WindowScope::new(SettingsWindow::new()?),
             sender,
             state: Rc::new(RefCell::new(SettingsState::default())),
-            platform_features,
         }))
     }
 
@@ -93,7 +91,7 @@ impl SettingsWindowController {
             .window
             .set_cert_types(ModelRc::new(VecModel::from(cert_types)));
 
-        let transport_types: Vec<SharedString> = if self.platform_features.ipsec_native {
+        let transport_types: Vec<SharedString> = if cfg!(target_os = "linux") {
             vec![
                 tr!("transport-type-autodetect").into(),
                 tr!("transport-type-udp").into(),

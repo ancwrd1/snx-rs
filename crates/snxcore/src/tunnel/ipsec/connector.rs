@@ -644,8 +644,7 @@ impl TunnelConnector for IPsecTunnelConnector {
                         if entry.object().nid() == Nid::COMMONNAME {
                             entry
                                 .data()
-                                .as_utf8()
-                                .map(|s| s.to_string())
+                                .to_string()
                                 .ok()
                                 .and_then(|s| s.split('.').next().map(String::from))
                         } else {

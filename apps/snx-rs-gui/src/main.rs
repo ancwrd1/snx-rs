@@ -195,7 +195,7 @@ async fn handle_tray_events<F>(
                 let params = ConnectionProfilesStore::instance().get_connected();
                 tokio::spawn(async move { on_disconnect(sender, params, cancel_sender).await });
             }
-            TrayEvent::Settings => on_settings(tray_command_sender.clone()).await,
+            TrayEvent::Settings => on_settings(tray_command_sender.clone()),
             TrayEvent::Exit => {
                 let _ = tray_command_sender.send(TrayCommand::Exit).await;
                 let _ = slint::quit_event_loop();
@@ -264,11 +264,9 @@ fn on_status(sender: mpsc::Sender<TrayEvent>, exit_on_close: bool) {
     })
 }
 
-async fn on_settings(sender: mpsc::Sender<TrayCommand>) {
-    let features = Platform::get().get_features().await;
-
+fn on_settings(sender: mpsc::Sender<TrayCommand>) {
     open_window(SettingsWindowController::NAME, move || {
-        Ok(SettingsWindowController::new(sender, features)?)
+        Ok(SettingsWindowController::new(sender)?)
     })
 }
 
