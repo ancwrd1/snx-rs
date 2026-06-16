@@ -48,7 +48,7 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 opener = { version = "0.8"}
 cached = {  version = "2",  features = ["async"] }
 openssl = "0.10"
-itertools = "0.14"
+itertools = "0.15"
 interprocess = { version = "2", features = ["tokio"] }
 hyper = { version = "1", default-features = false, features = ["server", "http1"] }
 hyper-util = "0.1"

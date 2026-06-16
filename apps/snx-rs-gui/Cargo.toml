@@ -30,7 +30,7 @@ futures = "0.3"
 interprocess = { version = "2", features = ["tokio"] }
 bytes = "1"
 async-channel = "2"
-itertools = "0.14"
+itertools = "0.15"
 uuid = { version = "1", features = ["v4"] }
 rfd = "0.17"
 i-slint-backend-winit = { version = "1", default-features = false }
