@@ -73,13 +73,6 @@ pub enum UdpEncapType {
 pub trait UdpSocketExt {
     fn set_encapsulation(&self, encap: UdpEncapType) -> anyhow::Result<()>;
     fn set_no_check(&self, flag: bool) -> anyhow::Result<()>;
-    /// Force this socket's egress traffic out of the named tunnel interface,
-    /// overriding the routing table. Used for IPsec keepalive / SCV packets,
-    /// whose destination is the gateway IP and would otherwise hit the /32
-    /// host exclusion installed by Full routing and leak out the physical
-    /// adapter in plaintext. On Linux the equivalent is a per-port policy
-    /// routing rule installed at the routing-configurator layer, so this is
-    /// a no-op there.
     fn bind_to_tunnel(&self, device: &str) -> anyhow::Result<()>;
     fn send_receive(
         &self,
