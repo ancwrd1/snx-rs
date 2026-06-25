@@ -59,6 +59,8 @@ label-select-file = Välj en fil
 label-ca-cert-files = X.509-certifikat
 label-allow-forwarding = Tillåt paketvidarebefordran för tunnelgränssnittet
 label-tls-version-max = Högsta TLS-version
+label-pin-required = PIN krävs för HSM-enhetsautentisering
+label-pin = PIN
 
 # Tabs and expanders
 tab-general = Allmänt

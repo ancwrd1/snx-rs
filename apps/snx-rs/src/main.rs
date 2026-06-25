@@ -7,7 +7,7 @@ use secrecy::ExposeSecret;
 use snxcore::{
     model::{
         MfaType, PromptInfo, SessionState,
-        params::{OperationMode, TunnelParams, TunnelType},
+        params::{CertType, OperationMode, TunnelParams, TunnelType},
         proto::CertificateResponse,
     },
     otp::OtpListener,
@@ -233,7 +233,7 @@ where
     await_termination(server.run()).await
 }
 
-async fn main_standalone<F>(factory: F, params: TunnelParams) -> anyhow::Result<()>
+async fn main_standalone<F>(factory: F, mut params: TunnelParams) -> anyhow::Result<()>
 where
     F: TunnelConnectorFactory,
 {
@@ -243,6 +243,16 @@ where
 
     if params.server_name.is_empty() || params.login_type.is_empty() {
         anyhow::bail!(tr!("error-missing-required-parameters"));
+    }
+
+    if params.cert_type == CertType::Pkcs11 && params.cert_password.is_none() {
+        let prompt = PromptInfo::new(tr!("label-pin-required"), tr!("label-pin"));
+        match tty_prompt.get_secure_input(prompt).await {
+            Ok(pin) if !pin.trim().is_empty() => {
+                params.cert_password = Some(pin.trim().into());
+            }
+            _ => return Err(anyhow::anyhow!(tr!("error-no-pkcs11"))),
+        }
     }
 
     let params = Arc::new(params);

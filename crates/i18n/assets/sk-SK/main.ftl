@@ -59,6 +59,8 @@ label-select-file = Vybrať súbor
 label-ca-cert-files = Certifikáty X.509
 label-allow-forwarding = Povoliť preposielanie paketov pre rozhranie tunela
 label-tls-version-max = Maximálna verzia TLS
+label-pin-required = PIN je potrebný na overenie zariadenia HSM
+label-pin = PIN
 
 # Tabs and expanders
 tab-general = Všeobecné

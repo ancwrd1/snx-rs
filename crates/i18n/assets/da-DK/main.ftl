@@ -59,6 +59,8 @@ label-select-file = Vælg en fil
 label-ca-cert-files = X.509-certifikater
 label-allow-forwarding = Tillad pakkeviderestilling
 label-tls-version-max = Maksimal TLS-version
+label-pin-required = PIN er påkrævet for HSM-enhedsgodkendelse
+label-pin = PIN
 
 # Tabs and expanders
 tab-general = Generelt

@@ -1,3 +1,8 @@
+## v6.1.2 (2026-06-25)
+- Fixed a problem with connectivity check on some corporate networks
+- Fixed a bug in the UI where the XFRM transport choice was not shown
+- Ask for HSM pin code if it is not provided by the user (#225)
+
 ## v6.1.1 (2026-06-09)
 - Fixed a problem with inconsistent caching of gateway information when certificate settings are changed.
 - Improve visual feedback and notification in the frontend when gateway address is not accessible.

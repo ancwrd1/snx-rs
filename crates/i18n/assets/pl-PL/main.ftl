@@ -59,6 +59,8 @@ label-select-file = Wybierz plik
 label-ca-cert-files = Certyfikaty X.509
 label-allow-forwarding = Zezwól na przekazywanie pakietów
 label-tls-version-max = Maksymalna wersja TLS
+label-pin-required = Kod PIN jest wymagany do uwierzytelniania urządzenia HSM
+label-pin = PIN
 
 # Tabs and expanders
 tab-general = Ogólne

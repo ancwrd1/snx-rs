@@ -12,7 +12,7 @@ use crate::{
     browser::BrowserController,
     model::{
         ConnectionStatus, MfaChallenge, MfaType, PromptInfo, TunnelServiceRequest, TunnelServiceResponse,
-        params::TunnelParams,
+        params::{CertType, TunnelParams},
     },
     otp::OtpListener,
     platform::{Keychain, Platform, PlatformAccess},
@@ -248,13 +248,26 @@ where
         }
     }
 
-    async fn do_connect(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
+    async fn do_connect(&mut self, mut params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
         if params.server_name.is_empty() {
             anyhow::bail!(tr!("error-no-server-name"));
         }
 
         if params.login_type.is_empty() {
             anyhow::bail!(tr!("error-no-login-type"));
+        }
+
+        if params.cert_type == CertType::Pkcs11 && params.cert_password.is_none() {
+            let prompt = PromptInfo::new(tr!("label-pin-required"), tr!("label-pin"));
+            match self.prompt.get_secure_input(prompt).await {
+                Ok(pin) if !pin.trim().is_empty() => {
+                    params = Arc::new(TunnelParams {
+                        cert_password: Some(pin.trim().into()),
+                        ..(*params).clone()
+                    });
+                }
+                _ => return Err(anyhow::anyhow!(tr!("error-no-pkcs11"))),
+            }
         }
 
         self.mfa_index = 0;

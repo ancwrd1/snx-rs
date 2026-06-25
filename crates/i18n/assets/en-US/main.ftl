@@ -59,6 +59,8 @@ label-select-file = Select a file
 label-ca-cert-files = X.509 certificates
 label-allow-forwarding = Allow packet forwarding for tunnel interface
 label-tls-version-max = Maximum TLS version
+label-pin-required = PIN is required for HSM device authentication
+label-pin = PIN
 
 # Tabs and expanders
 tab-general = General

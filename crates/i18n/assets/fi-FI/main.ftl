@@ -59,6 +59,8 @@ label-select-file = Valitse tiedosto
 label-ca-cert-files = X.509-varmenteet
 label-allow-forwarding = Salli pakettien edelleenlähetys
 label-tls-version-max = TLS:n enimmäisversio
+label-pin-required = HSM-laitteen todennukseen vaaditaan PIN-koodi
+label-pin = PIN-koodi
 
 # Tabs and expanders
 tab-general = Yleiset
