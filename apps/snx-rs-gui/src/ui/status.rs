@@ -157,12 +157,17 @@ impl WindowController for StatusWindowController {
                 let show = window.get_show_stats();
                 let entries = to_status_entries(&last_info_for_toggle.borrow(), show);
                 window.set_entries(ModelRc::new(VecModel::from(entries)));
-
-                let preferred_height = window.get_preferred_content_height();
-                let win = window.window();
-                let current = win.size().to_logical(win.scale_factor());
-                win.set_size(LogicalSize::new(current.width, preferred_height));
             }
+
+            let weak_window = weak_window.clone();
+            slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+                if let Some(window) = weak_window.upgrade() {
+                    let preferred_height = window.get_preferred_content_height();
+                    let win = window.window();
+                    let current = win.size().to_logical(win.scale_factor());
+                    win.set_size(LogicalSize::new(current.width, preferred_height));
+                }
+            });
         });
 
         self.scope.window.show()?;
@@ -210,13 +215,6 @@ impl WindowController for StatusWindowController {
                     scope
                         .window
                         .set_is_connected(matches!(*status, Ok(ConnectionStatus::Connected(_))));
-
-                    let preferred_height = scope.window.get_preferred_content_height();
-                    let window = scope.window.window();
-                    let current = window.size().to_logical(window.scale_factor());
-                    if preferred_height > current.height {
-                        window.set_size(LogicalSize::new(current.width, preferred_height));
-                    }
                 }
             }
         });
