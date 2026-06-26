@@ -881,7 +881,7 @@ export component SettingsWindow inherits Window {
         FocusScope {
             init => { self.focus(); }
             key-pressed(event) => {
-                if event.text == Key.Escape {
+                if (event.text == Key.Escape) {
                     root.confirm-visible = false;
                     root.confirm-cancel-clicked();
                     return accept;
@@ -950,7 +950,7 @@ export component SettingsWindow inherits Window {
         FocusScope {
             init => { entry-input.focus(); }
             key-pressed(event) => {
-                if event.text == Key.Escape {
+                if (event.text == Key.Escape) {
                     root.entry-visible = false;
                     root.entry-cancel-clicked();
                     return accept;

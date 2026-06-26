@@ -17,7 +17,7 @@ export component PromptWindow inherits Window {
     callback cancel-clicked();
 
     changed default-entry => {
-        if !root.secure { entry.select-all(); }
+        if (!root.secure) { entry.select-all(); }
     }
 
     forward-focus: entry;
@@ -28,7 +28,7 @@ export component PromptWindow inherits Window {
 
     FocusScope {
         key-pressed(event) => {
-            if event.text == Key.Escape {
+            if (event.text == Key.Escape) {
                 root.cancel-clicked();
                 return accept;
             }
