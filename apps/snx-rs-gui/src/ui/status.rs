@@ -65,6 +65,13 @@ fn close_fn(exit_on_close: bool, stop_tx: Sender<()>, sender: Sender<TrayEvent>)
     close_window(StatusWindowController::NAME);
 }
 
+fn resize_to_preferred_height(window: &StatusWindow) {
+    let preferred_height = window.get_preferred_content_height();
+    let win = window.window();
+    let current = win.size().to_logical(win.scale_factor());
+    win.set_size(LogicalSize::new(current.width, preferred_height));
+}
+
 pub struct StatusWindowController {
     scope: Rc<WindowScope<StatusWindow>>,
     exit_on_close: bool,
@@ -162,15 +169,10 @@ impl WindowController for StatusWindowController {
             let weak_window = weak_window.clone();
             slint::Timer::single_shot(std::time::Duration::ZERO, move || {
                 if let Some(window) = weak_window.upgrade() {
-                    let preferred_height = window.get_preferred_content_height();
-                    let win = window.window();
-                    let current = win.size().to_logical(win.scale_factor());
-                    win.set_size(LogicalSize::new(current.width, preferred_height));
+                    resize_to_preferred_height(&window);
                 }
             });
         });
-
-        self.scope.window.show()?;
 
         let (status_tx, status_rx) = async_channel::bounded::<Arc<anyhow::Result<ConnectionStatus>>>(1);
 
@@ -197,6 +199,7 @@ impl WindowController for StatusWindowController {
         let weak_scope = self.scope.weak();
 
         let _ = slint::spawn_local(async move {
+            let mut shown = false;
             while let Ok(status) = status_rx.recv().await {
                 if let Some(scope) = weak_scope.upgrade() {
                     let info = get_info(&status);
@@ -215,6 +218,12 @@ impl WindowController for StatusWindowController {
                     scope
                         .window
                         .set_is_connected(matches!(*status, Ok(ConnectionStatus::Connected(_))));
+
+                    if !shown {
+                        shown = true;
+                        let _ = scope.window.show();
+                        resize_to_preferred_height(&scope.window);
+                    }
                 }
             }
         });
