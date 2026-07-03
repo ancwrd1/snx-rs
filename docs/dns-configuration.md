@@ -23,3 +23,7 @@ will be forwarded through the tunnel. For further explanation, please check [thi
 The `set-routing-domains=true|false` option controls whether to treat all acquired search domains as routing domains.
 
 For container images which have `systemd-resovled` enabled, it may be necessary to disable split DNS via the `no-split-dns=true` option.
+
+## macOS
+
+DNS is configured via the macOS SystemConfiguration framework (`SCDynamicStore`). Split DNS is implemented using scoped and supplemental match domains, the macOS equivalent of systemd-resolved's routing domains.

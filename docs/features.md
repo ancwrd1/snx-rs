@@ -7,9 +7,9 @@
 * Certificate enrollment and renewal using the command line interface
 * Mobile Access authentication using VPN web portal
 * HSM token authentication
-* GUI frontend with tray icon
-* IPsec tunnel via Linux native kernel XFRM interface or TCPT/TUN transport
+* GUI frontend with tray icon (not available on macOS yet; CLI only)
+* IPsec tunnel via Linux native kernel XFRM interface, or userspace TUN/ESP transport (used on Windows and macOS, where kernel XFRM is not available)
 * Automatic IPsec tunnel reconnection without authentication, via optional parameter
 * SSL tunnel via TUN device
-* Store a password factor in the OS keychain using Secret Service API
+* Store a password factor in the OS keychain using Secret Service API on Linux, or Keychain (Security.framework) on macOS
 * Multiple connection profiles

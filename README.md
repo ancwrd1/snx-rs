@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/badge/License-AGPL-v3.svg)](https://opensource.org/license/agpl-v3)
 
 This project contains the source code for an unofficial client for Check Point VPN, written in Rust.
-Currently supported platforms: Linux, Windows.
+Currently supported platforms: Linux, Windows, macOS.
 
 ## Key Features
 

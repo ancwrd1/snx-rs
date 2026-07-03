@@ -60,3 +60,30 @@ jobs:
         channel: [stable]
         target:
           - x86_64-pc-windows-msvc
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Install Rust compiler
+        run: |
+          rustup update
+          rustup default ${{ matrix.channel }}
+          rustup target add ${{ matrix.target }}
+          rustup component add clippy rustfmt
+      - name: Formatting checks
+        run: cargo fmt --check
+      - name: Clippy checks
+        run: cargo clippy --target ${{ matrix.target }} -p snxcore -p snx-rs -p snxctl --features snxcore/vendored-openssl -- -D warnings
+      - name: Tests
+        run: cargo test --target ${{ matrix.target }} -p snxcore -p snx-rs -p snxctl --features snxcore/vendored-openssl
+
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [stable]
+        target:
+          - aarch64-apple-darwin

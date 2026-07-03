@@ -9,5 +9,7 @@ In this case the application will fall back to the proprietary Check Point TCPT 
 
 The `transport-type` option can be used to choose the IPsec transport type manually. The default value is `auto` which will perform autodetection.
 
+macOS has no kernel `xfrm` support, so IPsec always uses the userspace TUN/ESP path there, same as on Windows. The `kernel` value for `transport-type` is not available on macOS; valid values are `auto`, `udp` and `tcpt`.
+
 For older VPN servers or in case IPsec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
 SSL tunnel has some limitations: it is slower, has no hardware token support and no MFA in combination with the certificates.
