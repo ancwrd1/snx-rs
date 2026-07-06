@@ -8,9 +8,15 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 For Ubuntu/Debian, a DEB package is provided in the release assets.<br/>
 For RPM-based distros (Fedora, CentOS, openSUSE) use the provided RPM package.<br/>
 For Windows, use the msi installer from the release page.<br/>
+For macOS, no packaged installer is provided yet; build from source (see below).<br/>
 For manual installation using .run installer:
 
 1. Download the installer, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
+
+For macOS, build the release binaries and run under `sudo`:
+
+1. Build the release binaries: `cargo build --release -p snx-rs -p snxctl`
+2. Tunnel setup requires root, so run `snx-rs` (or `snxctl`) with `sudo`.
 
 Signed APT and DNF repositories with the latest release builds are published at [ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).

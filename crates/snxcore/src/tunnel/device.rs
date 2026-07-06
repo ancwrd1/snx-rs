@@ -10,7 +10,15 @@ impl TunDevice {
     pub fn new(name: &str) -> anyhow::Result<Self> {
         let mut config = tun::Configuration::default();
 
+        // macOS utun devices must be named `utunN`; the custom hint is rejected, so let the
+        // kernel assign a name (read back below). Linux/Windows keep honoring the hint.
+        #[cfg(not(target_os = "macos"))]
         config.tun_name(name).up();
+        #[cfg(target_os = "macos")]
+        {
+            let _ = name;
+            config.up();
+        }
 
         let dev = tun::create_as_async(&config)?;
 

@@ -12,6 +12,8 @@ use async_trait::async_trait;
 use ipnet::Ipv4Net;
 #[cfg(target_os = "linux")]
 use linux::LinuxPlatformAccess as PlatformAccessImpl;
+#[cfg(target_os = "macos")]
+use macos::MacosPlatformAccess as PlatformAccessImpl;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
@@ -26,6 +28,8 @@ use crate::model::{
 
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "macos")]
+mod macos;
 #[cfg(target_os = "windows")]
 mod windows;
 

@@ -31,6 +31,12 @@ fn make_channel(socket: UdpSocket, address: SocketAddr) -> (PacketSender, Packet
     let channel = async move {
         let (mut sink, stream) = framed.split();
 
+        // The macOS socket is left unconnected (see the EISCONN note below), so recv_from
+        // accepts datagrams from any source; filter to the known gateway here to match
+        // Linux/Windows, where the connected socket does this filtering in the kernel.
+        #[cfg(target_os = "macos")]
+        let stream = stream.try_filter(move |(_, src)| futures::future::ready(*src == address));
+
         let mut rx = rx_out.map(|v| Ok::<_, std::io::Error>((v, address)));
         let to_wire = sink.send_all(&mut rx);
 
@@ -83,6 +89,10 @@ impl UdpIPsecTunnel {
             .next()
             .ok_or_else(|| anyhow!("Failed to resolve {}", address_str.as_ref()))?;
 
+        // macOS/BSD returns EISCONN if sendto() carries a destination on a connected
+        // UDP socket; UdpFramed always sends with an address, so leave the socket
+        // unconnected there and let send_to carry the target.
+        #[cfg(not(target_os = "macos"))]
         socket.connect(address).await?;
 
         let (sender, receiver) = make_channel(socket, address);
