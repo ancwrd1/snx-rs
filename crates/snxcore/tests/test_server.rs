@@ -246,6 +246,22 @@ async fn command_server_reports_disconnected_status() {
     fixture.server_handle.abort();
 }
 
+#[cfg(target_os = "macos")]
+#[tokio::test]
+async fn command_socket_is_connectable_by_the_user() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let fixture = ServerFixture::new().await;
+
+    // The daemon runs as root but the GUI connects as the user, so the socket must be writable by
+    // anyone; connecting to a Unix socket requires write permission on it.
+    let path = std::env::temp_dir().join(&fixture.socket_name);
+    let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode, 0o666, "the command socket must be connectable by a non-owner");
+
+    fixture.server_handle.abort();
+}
+
 #[tokio::test]
 async fn connect_with_mfa() {
     let fixture = ServerFixture::new().await;

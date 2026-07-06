@@ -36,15 +36,14 @@ impl MacosIPsecStub {
     }
 }
 
-// Userspace ESP (ipsec_native = false) handles the data path, so there is no kernel SA to configure.
 #[async_trait]
 impl IPsecConfigurator for MacosIPsecStub {
     async fn configure(&self) -> anyhow::Result<()> {
-        Ok(())
+        anyhow::bail!("Not implemented")
     }
 
     async fn rekey(&mut self, _session: &IPsecSession) -> anyhow::Result<()> {
-        Ok(())
+        anyhow::bail!("Not implemented")
     }
 
     async fn cleanup(&self) {}

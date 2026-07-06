@@ -157,6 +157,9 @@ pub(super) fn route_get(fd: BorrowedFd<'_>, dst: Ipv4Addr) -> anyhow::Result<Rou
         if hdr.rtm_type as c_int != libc::RTM_GET || hdr.rtm_seq != seq || hdr.rtm_pid != pid {
             continue;
         }
+        if hdr.rtm_errno != 0 {
+            return Err(std::io::Error::from_raw_os_error(hdr.rtm_errno).into());
+        }
 
         let mut offset = mem::size_of::<libc::rt_msghdr>();
         let mut gateway = None;
@@ -381,6 +384,24 @@ fn set_ip_forwarding(value: c_int) -> std::io::Result<()> {
     Ok(())
 }
 
+// Pre-snx forwarding value, persisted while enabled so a crash-restart (which loses the in-memory
+// SAVED_IP_FORWARDING) can still restore it. In /var/run, reset on reboot like the sysctl.
+const FORWARDING_MARKER: &str = "/var/run/snx-rs.forwarding";
+
+// Restore net.inet.ip.forwarding from the marker left by a previous instance that enabled it and
+// exited uncleanly, then remove the marker. A no-op on a clean start (no marker present).
+pub(super) fn restore_forwarding_from_marker() {
+    let Ok(contents) = std::fs::read_to_string(FORWARDING_MARKER) else {
+        return;
+    };
+    if let Ok(value) = contents.trim().parse::<c_int>()
+        && let Err(e) = set_ip_forwarding(value)
+    {
+        debug!("Failed to restore net.inet.ip.forwarding from marker: {e}");
+    }
+    let _ = std::fs::remove_file(FORWARDING_MARKER);
+}
+
 #[derive(Default)]
 pub struct MacosNetworkInterface;
 
@@ -414,10 +435,11 @@ impl NetworkInterface for MacosNetworkInterface {
     async fn delete_device(&self, _device_name: &str) -> anyhow::Result<()> {
         // Restore the global IP forwarding value if configure_device changed it.
         let saved = SAVED_IP_FORWARDING.swap(-1, Ordering::SeqCst);
-        if saved >= 0
-            && let Err(e) = set_ip_forwarding(saved)
-        {
-            debug!("Failed to restore net.inet.ip.forwarding: {e}");
+        if saved >= 0 {
+            if let Err(e) = set_ip_forwarding(saved) {
+                debug!("Failed to restore net.inet.ip.forwarding: {e}");
+            }
+            let _ = std::fs::remove_file(FORWARDING_MARKER);
         }
         // utun disappears when the tun fd is dropped
         Ok(())
@@ -430,9 +452,11 @@ impl NetworkInterface for MacosNetworkInterface {
         add_alias(sock.as_fd(), &device_config.name, device_config.address)?;
 
         if device_config.allow_forwarding {
-            // macOS IP forwarding is a single global sysctl, not per-interface like Linux; remember
-            // the previous value so delete_device can restore it.
-            SAVED_IP_FORWARDING.store(get_ip_forwarding()?, Ordering::SeqCst);
+            // Global sysctl, not per-interface like Linux; save the previous value in memory (for
+            // delete_device) and on disk (for a crash-restart) before enabling.
+            let previous = get_ip_forwarding()?;
+            SAVED_IP_FORWARDING.store(previous, Ordering::SeqCst);
+            let _ = std::fs::write(FORWARDING_MARKER, previous.to_string());
             set_ip_forwarding(1)?;
         }
 
@@ -465,7 +489,20 @@ impl NetworkInterface for MacosNetworkInterface {
 
 #[cfg(test)]
 mod tests {
+    use std::net::Ipv4Addr;
+
     use crate::platform::NetworkInterface;
+
+    fn lcg(seed: &mut u64) -> u64 {
+        *seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        *seed
+    }
+
+    fn push_sa(body: &mut Vec<u8>, sa: &[u8]) {
+        let start = body.len();
+        body.extend_from_slice(sa);
+        body.resize(start + super::roundup(sa.len()), 0);
+    }
 
     #[tokio::test]
     async fn get_default_ipv4_returns_physical_address() {
@@ -476,5 +513,95 @@ mod tests {
         println!("get_default_ipv4 = {ip}");
         assert!(!ip.is_unspecified(), "expected a real address, got {ip}");
         assert!(!ip.is_loopback(), "expected a non-loopback address, got {ip}");
+    }
+
+    #[test]
+    fn roundup_pads_to_word() {
+        assert_eq!(super::roundup(0), 4);
+        for len in 1..=256usize {
+            let r = super::roundup(len);
+            assert!(r >= len && r.is_multiple_of(4) && r < len + 4, "roundup({len}) = {r}");
+        }
+    }
+
+    #[test]
+    fn netmask_prefix_len_known_and_truncated() {
+        let mut sa = vec![8u8, libc::AF_INET as u8, 0, 0, 0xff, 0xff, 0xff, 0x00];
+        assert_eq!(super::netmask_prefix_len(&sa), 24);
+        sa[4..8].copy_from_slice(&[0xff; 4]);
+        assert_eq!(super::netmask_prefix_len(&sa), 32);
+        assert_eq!(super::netmask_prefix_len(&[]), 0);
+        assert_eq!(super::netmask_prefix_len(&[0, 2, 0]), 0);
+    }
+
+    #[test]
+    fn netmask_prefix_len_never_panics() {
+        let mut seed = 0xdead_beef_0000_0001;
+        for _ in 0..5000 {
+            let len = (lcg(&mut seed) % 16) as usize;
+            let buf: Vec<u8> = (0..len).map(|_| (lcg(&mut seed) >> 33) as u8).collect();
+            assert!(super::netmask_prefix_len(&buf) <= 32);
+        }
+    }
+
+    #[test]
+    fn route_is_default_detects_zero_dst_and_mask() {
+        let gw = super::sockaddr_in(Ipv4Addr::new(192, 168, 1, 1));
+        let mask = super::sockaddr_in(Ipv4Addr::UNSPECIFIED);
+        let addrs = (1 << libc::RTAX_DST) | (1 << libc::RTAX_GATEWAY) | (1 << libc::RTAX_NETMASK);
+
+        let dst = super::sockaddr_in(Ipv4Addr::UNSPECIFIED);
+        let mut body = Vec::new();
+        push_sa(&mut body, super::struct_bytes(&dst));
+        push_sa(&mut body, super::struct_bytes(&gw));
+        push_sa(&mut body, super::struct_bytes(&mask));
+        assert!(super::route_is_default(&body, addrs));
+
+        let dst = super::sockaddr_in(Ipv4Addr::new(10, 0, 0, 0));
+        let mut body = Vec::new();
+        push_sa(&mut body, super::struct_bytes(&dst));
+        push_sa(&mut body, super::struct_bytes(&gw));
+        push_sa(&mut body, super::struct_bytes(&mask));
+        assert!(!super::route_is_default(&body, addrs));
+    }
+
+    #[test]
+    fn route_is_default_never_panics() {
+        let mut seed = 0xfeed_face_0000_0003;
+        for _ in 0..5000 {
+            let len = (lcg(&mut seed) % 200) as usize;
+            let body: Vec<u8> = (0..len).map(|_| (lcg(&mut seed) >> 33) as u8).collect();
+            let addrs = (lcg(&mut seed) & 0xff) as libc::c_int;
+            let _ = super::route_is_default(&body, addrs);
+        }
+    }
+
+    #[test]
+    fn build_route_message_is_well_formed() {
+        let dst = super::sockaddr_in(Ipv4Addr::new(10, 1, 2, 0));
+        let mask = super::sockaddr_in(Ipv4Addr::new(255, 255, 255, 0));
+        let msg = super::build_route_message(
+            libc::RTM_ADD as u8,
+            libc::RTF_UP | libc::RTF_STATIC,
+            42,
+            &[
+                (libc::RTA_DST, super::struct_bytes(&dst)),
+                (libc::RTA_NETMASK, super::struct_bytes(&mask)),
+            ],
+        );
+        let hdr: libc::rt_msghdr = unsafe { std::ptr::read_unaligned(msg.as_ptr().cast()) };
+        assert_eq!(hdr.rtm_msglen as usize, msg.len());
+        assert_eq!(hdr.rtm_type, libc::RTM_ADD as u8);
+        assert_eq!(hdr.rtm_seq, 42);
+        assert_eq!(hdr.rtm_addrs, libc::RTA_DST | libc::RTA_NETMASK);
+        assert_eq!(hdr.rtm_version, libc::RTM_VERSION as u8);
+    }
+
+    #[test]
+    fn sockaddr_in_layout() {
+        let sa = super::sockaddr_in(Ipv4Addr::new(1, 2, 3, 4));
+        assert_eq!(sa.sin_len, std::mem::size_of::<libc::sockaddr_in>() as u8);
+        assert_eq!(sa.sin_family, libc::AF_INET as libc::sa_family_t);
+        assert_eq!(sa.sin_addr.s_addr, u32::from_ne_bytes([1, 2, 3, 4]));
     }
 }

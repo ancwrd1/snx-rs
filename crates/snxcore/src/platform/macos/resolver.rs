@@ -84,3 +84,37 @@ where
         store_key: format!("State:/Network/Service/snx-rs-{}/DNS", device.as_ref()),
     }))
 }
+
+// Remove DNS keys left by a previous instance that exited before Drop ran (a panic aborts, launchd
+// restarts us); otherwise a stale supplemental resolver keeps split-DNS broken. Store resets on reboot.
+pub(super) fn cleanup_stale_dns() {
+    let Some(store) = SCDynamicStoreBuilder::new(STORE_NAME).build() else {
+        return;
+    };
+    let Some(keys) = store.get_keys(format!("State:/Network/Service/{STORE_NAME}-[^/]+/DNS").as_str()) else {
+        return;
+    };
+    for key in keys.iter() {
+        let key = key.to_string();
+        if store.remove(key.as_str()) {
+            debug!("Removed stale DNS configuration {key}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn cf_string_array_length_matches_input() {
+        assert_eq!(super::cf_string_array(Vec::<String>::new()).len(), 0);
+        assert_eq!(
+            super::cf_string_array(vec![
+                "a.example".to_string(),
+                "b.example".to_string(),
+                "c.example".to_string()
+            ])
+            .len(),
+            3
+        );
+    }
+}

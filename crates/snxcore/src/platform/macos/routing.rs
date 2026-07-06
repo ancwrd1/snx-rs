@@ -217,6 +217,42 @@ impl MacosRoutingConfigurator {
     }
 }
 
+// Delete IPv6 blackholes a previous instance may have left: unlike the utun-scoped /1 overrides the
+// kernel drops with the device, these are gatewayed via ::1 and outlive it, black-holing all IPv6.
+// The ::/1 + 8000::/1 pair is our signature; deletion is idempotent, table resets on reboot.
+pub(super) fn cleanup_stale_blackholes() {
+    let sock = match route_socket() {
+        Ok(sock) => sock,
+        Err(e) => {
+            warn!("Cannot open route socket for blackhole cleanup: {e}");
+            return;
+        }
+    };
+
+    let prefixes = [
+        Ipv6Net::new(Ipv6Addr::UNSPECIFIED, 1),
+        Ipv6Net::new(Ipv6Addr::new(0x8000, 0, 0, 0, 0, 0, 0, 0), 1),
+    ];
+    for prefix in prefixes.into_iter().flatten() {
+        let dst = sockaddr_in6(prefix.network());
+        let netmask = sockaddr_in6(prefix.netmask());
+        let msg = build_route_message(
+            libc::RTM_DELETE as u8,
+            libc::RTF_UP | libc::RTF_STATIC,
+            next_seq(),
+            &[
+                (libc::RTA_DST, struct_bytes(&dst)),
+                (libc::RTA_NETMASK, struct_bytes(&netmask)),
+            ],
+        );
+        match send_route_message(sock.as_fd(), &msg) {
+            Ok(()) => debug!("Removed stale IPv6 blackhole {prefix}"),
+            Err(e) if matches!(e.raw_os_error(), Some(libc::ESRCH) | Some(libc::ENOENT)) => {}
+            Err(e) => warn!("Failed to delete stale IPv6 blackhole {prefix}: {e}"),
+        }
+    }
+}
+
 impl Drop for MacosRoutingConfigurator {
     fn drop(&mut self) {
         // If configure() fails partway, the caller never stashes us for a later Cleanup, so undo

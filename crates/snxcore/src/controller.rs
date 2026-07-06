@@ -3,7 +3,7 @@ use std::{str::FromStr, sync::Arc, time::Duration};
 use anyhow::{Context, anyhow};
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
-use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Stream};
+use interprocess::local_socket::traits::tokio::Stream;
 use secrecy::{ExposeSecret, SecretString};
 use tokio_util::codec::{Decoder, LengthDelimitedCodec};
 use tracing::warn;
@@ -27,7 +27,7 @@ const SERVICE_CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
 
 async fn new_stream(name: &str) -> anyhow::Result<interprocess::local_socket::tokio::Stream> {
     async {
-        let name = name.to_ns_name::<GenericNamespaced>()?;
+        let name = Platform::get().command_socket_name(name)?;
         Ok::<_, anyhow::Error>(
             tokio::time::timeout(
                 SERVICE_CONNECT_TIMEOUT,
