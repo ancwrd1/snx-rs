@@ -43,6 +43,43 @@ nix = "0.31"
 webkit6 = { version = "0.6", optional = true }
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+nix = "0.31"
+tray-icon = "0.24"
+objc2-foundation = { version = "0.3", features = [
+    "NSString",
+    "NSBundle",
+    "NSError",
+    "NSGeometry",
+    "NSURL",
+    "NSURLRequest",
+] }
+objc2 = "0.6"
+objc2-user-notifications = { version = "0.3", features = [
+    "UNUserNotificationCenter",
+    "UNNotificationContent",
+    "UNNotificationRequest",
+    "UNNotificationTrigger",
+    "UNError",
+    "block2",
+] }
+block2 = "0.6"
+objc2-app-kit = { version = "0.3", features = [
+    "NSResponder",
+    "NSApplication",
+    "NSView",
+    "NSWindow",
+    "NSGraphics",
+] }
+objc2-web-kit = { version = "0.3", optional = true, features = [
+    "WKWebView",
+    "WKWebViewConfiguration",
+    "WKWebsiteDataStore",
+    "WKNavigationDelegate",
+    "WKNavigation",
+    "block2",
+] }
+
 [target.'cfg(windows)'.dependencies]
 tray-icon = "0.24"
 windows = { version = "0.62", features = [
@@ -71,4 +108,9 @@ glob = "0.3"
 embed-resource = "3"
 
 [features]
-mobile-access = ["dep:webkit6", "dep:gtk4", "dep:webview2-com"]
+mobile-access = [
+    "dep:webkit6",
+    "dep:gtk4",
+    "dep:webview2-com",
+    "dep:objc2-web-kit",
+]

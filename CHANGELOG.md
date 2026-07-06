@@ -1,11 +1,12 @@
 ## v6.2.0 (TBD)
 This version adds experimental support to run snx-rs on macOS, on both Apple Silicon and Intel.
 Networking is implemented using native macOS APIs (utun, PF_ROUTE routing sockets, SystemConfiguration, Keychain) instead of shelling out to external tools, the same approach used on Linux and Windows.
-Build from source, no packaged installer or signed binaries yet.
+Distributed as a `.dmg` (GUI app bundle) and a `.pkg` (CLI plus a launchd service); binaries are ad-hoc signed and not notarized yet.
 
 - IPsec uses a userspace TUN/ESP transport, same as on Windows, since macOS has no kernel xfrm module.
 - Split DNS is implemented via SystemConfiguration (SCDynamicStore) scoped/supplemental match domains.
-- CLI only for now; the `snx-rs-gui` frontend is not ported to macOS.
+- The `snx-rs-gui` frontend runs on macOS: a native menu-bar tray built with the `tray-icon` crate, using template icons that follow the system appearance, and an embedded WebKit view for the Mobile Access portal login.
+- Added macOS packaging: a `.dmg` with the GUI app bundle and a `.pkg` installing `snx-rs`/`snxctl` with a launchd LaunchDaemon (`com.github.snx-rs`). Ad-hoc signed only, not notarized yet.
 
 ## v6.1.2 (2026-06-25)
 - Fixed a problem with connectivity check on some corporate networks

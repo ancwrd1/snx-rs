@@ -77,9 +77,9 @@ jobs:
       - name: Formatting checks
         run: cargo fmt --check
       - name: Clippy checks
-        run: cargo clippy --target ${{ matrix.target }} -p snxcore -p snx-rs -p snxctl --features snxcore/vendored-openssl -- -D warnings
+        run: cargo clippy --target ${{ matrix.target }} --workspace --features snxcore/vendored-openssl,snx-rs-gui/mobile-access -- -D warnings
       - name: Tests
-        run: cargo test --target ${{ matrix.target }} -p snxcore -p snx-rs -p snxctl --features snxcore/vendored-openssl
+        run: cargo test --target ${{ matrix.target }} --workspace --features snxcore/vendored-openssl,snx-rs-gui/mobile-access
 
     strategy:
       fail-fast: false

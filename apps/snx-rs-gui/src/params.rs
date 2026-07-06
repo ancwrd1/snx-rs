@@ -24,7 +24,7 @@ pub struct CmdlineParams {
 
     #[cfg(feature = "mobile-access")]
     #[clap(long = "webkit", hide = true)]
-    pub webkit: Option<String>,
+    pub webkit: bool,
 
     #[cfg(feature = "mobile-access")]
     #[clap(long = "webkit-ignore-cert", hide = true)]
