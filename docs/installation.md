@@ -8,15 +8,18 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 For Ubuntu/Debian, a DEB package is provided in the release assets.<br/>
 For RPM-based distros (Fedora, CentOS, openSUSE) use the provided RPM package.<br/>
 For Windows, use the msi installer from the release page.<br/>
-For macOS, no packaged installer is provided yet; build from source (see below).<br/>
+For macOS, use the `.pkg` installer from the release page (see below).<br/>
 For manual installation using .run installer:
 
 1. Download the installer, then: `chmod +x snx-rs-*-linux-x86_64.run`
 2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
 
-For macOS, build the release binaries and run under `sudo`:
+For macOS, install the CLI (`snx-rs`, `snxctl`) and the `com.github.snx-rs` LaunchDaemon from the `.pkg`:
 
-1. Build the release binaries: `cargo build --release -p snx-rs -p snxctl`
-2. Tunnel setup requires root, so run `snx-rs` (or `snxctl`) with `sudo`.
+1. Download `snx-rs-<version>-aarch64-apple-darwin.pkg` from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
+2. Install it: `sudo installer -pkg snx-rs-*.pkg -target /`. This installs the `snx-rs`/`snxctl` tools and loads the LaunchDaemon (runs as root from a root-owned location, restarts on failure, logs to `/var/log/snx-rs.log`).
+3. The package is ad-hoc signed only (no Apple Developer ID) and not notarized. If Gatekeeper blocks it, right-click → Open once to approve it; a signed and notarized build opens with no prompt.
+4. To uninstall, run the bundled `uninstall.sh` as root: `sudo /Applications/SNX-RS.app/Contents/Resources/uninstall.sh` (it is also included on the `.dmg`).
+5. To build from source instead, see [Building from Sources](building.md). The `.dmg` contains the `SNX-RS` menu-bar app; drag it to Applications.
 
 Signed APT and DNF repositories with the latest release builds are published at [ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).

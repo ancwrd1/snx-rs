@@ -98,8 +98,40 @@ jobs:
           name: artifacts-x86_64-windows
           path: target/snx-rs-*.msi
 
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Install Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup target add aarch64-apple-darwin
+
+      - name: Build project
+        run: |
+          chmod +x package/macos/build.sh
+          ./package/macos/build.sh
+
+      - name: Package project
+        run: |
+          chmod +x package/macos/package.sh
+          ./package/macos/package.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-aarch64-macos
+          path: |
+            target/snx-rs-*.dmg
+            target/snx-rs-*.pkg
+
   release:
-    needs: [build, build-windows]
+    needs: [build, build-windows, build-macos]
     runs-on: ubuntu-24.04
 
     steps:
@@ -218,6 +250,21 @@ jobs:
               name: msiName,
               data: msiArtifact
             });
+
+            // package/macos/package.sh names artifacts after `git describe`, which
+            // equals tagName exactly on a tagged release build (see package/package.sh
+            // for the same convention on Linux).
+            for (const extension of ["dmg", "pkg"]) {
+              const macosName = `snx-rs-${tagName}-aarch64-apple-darwin.${extension}`;
+              const macosArtifact = fs.readFileSync(`artifacts/${macosName}`);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.data.id,
+                name: macosName,
+                data: macosArtifact
+              });
+            }
 
             if (tagName.endsWith("-test")) {
               await github.rest.repos.deleteRelease({
