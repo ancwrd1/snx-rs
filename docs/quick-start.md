@@ -23,6 +23,8 @@ If the desktop environment does not have a dbus SNI interface, use the `--no-tra
 2. Create a configuration file: `$HOME/.config/snx-rs/snx-rs.conf`, with desired [options](https://github.com/ancwrd1/snx-rs/blob/main/docs/options.md).
 3. Connect the tunnel with `snxctl connect` command.
 
+On macOS, the `.pkg` installer's LaunchDaemon starts `snx-rs` in command mode automatically; there is no separate service-enable step.
+
 ## Recommended for laptops: persistent IPsec session
 
 Set `ike-persist=true` and `ike-lifetime=604800` in your config file to skip the full IKE handshake on the next reconnect.

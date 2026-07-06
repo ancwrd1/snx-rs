@@ -3,12 +3,11 @@
 * Install the required dependencies:
   - Debian/Ubuntu: `sudo apt install build-essential libssl-dev libfontconfig1-dev libsqlite3-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev libjavascriptcoregtk-6.0-dev`
   - openSUSE: `sudo zypper install libopenssl-3-devel sqlite3-devel fontconfig-devel gtk4-devel webkit2gtk4-devel`
-  - macOS: Xcode Command Line Tools (`xcode-select --install`) for the C toolchain, and OpenSSL — either the system/Homebrew package (`brew install openssl@3`) or build with `--features snxcore/vendored-openssl`.
+  - macOS: Xcode Command Line Tools (`xcode-select --install`) for the C toolchain. Add the target once with `rustup target add aarch64-apple-darwin` (or `x86_64-apple-darwin` on Intel). OpenSSL: either the system/Homebrew package (`brew install openssl@3`) or build with `--features snxcore/vendored-openssl` to avoid the Homebrew dependency, as the release pipeline does (see `package/macos/build.sh`).
   - Other distros: C compiler, OpenSSL, SQLite3, fontconfig, optionally GTK4 and WebKit6 development package
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version.
-* To build a version with mobile access feature and webkit integration, pass the `--features=mobile-access` parameter. GTK and WebKit are not available on macOS, so this feature cannot be built there.
-* On macOS, only the CLI crates are supported: `cargo build --release -p snx-rs -p snxctl`. The `snx-rs-gui` frontend is not ported yet.
+* To build a version with the mobile-access feature and embedded WebKit portal login, pass the `--features=mobile-access` parameter. On Linux this needs the GTK4/WebKit6 packages listed above; macOS and Windows use the system WebView and need no extra packages.
 
 NOTE: the minimal supported Rust version is 1.88.
 

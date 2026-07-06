@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.github.snx-rs</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/Application Support/snx-rs/snx-rs</string>
+        <string>-m</string>
+        <string>command</string>
+        <string>-l</string>
+        <string>info</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/var/log/snx-rs.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/snx-rs.log</string>
+</dict>
+</plist>

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Runs as root during .pkg install. Locks down ownership, then loads the LaunchDaemon.
+
+libexec="/Library/Application Support/snx-rs"
+plist=/Library/LaunchDaemons/com.github.snx-rs.plist
+log=/var/log/snx-rs.log
+
+# Pin ownership so the root-run binary cannot be replaced by a non-root user, regardless of the
+# installer's ownership defaults or a group-writable parent.
+chown -R root:wheel "$libexec"
+
+# Pre-create the log root:admin 0640 so daemon diagnostics are not world-readable; launchd appends.
+touch "$log"
+chown root:admin "$log"
+chmod 640 "$log"
+
+launchctl bootout system/com.github.snx-rs 2>/dev/null || true
+launchctl bootstrap system "$plist"
+launchctl enable system/com.github.snx-rs
+
+exit 0
