@@ -58,8 +58,11 @@ async fn main() -> anyhow::Result<()> {
     }
 
     #[cfg(feature = "mobile-access")]
-    if let Some(url) = cmdline_params.webkit.as_deref() {
-        let code = tokio::task::block_in_place(|| platform::webkit_main(url, cmdline_params.webkit_ignore_cert));
+    if cmdline_params.webkit {
+        // The URL arrives on stdin, not argv, so it is not exposed to other users via `ps`.
+        let mut url = String::new();
+        std::io::stdin().read_line(&mut url)?;
+        let code = tokio::task::block_in_place(|| platform::webkit_main(url.trim(), cmdline_params.webkit_ignore_cert));
         std::process::exit(code);
     }
 

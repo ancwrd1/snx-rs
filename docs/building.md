@@ -7,8 +7,7 @@
   - Other distros: C compiler, OpenSSL, SQLite3, fontconfig, optionally GTK4 and WebKit6 development package
 * Install a recent [Rust compiler](https://rustup.rs)
 * Run `cargo build` to build the debug version, or `cargo build --release` to build the release version.
-* To build a version with mobile access feature and webkit integration, pass the `--features=mobile-access` parameter. GTK and WebKit are not available on macOS, so this feature cannot be built there.
-* On macOS, only the CLI crates are supported: `cargo build --release -p snx-rs -p snxctl`. The `snx-rs-gui` frontend is not ported yet.
+* To build a version with the mobile-access feature and embedded WebKit portal login, pass the `--features=mobile-access` parameter. On Linux this needs the GTK4/WebKit6 packages listed above; macOS and Windows use the system WebView and need no extra packages.
 
 NOTE: the minimal supported Rust version is 1.88.
 

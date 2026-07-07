@@ -7,6 +7,7 @@
 
 ## macOS
 
-* macOS 11 (Big Sur) or later, Apple Silicon or Intel.
-* Root privileges (`sudo`) are required for tunnel setup.
-* The GUI frontend is not available on macOS yet; use `snx-rs`/`snxctl` from the command line.
+* macOS 11 (Big Sur) or later, Apple Silicon (`aarch64-apple-darwin`) or Intel (`x86_64-apple-darwin`).
+* Root privileges (`sudo`) are required for tunnel setup; the `.pkg` installer's LaunchDaemon runs as root.
+* Release binaries are ad-hoc signed only (no Apple Developer ID) and not notarized. Gatekeeper may block first run; clear the quarantine attribute (`xattr -dr com.apple.quarantine <path>`) or right-click → Open.
+* The GUI frontend runs on macOS 11+ as a menu-bar app; the `snx-rs`/`snxctl` command-line tools are also available.

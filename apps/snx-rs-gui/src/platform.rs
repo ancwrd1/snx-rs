@@ -6,11 +6,18 @@ use uuid::Uuid;
 
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "macos")]
+mod macos;
+// The macOS and Windows trays are the same tray-icon-based implementation.
+#[cfg(any(target_os = "macos", windows))]
+mod tray_common;
 #[cfg(windows)]
 mod windows;
 
 #[cfg(target_os = "linux")]
 use linux as platform_impl;
+#[cfg(target_os = "macos")]
+use macos as platform_impl;
 #[cfg(feature = "mobile-access")]
 pub use platform_impl::webkit_main;
 pub use platform_impl::{
