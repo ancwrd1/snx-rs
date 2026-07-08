@@ -92,7 +92,7 @@ windows = { version = "0.62", features = [
     "Win32_UI_HiDpi",
     "Win32_UI_WindowsAndMessaging",
 ] }
-tauri-winrt-notification = "0.7"
+tauri-winrt-notification = "0.8"
 webview2-com = { version = "0.39", optional = true }
 winreg = "0.56"
 tempfile = "3"

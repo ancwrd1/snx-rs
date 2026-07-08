@@ -10,7 +10,7 @@ Repository: https://github.com/ancwrd1/snx-rs
 License: AGPL-3.0 (see `COPYING`)  
 Author: Dmitry Pankratov <dmitry@pankratov.net>  
 
-Currently supported platforms: Linux, Windows. All platform-specific code must be isolated under `platform` submodule.
+Currently supported platforms: Linux, Windows, macOS. All platform-specific code must be isolated under `platform` submodule.
 
 ## Workspace layout
 
@@ -22,7 +22,7 @@ This is a Cargo workspace (`resolver = "2"`, `edition = "2024"`) declared in the
 | `i18n`       | `crates/i18n`     | library | Fluent-based localization. Wraps `fluent-templates` and exposes `tr!`/`translate` helpers. |
 | `snx-rs`     | `apps/snx-rs`     | binary  | The service / daemon. Runs in standalone or command mode; needs root for tunnel setup.     |
 | `snxctl`     | `apps/snxctl`     | binary  | Thin CLI that talks to `snx-rs` in command mode (connect/disconnect/status/info).          |
-| `snx-rs-gui` | `apps/snx-rs-gui` | binary  | Slint-based GUI with tray icon (KSNI). Talks to `snx-rs` over IPC.                         |
+| `snx-rs-gui` | `apps/snx-rs-gui` | binary  | Slint-based GUI with tray icon. Linux uses KSNI; macOS/Windows use the `tray-icon` crate. Talks to `snx-rs` over IPC. |
 
 Top-level directories:
 
@@ -38,7 +38,7 @@ Top-level directories:
 
 `crates/snxcore/src/`:
 
-* `lib.rs` — crate root. Historically carried `#![deny(unsafe_code)]`; this was relaxed when Windows platform support landed (the Windows platform module needs FFI). Keep `unsafe` confined to `platform/windows/` and justify any new usage.
+* `lib.rs` — crate root. Historically carried `#![deny(unsafe_code)]`; this was relaxed when Windows and macOS platform support landed (both need FFI). Keep `unsafe` confined to `platform/windows/` and `platform/macos/`; justify any new usage.
 * `server.rs` — command-mode server (unix socket on Linux / named pipe on Windows).
 * `controller.rs` — connection lifecycle orchestration.
 * `browser.rs` — browser-based SAML/IdP flow.
@@ -61,6 +61,7 @@ Per-OS platform modules under `crates/snxcore/src/platform/`:
 
 * `linux/` — `keychain.rs` (Secret Service), `resolver.rs` (systemd-resolved via D-Bus), `routing.rs` (rtnetlink), `xfrm.rs` (xfrmnetlink / netlink-packet-xfrm), `net.rs`, `stats.rs` (interface stats poller).
 * `windows/` — `firewall.rs`, `ipsec_stub.rs` (IPsec is not yet implemented on Windows), `keychain.rs` (Credential Manager), `machine_uuid.rs`, `net.rs`, `nrpt.rs` (Name Resolution Policy Table for split DNS), `resolver.rs`, `routing.rs`, `single_instance.rs`, `stats.rs`. Marked `#![allow(unsafe_code)]` because the Windows APIs require FFI.
+* `macos/` — `command_socket.rs` (filesystem-pinned local socket), `ipsec_stub.rs` (IPsec native kernel path not implemented; userspace TUN/ESP used instead), `keychain.rs` (Security.framework), `machine_uuid.rs` (gethostuuid), `net.rs` (utun device, ioctl SIOCAIFADDR/SIOCSIFMTU, interface stats via NET_RT_IFLIST2), `resolver.rs` (SCDynamicStore / SystemConfiguration split DNS), `routing.rs` (PF_ROUTE: split/full-route, IPv6 blackhole, ip.forwarding), `single_instance.rs` (flock guard), `stats.rs`. Marked `#![allow(unsafe_code)]` because the macOS APIs require FFI. IPsec keepalive is disabled (the gateway echoes the UDP checksum, which the kernel drops; macOS lacks SO_NO_CHECK).
 
 The external `isakmp` crate (git dep: `https://github.com/ancwrd1/isakmp.git`) provides IKE/ISAKMP primitives used by the IPsec tunnel.
 
@@ -89,7 +90,7 @@ cargo clippy --workspace --features mobile-access -- -D warnings
 cargo test  --workspace --features mobile-access
 ```
 
-CI runs on `ubuntu-latest` / `x86_64-unknown-linux-gnu` / stable. Clippy is `-D warnings` — do not land new warnings.
+CI runs on `ubuntu-latest` / `x86_64-unknown-linux-gnu` / stable for Linux, and on `macos-latest` / `aarch64-apple-darwin` / stable for macOS (whole workspace including the GUI, with `vendored-openssl` and `mobile-access`). Clippy is `-D warnings` — do not land new warnings.
 
 ### System dependencies
 
@@ -100,6 +101,8 @@ Required for the default Linux build: C toolchain, OpenSSL, SQLite3, fontconfig.
 
 On Windows, use `vendored-openssl` and `vendored-sqlite` features to avoid system library dependencies. The `mobile-access` feature on Windows pulls in WebView2 via the `webview2-com` crate (no extra system package needed; WebView2 runtime ships with modern Windows).
 
+On macOS, use `vendored-openssl` (and optionally `vendored-sqlite`); no other system packages are required. The `mobile-access` feature uses `WKWebView` via the system WebKit (part of macOS); no extra install is needed.
+
 ### Cargo features
 
 Defined on `snxcore`:
@@ -107,7 +110,7 @@ Defined on `snxcore`:
 * `vendored-sqlite` — bundle SQLite via `rusqlite/bundled`.
 
 Defined on `snx-rs-gui`:
-* `mobile-access` — pulls in `gtk4` and `webkit6`, enabling the embedded browser used for Mobile Access portal login. Off by default in release CI to minimize runtime deps.
+* `mobile-access` — enables the embedded browser used for Mobile Access portal login. On Linux pulls in `gtk4` and `webkit6`; on macOS uses `WKWebView` via the system WebKit; on Windows uses WebView2. Off by default in release CI to minimize runtime deps.
 
 ### Build profiles
 
@@ -116,12 +119,12 @@ Defined on `snx-rs-gui`:
 ## Code style and conventions
 
 * `rustfmt.toml` sets `max_width = 120`. Run `cargo fmt` before committing.
-* Prefer safe wrapper crates (`nix`, `rtnetlink`, `xfrmnetlink`, `tun`, etc.) over raw FFI. The only place `unsafe` is expected is `crates/snxcore/src/platform/windows/`, which opts in via `#![allow(unsafe_code)]` to call Win32 APIs. Do not introduce `unsafe` outside that module without discussing with maintainers.
+* Prefer safe wrapper crates (`nix`, `rtnetlink`, `xfrmnetlink`, `tun`, etc.) over raw FFI. The only places `unsafe` is expected are `crates/snxcore/src/platform/windows/` (Win32 FFI) and `crates/snxcore/src/platform/macos/` (macOS system APIs); both opt in via `#![allow(unsafe_code)]`. Do not introduce `unsafe` outside those modules without discussing with maintainers.
 * Errors flow through `anyhow::Result` at app boundaries; library code also uses `anyhow` (there is no custom error type at present).
 * Async runtime is `tokio` (multi-thread). Prefer `tokio::spawn` + channels over ad-hoc threading.
 * Secrets go through `secrecy::SecretString` / `ExposeSecret`. Do not log, format, or embed passwords / tokens into error strings.
 * Logging uses `tracing` + `tracing-subscriber`. Respect the `log-level` config option. `trace` level is documented as sensitive — do not downgrade that warning.
-* Platform-specific code belongs under `crates/snxcore/src/platform/<os>/` behind `#[cfg(target_os = "linux")]` / `#[cfg(target_os = "windows")]`. The `Platform` trait in `platform.rs` is the abstraction seam; add new functionality there first, then implement for each OS.
+* Platform-specific code belongs under `crates/snxcore/src/platform/<os>/` behind `#[cfg(target_os = "linux")]` / `#[cfg(target_os = "windows")]` / `#[cfg(target_os = "macos")]`. The `Platform` trait in `platform.rs` is the abstraction seam; add new functionality there first, then implement for each OS.
 * Comments: the maintainer's stated AI policy (`docs/contributing.md`) is explicit — *no redundant per-line or per-function comments*. Only comment the non-obvious *why*. Machine-generated boilerplate comments will be rejected.
 
 ## User-facing strings must be localized
@@ -159,14 +162,14 @@ The `snx-rs` binary runs in one of two operating modes selected by `-m`:
 
 Plus one-shot utility modes: `info` (query server for auth methods), certificate enrollment, etc.
 
-The GUI (`snx-rs-gui`) always runs unprivileged and talks to a `command`-mode `snx-rs` service over IPC (`interprocess` crate) + D-Bus (`zbus`) for desktop integration. The GUI is **not** a replacement for the service; it's a client of it.
+The GUI (`snx-rs-gui`) always runs unprivileged and talks to a `command`-mode `snx-rs` service over IPC (`interprocess` crate). On Linux, D-Bus (`zbus`) is used for desktop integration (KSNI tray, notifications). On macOS and Windows the tray is provided by the `tray-icon` crate; on macOS notifications go through `UNUserNotificationCenter`. The GUI is **not** a replacement for the service; it's a client of it.
 
 ## Things agents commonly get wrong here
 
 * **Don't add redundant comments.** The contributing guide says so explicitly; this is the single most common cause of rejected AI patches in this repo.
 * **Don't hard-code user-visible English strings.** Route them through `tr!` and update the Fluent files.
-* **Don't run external commands to configure networking.** Since v5.3.0 the project deliberately uses OS APIs directly (Linux: `rtnetlink`, `xfrmnetlink`, systemd-resolved over D-Bus, `sysctl` crate; Windows: Win32 IpHelper / NRPT / WinSock via the `windows` crate). Do not regress this by shelling out to `ip`, `resolvectl`, `iptables`, `netsh`, `route`, etc.
-* **Don't introduce `unsafe` outside `platform/windows/`.** That module is the only place that opts into `unsafe` (it needs Win32 FFI). Everywhere else, use safe wrappers.
+* **Don't run external commands to configure networking.** Since v5.3.0 the project deliberately uses OS APIs directly (Linux: `rtnetlink`, `xfrmnetlink`, systemd-resolved over D-Bus, `sysctl` crate; Windows: Win32 IpHelper / NRPT / WinSock via the `windows` crate; macOS: ioctl, PF_ROUTE, SystemConfiguration). Do not regress this by shelling out to `ip`, `resolvectl`, `iptables`, `netsh`, `route`, `networksetup`, etc.
+* **Don't introduce `unsafe` outside `platform/windows/` or `platform/macos/`.** Those are the only modules that opt into `unsafe` (Win32 FFI and macOS system APIs respectively). Everywhere else, use safe wrappers.
 * **Don't add backwards-compat shims** for config flags that were renamed (e.g. `no-keychain` → `keychain` was flipped deliberately in 5.3.0). If you're changing a flag, change it cleanly and document in `CHANGELOG.md`.
 * **Don't bypass `secrecy`.** Passwords, IKE keys, tokens, and cert passwords must stay inside `SecretString` until the exact point of use.
 * **Don't forget MSRV.** Edition 2024 features are fine; `rustc 1.88+` features are fine; anything newer is not.
