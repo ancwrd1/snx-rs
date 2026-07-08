@@ -43,3 +43,40 @@ impl Keychain for MacosKeychain {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use secrecy::SecretString;
+
+    use super::*;
+
+    const TEST_PROFILE: Uuid = Uuid::from_u128(0x736e_782d_7273_2d74_6573_745f_726f_756e);
+
+    #[tokio::test]
+    async fn delete_missing_password_is_ok() {
+        MacosKeychain::new()
+            .delete_password(Uuid::from_u128(0xffff_ffff_dead_beef_ffff_ffff_dead_beef))
+            .await
+            .expect("deleting an absent entry must be a no-op");
+    }
+
+    #[tokio::test]
+    #[ignore = "touches the real login keychain; run with --ignored"]
+    async fn store_acquire_delete_roundtrip() {
+        let kc = MacosKeychain::new();
+        let secret: SecretString = "correct horse battery staple".to_string().into();
+        kc.store_password(TEST_PROFILE, &secret)
+            .await
+            .expect("store must succeed");
+        let got = kc
+            .acquire_password(TEST_PROFILE)
+            .await
+            .expect("stored password reads back");
+        assert_eq!(got, "correct horse battery staple");
+        kc.delete_password(TEST_PROFILE).await.expect("delete must succeed");
+        assert!(
+            kc.acquire_password(TEST_PROFILE).await.is_err(),
+            "entry must be gone after delete"
+        );
+    }
+}

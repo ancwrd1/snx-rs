@@ -182,6 +182,11 @@ impl IPsecTunnelConnector {
             .map(|p| String::from_utf8_lossy(p).into_owned())
             .collect::<Vec<_>>();
 
+        // Bail instead of indexing so a malformed challenge without a NUL separator cannot panic us.
+        if parts.len() < 2 {
+            anyhow::bail!("Invalid challenge reply!");
+        }
+
         debug!("Challenge msg: {}", parts[0]);
         trace!("msg_obj: {}", parts[1]);
 

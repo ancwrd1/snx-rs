@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use anyhow::{Context, anyhow};
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
-use interprocess::local_socket::{GenericNamespaced, ToNsName, traits::tokio::Listener};
+use interprocess::local_socket::traits::tokio::Listener;
 use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, warn};
 
@@ -232,7 +232,7 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
         debug!("Starting command server: {}", self.name);
 
         let options =
-            interprocess::local_socket::ListenerOptions::new().name(self.name.to_ns_name::<GenericNamespaced>()?);
+            interprocess::local_socket::ListenerOptions::new().name(Platform::get().command_socket_name(&self.name)?);
 
         #[cfg(target_os = "windows")]
         let options = {
@@ -247,6 +247,7 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
         };
 
         let listener = options.create_tokio()?;
+        Platform::get().secure_command_socket(&self.name)?;
 
         let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
@@ -259,6 +260,12 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
         });
 
         while let Ok(stream) = listener.accept().await {
+            // Drop peers the platform does not authorize (on macOS, anyone but root, the console user
+            // or an admin; elsewhere the socket's own security descriptor already gates access).
+            if !Platform::get().authorize_socket_peer(&stream) {
+                continue;
+            }
+
             let sender = event_sender.clone();
             let state = self.connection_state.clone();
 

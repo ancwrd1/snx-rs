@@ -141,6 +141,11 @@ fn read_if_data(device_name: &str) -> anyhow::Result<IfCounters> {
     }
     buf.truncate(len);
 
+    parse_if_counters(&buf, index).ok_or_else(|| anyhow!(i18n::tr!("error-device-not-found", device = device_name)))
+}
+
+// Split from the sysctl call so the message-stream parsing can be exercised against truncated input.
+fn parse_if_counters(buf: &[u8], index: c_uint) -> Option<IfCounters> {
     // Every route-socket message shares this 4-byte prefix (u16 msglen, u8 version, u8 type),
     // so peek it before deciding whether to interpret the record as a full if_msghdr2.
     const RTM_HDR_LEN: usize = 4;
@@ -157,7 +162,7 @@ fn read_if_data(device_name: &str) -> anyhow::Result<IfCounters> {
             let hdr = unsafe { base.cast::<libc::if_msghdr2>().read_unaligned() };
             if hdr.ifm_index as c_uint == index {
                 let data = hdr.ifm_data;
-                return Ok(IfCounters {
+                return Some(IfCounters {
                     bytes_rx: data.ifi_ibytes,
                     bytes_tx: data.ifi_obytes,
                     packets_rx: data.ifi_ipackets,
@@ -169,8 +174,7 @@ fn read_if_data(device_name: &str) -> anyhow::Result<IfCounters> {
         }
         offset += msglen;
     }
-
-    Err(anyhow!(i18n::tr!("error-device-not-found", device = device_name)))
+    None
 }
 
 #[cfg(test)]
@@ -187,5 +191,40 @@ mod tests {
         );
         assert!(stats.bytes_rx > 0, "expected lo0 to have carried some traffic");
         assert!(stats.bytes_tx > 0, "expected lo0 to have carried some traffic");
+    }
+
+    #[test]
+    fn parse_if_counters_reads_matching_index() {
+        let mut hdr: libc::if_msghdr2 = unsafe { std::mem::zeroed() };
+        hdr.ifm_msglen = std::mem::size_of::<libc::if_msghdr2>() as u16;
+        hdr.ifm_version = libc::RTM_VERSION as u8;
+        hdr.ifm_type = libc::RTM_IFINFO2 as u8;
+        hdr.ifm_index = 7;
+        hdr.ifm_data.ifi_ibytes = 111;
+        hdr.ifm_data.ifi_obytes = 222;
+        let bytes = unsafe {
+            std::slice::from_raw_parts(
+                (&hdr as *const libc::if_msghdr2).cast::<u8>(),
+                std::mem::size_of::<libc::if_msghdr2>(),
+            )
+        };
+        let counters = super::parse_if_counters(bytes, 7).expect("index 7 must be found");
+        assert_eq!(counters.bytes_rx, 111);
+        assert_eq!(counters.bytes_tx, 222);
+        assert!(super::parse_if_counters(bytes, 99).is_none());
+    }
+
+    #[test]
+    fn parse_if_counters_never_panics_on_garbage() {
+        let mut seed = 0x1234_5678_9abc_def0u64;
+        let mut next = || {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            seed
+        };
+        for _ in 0..5000 {
+            let len = (next() % 320) as usize;
+            let buf: Vec<u8> = (0..len).map(|_| (next() >> 33) as u8).collect();
+            let _ = super::parse_if_counters(&buf, (next() % 20) as libc::c_uint);
+        }
     }
 }

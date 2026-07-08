@@ -17,6 +17,7 @@ use crate::{
     },
 };
 
+mod command_socket;
 mod ipsec_stub;
 mod keychain;
 mod machine_uuid;
@@ -52,7 +53,11 @@ impl PlatformAccess for MacosPlatformAccess {
     async fn get_features(&self) -> PlatformFeatures {
         PlatformFeatures {
             ipsec_native: false,
-            // The tunnel stays up without an app-level keepalive, so leave it off.
+            // No app-level keepalive on macOS: the gateway echoes the request's UDP checksum in its
+            // reply, which the kernel drops as invalid. Linux/Windows zero the checksum via SO_NO_CHECK,
+            // which macOS lacks (a future fix could craft the keepalive over a raw socket). Enabling it
+            // would tear a healthy tunnel down; without it the ESP session still stays up and a dead
+            // peer is detected at the next SA rekey.
             ipsec_keepalive: false,
             split_dns: true,
         }
@@ -77,7 +82,13 @@ impl PlatformAccess for MacosPlatformAccess {
         nix::unistd::Uid::effective().is_root()
     }
 
-    fn init(&self) {}
+    fn init(&self) {
+        // Reconcile state a previous instance left after an unclean exit (panic aborts before Drop,
+        // launchd restarts us): stale DNS keys, IPv6 blackholes, IP forwarding. All boot-lifetime.
+        resolver::cleanup_stale_dns();
+        net::restore_forwarding_from_marker();
+        routing::cleanup_stale_blackholes();
+    }
 
     fn new_ipsec_configurator(
         &self,
@@ -108,7 +119,20 @@ impl PlatformAccess for MacosPlatformAccess {
     }
 
     fn data_dir(&self) -> PathBuf {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_owned());
+        // Root's home rather than world-readable /tmp: the session store may hold secrets.
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/var/root".to_owned());
         PathBuf::from(home).join("Library/Application Support/snx-rs")
+    }
+
+    fn command_socket_name(&self, name: &str) -> std::io::Result<interprocess::local_socket::Name<'static>> {
+        command_socket::name(name)
+    }
+
+    fn secure_command_socket(&self, name: &str) -> std::io::Result<()> {
+        command_socket::secure(name)
+    }
+
+    fn authorize_socket_peer(&self, stream: &interprocess::local_socket::tokio::Stream) -> bool {
+        command_socket::authorize_peer(stream)
     }
 }

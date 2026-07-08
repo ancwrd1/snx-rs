@@ -301,4 +301,23 @@ pub trait PlatformAccess {
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static;
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static>;
     fn data_dir(&self) -> PathBuf;
+
+    // Local-socket name of the command server, resolved the same way on both sides. The default is an
+    // OS-namespaced name; macOS pins it to a filesystem path instead.
+    fn command_socket_name(&self, name: &str) -> std::io::Result<interprocess::local_socket::Name<'static>> {
+        use interprocess::local_socket::{GenericNamespaced, ToNsName};
+        std::ffi::OsString::from(name).to_ns_name::<GenericNamespaced>()
+    }
+
+    // Tighten permissions on the command socket after it is created; a no-op where the socket name
+    // already carries a security descriptor.
+    fn secure_command_socket(&self, _name: &str) -> std::io::Result<()> {
+        Ok(())
+    }
+
+    // Authorize a freshly accepted command-socket peer; allows every peer where the socket itself is
+    // already access-controlled.
+    fn authorize_socket_peer(&self, _stream: &interprocess::local_socket::tokio::Stream) -> bool {
+        true
+    }
 }
