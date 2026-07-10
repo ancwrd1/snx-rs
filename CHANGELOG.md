@@ -1,4 +1,4 @@
-## v6.2.0 (TBD)
+## v6.2.0 (2026-07-10)
 This version adds experimental support to run snx-rs on macOS, on both Apple Silicon and Intel.
 Networking is implemented using native macOS APIs (utun, PF_ROUTE routing sockets, SystemConfiguration, Keychain) instead of shelling out to external tools, the same approach used on Linux and Windows.
 Distributed as a `.dmg` (GUI app bundle) and a `.pkg` (CLI plus a launchd service); binaries are ad-hoc signed and not notarized yet.
@@ -7,8 +7,10 @@ Distributed as a `.dmg` (GUI app bundle) and a `.pkg` (CLI plus a launchd servic
 - Split DNS is implemented via SystemConfiguration (SCDynamicStore) scoped/supplemental match domains.
 - The `snx-rs-gui` frontend runs on macOS: a native menu-bar tray built with the `tray-icon` crate, using template icons that follow the system appearance, and an embedded WebKit view for the Mobile Access portal login.
 - Added macOS packaging: a `.dmg` with the GUI app bundle and a `.pkg` installing `snx-rs`/`snxctl` with a launchd LaunchDaemon (`com.github.snx-rs`). Ad-hoc signed only, not notarized yet.
-- Fixed a problem with status window flickering, position and auto-resizing.
 
+Bugfixes:
+- Fixed a problem with status window flickering, position and auto-resizing.
+- Fixed a bug where the language selection dropdown was cut off.
 
 ## v6.1.2 (2026-06-25)
 - Fixed a problem with connectivity check on some corporate networks
