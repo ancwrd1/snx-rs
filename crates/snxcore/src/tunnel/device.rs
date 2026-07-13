@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use tracing::debug;
 use tun::AbstractDevice;
 
 pub struct TunDevice {
-    inner: Option<tun::AsyncDevice>,
+    inner: Arc<tun::AsyncDevice>,
     dev_name: String,
 }
 
@@ -27,7 +29,7 @@ impl TunDevice {
         debug!("Created tun device: {dev_name}");
 
         Ok(Self {
-            inner: Some(dev),
+            inner: Arc::new(dev),
             dev_name,
         })
     }
@@ -36,7 +38,7 @@ impl TunDevice {
         &self.dev_name
     }
 
-    pub fn take_inner(&mut self) -> Option<tun::AsyncDevice> {
-        self.inner.take()
+    pub fn inner(&self) -> Arc<tun::AsyncDevice> {
+        self.inner.clone()
     }
 }

@@ -28,9 +28,7 @@ use crate::{
     model::{
         ConnectionInfo, TunnelSession,
         params::{TlsVersion, TransportType, TunnelParams, TunnelType},
-        proto::{
-            ClientHelloData, GatewayInformation, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest,
-        },
+        proto::{ClientHelloData, HelloReply, HelloReplyData, LoginOption, OfficeMode, OptionalRequest},
     },
     platform::{
         DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
@@ -93,7 +91,7 @@ pub(crate) struct SslTunnel {
     hello_reply: HelloReplyData,
     terminate_sender: Option<Sender<()>>,
     gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
-    gateway_information: GatewayInformation,
+    gateway_address: Ipv4Addr,
 }
 
 impl SslTunnel {
@@ -104,9 +102,9 @@ impl SslTunnel {
     ) -> anyhow::Result<Self> {
         let info = gateway_connector.get_gateway_information().await?;
 
-        let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
+        let gateway_address = util::server_name_to_ipv4(&params.server_name, info.connectivity_info.tcpt_port)?;
 
-        let tcp = tokio::net::TcpStream::connect(address.as_ref()).await?;
+        let tcp = tokio::net::TcpStream::connect((gateway_address, info.connectivity_info.tcpt_port)).await?;
         tcp.set_nodelay(true)?;
 
         let mut builder = TlsConnector::builder();
@@ -153,7 +151,7 @@ impl SslTunnel {
             hello_reply: HelloReplyData::default(),
             terminate_sender: None,
             gateway_connector,
-            gateway_information: info,
+            gateway_address,
         })
     }
 
@@ -228,17 +226,14 @@ impl SslTunnel {
             return;
         };
 
-        if let Ok(dest_ip) = util::server_name_to_ipv4(
-            &self.params.server_name,
-            self.gateway_information.connectivity_info.tcpt_port,
-        ) && let Some(configurator) = self.routing_configurator.take()
-        {
+        if let Some(configurator) = self.routing_configurator.take() {
             let _ = configurator
                 .configure(&RoutingConfig::Cleanup {
-                    destination: dest_ip,
+                    destination: self.gateway_address,
                     enable_ipv6: self.params.disable_ipv6,
                 })
-                .await;
+                .await
+                .inspect_err(|e| warn!("{e}"));
         }
 
         if !self.params.no_dns {
@@ -261,19 +256,14 @@ impl SslTunnel {
             .new_routing_configurator(&device_config.name, TunnelType::SSL)
             .await?;
 
-        let dest_ip = util::server_name_to_ipv4(
-            &self.params.server_name,
-            self.gateway_information.connectivity_info.tcpt_port,
-        )?;
-
         let config = if self.params.no_routing {
             RoutingConfig::Split {
-                destination: dest_ip,
+                destination: self.gateway_address,
                 routes: self.params.add_routes.clone(),
             }
         } else if self.params.default_route {
             RoutingConfig::Full {
-                destination: dest_ip,
+                destination: self.gateway_address,
                 disable_ipv6: self.params.disable_ipv6,
             }
         } else {
@@ -298,7 +288,7 @@ impl SslTunnel {
             }
 
             RoutingConfig::Split {
-                destination: dest_ip,
+                destination: self.gateway_address,
                 routes,
             }
         };
@@ -370,7 +360,7 @@ impl VpnTunnel for SslTunnel {
             .as_deref()
             .unwrap_or(TunnelParams::DEFAULT_SSL_IF_NAME);
 
-        let mut tun = TunDevice::new(name_hint)?;
+        let tun = TunDevice::new(name_hint)?;
         let tun_name = tun.name().to_owned();
 
         let device_config = DeviceConfig {
@@ -387,7 +377,10 @@ impl VpnTunnel for SslTunnel {
             .configure_device(&device_config)
             .await?;
 
-        let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
+        let dev = tun.inner();
+        let tun_sender = dev.clone();
+        let tun_receiver = dev.clone();
+
         self.tun_device = Some(tun);
 
         let resolver_config = self.make_resolver_config().await;
@@ -414,7 +407,7 @@ impl VpnTunnel for SslTunnel {
                         debug!("Control packet received: {}", sexpr);
                     }
                     SlimPacketType::Data(data) => {
-                        tun_sender.send(data).await?;
+                        tun_sender.send(&data).await?;
                         keepalive_counter.store(0, Ordering::SeqCst);
                     }
                 }
@@ -458,6 +451,8 @@ impl VpnTunnel for SslTunnel {
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);
 
+        let mut buf = vec![0u8; self.params.mtu as usize];
+
         let result = loop {
             tokio::select! {
                 event = &mut command_fut => match event {
@@ -471,9 +466,9 @@ impl VpnTunnel for SslTunnel {
                     break Err(anyhow!(tr!("error-keepalive-failed")));
                 }
 
-                result = tun_receiver.next() => {
-                    if let Some(Ok(item)) = result {
-                        self.send(item).await?;
+                result = tun_receiver.recv(&mut buf) => {
+                    if let Ok(size) = result {
+                        self.send(buf[0..size].to_vec()).await?;
                     } else {
                         break Err(anyhow!(tr!("error-receive-failed")));
                     }

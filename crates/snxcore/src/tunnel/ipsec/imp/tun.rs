@@ -55,7 +55,6 @@ pub(crate) struct TunIPsecTunnel {
     encap_type: EspEncapType,
     esp_transport: TransportType,
     subnets: Vec<Ipv4Net>,
-    gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
     gateway_information: GatewayInformation,
 }
 
@@ -100,7 +99,6 @@ impl TunIPsecTunnel {
             encap_type,
             esp_transport,
             subnets,
-            gateway_connector,
             gateway_information,
         })
     }
@@ -132,7 +130,8 @@ impl TunIPsecTunnel {
                     destination: self.gateway_address,
                     enable_ipv6: self.params.disable_ipv6,
                 })
-                .await;
+                .await
+                .inspect_err(|e| warn!("{e}"));
         }
 
         let _ = Platform::get()
@@ -216,7 +215,7 @@ impl TunIPsecTunnel {
             .with_context(|| tr!("error-no-ipsec-session"))?
             .clone();
 
-        let mut tun = TunDevice::new(name_hint)?;
+        let tun = TunDevice::new(name_hint)?;
         let tun_name = tun.name().to_owned();
 
         let device_config = DeviceConfig {
@@ -231,7 +230,10 @@ impl TunIPsecTunnel {
             .configure_device(&device_config)
             .await?;
 
-        let (mut tun_sender, mut tun_receiver) = tun.take_inner().context("No tun device")?.into_framed().split();
+        let dev = tun.inner();
+        let tun_sender = dev.clone();
+        let tun_receiver = dev.clone();
+
         self.tun_device = Some(tun);
 
         let resolver_config = ResolverConfig::builder(self.params.clone(), Platform::get().get_features().await)
@@ -289,7 +291,7 @@ impl TunIPsecTunnel {
 
                 match result.await {
                     Ok(Ok(packet)) => {
-                        let _ = tun_sender.send(packet.into()).await;
+                        let _ = tun_sender.send(&packet).await;
                     }
                     Ok(Err(e)) => {
                         error!("Failed to decode packet: {}", e);
@@ -334,17 +336,11 @@ impl TunIPsecTunnel {
         let esp_codec_out = esp_codec_out.clone();
 
         let params = self.params.clone();
-        let connector = self.gateway_connector.clone();
-        let session = self.session.clone();
 
         let command_fut = async {
             while let Some(cmd) = command_receiver.recv().await {
                 match cmd {
-                    TunnelCommand::Terminate(signout) => {
-                        if signout || !params.ike_persist {
-                            debug!("Signing out");
-                            let _ = connector.signout(&session.session_id).await;
-                        }
+                    TunnelCommand::Terminate(_signout) => {
                         break;
                     }
                     TunnelCommand::ReKey(session) => {
@@ -416,6 +412,8 @@ impl TunIPsecTunnel {
 
         ready.store(true, Ordering::SeqCst);
 
+        let mut buf = vec![0u8; self.params.mtu as usize];
+
         let result = loop {
             tokio::select! {
                 () = &mut command_fut => {
@@ -432,8 +430,9 @@ impl TunIPsecTunnel {
                     warn!("SCV runner exited unexpectedly");
                 }
 
-                result = tun_receiver.next() => {
-                    if let Some(Ok(item)) = result {
+                result = tun_receiver.recv(&mut buf) => {
+                    if let Ok(size) = result {
+                        let item = buf[0..size].to_vec();
                         let codec = esp_codec_out.clone();
                         let result = tokio::task::spawn_blocking(move || {
                             codec.read().unwrap_or_else(|e| e.into_inner()).encode(&item)

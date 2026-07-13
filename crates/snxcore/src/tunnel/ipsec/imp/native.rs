@@ -41,7 +41,6 @@ pub(crate) struct NativeIPsecTunnel {
     device_name: String,
     gateway_address: Ipv4Addr,
     subnets: Vec<Ipv4Net>,
-    gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
 }
 
 impl NativeIPsecTunnel {
@@ -123,7 +122,6 @@ impl NativeIPsecTunnel {
             device_name,
             gateway_address,
             subnets,
-            gateway_connector,
         })
     }
 
@@ -197,7 +195,8 @@ impl NativeIPsecTunnel {
                     destination: self.gateway_address,
                     enable_ipv6: self.params.disable_ipv6,
                 })
-                .await;
+                .await
+                .inspect_err(|e| warn!("{e}"));
         }
 
         self.xfrm_configurator.cleanup().await;
@@ -273,11 +272,7 @@ impl VpnTunnel for NativeIPsecTunnel {
         let fut = async {
             while let Some(cmd) = command_receiver.recv().await {
                 match cmd {
-                    TunnelCommand::Terminate(signout) => {
-                        if signout || !self.params.ike_persist {
-                            debug!("Signing out");
-                            let _ = self.gateway_connector.signout(&self.session.session_id).await;
-                        }
+                    TunnelCommand::Terminate(_signout) => {
                         break;
                     }
                     TunnelCommand::ReKey(session) => {

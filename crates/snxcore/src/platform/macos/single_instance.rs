@@ -1,7 +1,9 @@
 use std::{fs, os::fd::OwnedFd};
 
-use nix::fcntl::{self, Flock, FlockArg, OFlag};
-use nix::sys::stat::Mode;
+use nix::{
+    fcntl::{self, Flock, FlockArg, OFlag},
+    sys::stat::Mode,
+};
 
 use crate::platform::SingleInstance;
 

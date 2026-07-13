@@ -7,14 +7,14 @@ use secrecy::ExposeSecret;
 use snxcore::{
     model::{
         MfaType, PromptInfo, SessionState,
-        params::{CertType, OperationMode, TunnelParams, TunnelType},
+        params::{CertType, OperationMode, TunnelParams},
         proto::CertificateResponse,
     },
     otp::OtpListener,
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
-    tunnel::{TunnelConnectorFactory, TunnelEvent, connector::CheckPointConnectorFactory},
+    tunnel::{TunnelCommand, TunnelConnectorFactory, TunnelEvent, connector::CheckPointConnectorFactory},
     util,
 };
 use tokio::sync::mpsc;
@@ -330,7 +330,9 @@ where
         }
     }
 
-    let mut tunnel = tunnel_connector.create_tunnel(session.clone(), command_sender).await?;
+    let mut tunnel = tunnel_connector
+        .create_tunnel(session.clone(), command_sender.clone())
+        .await?;
 
     if let Err(e) = Platform::get()
         .new_network_interface()
@@ -340,31 +342,30 @@ where
         warn!("Unable to start network monitoring: {}", e);
     }
 
-    let (event_sender, mut event_receiver) = mpsc::channel(16);
-    let tunnel_fut = await_termination(tunnel.run(command_receiver, event_sender));
+    let (event_sender, mut event_receiver) = mpsc::channel::<TunnelEvent>(16);
 
-    pin_mut!(tunnel_fut);
+    tokio::spawn(async move {
+        let _ = await_termination(futures::future::pending::<anyhow::Result<()>>()).await;
+        let _ = command_sender.send(TunnelCommand::Terminate(true)).await;
+    });
 
-    loop {
-        tokio::select! {
-            event = event_receiver.recv() => {
-                if let Some(event) = event {
-                    let _ = tunnel_connector.handle_tunnel_event(event.clone()).await;
+    tokio::spawn(async move {
+        while let Some(event) = event_receiver.recv().await {
+            let _ = tunnel_connector.handle_tunnel_event(event.clone()).await;
 
-                    if let TunnelEvent::Connected(info) = event {
-                        println!("{}", info.print(false));
-                        println!("{}", tr!("cli-tunnel-connected"));
-                    }
+            match event {
+                TunnelEvent::Connected(info) => {
+                    println!("{}", info.print(false));
+                    println!("{}", tr!("cli-tunnel-connected"));
                 }
-            }
-            result = &mut tunnel_fut => {
-                if params.tunnel_type == TunnelType::SSL || !params.ike_persist {
-                    debug!("Signing out");
-                    let _ = connector.signout(&session.session_id).await;
+                TunnelEvent::Disconnected => {
+                    println!("\n{}", tr!("cli-tunnel-disconnected"));
+                    break;
                 }
-                println!("\n{}", tr!("cli-tunnel-disconnected"));
-                break result;
+                _ => {}
             }
         }
-    }
+    });
+
+    tunnel.run(command_receiver, event_sender).await
 }
