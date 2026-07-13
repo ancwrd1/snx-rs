@@ -1,3 +1,8 @@
+## v6.2.1 (TBD)
+* Fixed a bug with routing rule cleanup after tun-based tunnel termination.
+* Removed unnecessary user signout call during tunnel disconnect (#234).
+* Refactored macOS packaging to only build one dmg file which includes a full installer.
+
 ## v6.2.0 (2026-07-10)
 This version adds experimental support to run snx-rs on macOS, on both Apple Silicon and Intel.
 Networking is implemented using native macOS APIs (utun, PF_ROUTE routing sockets, SystemConfiguration, Keychain) instead of shelling out to external tools, the same approach used on Linux and Windows.
