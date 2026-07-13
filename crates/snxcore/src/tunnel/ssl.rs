@@ -254,10 +254,6 @@ impl SslTunnel {
             .new_network_interface()
             .delete_device(device.name())
             .await;
-
-        debug!("Signing out");
-
-        let _ = self.gateway_connector.signout(&self.session.session_id).await;
     }
 
     pub async fn setup_routing(&mut self, device_config: &DeviceConfig) -> anyhow::Result<()> {
