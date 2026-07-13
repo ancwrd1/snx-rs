@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Assembles SNX-RS.app, ad-hoc codesigns it, and builds the .dmg (GUI) and
-# .pkg (CLI + LaunchDaemon) artifacts. Binaries must already be built, e.g.
+# Assembles SNX-RS.app, ad-hoc codesigns it, and builds a single .dmg artifact
+# containing the installer .pkg (GUI app + CLI + LaunchDaemon) and an
+# "Uninstall SNX-RS Application" script. Binaries must already be built, e.g.
 # with package/macos/build.sh. Mirrors package/package.sh.
 #
 # Usage: package/macos/package.sh [version]
@@ -83,35 +84,19 @@ create_app() {
     echo "$app"
 }
 
-create_dmg() {
-    echo "Packaging .dmg for $triple" >&2
-
-    local app="$1"
-    local name="snx-rs-${version}-${triple}"
-    local dmg_stage="$stage/dmg"
-
-    mkdir -p "$dmg_stage"
-    cp -R "$app" "$dmg_stage/"
-    ln -s /Applications "$dmg_stage/Applications"
-    # Also drop the uninstaller next to the app so it is visible when the .dmg is mounted.
-    install -m 755 "$macos_dir/uninstall.sh" "$dmg_stage/uninstall.sh"
-
-    hdiutil create -volname "SNX-RS" -srcfolder "$dmg_stage" -ov -format UDZO "$target/$name.dmg"
-}
-
 create_pkg() {
     echo "Packaging .pkg for $triple" >&2
 
-    local name="snx-rs-${version}-${triple}"
+    local app="$1"
     local payload="$stage/pkg-payload"
     local scripts="$stage/pkg-scripts"
     local libexec="$payload/Library/Application Support/snx-rs"
 
-    mkdir -p "$payload/usr/local/bin" "$libexec" "$payload/Library/LaunchDaemons" "$scripts"
+    mkdir -p "$payload/usr/local/bin" "$libexec" "$payload/Library/LaunchDaemons" "$payload/Applications" "$scripts"
 
-    for app in snx-rs snxctl; do
-        if [ ! -f "$bindir/$app" ]; then
-            echo "missing $bindir/$app, build it first (see package/macos/build.sh)" >&2
+    for bin in snx-rs snxctl; do
+        if [ ! -f "$bindir/$bin" ]; then
+            echo "missing $bindir/$bin, build it first (see package/macos/build.sh)" >&2
             exit 1
         fi
     done
@@ -126,17 +111,37 @@ create_pkg() {
     install -m 644 "$macos_dir/com.github.snx-rs.plist" "$payload/Library/LaunchDaemons/"
     install -m 755 "$macos_dir/scripts/postinstall" "$scripts/"
 
+    # Ship the GUI app in the same installer so it lands under /Applications.
+    cp -R "$app" "$payload/Applications/"
+
     pkgbuild --root "$payload" \
         --scripts "$scripts" \
         --identifier "$bundle_id" \
         --version "$pkg_version" \
         --install-location / \
-        "$stage/snx-rs-cli.pkg"
+        "$stage/snx-rs-component.pkg"
 
-    productbuild --package "$stage/snx-rs-cli.pkg" "$target/$name.pkg"
+    productbuild --package "$stage/snx-rs-component.pkg" "$stage/SNX-RS.pkg"
+
+    echo "$stage/SNX-RS.pkg"
+}
+
+create_dmg() {
+    echo "Packaging .dmg for $triple" >&2
+
+    local pkg="$1"
+    local name="snx-rs-${version}-${triple}"
+    local dmg_stage="$stage/dmg"
+
+    mkdir -p "$dmg_stage"
+    cp "$pkg" "$dmg_stage/SNX-RS.pkg"
+    # Drop the uninstaller next to the installer so it is visible when the .dmg is mounted.
+    install -m 755 "$macos_dir/uninstall.sh" "$dmg_stage/Uninstall SNX-RS Application"
+
+    hdiutil create -volname "SNX-RS" -srcfolder "$dmg_stage" -ov -format UDZO "$target/$name.dmg"
 }
 
 mkdir -p "$target"
 app_path="$(create_app)"
-create_dmg "$app_path"
-create_pkg
+pkg_path="$(create_pkg "$app_path")"
+create_dmg "$pkg_path"

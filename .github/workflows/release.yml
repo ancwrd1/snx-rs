@@ -126,9 +126,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: artifacts-aarch64-macos
-          path: |
-            target/snx-rs-*.dmg
-            target/snx-rs-*.pkg
+          path: target/snx-rs-*.dmg
 
   release:
     needs: [build, build-windows, build-macos]
@@ -251,20 +249,19 @@ jobs:
               data: msiArtifact
             });
 
-            // package/macos/package.sh names artifacts after `git describe`, which
+            // package/macos/package.sh names the .dmg after `git describe`, which
             // equals tagName exactly on a tagged release build (see package/package.sh
-            // for the same convention on Linux).
-            for (const extension of ["dmg", "pkg"]) {
-              const macosName = `snx-rs-${tagName}-aarch64-apple-darwin.${extension}`;
-              const macosArtifact = fs.readFileSync(`artifacts/${macosName}`);
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: release.data.id,
-                name: macosName,
-                data: macosArtifact
-              });
-            }
+            // for the same convention on Linux). The .dmg now bundles the installer
+            // .pkg and the uninstaller, so it is the only macOS asset.
+            const macosName = `snx-rs-${tagName}-aarch64-apple-darwin.dmg`;
+            const macosArtifact = fs.readFileSync(`artifacts/${macosName}`);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: macosName,
+              data: macosArtifact
+            });
 
             if (tagName.endsWith("-test")) {
               await github.rest.repos.deleteRelease({
