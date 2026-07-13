@@ -119,9 +119,9 @@ create_pkg() {
         --identifier "$bundle_id" \
         --version "$pkg_version" \
         --install-location / \
-        "$stage/snx-rs-component.pkg"
+        "$stage/snx-rs-component.pkg" >&2
 
-    productbuild --package "$stage/snx-rs-component.pkg" "$stage/SNX-RS.pkg"
+    productbuild --package "$stage/snx-rs-component.pkg" "$stage/SNX-RS.pkg" >&2
 
     echo "$stage/SNX-RS.pkg"
 }
