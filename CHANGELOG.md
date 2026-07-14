@@ -1,4 +1,4 @@
-## v6.2.1 (TBD)
+## v6.2.1 (2026-07-14)
 * Fixed a bug with routing rule cleanup after tun-based tunnel termination.
 * Removed unnecessary user signout call during tunnel disconnect (#234).
 * Refactored macOS packaging to only build one dmg file which includes a full installer.
