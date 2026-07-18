@@ -4,8 +4,9 @@ set -euo pipefail
 # Reverses the .pkg built by package/macos/package.sh. Run with sudo.
 
 if [ "$(id -u)" -ne 0 ]; then
-    echo "must be run as root (sudo ./uninstall.sh)" >&2
-    exit 1
+    # Double-clicking the .command file opens Terminal, so re-exec through sudo to prompt on the tty.
+    script_path="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+    exec sudo /bin/bash "$script_path"
 fi
 
 echo "Stopping snx-rs daemon"

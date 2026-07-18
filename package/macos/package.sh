@@ -136,7 +136,8 @@ create_dmg() {
     mkdir -p "$dmg_stage"
     cp "$pkg" "$dmg_stage/SNX-RS.pkg"
     # Drop the uninstaller next to the installer so it is visible when the .dmg is mounted.
-    install -m 755 "$macos_dir/uninstall.sh" "$dmg_stage/Uninstall SNX-RS Application"
+    # The .command extension lets Finder run it in Terminal on double-click.
+    install -m 755 "$macos_dir/uninstall.sh" "$dmg_stage/Uninstall SNX-RS Application.command"
 
     hdiutil create -volname "SNX-RS" -srcfolder "$dmg_stage" -ov -format UDZO "$target/$name.dmg"
 }
