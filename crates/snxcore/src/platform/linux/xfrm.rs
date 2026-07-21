@@ -73,18 +73,18 @@ struct XfrmState<'a> {
 }
 
 impl XfrmState<'_> {
-    fn auth_alg_as_xfrm_name(&self) -> &'static str {
+    fn auth_alg_as_xfrm_name(&self) -> anyhow::Result<&'static str> {
         match self.params.auth_algorithm {
-            EspAuthAlgorithm::HmacSha96 | EspAuthAlgorithm::HmacSha160 => "hmac(sha1)",
-            EspAuthAlgorithm::HmacSha256 | EspAuthAlgorithm::HmacSha256v2 => "hmac(sha256)",
-            EspAuthAlgorithm::Other(_) => "",
+            EspAuthAlgorithm::HmacSha96 | EspAuthAlgorithm::HmacSha160 => Ok("hmac(sha1)"),
+            EspAuthAlgorithm::HmacSha256 | EspAuthAlgorithm::HmacSha256v2 => Ok("hmac(sha256)"),
+            other => anyhow::bail!("Unsupported auth algorithm: {:?}", other),
         }
     }
-    fn enc_alg_as_xfrm_name(&self) -> &'static str {
+    fn enc_alg_as_xfrm_name(&self) -> anyhow::Result<&'static str> {
         match self.params.transform_id {
-            TransformId::EspAesCbc => "cbc(aes)",
-            TransformId::Esp3Des => "cbc(des3_ede)",
-            _ => "",
+            TransformId::EspAesCbc => Ok("cbc(aes)"),
+            TransformId::Esp3Des => Ok("cbc(des3_ede)"),
+            other => anyhow::bail!("Unsupported encryption algorithm: {:?}", other),
         }
     }
 
@@ -101,8 +101,8 @@ impl XfrmState<'_> {
             .spi(self.params.spi)
             .mode(XFRM_MODE_TUNNEL)
             .flags(XFRM_STATE_AF_UNSPEC)
-            .authentication_trunc(self.auth_alg_as_xfrm_name(), &self.params.sk_a.to_vec(), trunc_len)?
-            .encryption(self.enc_alg_as_xfrm_name(), &self.params.sk_e.to_vec())?
+            .authentication_trunc(self.auth_alg_as_xfrm_name()?, &self.params.sk_a.to_vec(), trunc_len)?
+            .encryption(self.enc_alg_as_xfrm_name()?, &self.params.sk_e.to_vec())?
             .ifid(self.if_id)
             .encapsulation(
                 UDP_ENCAP_ESPINUDP,
