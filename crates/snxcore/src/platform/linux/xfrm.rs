@@ -298,6 +298,13 @@ impl IPsecConfigurator for XfrmConfigurator {
             "Rekeying XFRM state with new session: IN: {:?}, OUT: {:?}",
             session.esp_in, session.esp_out
         );
+
+        self.configure_xfrm_state(CommandType::Add, self.src_ip, self.dest_ip, &session.esp_out)
+            .await?;
+
+        self.configure_xfrm_state(CommandType::Add, self.dest_ip, self.src_ip, &session.esp_in)
+            .await?;
+
         let _ = self
             .configure_xfrm_state(
                 CommandType::Delete,
@@ -320,12 +327,6 @@ impl IPsecConfigurator for XfrmConfigurator {
         let new_address = session.ipv4net_address();
 
         self.ipsec_session = session.clone();
-
-        self.configure_xfrm_state(CommandType::Add, self.src_ip, self.dest_ip, &self.ipsec_session.esp_out)
-            .await?;
-
-        self.configure_xfrm_state(CommandType::Add, self.dest_ip, self.src_ip, &self.ipsec_session.esp_in)
-            .await?;
 
         if old_address != new_address {
             debug!(
