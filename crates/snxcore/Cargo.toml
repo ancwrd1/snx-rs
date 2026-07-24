@@ -33,7 +33,7 @@ hex = "0.4"
 tun = { version = "0.8", features = ["async"] }
 ipnet = {  version = "2", features = ["serde"] }
 libc = "0.2"
-base64 = "0.22"
+base64 = "0.23"
 tracing = { version = "0.1", features = [] }
 async-trait = "0.1"
 async-recursion = "1"
