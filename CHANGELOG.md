@@ -1,7 +1,7 @@
-## v6.2.2 (TBD)
+## v6.2.2 (2026-07-25)
 * Fixed a glitch in the machine certificate UI section.
-* macOS: allow uninstallation by double-clicking the uninstall script from the Finder.
-* Few optimizations and fixes in the xfrm module.
+* macOS: allow uninstallation by double-clicking the uninstallation script from the Finder.
+* Few optimizations and fixes in the Linux xfrm module.
 
 ## v6.2.1 (2026-07-14)
 * Fixed a bug with routing rule cleanup after tun-based tunnel termination.
