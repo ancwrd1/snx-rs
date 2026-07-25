@@ -12,11 +12,17 @@ pub struct CmdlineParams {
     pub server_name: Option<String>,
 
     #[clap(
+        long = "login-type",
+        short = 'o',
+        help = "Login type, obtained from running the 'snx-rs -m info -s address', the vpn_XXX identifier"
+    )]
+    pub login_type: Option<String>,
+
+    #[clap(
         long = "mode",
         short = 'm',
         default_value = "standalone",
-        help = "Operation mode, one of: standalone, command, info, enroll, renew; \
-                Windows-only: service, install, uninstall"
+        help = "Operation mode, one of: standalone, command, info, enroll, renew. Windows-only: service, install, uninstall"
     )]
     pub mode: OperationMode,
 
@@ -131,13 +137,6 @@ pub struct CmdlineParams {
         help = "Custom CA certificates in PEM or DER format"
     )]
     pub ca_cert: Vec<PathBuf>,
-
-    #[clap(
-        long = "login-type",
-        short = 'o',
-        help = "Login type, obtained from running the 'snx-rs -m info -s address', login_options_list::id field"
-    )]
-    pub login_type: Option<String>,
 
     #[clap(
         long = "cert-type",
