@@ -14,6 +14,6 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-fluent-templates = "0.14"
+fluent-templates = "0.15"
 sys-locale = "0.3"
 cached = "2"
