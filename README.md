@@ -3,6 +3,8 @@
 [![github actions](https://github.com/ancwrd1/snx-rs/workflows/CI/badge.svg)](https://github.com/ancwrd1/snx-rs/actions)
 [![license](https://img.shields.io/badge/License-AGPL-v3.svg)](https://opensource.org/license/agpl-v3)
 
+If you like this application and my other open-source projects, please consider [supporting](https://github.com/sponsors/ancwrd1) it.
+
 This project contains the source code for an unofficial client for Check Point VPN, written in Rust.
 Currently supported platforms: Linux, Windows, macOS.
 
