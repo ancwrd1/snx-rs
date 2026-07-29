@@ -1,3 +1,6 @@
+## v6.2.3 (TBD)
+* The Linux x86_64 release build without the WebKit feature is now linked against glibc 2.34, for compatibility with older distributions (#228).
+
 ## v6.2.2 (2026-07-25)
 * Fixed a glitch in the machine certificate UI section.
 * macOS: allow uninstallation by double-clicking the uninstallation script from the Finder.

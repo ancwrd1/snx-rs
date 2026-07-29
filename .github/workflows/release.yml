@@ -18,6 +18,7 @@ jobs:
             runner: ubuntu-24.04
             suffix: ""
             features: vendored-openssl,vendored-sqlite
+            glibc: "2.34"
           - arch: x86_64
             runner: ubuntu-24.04
             suffix: "-webkit"
@@ -48,12 +49,26 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           source $HOME/.cargo/env
 
+      - name: Install zig
+        if: matrix.glibc != ''
+        uses: mlugg/setup-zig@v2
+
+      - name: Install cargo-zigbuild
+        if: matrix.glibc != ''
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+
       - name: Build project
+        env:
+          GLIBC_VERSION: ${{ matrix.glibc }}
         run: |
           chmod +x package/build-lto.sh
           ./package/build-lto.sh --features=${{ matrix.features }}
 
       - name: Package project
+        env:
+          GLIBC_VERSION: ${{ matrix.glibc }}
         run: |
           chmod +x package/package.sh
           ./package/package.sh ${{ matrix.suffix }}
