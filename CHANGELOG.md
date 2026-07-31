@@ -1,6 +1,7 @@
 ## v6.2.3 (TBD)
 * Windows: fixed the MSI upgrade path, which previously left the old binaries in place unless the application was uninstalled first.
 * Windows: the installer now reuses the previous installation directory and restarts the service after a repair.
+* Windows: the installer uses Restart Manager to shut down the running service and GUI during an upgrade instead of deferring the replaced files to the next reboot.
 * The Linux x86_64 release build without the WebKit feature is now linked against glibc 2.34, for compatibility with older distributions (#228).
 
 ## v6.2.2 (2026-07-25)

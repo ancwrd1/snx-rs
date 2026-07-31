@@ -23,13 +23,14 @@
                   AllowSameVersionUpgrades="yes" />
     <MediaTemplate EmbedCab="yes" />
 
-    <!-- Suppress MSI's RestartManager / FilesInUse dialog. It fires during
-         InstallValidate, before any deferred CA can run, so the user sees a
-         "these apps are running" prompt that can't actually stop our
-         service-hosted exe. Our StopServiceForce + KillGui CAs (scheduled
-         Before RemoveExistingProducts) handle the lock release instead. -->
-    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
-    <Property Id="MSIDISABLERMRESTART" Value="1" />
+    <!-- RestartManager is deliberately left enabled (no MSIRESTARTMANAGERCONTROL
+         override). It detects the holders of snx-rs.exe / wintun.dll at
+         InstallValidate and shuts them down before the execute script starts,
+         which is the only elevated stop available ahead of an early
+         RemoveExistingProducts - a deferred CA there is rejected with error
+         2613. RM stops services natively, so it covers upgrades from releases
+         whose uninstall left the service running, and it restarts the GUI once
+         the install finishes. -->
 
     <ui:WixUI Id="WixUI_InstallDir" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
@@ -72,44 +73,47 @@
       <ComponentRef Id="ToastAppId" />
     </Feature>
 
-    <!-- The service itself is declared on the SnxRsExe component; these two
-         CAs only exist to release file locks BEFORE RemoveExistingProducts, so
-         the old MSI's uninstall can delete unlocked files. MSI's own
-         StopServices runs at 1900, well after the REP slot, which is too late
-         for the old product's RemoveFiles.
+    <!-- Fallback lock release ahead of RemoveExistingProducts, behind the two
+         mechanisms that normally handle it: RestartManager (which shuts both
+         processes down before the script runs) and, on the old product's side,
+         its own ServiceControl row inside REP's nested uninstall. These cover
+         the gaps - a tray-only GUI that ignores RM's shutdown request, or an
+         RM session that failed to enumerate the service. A non-zero exit when
+         the target is already stopped is fine.
 
-         StopServiceForce is what makes the upgrade work from releases that
-         predate the ServiceInstall element (their uninstall left the service
-         running). KillGui has no declarative equivalent at all - the GUI is a
-         plain process, and RestartManager is disabled.
+         They MUST stay Execute="immediate". Deferred CAs are written into the
+         installation script, and MSI rejects any scripted action between
+         InstallInitialize and an early RemoveExistingProducts with error 2613
+         ("RemoveExistingProducts action sequenced incorrectly"). Immediate CAs
+         are not scripted, so they are the only thing that can run in that
+         window. The cost is that they execute in the client process, which
+         carries the filtered token on a UAC-elevated install: taskkill works
+         (same user, same session) but net.exe may get ACCESS_DENIED - hence
+         fallback only.
 
-         Both run via util:WixQuietExec64 (Wix4UtilCA_X64) and read their
-         command line from CustomActionData, set by a paired immediate "setter"
-         CA whose Property attribute matches the deferred CA Id. Deferred +
-         Impersonate="no" so they get the elevated server-side token: an
-         immediate CA runs in the client process, which carries the filtered
-         token on a UAC-elevated install and gets ACCESS_DENIED from net.exe.
-         RemoveExistingProducts is itself server-side, so script ordering
-         relative to it is preserved. Best-effort - a non-zero exit when the
-         target isn't running is fine. -->
-    <CustomAction Id="SetStopServiceForceCmd"
-                  Property="StopServiceForce"
-                  Value="&quot;[System64Folder]net.exe&quot; stop snx-rs /y" />
+         Immediate WixQuietExec64 reads its command line from the
+         WixQuietExec64CmdLine property (deferred invocations use
+         CustomActionData instead), set with SetProperty before each call. -->
+    <SetProperty Id="WixQuietExec64CmdLine"
+                 Action="SetStopServiceForceCmd"
+                 Value="&quot;[System64Folder]net.exe&quot; stop snx-rs /y"
+                 Before="StopServiceForce"
+                 Sequence="execute" />
     <CustomAction Id="StopServiceForce"
                   DllEntry="WixQuietExec64"
                   BinaryRef="Wix4UtilCA_X64"
-                  Execute="deferred"
-                  Impersonate="no"
+                  Execute="immediate"
                   Return="ignore" />
 
-    <CustomAction Id="SetKillGuiCmd"
-                  Property="KillGui"
-                  Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM snx-rs-gui.exe /T" />
+    <SetProperty Id="WixQuietExec64CmdLine"
+                 Action="SetKillGuiCmd"
+                 Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM snx-rs-gui.exe /T"
+                 Before="KillGui"
+                 Sequence="execute" />
     <CustomAction Id="KillGui"
                   DllEntry="WixQuietExec64"
                   BinaryRef="Wix4UtilCA_X64"
-                  Execute="deferred"
-                  Impersonate="no"
+                  Execute="immediate"
                   Return="ignore" />
 
     <!-- One-time guard for the hop off a package that registered the service
@@ -132,13 +136,9 @@
                   Return="ignore" />
 
     <InstallExecuteSequence>
-      <!-- A single linear chain anchored on REP keeps the four actions in a
-           defined order. Unconditional so they also run on plain uninstall and
-           repair. -->
-      <Custom Action="SetStopServiceForceCmd" Before="StopServiceForce" />
-      <Custom Action="StopServiceForce" Before="SetKillGuiCmd" />
-      <Custom Action="SetKillGuiCmd" Before="KillGui" />
-      <Custom Action="KillGui" Before="RemoveExistingProducts" />
+      <!-- Unconditional so they also run on plain uninstall and repair. -->
+      <Custom Action="StopServiceForce" Before="RemoveExistingProducts" />
+      <Custom Action="KillGui" After="StopServiceForce" />
       <Custom Action="SetDeleteLegacyServiceCmd" After="InstallFiles" Condition="WIX_UPGRADE_DETECTED AND NOT PREVIOUSINSTALLFOLDER" />
       <Custom Action="DeleteLegacyService" After="SetDeleteLegacyServiceCmd" Condition="WIX_UPGRADE_DETECTED AND NOT PREVIOUSINSTALLFOLDER" />
     </InstallExecuteSequence>
