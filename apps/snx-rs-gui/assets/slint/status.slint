@@ -9,9 +9,11 @@ export struct StatusEntry {
 
 export component StatusWindow inherits Window {
     title: Tr.status-dialog-title;
-    preferred-width: 500px;
-    min-width: 500px;
+    preferred-width: root.min-content-width;
+    min-width: root.min-content-width;
     default-font-size: 14px;
+
+    property <length> min-content-width: 500px;
 
     in property <[StatusEntry]> entries: [];
     in property <[string]> profile-names: [];
@@ -27,6 +29,7 @@ export component StatusWindow inherits Window {
     callback show-stats-toggled();
 
     out property <length> preferred-content-height: root-layout.preferred-height;
+    out property <length> preferred-content-width: root.min-content-width;
 
     property <color> status-color:
         root.is-connected ? #22c55e

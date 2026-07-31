@@ -65,11 +65,13 @@ fn close_fn(exit_on_close: bool, stop_tx: Sender<()>, sender: Sender<TrayEvent>)
     close_window(StatusWindowController::NAME);
 }
 
+// An explicit set_size() bypasses the window's min-width constraint, and the reported size may not
+// be valid yet before the platform window exists, so the width is clamped explicitly.
 fn resize_to_preferred_height(window: &StatusWindow) {
-    let preferred_height = window.get_preferred_content_height();
     let win = window.window();
     let current = win.size().to_logical(win.scale_factor());
-    win.set_size(LogicalSize::new(current.width, preferred_height));
+    let width = current.width.max(window.get_preferred_content_width());
+    win.set_size(LogicalSize::new(width, window.get_preferred_content_height()));
 }
 
 pub struct StatusWindowController {
