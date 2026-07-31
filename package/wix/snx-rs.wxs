@@ -15,7 +15,9 @@
     <!-- Schedule="afterInstallInitialize" removes the old product (including
          its UninstallService CA, which stops + deletes the service) before
          any new file write, so in-use file handles on snx-rs.exe / wintun.dll
-         are released first. -->
+         are released first. Removing the old product first also means the
+         components are reinstalled from scratch, so component GUIDs and
+         keypaths may change between releases without leaving orphans. -->
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
                   Schedule="afterInstallInitialize"
                   AllowSameVersionUpgrades="yes" />
@@ -25,10 +27,9 @@
          InstallValidate, before any deferred CA can run, so the user sees a
          "these apps are running" prompt that can't actually stop our
          service-hosted exe. Our StopServiceForce + KillGui CAs (scheduled
-         Before InstallFiles) handle the lock release instead. -->
+         Before RemoveExistingProducts) handle the lock release instead. -->
     <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
     <Property Id="MSIDISABLERMRESTART" Value="1" />
-    <Property Id="RESTART_MANAGER_DISABLED" Value="1" />
 
     <ui:WixUI Id="WixUI_InstallDir" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
@@ -38,6 +39,23 @@
     <!-- Pre-accept the license so the LicenseAgreementDlg's "I accept" checkbox
          is not a gate on Next. AGPL doesn't require click-through acceptance. -->
     <Property Id="LicenseAccepted" Value="1" />
+
+    <!-- Reuse the previous install location on upgrade. Directory properties
+         are only populated at CostFinalize, so an unset INSTALLFOLDER here
+         means the user did not override it on the command line. -->
+    <Property Id="PREVIOUSINSTALLFOLDER">
+      <RegistrySearch Id="PreviousInstallFolderSearch"
+                      Root="HKLM"
+                      Key="Software\snx-rs"
+                      Name="InstallDir"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+    <SetProperty Id="INSTALLFOLDER"
+                 Value="[PREVIOUSINSTALLFOLDER]"
+                 After="AppSearch"
+                 Sequence="both"
+                 Condition="PREVIOUSINSTALLFOLDER AND NOT INSTALLFOLDER" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="snx-rs" />
@@ -49,6 +67,7 @@
 
     <Feature Id="Main" Title="SNX-RS VPN Client" Level="1">
       <ComponentGroupRef Id="MainFiles" />
+      <ComponentRef Id="InstallFolderRegistry" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="ToastAppId" />
     </Feature>
@@ -56,11 +75,10 @@
     <!-- All command CAs run via util:WixQuietExec64 (Wix4UtilCA_X64) so the
          child process is launched with a hidden window - sc.exe / net.exe /
          taskkill.exe are console-subsystem and would otherwise flash a
-         console. Deferred CAs read the command line from CustomActionData;
-         we set that via a paired immediate "setter" CA whose Property
-         attribute matches the deferred CA Id. Immediate CAs read it from
-         the WixQuietExec64CmdLine property, set with SetProperty just
-         before each invocation. -->
+         console. They read the command line from CustomActionData, which we
+         set via a paired immediate "setter" CA whose Property attribute
+         matches the deferred CA Id. All of them are deferred +
+         Impersonate="no" so they run with the elevated server-side token. -->
 
     <!-- InstallService: "<snx-rs.exe> -m install" (deferred, elevated) -->
     <CustomAction Id="SetInstallServiceCmd"
@@ -99,32 +117,31 @@
 
     <!-- Force-stop the service and kill the GUI (running in the user session)
          so the exes are no longer file-locked. Best-effort: non-zero exit
-         when the target isn't running is fine. Immediate (not deferred): we
-         must run BEFORE RemoveExistingProducts so the old MSI's uninstall
-         can delete unlocked files, and deferred CAs can't be scheduled
-         before MajorUpgrade's afterInstallInitialize REP slot. The MSI
-         already runs elevated, so net.exe / taskkill have the rights they
-         need. -->
-    <SetProperty Id="WixQuietExec64CmdLine"
-                 Action="SetStopServiceForceCmd"
-                 Value="&quot;[System64Folder]net.exe&quot; stop snx-rs /y"
-                 Before="StopServiceForce"
-                 Sequence="execute" />
+         when the target isn't running is fine. Both must run BEFORE
+         RemoveExistingProducts so the old MSI's uninstall can delete unlocked
+         files. Deferred + Impersonate="no": stopping a service needs the
+         elevated server-side token - immediate CAs execute in the client
+         process, which carries the filtered token on a UAC-elevated install
+         and gets ACCESS_DENIED from net.exe. RemoveExistingProducts is itself
+         server-side, so script ordering relative to it is preserved. -->
+    <CustomAction Id="SetStopServiceForceCmd"
+                  Property="StopServiceForce"
+                  Value="&quot;[System64Folder]net.exe&quot; stop snx-rs /y" />
     <CustomAction Id="StopServiceForce"
                   DllEntry="WixQuietExec64"
                   BinaryRef="Wix4UtilCA_X64"
-                  Execute="immediate"
+                  Execute="deferred"
+                  Impersonate="no"
                   Return="ignore" />
 
-    <SetProperty Id="WixQuietExec64CmdLine"
-                 Action="SetKillGuiCmd"
-                 Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM snx-rs-gui.exe /T"
-                 Before="KillGui"
-                 Sequence="execute" />
+    <CustomAction Id="SetKillGuiCmd"
+                  Property="KillGui"
+                  Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM snx-rs-gui.exe /T" />
     <CustomAction Id="KillGui"
                   DllEntry="WixQuietExec64"
                   BinaryRef="Wix4UtilCA_X64"
-                  Execute="immediate"
+                  Execute="deferred"
+                  Impersonate="no"
                   Return="ignore" />
 
     <!-- Delete any leftover snx-rs service before (re)creating it. Covers the
@@ -145,21 +162,27 @@
       <!-- Stop the OLD product's processes BEFORE RemoveExistingProducts kicks
            off the old MSI's uninstall - otherwise the old uninstall hits
            locked snx-rs.exe / snx-rs-gui.exe and RemoveFiles errors out with
-           2911. Unconditional so it also runs on plain uninstall/repair. -->
-      <Custom Action="StopServiceForce" Before="RemoveExistingProducts" />
-      <Custom Action="KillGui" After="StopServiceForce" />
+           2911 (or, with RestartManager disabled, silently defers the new
+           binaries to a reboot). A single linear chain anchored on REP keeps
+           the four actions in a defined order. Unconditional so it also runs
+           on plain uninstall and repair. -->
+      <Custom Action="SetStopServiceForceCmd" Before="StopServiceForce" />
+      <Custom Action="StopServiceForce" Before="SetKillGuiCmd" />
+      <Custom Action="SetKillGuiCmd" Before="KillGui" />
+      <Custom Action="KillGui" Before="RemoveExistingProducts" />
       <Custom Action="SetUninstallServiceCmd" Before="UninstallService" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
       <Custom Action="UninstallService" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
       <!-- UPGRADINGPRODUCTCODE is set on the OLD product during its
            upgrade-triggered uninstall; we must NOT (re)install the service
-           from that session. `NOT Installed` is true for the NEW product's
-           install/upgrade session, which is when we actually want to run. -->
-      <Custom Action="SetDeleteServiceForceCmd" After="InstallFiles" Condition="NOT Installed" />
-      <Custom Action="DeleteServiceForce" After="SetDeleteServiceForceCmd" Condition="NOT Installed" />
-      <Custom Action="SetInstallServiceCmd" After="DeleteServiceForce" Condition="NOT Installed" />
-      <Custom Action="InstallService" After="SetInstallServiceCmd" Condition="NOT Installed" />
-      <Custom Action="SetStartServiceCmd" After="InstallService" Condition="NOT Installed" />
-      <Custom Action="StartService" After="SetStartServiceCmd" Condition="NOT Installed" />
+           from that session. Everything else - fresh install, the new
+           product's upgrade session, and repair/reinstall - re-registers the
+           service against the freshly installed exe and starts it again. -->
+      <Custom Action="SetDeleteServiceForceCmd" After="InstallFiles" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
+      <Custom Action="DeleteServiceForce" After="SetDeleteServiceForceCmd" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
+      <Custom Action="SetInstallServiceCmd" After="DeleteServiceForce" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
+      <Custom Action="InstallService" After="SetInstallServiceCmd" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
+      <Custom Action="SetStartServiceCmd" After="InstallService" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
+      <Custom Action="StartService" After="SetStartServiceCmd" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
     </InstallExecuteSequence>
   </Package>
 
@@ -182,14 +205,23 @@
       </Component>
     </ComponentGroup>
 
-    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="b9c8f7a4-2a14-4abc-9def-0123456789ac">
+    <!-- Read back by PREVIOUSINSTALLFOLDER so an upgrade lands in the same
+         directory the user originally chose. -->
+    <Component Id="InstallFolderRegistry" Directory="INSTALLFOLDER" Guid="b9c8f7a4-2a14-4abc-9def-0123456789ae" Bitness="always64">
+      <RegistryValue Root="HKLM" Key="Software\snx-rs" Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+    </Component>
+
+    <!-- The shortcut lives in the all-users start menu, so its keypath must be
+         per-machine too (HKCU here would violate ICE57 and leave the component
+         unregistered when a different admin account runs the upgrade). -->
+    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="b9c8f7a4-2a14-4abc-9def-0123456789af" Bitness="always64">
       <Shortcut Id="GuiShortcut"
                 Name="SNX-RS VPN Client"
                 Description="SNX-RS VPN Client"
                 Target="[INSTALLFOLDER]snx-rs-gui.exe"
                 WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveAppMenu" On="uninstall" />
-      <RegistryValue Root="HKCU" Key="Software\snx-rs" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      <RegistryValue Root="HKLM" Key="Software\snx-rs" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <Component Id="ToastAppId" Directory="INSTALLFOLDER" Guid="b9c8f7a4-2a14-4abc-9def-0123456789ad" Bitness="always64">

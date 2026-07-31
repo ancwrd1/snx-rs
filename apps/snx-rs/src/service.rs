@@ -3,7 +3,7 @@ use std::{
     fs,
     path::PathBuf,
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use snxcore::{
@@ -16,8 +16,8 @@ use tracing::{error, metadata::LevelFilter, warn};
 use windows_service::{
     define_windows_service,
     service::{
-        ServiceAccess, ServiceControl, ServiceControlAccept, ServiceDependency, ServiceErrorControl, ServiceExitCode,
-        ServiceInfo, ServiceStartType, ServiceState, ServiceStatus, ServiceType,
+        Service, ServiceAccess, ServiceControl, ServiceControlAccept, ServiceDependency, ServiceErrorControl,
+        ServiceExitCode, ServiceInfo, ServiceStartType, ServiceState, ServiceStatus, ServiceType,
     },
     service_control_handler::{self, ServiceControlHandlerResult},
     service_dispatcher,
@@ -173,9 +173,40 @@ pub fn install() -> anyhow::Result<()> {
 
 pub fn uninstall() -> anyhow::Result<()> {
     let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)?;
-    let service = manager.open_service(SERVICE_NAME, ServiceAccess::DELETE)?;
+    let service = manager.open_service(
+        SERVICE_NAME,
+        ServiceAccess::STOP | ServiceAccess::QUERY_STATUS | ServiceAccess::DELETE,
+    )?;
+
+    // DeleteService only marks the service for deletion: without an explicit
+    // stop the process keeps running and snx-rs.exe stays file-locked, which
+    // makes the MSI upgrade silently defer the new binaries to a reboot.
+    if service.query_status()?.current_state != ServiceState::Stopped {
+        let _ = service.stop();
+        wait_for_stopped(&service);
+    }
 
     service.delete()?;
 
     Ok(())
+}
+
+fn wait_for_stopped(service: &Service) {
+    const STOP_TIMEOUT: Duration = Duration::from_secs(30);
+    const POLL_INTERVAL: Duration = Duration::from_millis(250);
+
+    let deadline = Instant::now() + STOP_TIMEOUT;
+
+    while Instant::now() < deadline {
+        match service.query_status() {
+            Ok(status) if status.current_state == ServiceState::Stopped => return,
+            Err(e) => {
+                warn!("Cannot query service status: {e}");
+                return;
+            }
+            _ => std::thread::sleep(POLL_INTERVAL),
+        }
+    }
+
+    warn!("Timed out waiting for the {SERVICE_NAME} service to stop");
 }

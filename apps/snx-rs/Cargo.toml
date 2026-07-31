@@ -13,6 +13,9 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[build-dependencies]
+embed-resource = "3"
+
 [dependencies]
 snxcore = { path = "../../crates/snxcore" }
 i18n = { path = "../../crates/i18n" }
