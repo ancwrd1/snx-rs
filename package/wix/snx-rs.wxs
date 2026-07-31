@@ -13,9 +13,9 @@
     <SummaryInformation Description="SNX-RS VPN Client" />
 
     <!-- Schedule="afterInstallInitialize" removes the old product (including
-         its UninstallService CA, which stops + deletes the service) before
-         any new file write, so in-use file handles on snx-rs.exe / wintun.dll
-         are released first. Removing the old product first also means the
+         its ServiceControl rows, which stop and delete the service) before any
+         new file write, so in-use file handles on snx-rs.exe / wintun.dll are
+         released first. Removing the old product first also means the
          components are reinstalled from scratch, so component GUIDs and
          keypaths may change between releases without leaving orphans. -->
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
@@ -72,58 +72,26 @@
       <ComponentRef Id="ToastAppId" />
     </Feature>
 
-    <!-- All command CAs run via util:WixQuietExec64 (Wix4UtilCA_X64) so the
-         child process is launched with a hidden window - sc.exe / net.exe /
-         taskkill.exe are console-subsystem and would otherwise flash a
-         console. They read the command line from CustomActionData, which we
-         set via a paired immediate "setter" CA whose Property attribute
-         matches the deferred CA Id. All of them are deferred +
-         Impersonate="no" so they run with the elevated server-side token. -->
+    <!-- The service itself is declared on the SnxRsExe component; these two
+         CAs only exist to release file locks BEFORE RemoveExistingProducts, so
+         the old MSI's uninstall can delete unlocked files. MSI's own
+         StopServices runs at 1900, well after the REP slot, which is too late
+         for the old product's RemoveFiles.
 
-    <!-- InstallService: "<snx-rs.exe> -m install" (deferred, elevated) -->
-    <CustomAction Id="SetInstallServiceCmd"
-                  Property="InstallService"
-                  Value="&quot;[#SnxRsExeFile]&quot; -m install" />
-    <CustomAction Id="InstallService"
-                  DllEntry="WixQuietExec64"
-                  BinaryRef="Wix4UtilCA_X64"
-                  Execute="deferred"
-                  Impersonate="no"
-                  Return="check" />
+         StopServiceForce is what makes the upgrade work from releases that
+         predate the ServiceInstall element (their uninstall left the service
+         running). KillGui has no declarative equivalent at all - the GUI is a
+         plain process, and RestartManager is disabled.
 
-    <!-- UninstallService: "<snx-rs.exe> -m uninstall" (deferred, elevated) -->
-    <CustomAction Id="SetUninstallServiceCmd"
-                  Property="UninstallService"
-                  Value="&quot;[#SnxRsExeFile]&quot; -m uninstall" />
-    <CustomAction Id="UninstallService"
-                  DllEntry="WixQuietExec64"
-                  BinaryRef="Wix4UtilCA_X64"
-                  Execute="deferred"
-                  Impersonate="no"
-                  Return="ignore" />
-
-    <!-- StartService: sc.exe start snx-rs (deferred, elevated). sc.exe returns
-         immediately without waiting for the service to reach RUNNING, which
-         is what we want - net.exe would block until startup completes. -->
-    <CustomAction Id="SetStartServiceCmd"
-                  Property="StartService"
-                  Value="&quot;[System64Folder]sc.exe&quot; start snx-rs" />
-    <CustomAction Id="StartService"
-                  DllEntry="WixQuietExec64"
-                  BinaryRef="Wix4UtilCA_X64"
-                  Execute="deferred"
-                  Impersonate="no"
-                  Return="ignore" />
-
-    <!-- Force-stop the service and kill the GUI (running in the user session)
-         so the exes are no longer file-locked. Best-effort: non-zero exit
-         when the target isn't running is fine. Both must run BEFORE
-         RemoveExistingProducts so the old MSI's uninstall can delete unlocked
-         files. Deferred + Impersonate="no": stopping a service needs the
-         elevated server-side token - immediate CAs execute in the client
-         process, which carries the filtered token on a UAC-elevated install
-         and gets ACCESS_DENIED from net.exe. RemoveExistingProducts is itself
-         server-side, so script ordering relative to it is preserved. -->
+         Both run via util:WixQuietExec64 (Wix4UtilCA_X64) and read their
+         command line from CustomActionData, set by a paired immediate "setter"
+         CA whose Property attribute matches the deferred CA Id. Deferred +
+         Impersonate="no" so they get the elevated server-side token: an
+         immediate CA runs in the client process, which carries the filtered
+         token on a UAC-elevated install and gets ACCESS_DENIED from net.exe.
+         RemoveExistingProducts is itself server-side, so script ordering
+         relative to it is preserved. Best-effort - a non-zero exit when the
+         target isn't running is fine. -->
     <CustomAction Id="SetStopServiceForceCmd"
                   Property="StopServiceForce"
                   Value="&quot;[System64Folder]net.exe&quot; stop snx-rs /y" />
@@ -144,14 +112,19 @@
                   Impersonate="no"
                   Return="ignore" />
 
-    <!-- Delete any leftover snx-rs service before (re)creating it. Covers the
-         case where the old product's UninstallService didn't run (e.g.
-         upgrading from a pre-CA MSI, or the old CA failed silently). sc.exe
-         delete on a missing service returns 1060 - Return="ignore". -->
-    <CustomAction Id="SetDeleteServiceForceCmd"
-                  Property="DeleteServiceForce"
+    <!-- One-time guard for the hop off a package that registered the service
+         from a custom action: those left the registration behind if the CA was
+         missing or failed, and InstallServices would then hit
+         ERROR_SERVICE_EXISTS. The condition is true only when a previous
+         product exists but never wrote InstallDir, i.e. it predates this wxs -
+         false on a fresh install and on every later upgrade, so the usual path
+         never risks ERROR_SERVICE_MARKED_FOR_DELETE. StopServices has already
+         run by then, so the delete completes immediately. sc.exe returns 1060
+         when the service is absent - Return="ignore". -->
+    <CustomAction Id="SetDeleteLegacyServiceCmd"
+                  Property="DeleteLegacyService"
                   Value="&quot;[System64Folder]sc.exe&quot; delete snx-rs" />
-    <CustomAction Id="DeleteServiceForce"
+    <CustomAction Id="DeleteLegacyService"
                   DllEntry="WixQuietExec64"
                   BinaryRef="Wix4UtilCA_X64"
                   Execute="deferred"
@@ -159,30 +132,15 @@
                   Return="ignore" />
 
     <InstallExecuteSequence>
-      <!-- Stop the OLD product's processes BEFORE RemoveExistingProducts kicks
-           off the old MSI's uninstall - otherwise the old uninstall hits
-           locked snx-rs.exe / snx-rs-gui.exe and RemoveFiles errors out with
-           2911 (or, with RestartManager disabled, silently defers the new
-           binaries to a reboot). A single linear chain anchored on REP keeps
-           the four actions in a defined order. Unconditional so it also runs
-           on plain uninstall and repair. -->
+      <!-- A single linear chain anchored on REP keeps the four actions in a
+           defined order. Unconditional so they also run on plain uninstall and
+           repair. -->
       <Custom Action="SetStopServiceForceCmd" Before="StopServiceForce" />
       <Custom Action="StopServiceForce" Before="SetKillGuiCmd" />
       <Custom Action="SetKillGuiCmd" Before="KillGui" />
       <Custom Action="KillGui" Before="RemoveExistingProducts" />
-      <Custom Action="SetUninstallServiceCmd" Before="UninstallService" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
-      <Custom Action="UninstallService" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
-      <!-- UPGRADINGPRODUCTCODE is set on the OLD product during its
-           upgrade-triggered uninstall; we must NOT (re)install the service
-           from that session. Everything else - fresh install, the new
-           product's upgrade session, and repair/reinstall - re-registers the
-           service against the freshly installed exe and starts it again. -->
-      <Custom Action="SetDeleteServiceForceCmd" After="InstallFiles" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
-      <Custom Action="DeleteServiceForce" After="SetDeleteServiceForceCmd" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
-      <Custom Action="SetInstallServiceCmd" After="DeleteServiceForce" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
-      <Custom Action="InstallService" After="SetInstallServiceCmd" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
-      <Custom Action="SetStartServiceCmd" After="InstallService" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
-      <Custom Action="StartService" After="SetStartServiceCmd" Condition="NOT UPGRADINGPRODUCTCODE AND REMOVE&lt;&gt;&quot;ALL&quot;" />
+      <Custom Action="SetDeleteLegacyServiceCmd" After="InstallFiles" Condition="WIX_UPGRADE_DETECTED AND NOT PREVIOUSINSTALLFOLDER" />
+      <Custom Action="DeleteLegacyService" After="SetDeleteLegacyServiceCmd" Condition="WIX_UPGRADE_DETECTED AND NOT PREVIOUSINSTALLFOLDER" />
     </InstallExecuteSequence>
   </Package>
 
@@ -190,6 +148,32 @@
     <ComponentGroup Id="MainFiles" Directory="INSTALLFOLDER">
       <Component Id="SnxRsExe" Bitness="always64">
         <File Id="SnxRsExeFile" Source="$(var.StageDir)\snx-rs.exe" KeyPath="yes" />
+
+        <!-- Mirrors what `snx-rs.exe -m install` does, which stays available
+             for installs that don't go through the MSI. Declaring the service
+             here lets the StopServices / DeleteServices / InstallServices /
+             StartServices standard actions handle it: they are correctly
+             ordered around RemoveFiles and InstallFiles, run elevated, and
+             roll back on failure. -->
+        <ServiceInstall Id="SnxRsService"
+                        Name="snx-rs"
+                        DisplayName="SNX-RS VPN Client"
+                        Description="SNX-RS VPN client"
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal"
+                        Account="LocalSystem"
+                        Arguments="-m service -l info"
+                        Vital="yes">
+          <ServiceDependency Id="tcpip" />
+        </ServiceInstall>
+
+        <!-- Split in two so the stop is synchronous (the file lock on
+             snx-rs.exe must be gone before InstallFiles) while the start is
+             not - waiting for the tunnel service to come up would stall the
+             progress bar for no benefit. -->
+        <ServiceControl Id="SnxRsServiceStop" Name="snx-rs" Stop="both" Remove="uninstall" Wait="yes" />
+        <ServiceControl Id="SnxRsServiceStart" Name="snx-rs" Start="install" Wait="no" />
       </Component>
       <Component Id="SnxctlExe" Bitness="always64">
         <File Source="$(var.StageDir)\snxctl.exe" KeyPath="yes" />
