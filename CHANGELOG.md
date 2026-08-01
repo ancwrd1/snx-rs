@@ -1,4 +1,4 @@
-## v6.2.3 (TBD)
+## v6.2.3 (2026-08-01)
 * Windows, macOS: fixed the status window being displayed too narrow.
 * Windows: several fixes in the MSI installer for better upgrade handling.
 * Linux: the x86_64 release build without the `mobile-access` feature is now linked against GLIBC 2.34, for compatibility with older distributions (#228).
