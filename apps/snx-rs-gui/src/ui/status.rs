@@ -223,7 +223,7 @@ impl WindowController for StatusWindowController {
 
                     if !shown {
                         shown = true;
-                        let _ = scope.window.show();
+                        let _ = scope.show();
                         resize_to_preferred_height(&scope.window);
                     }
                 }

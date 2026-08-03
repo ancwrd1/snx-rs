@@ -69,7 +69,7 @@ impl WindowController for PromptWindowController {
             slint::CloseRequestResponse::HideWindow
         });
 
-        self.scope.window.show()?;
+        self.scope.show()?;
 
         Ok(())
     }

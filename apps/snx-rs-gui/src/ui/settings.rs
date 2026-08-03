@@ -430,7 +430,7 @@ impl WindowController for SettingsWindowController {
 
         self.bind_callbacks();
 
-        self.scope.window.show()?;
+        self.scope.show()?;
 
         Ok(())
     }

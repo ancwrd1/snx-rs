@@ -51,7 +51,7 @@ impl WindowController for AboutWindowController {
             slint::CloseRequestResponse::HideWindow
         });
 
-        self.scope.window.show()?;
+        self.scope.show()?;
 
         Ok(())
     }

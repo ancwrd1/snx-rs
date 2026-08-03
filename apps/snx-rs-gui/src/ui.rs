@@ -21,12 +21,14 @@ pub fn open_window<F>(name: &'static str, factory: F)
 where
     F: FnOnce() -> anyhow::Result<Rc<dyn WindowController>> + Send + 'static,
 {
-    let _ = slint::invoke_from_event_loop(|| {
-        if !OPEN_WINDOWS.with(|slot| slot.borrow().contains_key(name))
-            && let Ok(controller) = factory()
-            && controller.present().is_ok()
-        {
-            store_window(controller.name(), controller);
+    let _ = slint::invoke_from_event_loop(|| match OPEN_WINDOWS.with(|slot| slot.borrow().get(name).cloned()) {
+        Some(controller) => restore_and_activate_window(controller.window()),
+        None => {
+            if let Ok(controller) = factory()
+                && controller.present().is_ok()
+            {
+                store_window(controller.name(), controller);
+            }
         }
     });
 }
@@ -64,6 +66,20 @@ fn close_window(name: &'static str) {
     OPEN_WINDOWS.with(move |slot| slot.borrow_mut().remove(name));
 }
 
+#[cfg(not(target_os = "macos"))]
+fn restore_and_activate_window(_window: &slint::Window) {}
+
+// `focus_window` activates the LSUIElement app, but ignores minimized windows.
+#[cfg(target_os = "macos")]
+fn restore_and_activate_window(window: &slint::Window) {
+    use i_slint_backend_winit::WinitWindowAccessor;
+
+    window.with_winit_window(|w| {
+        w.set_minimized(false);
+        w.focus_window();
+    });
+}
+
 #[cfg(not(windows))]
 fn set_icon(_window: &slint::Window) {}
 
@@ -93,6 +109,22 @@ pub trait WindowController {
 
 struct WindowScope<C: ComponentHandle> {
     pub window: C,
+}
+
+impl<C: ComponentHandle + 'static> WindowScope<C> {
+    // Winit creates the native window at the end of the event-loop iteration.
+    fn show(&self) -> anyhow::Result<()> {
+        self.window.show()?;
+
+        let weak = self.window.as_weak();
+        slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+            if let Some(window) = weak.upgrade() {
+                restore_and_activate_window(window.window());
+            }
+        });
+
+        Ok(())
+    }
 }
 
 impl<'a, C> WindowScope<C>
