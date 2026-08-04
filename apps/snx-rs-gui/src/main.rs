@@ -200,6 +200,7 @@ async fn handle_tray_events<F>(
             }
             TrayEvent::Settings => on_settings(tray_command_sender.clone()),
             TrayEvent::Exit => {
+                ui::close_windows();
                 let _ = tray_command_sender.send(TrayCommand::Exit).await;
                 let _ = slint::quit_event_loop();
             }

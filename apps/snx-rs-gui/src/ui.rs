@@ -53,6 +53,14 @@ pub fn update_windows() {
     });
 }
 
+pub fn close_windows() {
+    let _ = slint::invoke_from_event_loop(|| {
+        OPEN_WINDOWS.with(|slot| {
+            slot.borrow_mut().clear();
+        });
+    });
+}
+
 fn store_window(name: &'static str, controller: Rc<dyn WindowController>) {
     let this = controller.clone();
     OPEN_WINDOWS.with(move |slot| slot.borrow_mut().insert(name, this));

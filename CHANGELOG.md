@@ -1,5 +1,6 @@
 ## v6.2.4 (TBD)
 * macOS: fixed the installer failing to upgrade over a running daemon (#241).
+* macOS: fixed GUI application crash upon exit when windows are still opened (#242).
 
 ## v6.2.3 (2026-08-01)
 * Windows, macOS: fixed the status window being displayed too narrow.
