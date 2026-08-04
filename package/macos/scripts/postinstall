@@ -16,37 +16,93 @@ touch "$log"
 chown root:admin "$log"
 chmod 640 "$log"
 
-# bootout only initiates teardown: launchd still has to reap the old daemon and run its cleanup
-# grace period before the label is free. Bootstrapping inside that window fails with EINPROGRESS
-# and aborts the upgrade, so wait for the label to disappear first.
-wait_unloaded() {
-    local deadline=$((SECONDS + 30))
-    while launchctl print system/com.github.snx-rs >/dev/null 2>&1; do
-        if [ "$SECONDS" -ge "$deadline" ]; then
-            return 1
+service="system/com.github.snx-rs"
+# launchctl currently reports 113 when it cannot find the service. The numeric mapping is
+# undocumented, so keep the assumption isolated for compatibility validation.
+service_not_found_status=113
+
+probe_service() {
+    service_status=0
+    if service_output=$(launchctl print "$service" 2>&1); then
+        service_state=loaded
+    else
+        service_status=$?
+        if [ "$service_status" -eq "$service_not_found_status" ]; then
+            service_state=absent
+        else
+            service_state=error
         fi
-        sleep 0.5
-    done
+    fi
 }
 
 bootstrap_daemon() {
-    local attempt
+    local attempt bootstrap_output bootstrap_status
     for attempt in 1 2 3 4 5; do
-        if launchctl bootstrap system "$plist"; then
+        bootstrap_status=0
+        if bootstrap_output=$(launchctl bootstrap system "$plist" 2>&1); then
             return 0
+        else
+            bootstrap_status=$?
         fi
-        sleep 1
+        if [ "$attempt" -lt 5 ]; then
+            sleep 1
+        fi
     done
+    printf 'postinstall: launchctl bootstrap system %s failed: status=%s output=%s\n' \
+        "$plist" "$bootstrap_status" "${bootstrap_output:-<empty>}" >&2
     return 1
 }
 
-launchctl bootout system/com.github.snx-rs 2>/dev/null || true
+probe_service
+case "$service_state" in
+loaded)
+    bootout_status=0
+    bootout_output=$(launchctl bootout "$service" 2>&1) || bootout_status=$?
 
-if ! wait_unloaded; then
-    echo "warning: com.github.snx-rs still loaded after 30s, bootstrapping anyway" >&2
+    # bootout returns before launchd releases the label; polling avoids a duplicate bootstrap race.
+    unload_max_attempts=60
+    attempt=0
+    while true; do
+        probe_service
+        attempt=$((attempt + 1))
+        if [ "$service_state" = absent ]; then
+            break
+        fi
+        if [ "$attempt" -ge "$unload_max_attempts" ]; then
+            printf 'postinstall: timed out after %s checks waiting for %s to unload; bootout status=%s output=%s; last print state=%s status=%s output=%s\n' \
+                "$unload_max_attempts" "$service" "$bootout_status" "${bootout_output:-<empty>}" \
+                "$service_state" "$service_status" "${service_output:-<empty>}" >&2
+            exit 1
+        fi
+        sleep 0.5
+    done
+    ;;
+absent)
+    ;;
+error)
+    printf 'postinstall: could not determine initial state of %s: status=%s output=%s\n' \
+        "$service" "$service_status" "${service_output:-<empty>}" >&2
+    exit 1
+    ;;
+esac
+
+if ! bootstrap_daemon; then
+    exit 1
 fi
 
-bootstrap_daemon
-launchctl enable system/com.github.snx-rs
+enable_status=0
+enable_output=$(launchctl enable "$service" 2>&1) || enable_status=$?
+if [ "$enable_status" -ne 0 ]; then
+    printf 'postinstall: launchctl enable %s failed: status=%s output=%s\n' \
+        "$service" "$enable_status" "${enable_output:-<empty>}" >&2
+    exit 1
+fi
+
+probe_service
+if [ "$service_state" != loaded ]; then
+    printf 'postinstall: %s is not loaded after bootstrap/enable: state=%s status=%s output=%s\n' \
+        "$service" "$service_state" "$service_status" "${service_output:-<empty>}" >&2
+    exit 1
+fi
 
 exit 0
