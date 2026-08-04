@@ -187,6 +187,10 @@ where
                     && self.mfa_index == params.password_factor
                 {
                     Ok(self.password_from_keychain.expose_secret().to_owned())
+                } else if let Some(ref mfa_code) = params.mfa_code
+                    && self.mfa_index != params.password_factor
+                {
+                    Ok(mfa_code.clone())
                 } else {
                     let input = self.prompt.get_secure_input(prompt).await?;
                     Ok(input)

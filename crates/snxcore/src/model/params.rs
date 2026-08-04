@@ -657,6 +657,7 @@ impl TunnelParams {
                 "allow-forwarding" => params.allow_forwarding = v.parse().unwrap_or_default(),
                 "tls-version-max" => params.tls_version_max = v.parse().unwrap_or_default(),
                 "client-logging-data" => params.client_logging_data = Some(v.into()),
+                "mfa-code" => params.mfa_code = Some(v),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
                 }
