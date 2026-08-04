@@ -122,3 +122,117 @@ impl Encoder<SlimPacketType> for SlimProtocolCodec {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn keepalive() -> SlimPacketType {
+        SlimPacketType::from(KeepaliveRequestData { id: "42".to_owned() })
+    }
+
+    #[test]
+    fn encode_data_packet() {
+        let mut dst = BytesMut::new();
+        SlimProtocolCodec
+            .encode(SlimPacketType::Data(vec![1, 2, 3, 4, 5]), &mut dst)
+            .unwrap();
+
+        assert_eq!(&dst[..], &[0, 0, 0, 5, 0, 0, 0, 2, 1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn encode_control_packet_is_nul_terminated() {
+        let packet = keepalive();
+        let SlimPacketType::Control(ref expr) = packet else {
+            unreachable!()
+        };
+        let expected = expr.to_string();
+
+        let mut dst = BytesMut::new();
+        SlimProtocolCodec.encode(packet, &mut dst).unwrap();
+
+        assert_eq!(
+            u32::from_be_bytes(dst[0..4].try_into().unwrap()) as usize,
+            expected.len() + 1
+        );
+        assert_eq!(u32::from_be_bytes(dst[4..8].try_into().unwrap()), PKT_CONTROL);
+        assert_eq!(&dst[8..dst.len() - 1], expected.as_bytes());
+        assert_eq!(dst[dst.len() - 1], 0);
+    }
+
+    #[test]
+    fn encode_appends_without_clearing() {
+        let mut dst = BytesMut::new();
+        let mut codec = SlimProtocolCodec;
+        codec.encode(SlimPacketType::Data(vec![0xaa]), &mut dst).unwrap();
+        codec.encode(SlimPacketType::Data(vec![0xbb, 0xcc]), &mut dst).unwrap();
+
+        assert_eq!(
+            &dst[..],
+            &[0, 0, 0, 1, 0, 0, 0, 2, 0xaa, 0, 0, 0, 2, 0, 0, 0, 2, 0xbb, 0xcc]
+        );
+    }
+
+    #[test]
+    fn decode_data_roundtrip() {
+        let data = vec![9, 8, 7, 6];
+        let mut buf = BytesMut::new();
+        let mut codec = SlimProtocolCodec;
+        codec.encode(SlimPacketType::Data(data.clone()), &mut buf).unwrap();
+
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+
+        assert!(matches!(decoded, SlimPacketType::Data(d) if d == data));
+        assert!(buf.is_empty());
+    }
+
+    #[test]
+    fn decode_control_roundtrip_ignores_trailing_nul() {
+        let packet = keepalive();
+        let SlimPacketType::Control(ref expr) = packet else {
+            unreachable!()
+        };
+        let expected = expr.clone();
+
+        let mut buf = BytesMut::new();
+        let mut codec = SlimProtocolCodec;
+        codec.encode(packet, &mut buf).unwrap();
+
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+
+        assert!(matches!(decoded, SlimPacketType::Control(e) if e == expected));
+        assert!(buf.is_empty());
+    }
+
+    #[test]
+    fn decode_returns_none_on_partial_input() {
+        let mut codec = SlimProtocolCodec;
+
+        let mut buf = BytesMut::from(&[0, 0, 0][..]);
+        assert!(codec.decode(&mut buf).unwrap().is_none());
+
+        let mut buf = BytesMut::from(&[0, 0, 0, 4, 0, 0, 0, 2, 1, 2, 3][..]);
+        assert!(codec.decode(&mut buf).unwrap().is_none());
+        assert_eq!(buf.len(), 11);
+    }
+
+    #[test]
+    fn decode_leaves_trailing_bytes_of_next_packet() {
+        let mut buf = BytesMut::from(&[0, 0, 0, 1, 0, 0, 0, 2, 0xaa, 0, 0, 0, 1][..]);
+        let mut codec = SlimProtocolCodec;
+
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+
+        assert!(matches!(decoded, SlimPacketType::Data(d) if d == vec![0xaa]));
+        assert_eq!(&buf[..], &[0, 0, 0, 1]);
+        assert!(codec.decode(&mut buf).unwrap().is_none());
+    }
+
+    #[test]
+    fn decode_rejects_unknown_packet_type() {
+        let mut buf = BytesMut::from(&[0, 0, 0, 1, 0, 0, 0, 7, 0xaa][..]);
+
+        assert!(SlimProtocolCodec.decode(&mut buf).is_err());
+    }
+}
