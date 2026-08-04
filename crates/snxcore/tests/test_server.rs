@@ -21,6 +21,7 @@ use uuid::Uuid;
 
 const USERNAME: &str = "username";
 const PASSWORD: &str = "challenge";
+const TOTP_CODE: &str = "654321";
 
 #[derive(Clone, Default)]
 struct MockTunnelConnectorFactory;
@@ -152,6 +153,124 @@ impl TunnelConnector for MockTunnelConnector {
     }
 }
 
+#[derive(Clone, Default)]
+struct MockTotpTunnelConnectorFactory;
+
+impl TunnelConnectorFactory for MockTotpTunnelConnectorFactory {
+    async fn new_tunnel_connector(
+        &self,
+        params: Arc<TunnelParams>,
+    ) -> anyhow::Result<Box<dyn TunnelConnector + Send + Sync>> {
+        Ok(Box::new(MockTotpTunnelConnector {
+            params,
+            command_sender: None,
+            password_factor_count: 0,
+        }))
+    }
+
+    fn new_gateway_connector(&self, _params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {
+        Arc::new(MockGatewayConnector)
+    }
+}
+
+struct MockTotpTunnelConnector {
+    params: Arc<TunnelParams>,
+    command_sender: Option<Sender<TunnelCommand>>,
+    // Number of `PasswordInput`-type challenges issued so far (password stage, then totp stage).
+    // Used to fail fast instead of looping forever if a regression causes the wrong input to be
+    // resubmitted at the totp stage (see `challenge_code` below).
+    password_factor_count: usize,
+}
+
+#[async_trait]
+impl TunnelConnector for MockTotpTunnelConnector {
+    async fn authenticate(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
+        Ok(Arc::new(TunnelSession {
+            session_id: "1234".into(),
+            state: SessionState::PendingChallenge(MfaChallenge {
+                mfa_type: MfaType::UserNameInput,
+                prompt: "username".to_string(),
+            }),
+            username: None,
+        }))
+    }
+
+    async fn delete_session(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
+        anyhow::bail!("mock restore_session not implemented")
+    }
+
+    async fn challenge_code(
+        &mut self,
+        session: Arc<TunnelSession>,
+        user_input: &str,
+    ) -> anyhow::Result<Arc<TunnelSession>> {
+        match user_input {
+            // Only accepted before the password-stage challenge has been issued.
+            USERNAME if self.password_factor_count == 0 => {
+                self.password_factor_count += 1;
+                Ok(Arc::new(TunnelSession {
+                    state: SessionState::PendingChallenge(MfaChallenge {
+                        mfa_type: MfaType::PasswordInput,
+                        prompt: "password".to_string(),
+                    }),
+                    username: None,
+                    ..(*session).clone()
+                }))
+            }
+            // Only accepted right after the password-stage challenge, before the totp-stage one.
+            PASSWORD if self.password_factor_count == 1 => {
+                self.password_factor_count += 1;
+                Ok(Arc::new(TunnelSession {
+                    state: SessionState::PendingChallenge(MfaChallenge {
+                        mfa_type: MfaType::PasswordInput,
+                        prompt: "totp".to_string(),
+                    }),
+                    username: None,
+                    ..(*session).clone()
+                }))
+            }
+            // Only accepted once the totp-stage challenge has been issued. Anything else at this
+            // point (e.g. `PASSWORD` resubmitted due to a regression in factor selection) falls
+            // through to the `_` arm below and bails immediately instead of issuing yet another
+            // challenge, which would otherwise loop forever.
+            TOTP_CODE if self.password_factor_count == 2 => Ok(Arc::new(TunnelSession {
+                state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey("key".to_string())),
+                username: None,
+                ..(*session).clone()
+            })),
+            _ => {
+                anyhow::bail!("invalid user input");
+            }
+        }
+    }
+
+    async fn create_tunnel(
+        &mut self,
+        _session: Arc<TunnelSession>,
+        command_sender: Sender<TunnelCommand>,
+    ) -> anyhow::Result<Box<dyn VpnTunnel + Send>> {
+        self.command_sender = Some(command_sender);
+        Ok(Box::new(MockTunnel {
+            params: self.params.clone(),
+        }))
+    }
+
+    async fn terminate_tunnel(&mut self, signout: bool) -> anyhow::Result<()> {
+        if let Some(sender) = self.command_sender.take() {
+            let _ = sender.send(TunnelCommand::Terminate(signout)).await;
+        }
+        Ok(())
+    }
+
+    async fn handle_tunnel_event(&mut self, _event: TunnelEvent) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 struct MockTunnel {
     params: Arc<TunnelParams>,
 }
@@ -231,6 +350,20 @@ impl ServerFixture {
             server_handle,
         }
     }
+
+    async fn new_with_totp() -> Self {
+        let socket_name = format!("snxcore-test-{}.sock", Uuid::new_v4());
+
+        let server = CommandServer::with_name(&socket_name, MockTotpTunnelConnectorFactory);
+        let server_handle = tokio::spawn(server.run());
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        Self {
+            socket_name,
+            server_handle,
+        }
+    }
 }
 
 #[tokio::test]
@@ -269,6 +402,38 @@ async fn connect_with_mfa() {
     let params = Arc::new(TunnelParams {
         server_name: "127.0.0.1".to_owned(),
         login_type: "vpn_Test".to_string(),
+        ..Default::default()
+    });
+
+    let mut controller =
+        ServiceController::new_with_server_name(&fixture.socket_name, MockPrompt, MockBrowser, Vec::new());
+    let status = controller
+        .command(ServiceCommand::Connect, params.clone())
+        .await
+        .unwrap();
+    match status {
+        ConnectionStatus::Connected(info) => {
+            assert_eq!(info.server_name, params.server_name);
+            assert_eq!(info.username, USERNAME);
+            assert_eq!(info.login_type, params.login_type);
+        }
+        _ => panic!("invalid status"),
+    }
+
+    let status = controller.command(ServiceCommand::Disconnect, params).await.unwrap();
+    assert_eq!(status, ConnectionStatus::Disconnected);
+
+    fixture.server_handle.abort();
+}
+
+#[tokio::test]
+async fn connect_with_totp_mfa_code() {
+    let fixture = ServerFixture::new_with_totp().await;
+
+    let params = Arc::new(TunnelParams {
+        server_name: "127.0.0.1".to_owned(),
+        login_type: "vpn_Test".to_string(),
+        mfa_code: Some(TOTP_CODE.to_string()),
         ..Default::default()
     });
 

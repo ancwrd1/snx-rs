@@ -37,11 +37,25 @@ pub struct CmdlineParams {
 #[derive(Parser)]
 enum SnxCommand {
     #[clap(name = "connect", about = "Connect a tunnel")]
-    Connect,
+    Connect {
+        #[clap(
+            long = "mfa-code",
+            short = 'F',
+            help = "MFA code to use in the non-interactive scripts, typically a TOTP code"
+        )]
+        mfa_code: Option<String>,
+    },
     #[clap(name = "disconnect", about = "Disconnect a tunnel")]
     Disconnect,
     #[clap(name = "reconnect", about = "Reconnect a tunnel")]
-    Reconnect,
+    Reconnect {
+        #[clap(
+            long = "mfa-code",
+            short = 'F',
+            help = "MFA code to use in the non-interactive scripts, typically a TOTP code"
+        )]
+        mfa_code: Option<String>,
+    },
     #[clap(name = "status", about = "Show connection status")]
     Status,
     #[clap(name = "info", about = "Show server information")]
@@ -59,9 +73,9 @@ enum SnxCommand {
 impl From<SnxCommand> for ServiceCommand {
     fn from(value: SnxCommand) -> Self {
         match value {
-            SnxCommand::Connect => ServiceCommand::Connect,
+            SnxCommand::Connect { .. } => ServiceCommand::Connect,
             SnxCommand::Disconnect => ServiceCommand::Disconnect,
-            SnxCommand::Reconnect => ServiceCommand::Reconnect,
+            SnxCommand::Reconnect { .. } => ServiceCommand::Reconnect,
             SnxCommand::Status => ServiceCommand::Status,
             SnxCommand::Info | SnxCommand::Completions { .. } => unreachable!("Handled separately in main"),
         }
@@ -113,6 +127,19 @@ async fn main() -> anyhow::Result<()> {
         }
     } else {
         Arc::new(TunnelParams::load(TunnelParams::default_config_path()).unwrap_or_default())
+    };
+
+    let mfa_code = match &params.command {
+        SnxCommand::Connect { mfa_code } | SnxCommand::Reconnect { mfa_code } => mfa_code.clone(),
+        _ => None,
+    };
+
+    let tunnel_params = match mfa_code {
+        Some(mfa_code) if !mfa_code.is_empty() => Arc::new(TunnelParams {
+            mfa_code: Some(mfa_code),
+            ..(*tunnel_params).clone()
+        }),
+        _ => tunnel_params,
     };
 
     let subscriber = tracing_subscriber::fmt()

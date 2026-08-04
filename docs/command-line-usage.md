@@ -38,9 +38,9 @@ Example output (may differ for your server):
 There are two ways to use the application:
 
 * **Command Mode**: Selected by the `-m command` parameter. In this mode, the application runs as a service without establishing a connection and awaits commands from the external client. Use the `snxctl` utility to send commands to the service. This mode is recommended for desktop usage. The following commands are accepted:
-  - `connect`: Establish a connection. Parameters are taken from the `~/.config/snx-rs/snx-rs.conf` file.
+  - `connect`: Establish a connection. Parameters are taken from the `~/.config/snx-rs/snx-rs.conf` file. Pass `-F`/`--mfa-code <CODE>` to answer a TOTP-style MFA challenge non-interactively instead of being prompted (mirrors the `snx-rs` standalone-mode flag of the same name).
   - `disconnect`: Disconnect a tunnel.
-  - `reconnect`: Drop the connection and then reconnect.
+  - `reconnect`: Drop the connection and then reconnect. Also accepts `-F`/`--mfa-code <CODE>`, same as `connect`.
   - `status`: Show connection status.
   - `info`: Show server authentication methods and supported tunnel types.
   - Run it with the `--help` option to get usage help.
