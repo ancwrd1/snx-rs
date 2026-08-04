@@ -1,3 +1,6 @@
+## v6.2.4 (TBD)
+* macOS: fixed the installer failing to upgrade over a running daemon (#241).
+
 ## v6.2.3 (2026-08-01)
 * Windows, macOS: fixed the status window being displayed too narrow.
 * Windows: several fixes in the MSI installer for better upgrade handling.

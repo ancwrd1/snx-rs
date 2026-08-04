@@ -16,8 +16,37 @@ touch "$log"
 chown root:admin "$log"
 chmod 640 "$log"
 
+# bootout only initiates teardown: launchd still has to reap the old daemon and run its cleanup
+# grace period before the label is free. Bootstrapping inside that window fails with EINPROGRESS
+# and aborts the upgrade, so wait for the label to disappear first.
+wait_unloaded() {
+    local deadline=$((SECONDS + 30))
+    while launchctl print system/com.github.snx-rs >/dev/null 2>&1; do
+        if [ "$SECONDS" -ge "$deadline" ]; then
+            return 1
+        fi
+        sleep 0.5
+    done
+}
+
+bootstrap_daemon() {
+    local attempt
+    for attempt in 1 2 3 4 5; do
+        if launchctl bootstrap system "$plist"; then
+            return 0
+        fi
+        sleep 1
+    done
+    return 1
+}
+
 launchctl bootout system/com.github.snx-rs 2>/dev/null || true
-launchctl bootstrap system "$plist"
+
+if ! wait_unloaded; then
+    echo "warning: com.github.snx-rs still loaded after 30s, bootstrapping anyway" >&2
+fi
+
+bootstrap_daemon
 launchctl enable system/com.github.snx-rs
 
 exit 0
