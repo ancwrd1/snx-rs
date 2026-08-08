@@ -359,7 +359,6 @@ where
                     println!("{}", tr!("cli-tunnel-connected"));
                 }
                 TunnelEvent::Disconnected => {
-                    println!("\n{}", tr!("cli-tunnel-disconnected"));
                     break;
                 }
                 _ => {}
@@ -367,5 +366,9 @@ where
         }
     });
 
-    tunnel.run(command_receiver, event_sender).await
+    tunnel.run(command_receiver, event_sender).await?;
+
+    println!("\n{}", tr!("cli-tunnel-disconnected"));
+
+    Ok(())
 }
