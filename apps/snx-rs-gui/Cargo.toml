@@ -17,7 +17,7 @@ workspace = true
 snxcore = { path = "../../crates/snxcore" }
 i18n = { path = "../../crates/i18n" }
 secrecy = "0.10"
-resvg = "0.47"
+resvg = "0.48"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"
