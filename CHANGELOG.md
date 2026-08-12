@@ -1,6 +1,7 @@
 ## v6.2.4 (TBD)
 * macOS: fixed the installer failing to upgrade over a running daemon (#241).
 * macOS: fixed GUI application crash upon exit when windows are still opened (#242).
+* Fixed excessive vertical spacing around the icon theme and certificate auth type settings rows.
 * Added `mfa-code` config file option, honored by `snxctl` in command mode, not only the `--mfa-code` CLI flag of the standalone `snx-rs` binary.
 
 ## v6.2.3 (2026-08-01)

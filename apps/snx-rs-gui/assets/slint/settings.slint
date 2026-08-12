@@ -411,9 +411,16 @@ export component SettingsWindow inherits Window {
                                     if root.show-cert-auth || root.machine-cert: FormDivider { }
                                     if root.show-cert-auth || root.machine-cert: FormStackRow {
                                         label: Tr.label-cert-auth-type;
-                                        ComboBox {
-                                            model: root.cert-types;
-                                            current-index <=> root.cert-type-index;
+                                        // A ComboBox placed directly in a conditional row leaks its min-width into the row height, so keep it wrapped.
+                                        Rectangle {
+                                            min-height: cert-type-box.min-height;
+                                            preferred-height: cert-type-box.preferred-height;
+
+                                            cert-type-box := ComboBox {
+                                                width: parent.width;
+                                                model: root.cert-types;
+                                                current-index <=> root.cert-type-index;
+                                            }
                                         }
                                     }
 
@@ -735,13 +742,21 @@ export component SettingsWindow inherits Window {
 
                                     if root.icon-theme-visible: FormStackRow {
                                         label: Tr.label-icon-theme;
-                                        ComboBox {
-                                            model: root.icon-themes;
-                                            current-index <=> root.icon-theme-index;
+                                        // A ComboBox placed directly in a conditional row leaks its min-width into the row height, so keep it wrapped.
+                                        Rectangle {
                                             min-width: root.min-form-width;
+                                            min-height: icon-theme-box.min-height;
+                                            preferred-height: icon-theme-box.preferred-height;
+
+                                            icon-theme-box := ComboBox {
+                                                width: parent.width;
+                                                model: root.icon-themes;
+                                                current-index <=> root.icon-theme-index;
+                                            }
                                         }
-                                        FormDivider { }
                                     }
+
+                                    if root.icon-theme-visible: FormDivider { }
 
                                     FormStackRow {
                                         label: Tr.label-color-theme;
