@@ -59,14 +59,14 @@ rusqlite = { version = "0.40", features = [ "uuid" ] }
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 secret-service = {  version = "5", features = ["rt-tokio-crypto-rust"] }
 sysctl = "0.7"
-rtnetlink = "0.21"
+rtnetlink = "0.22"
 xfrmnetlink = "0.3"
 netlink-packet-xfrm = "0.4"
 nix = { version = "0.31", features = ["fs", "user", "socket"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 nix = { version = "0.31", features = ["user", "socket", "net", "fs"] }
-system-configuration = "0.7"
+system-configuration = "0.8"
 security-framework = "3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
