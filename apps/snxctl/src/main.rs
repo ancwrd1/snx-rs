@@ -130,10 +130,10 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     let connector = CheckPointConnectorFactory::default().new_gateway_connector(tunnel_params.clone());
-    let info = connector.get_gateway_information().await?;
 
     match params.command {
         SnxCommand::Info => {
+            let info = connector.get_gateway_information().await?;
             info.print_login_options(&tunnel_params.server_name);
         }
         SnxCommand::List => {
@@ -145,6 +145,7 @@ async fn main() -> anyhow::Result<()> {
         other => {
             let command = other.into();
 
+            let info = connector.get_gateway_information().await?;
             let mut service_controller = ServiceController::new_with_prompts(
                 TtyPrompt,
                 SystemBrowser::default(),
