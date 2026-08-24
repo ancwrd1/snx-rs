@@ -106,7 +106,7 @@ impl AppTray {
 
         // assets stores ARGB (rotate_right of tiny_skia's RGBA); convert back to RGBA.
         let mut rgba = argb;
-        for pixel in rgba.chunks_exact_mut(4) {
+        for pixel in rgba.as_chunks_mut::<4>().0 {
             pixel.rotate_left(1);
         }
         rgba
