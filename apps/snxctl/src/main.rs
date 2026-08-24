@@ -46,6 +46,8 @@ enum SnxCommand {
     Status,
     #[clap(name = "info", about = "Show server information")]
     Info,
+    #[clap(name = "list", about = "List connection profiles")]
+    List,
     #[clap(name = "completions", about = "Generate shell completions")]
     Completions {
         #[clap(
@@ -63,7 +65,9 @@ impl From<SnxCommand> for ServiceCommand {
             SnxCommand::Disconnect => ServiceCommand::Disconnect,
             SnxCommand::Reconnect => ServiceCommand::Reconnect,
             SnxCommand::Status => ServiceCommand::Status,
-            SnxCommand::Info | SnxCommand::Completions { .. } => unreachable!("Handled separately in main"),
+            SnxCommand::Info | SnxCommand::List | SnxCommand::Completions { .. } => {
+                unreachable!("Handled separately in main")
+            }
         }
     }
 }
@@ -128,31 +132,39 @@ async fn main() -> anyhow::Result<()> {
     let connector = CheckPointConnectorFactory::default().new_gateway_connector(tunnel_params.clone());
     let info = connector.get_gateway_information().await?;
 
-    if matches!(params.command, SnxCommand::Info) {
-        info.print_login_options(&tunnel_params.server_name);
-        return Ok(());
-    }
-
-    let command = params.command.into();
-
-    let mut service_controller = ServiceController::new_with_prompts(
-        TtyPrompt,
-        SystemBrowser::default(),
-        info.get_login_prompts(&tunnel_params.login_type),
-    );
-
-    let status = match await_termination(service_controller.command(command, tunnel_params.clone())).await {
-        Some(status) => status?,
-        None => {
-            let _ = service_controller
-                .command(ServiceCommand::Disconnect, tunnel_params.clone())
-                .await;
-            println!("\n{}", i18n::translate("cli-app-terminated"));
-            std::process::exit(1);
+    match params.command {
+        SnxCommand::Info => {
+            info.print_login_options(&tunnel_params.server_name);
         }
-    };
+        SnxCommand::List => {
+            let profiles = ConnectionProfilesStore::instance().all();
+            for profile in profiles {
+                println!("{}: {}", profile.profile_id, profile.profile_name);
+            }
+        }
+        other => {
+            let command = other.into();
 
-    println!("{}", status.print());
+            let mut service_controller = ServiceController::new_with_prompts(
+                TtyPrompt,
+                SystemBrowser::default(),
+                info.get_login_prompts(&tunnel_params.login_type),
+            );
+
+            let status = match await_termination(service_controller.command(command, tunnel_params.clone())).await {
+                Some(status) => status?,
+                None => {
+                    let _ = service_controller
+                        .command(ServiceCommand::Disconnect, tunnel_params.clone())
+                        .await;
+                    println!("\n{}", i18n::translate("cli-app-terminated"));
+                    std::process::exit(1);
+                }
+            };
+
+            println!("{}", status.print());
+        }
+    }
 
     Ok(())
 }
