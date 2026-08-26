@@ -46,7 +46,7 @@ parse_int = "0.9"
 byteorder = "1"
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
 opener = { version = "0.8"}
-cached = {  version = "2",  features = ["async"] }
+cached = {  version = "3",  features = ["async"] }
 openssl = "0.10"
 itertools = "0.15"
 interprocess = { version = "2", features = ["tokio"] }
@@ -59,9 +59,9 @@ rusqlite = { version = "0.40", features = [ "uuid" ] }
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 secret-service = {  version = "5", features = ["rt-tokio-crypto-rust"] }
 sysctl = "0.7"
-rtnetlink = "0.22"
-xfrmnetlink = "0.3"
-netlink-packet-xfrm = "0.4"
+rtnetlink = "0.23"
+xfrmnetlink = "0.4"
+netlink-packet-xfrm = "0.5"
 nix = { version = "0.31", features = ["fs", "user", "socket"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
