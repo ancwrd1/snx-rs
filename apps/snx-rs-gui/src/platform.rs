@@ -79,5 +79,5 @@ pub fn new_browser_controller(params: Arc<TunnelParams>) -> impl BrowserControll
 
 #[cfg(not(feature = "mobile-access"))]
 pub fn new_browser_controller(_params: Arc<TunnelParams>) -> impl BrowserController {
-    snxcore::browser::SystemBrowser::new(crate::ui::prompt::SlintPrompt)
+    snxcore::browser::SystemBrowser::new(crate::ui::prompt::SlintPrompt::new())
 }

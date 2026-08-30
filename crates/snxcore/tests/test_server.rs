@@ -8,11 +8,11 @@ use snxcore::{
     model::{
         AuthenticatedSession, ConnectionInfo, ConnectionStatus, MfaChallenge, MfaType, PromptInfo, SessionState,
         TunnelSession,
-        params::TunnelParams,
+        params::{NotificationLevel, TunnelParams},
         proto::{AuthResponse, CertificateResponse, ClientSettingsResponse, GatewayInformation},
         wrappers::SessionId,
     },
-    prompt::SecurePrompt,
+    prompt::{NotificationCategory, SecurePrompt},
     server::CommandServer,
     tunnel::{GatewayConnector, TunnelCommand, TunnelConnector, TunnelConnectorFactory, TunnelEvent, VpnTunnel},
 };
@@ -150,6 +150,10 @@ impl TunnelConnector for MockTunnelConnector {
     async fn handle_tunnel_event(&mut self, _event: TunnelEvent) -> anyhow::Result<()> {
         Ok(())
     }
+
+    async fn rekey(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 struct MockTunnel {
@@ -193,7 +197,13 @@ impl SecurePrompt for MockPrompt {
         Ok(USERNAME.to_string())
     }
 
-    async fn show_notification(&self, _summary: &str, _message: &str) -> anyhow::Result<()> {
+    async fn show_notification(
+        &self,
+        _summary: &str,
+        _message: &str,
+        _category: NotificationCategory,
+        _notification_level: NotificationLevel,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 }

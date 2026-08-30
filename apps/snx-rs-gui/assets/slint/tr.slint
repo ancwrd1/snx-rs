@@ -65,18 +65,21 @@ export global Tr {
     in property <string> label-ca-cert: "Server CA root certificates";
     in property <string> label-no-cert-check: "Disable all TLS certificate checks";
 
-    // misc expander
-    in property <string> expand-misc: "Misc Settings";
-    in property <string> label-password-factor: "Index of password factor, 1..N";
-    in property <string> label-keychain: "Store user password in the keychain";
+    // ipsec expander
+    in property <string> expand-ipsec: "IPsec";
     in property <string> label-ike-lifetime: "IPsec IKE SA lifetime, seconds";
     in property <string> label-ike-persist: "Store IPsec IKE session";
     in property <string> label-no-keepalive: "Disable IPsec keepalive packets";
     in property <string> label-port-knock: "Enable NAT-T port knocking";
+    in property <string> info-transport-type: "Transport type";
+
+    // misc expander
+    in property <string> expand-misc: "Misc Settings";
+    in property <string> label-password-factor: "Index of password factor, 1..N";
+    in property <string> label-keychain: "Store user password in the keychain";
     in property <string> label-allow-forwarding: "Allow packet forwarding";
     in property <string> label-ip-lease-time: "Custom IP lease time, seconds";
     in property <string> label-mtu: "MTU";
-    in property <string> info-transport-type: "Transport type";
     in property <string> label-tls-version-max: "Maximum TLS version";
 
     // ui expander
@@ -85,6 +88,7 @@ export global Tr {
     in property <string> label-color-theme: "Color theme";
     in property <string> label-language: "Language";
     in property <string> label-auto-connect: "Automatically connect on startup";
+    in property <string> label-notification-level: "Notification level";
 
     // about dialog
     in property <string> about-version: "Version";

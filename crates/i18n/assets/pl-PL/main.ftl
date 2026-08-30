@@ -61,6 +61,7 @@ label-allow-forwarding = Zezwól na przekazywanie pakietów
 label-tls-version-max = Maksymalna wersja TLS
 label-pin-required = Kod PIN jest wymagany do uwierzytelniania urządzenia HSM
 label-pin = PIN
+label-notification-level = Poziom powiadomień
 
 # Tabs and expanders
 tab-general = Ogólne
@@ -68,6 +69,7 @@ tab-advanced = Zaawansowane
 expand-dns = DNS
 expand-routing = Routing
 expand-certificates = Certyfikaty
+expand-ipsec = IPsec
 expand-misc = Ustawienia dodatkowe
 expand-ui = Interfejs użytkownika
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Nieprawidłowy typ transportu
 error-invalid-tls-version-max = Nieprawidłowa maksymalna wersja TLS
 error-certificate-verify-failed = Weryfikacja certyfikatu TLS nie powiodła się. Certyfikat serwera jest nieprawidłowy, wygasł lub nie jest zaufany.
 error-invalid-gateway-info = Nieprawidłowa odpowiedź z informacjami o bramie
+error-invalid-notification-level = Nieprawidłowy poziom powiadomień
 
 # Placeholder texts
 placeholder-domains = Domeny oddzielone przecinkami
@@ -168,6 +171,12 @@ transport-type-autodetect = Automatyczne wykrywanie
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Wyłączone
+notification-level-minimal = Minimalny
+notification-level-standard = Standardowy
+notification-level-verbose = Szczegółowy
 
 # Icon themes
 theme-autodetect = Automatyczne wykrywanie
@@ -196,6 +205,17 @@ info-rate-received = Prędkość odbioru
 info-rate-sent = Prędkość wysyłania
 info-packets-received = Odebrane pakiety
 info-packets-sent = Wysłane pakiety
+info-ike-initiator-spi = SPI inicjatora IKE SA
+info-ike-responder-spi = SPI odpowiadającego IKE SA
+info-ike-lifetime = Czas życia IKE SA
+info-ike-timestamp = Znacznik czasu IKE SA
+info-esp-spi-in = Przychodzące SPI ESP
+info-esp-spi-out = Wychodzące SPI ESP
+info-esp-encryption-in = Przychodzące szyfrowanie ESP
+info-esp-authentication-in = Przychodzące uwierzytelnianie ESP
+info-esp-encryption-out = Wychodzące szyfrowanie ESP
+info-esp-authentication-out = Wychodzące uwierzytelnianie ESP
+info-ipsec-sa = IPsec SA
 
 # Application
 app-title = Klient VPN SNX-RS
@@ -235,9 +255,15 @@ cli-another-instance-running = Inna instancja snx-rs jest już uruchomiona
 cli-app-terminated = Aplikacja zakończona przez sygnał
 cli-mobile-access-auth = Aby uwierzytelnić dostęp mobilny, zaloguj się na { $url }, następnie znajdź hasło użytkownika w formie hex w źródle HTML strony i wprowadź je tutaj.
 cli-certificate-enrolled = Certyfikat został pomyślnie zarejestrowany.
+cli-no-ike-state = Brak stanu IKE SA!
+cli-rekey-state-pending = Stan IKE SA jeszcze się nie zmienił, wyświetlany jest poprzedni stan
 
 # Connection Messages
 connection-connected-to = Połączono z {$server}
+connection-connecting-to = Łączenie z {$server}
+connection-disconnected-from = Rozłączono z {$server}
+connection-disconnecting-ike-expiry = Wkrótce nastąpi rozłączenie z powodu wygaśnięcia IKE SA
+connection-rekeyed = Klucze tunelu IPsec zostały pomyślnie odnowione
 
 # Languages
 language-cs-CZ = Czeski

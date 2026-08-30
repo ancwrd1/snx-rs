@@ -194,4 +194,8 @@ impl TunnelConnector for SslTunnelConnector {
         }
         Ok(())
     }
+
+    async fn rekey(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }

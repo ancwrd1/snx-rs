@@ -13,6 +13,7 @@ use objc2_foundation::{NSBundle, NSError, NSString};
 use objc2_user_notifications::{
     UNAuthorizationOptions, UNMutableNotificationContent, UNNotificationRequest, UNUserNotificationCenter,
 };
+use snxcore::prompt::NotificationCategory;
 use tokio::signal::unix::{SignalKind, signal};
 use tracing::warn;
 use uuid::Uuid;
@@ -41,7 +42,7 @@ pub async fn wait_restart_signal() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn send_notification(summary: &str, message: &str) -> anyhow::Result<()> {
+pub async fn send_notification(summary: &str, message: &str, _category: NotificationCategory) -> anyhow::Result<()> {
     let summary = summary.to_owned();
     let message = message.to_owned();
 

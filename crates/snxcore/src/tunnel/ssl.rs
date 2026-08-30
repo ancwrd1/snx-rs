@@ -439,6 +439,7 @@ impl VpnTunnel for SslTunnel {
             profile_id: self.params.profile_id,
             profile_name: self.params.profile_name.clone(),
             live: Default::default(),
+            ike_state: None, // apparently no IKE state for SSL tunnel :)
         };
 
         let _ = event_sender.send(TunnelEvent::Connected(Box::new(info))).await;

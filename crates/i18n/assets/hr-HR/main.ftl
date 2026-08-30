@@ -61,6 +61,7 @@ label-allow-forwarding = Dopusti prosljeđivanje paketa
 label-tls-version-max = Najveća verzija TLS-a
 label-pin-required = PIN je potreban za autentifikaciju HSM uređaja
 label-pin = PIN
+label-notification-level = Razina obavijesti
 
 # Tabs and expanders
 tab-general = Općenito
@@ -68,6 +69,7 @@ tab-advanced = Napredno
 expand-dns = DNS
 expand-routing = Usmjeravanje
 expand-certificates = Certifikati
+expand-ipsec = IPsec
 expand-misc = Razne postavke
 expand-ui = Postavke sučelja
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Nevažeća vrsta prijenosa
 error-invalid-tls-version-max = Nevažeća maksimalna TLS verzija
 error-certificate-verify-failed = TLS validacija certifikata nije uspjela. Certifikat poslužitelja je nevažeći, istekao ili nije pouzdan.
 error-invalid-gateway-info = Nevažeći odgovor s informacijama pristupnika
+error-invalid-notification-level = Nevažeća razina obavijesti
 
 # Placeholder texts
 placeholder-domains = Domene odvojene zarezom
@@ -168,6 +171,12 @@ transport-type-autodetect = Automatsko otkrivanje
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Isključeno
+notification-level-minimal = Minimalno
+notification-level-standard = Standardno
+notification-level-verbose = Opširno
 
 # Icon themes
 theme-autodetect = Automatsko otkrivanje
@@ -226,6 +235,17 @@ info-rate-received = Brzina primanja
 info-rate-sent = Brzina slanja
 info-packets-received = Primljeno paketa
 info-packets-sent = Poslano paketa
+info-ike-initiator-spi = SPI inicijatora IKE SA
+info-ike-responder-spi = SPI odgovaratelja IKE SA
+info-ike-lifetime = Životni vijek IKE SA
+info-ike-timestamp = Vremenska oznaka IKE SA
+info-esp-spi-in = Ulazni ESP SPI
+info-esp-spi-out = Izlazni ESP SPI
+info-esp-encryption-in = Ulazna ESP enkripcija
+info-esp-authentication-in = Ulazna ESP autentifikacija
+info-esp-encryption-out = Izlazna ESP enkripcija
+info-esp-authentication-out = Izlazna ESP autentifikacija
+info-ipsec-sa = IPsec SA
 
 # CLI Messages
 cli-identity-provider-auth = Za autentifikaciju putem pružatelja identiteta, otvorite sljedeću URL adresu u pregledniku:
@@ -235,9 +255,15 @@ cli-another-instance-running = Druga instanca snx-rs već je pokrenuta
 cli-app-terminated = Aplikacija prekinuta zbog signala
 cli-mobile-access-auth = Za autentifikaciju mobilnog pristupa, prijavite se na { $url }, zatim pronađite korisničku lozinku u hex obliku u HTML izvoru stranice i unesite je ovdje.
 cli-certificate-enrolled = Certifikat je uspješno registriran.
+cli-no-ike-state = Nema stanja IKE SA!
+cli-rekey-state-pending = Stanje IKE SA još nije promijenjeno, prikazuje se prethodno stanje
 
 # Connection Messages
 connection-connected-to = Povezano na {$server}
+connection-connecting-to = Povezivanje s {$server}
+connection-disconnected-from = Veza s {$server} prekinuta
+connection-disconnecting-ike-expiry = Veza će uskoro biti prekinuta zbog isteka IKE SA
+connection-rekeyed = Ključevi IPsec tunela uspješno obnovljeni
 
 # Languages
 language-cs-CZ = Češki

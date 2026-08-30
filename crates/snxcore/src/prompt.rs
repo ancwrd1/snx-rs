@@ -2,14 +2,28 @@ use std::io::{IsTerminal, Write, stderr, stdin};
 
 use anyhow::anyhow;
 
-use crate::model::PromptInfo;
+use crate::model::{PromptInfo, params::NotificationLevel};
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum NotificationCategory {
+    #[default]
+    Info,
+    Warning,
+    Error,
+}
 
 pub trait SecurePrompt {
     fn get_secure_input(&self, prompt: PromptInfo) -> impl Future<Output = anyhow::Result<String>> + Send;
 
     fn get_plain_input(&self, prompt: PromptInfo) -> impl Future<Output = anyhow::Result<String>> + Send;
 
-    fn show_notification(&self, summary: &str, message: &str) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn show_notification(
+        &self,
+        summary: &str,
+        message: &str,
+        category: NotificationCategory,
+        level: NotificationLevel,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
 }
 
 pub struct TtyPrompt;
@@ -51,7 +65,13 @@ impl SecurePrompt for TtyPrompt {
         .await?
     }
 
-    async fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
+    async fn show_notification(
+        &self,
+        summary: &str,
+        message: &str,
+        _category: NotificationCategory,
+        _level: NotificationLevel,
+    ) -> anyhow::Result<()> {
         println!("{summary}: {message}");
         Ok(())
     }

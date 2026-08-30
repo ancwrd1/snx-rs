@@ -8,6 +8,7 @@ use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
+use chrono::{Local, TimeZone};
 use i18n::tr;
 use ipnet::Ipv4Net;
 use isakmp::{
@@ -19,7 +20,7 @@ use isakmp::{
 };
 use openssl::{nid::Nid, x509::X509};
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
-use tracing::{debug, trace, warn};
+use tracing::{debug, info, trace, warn};
 
 use crate::{
     model::{
@@ -414,14 +415,22 @@ impl IPsecTunnelConnector {
             );
 
             if payload_types.contains(&PayloadType::SecurityAssociation) {
-                self.rekey_tunnel().await?;
+                self.rekey_tunnel(false).await?;
             }
         }
         Ok(())
     }
 
-    async fn rekey_tunnel(&mut self) -> anyhow::Result<()> {
+    async fn rekey_tunnel(&mut self, force: bool) -> anyhow::Result<()> {
         if !Platform::get().new_network_interface().is_online() {
+            return Ok(());
+        }
+
+        // check for IKE SA expiration and disconnect if needed
+        if self.ipsec_session.ike_timestamp + self.ipsec_session.ike_lifetime <= Local::now() {
+            info!("IKE SA expired, disconnecting tunnel");
+            let _ = self.delete_session().await;
+            let _ = self.terminate_tunnel(true).await;
             return Ok(());
         }
 
@@ -446,9 +455,10 @@ impl IPsecTunnelConnector {
             debug!("Start refreshing IPsec session");
             self.do_session_exchange(self.username.clone()).await?;
             rekeyed = true;
-        } else if self
-            .last_rekey
-            .is_some_and(|last_rekey| now.duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
+        } else if force
+            || self
+                .last_rekey
+                .is_some_and(|last_rekey| now.duration_since(last_rekey).unwrap_or(lifetime) >= lifetime)
         {
             debug!("Start rekeying IPsec tunnel");
             self.do_esp_proposal().await?;
@@ -535,6 +545,14 @@ impl IPsecTunnelConnector {
 
     async fn do_restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         let office_mode = self.load_ike_session()?;
+
+        self.ipsec_session.ike_lifetime = self.service.session().lifetime();
+        self.ipsec_session.ike_timestamp = Local
+            .timestamp_opt(self.service.session().timestamp() as i64, 0)
+            .single()
+            .unwrap_or_else(Local::now);
+        self.ipsec_session.initiator_spi = self.service.session().initiator_spi();
+        self.ipsec_session.responder_spi = self.service.session().responder_spi();
 
         match self.do_session_exchange(office_mode.username.clone()).await {
             Ok(session) => Ok(session),
@@ -634,6 +652,14 @@ impl TunnelConnector for IPsecTunnelConnector {
         let my_address = Platform::get().new_network_interface().get_default_ipv4().await?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
         self.service.do_key_exchange(my_address, self.gateway_address).await?;
+
+        self.ipsec_session.ike_lifetime = self.service.session().lifetime();
+        self.ipsec_session.ike_timestamp = Local
+            .timestamp_opt(self.service.session().timestamp() as i64, 0)
+            .single()
+            .unwrap_or_else(Local::now);
+        self.ipsec_session.initiator_spi = self.service.session().initiator_spi();
+        self.ipsec_session.responder_spi = self.service.session().responder_spi();
 
         let info = self.gateway_connector.get_gateway_information().await?;
         let login_option = info.get_login_option(&self.params.login_type);
@@ -819,7 +845,7 @@ impl TunnelConnector for IPsecTunnelConnector {
                 let _ = self.delete_sa().await;
             }
             TunnelEvent::RekeyCheck => {
-                self.rekey_tunnel().await?;
+                self.rekey_tunnel(false).await?;
             }
             TunnelEvent::RemoteControlData(data) => {
                 self.parse_isakmp(data).await?;
@@ -830,6 +856,10 @@ impl TunnelConnector for IPsecTunnelConnector {
             TunnelEvent::Rtt(_) => {}
         }
         Ok(())
+    }
+
+    async fn rekey(&mut self) -> anyhow::Result<()> {
+        self.rekey_tunnel(true).await
     }
 }
 

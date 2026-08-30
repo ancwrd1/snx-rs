@@ -13,7 +13,7 @@ export component SettingsWindow inherits Window {
             max(expander-dns.body-preferred-width, expander-routing.body-preferred-width),
             max(expander-certs.body-preferred-width, expander-misc.body-preferred-width),
         ),
-        expander-ui.body-preferred-width,
+        max(expander-ipsec.body-preferred-width, expander-ui.body-preferred-width),
     ));
     min-height: 600px;
     default-font-size: 14px;
@@ -75,18 +75,20 @@ export component SettingsWindow inherits Window {
     in-out property <string> ca-cert;
     in-out property <bool> no-cert-check: false;
 
-    // misc
-    in-out property <string> password-factor;
-    in-out property <bool> keychain: false;
+    // ipsec
     in-out property <string> ike-lifetime;
     in-out property <bool> ike-persist: false;
     in-out property <bool> no-keepalive: false;
     in-out property <bool> port-knock: false;
+    in property <[string]> transport-types: [];
+    in-out property <int> transport-type-index: 0;
+
+    // misc
+    in-out property <string> password-factor;
+    in-out property <bool> keychain: false;
     in-out property <bool> allow-forwarding: false;
     in-out property <string> ip-lease-time;
     in-out property <string> mtu;
-    in property <[string]> transport-types: [];
-    in-out property <int> transport-type-index: 0;
     in property <[string]> tls-version-max-options: [];
     in-out property <int> tls-version-max-index: 0;
 
@@ -100,6 +102,8 @@ export component SettingsWindow inherits Window {
     in property <[string]> locales: [];
     in-out property <int> locale-index: 0;
     in-out property <bool> auto-connect: false;
+    in property <[string]> notification-levels: [];
+    in-out property <int> notification-level-index: 0;
     in-out property <bool> fetch-enabled: true;
 
     // error message
@@ -620,19 +624,12 @@ export component SettingsWindow inherits Window {
                                 }
                             }
 
-                            expander-misc := Expander {
-                                title: Tr.expand-misc;
-                                icon-kind: "misc";
+                            expander-ipsec := Expander {
+                                title: Tr.expand-ipsec;
+                                icon-kind: "ipsec";
 
                                 VerticalLayout {
                                     spacing: 0px;
-
-                                    FormToggleRow {
-                                        label: Tr.label-keychain;
-                                        Switch { checked <=> root.keychain; }
-                                    }
-
-                                    FormDivider { }
 
                                     FormToggleRow {
                                         label: Tr.label-ike-persist;
@@ -651,6 +648,42 @@ export component SettingsWindow inherits Window {
                                     FormToggleRow {
                                         label: Tr.label-port-knock;
                                         Switch { checked <=> root.port-knock; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ike-lifetime;
+                                        LineEdit {
+                                            text <=> root.ike-lifetime;
+                                            input-type: InputType.number;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.info-transport-type;
+                                        ComboBox {
+                                            model: root.transport-types;
+                                            current-index <=> root.transport-type-index;
+                                            min-width: root.min-form-width;
+                                        }
+                                    }
+                                }
+                            }
+
+                            expander-misc := Expander {
+                                title: Tr.expand-misc;
+                                icon-kind: "misc";
+
+                                VerticalLayout {
+                                    spacing: 0px;
+
+                                    FormToggleRow {
+                                        label: Tr.label-keychain;
+                                        Switch { checked <=> root.keychain; }
                                     }
 
                                     FormDivider { }
@@ -674,17 +707,6 @@ export component SettingsWindow inherits Window {
                                     FormDivider { }
 
                                     FormStackRow {
-                                        label: Tr.label-ike-lifetime;
-                                        LineEdit {
-                                            text <=> root.ike-lifetime;
-                                            input-type: InputType.number;
-                                        }
-                                    }
-
-                                    FormDivider { }
-
-
-                                    FormStackRow {
                                         label: Tr.label-ip-lease-time;
                                         LineEdit {
                                             text <=> root.ip-lease-time;
@@ -699,17 +721,6 @@ export component SettingsWindow inherits Window {
                                         LineEdit {
                                             text <=> root.mtu;
                                             input-type: InputType.number;
-                                        }
-                                    }
-
-                                    FormDivider { }
-
-                                    FormStackRow {
-                                        label: Tr.info-transport-type;
-                                        ComboBox {
-                                            model: root.transport-types;
-                                            current-index <=> root.transport-type-index;
-                                            min-width: root.min-form-width;
                                         }
                                     }
 
@@ -774,6 +785,16 @@ export component SettingsWindow inherits Window {
                                         ComboBox {
                                             model: root.locales;
                                             current-index <=> root.locale-index;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-notification-level;
+                                        ComboBox {
+                                            model: root.notification-levels;
+                                            current-index <=> root.notification-level-index;
                                         }
                                     }
                                 }

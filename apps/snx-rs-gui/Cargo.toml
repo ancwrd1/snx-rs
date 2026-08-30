@@ -35,6 +35,7 @@ uuid = { version = "1", features = ["v4"] }
 rfd = "0.17"
 i-slint-backend-winit = { version = "1", default-features = false }
 hostname = "0.4"
+chrono = "0.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ksni = "0.3"

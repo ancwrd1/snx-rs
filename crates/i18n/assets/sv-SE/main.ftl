@@ -61,6 +61,7 @@ label-allow-forwarding = Tillåt paketvidarebefordran för tunnelgränssnittet
 label-tls-version-max = Högsta TLS-version
 label-pin-required = PIN krävs för HSM-enhetsautentisering
 label-pin = PIN
+label-notification-level = Aviseringsnivå
 
 # Tabs and expanders
 tab-general = Allmänt
@@ -68,6 +69,7 @@ tab-advanced = Avancerat
 expand-dns = DNS
 expand-routing = Routning
 expand-certificates = Certifikat
+expand-ipsec = IPsec
 expand-misc = Ytterligare inställningar
 expand-ui = Användargränssnitt
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Ogiltig transporttyp
 error-invalid-tls-version-max = Ogiltig maximal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering misslyckades. Serverns certifikat är ogiltigt, utgånget eller inte betrott.
 error-invalid-gateway-info = Ogiltigt gateway-informationssvar
+error-invalid-notification-level = Ogiltig aviseringsnivå
 
 # Placeholder texts
 placeholder-domains = Domäner separerade med kommatecken
@@ -168,6 +171,12 @@ transport-type-autodetect = Automatisk identifiering
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Av
+notification-level-minimal = Minimal
+notification-level-standard = Standard
+notification-level-verbose = Utförlig
 
 # Icon themes
 theme-autodetect = Automatisk identifiering
@@ -196,6 +205,17 @@ info-rate-received = Mottagningshastighet
 info-rate-sent = Sändningshastighet
 info-packets-received = Mottagna paket
 info-packets-sent = Skickade paket
+info-ike-initiator-spi = IKE SA-initierar-SPI
+info-ike-responder-spi = IKE SA-svarar-SPI
+info-ike-lifetime = IKE SA-livslängd
+info-ike-timestamp = IKE SA-tidsstämpel
+info-esp-spi-in = Inkommande ESP-SPI
+info-esp-spi-out = Utgående ESP-SPI
+info-esp-encryption-in = Inkommande ESP-kryptering
+info-esp-authentication-in = Inkommande ESP-autentisering
+info-esp-encryption-out = Utgående ESP-kryptering
+info-esp-authentication-out = Utgående ESP-autentisering
+info-ipsec-sa = IPsec SA
 
 # Application
 app-title = SNX-RS VPN-klient
@@ -235,9 +255,15 @@ cli-another-instance-running = En annan instans av snx-rs körs redan
 cli-app-terminated = Applikation avslutad av signal
 cli-mobile-access-auth = För autentisering av mobil åtkomst, logga in på { $url }, leta sedan upp ett användarlösenord i hex-format i sidans HTML-källkod och skriv in det här.
 cli-certificate-enrolled = Certifikatet har registrerats.
+cli-no-ike-state = Ingen IKE SA-status!
+cli-rekey-state-pending = IKE SA-statusen har inte ändrats ännu, visar föregående status
 
 # Connection Messages
 connection-connected-to = Ansluten till {$server}
+connection-connecting-to = Ansluter till {$server}
+connection-disconnected-from = Frånkopplad från {$server}
+connection-disconnecting-ike-expiry = Kopplas snart från eftersom IKE SA går ut
+connection-rekeyed = IPsec-tunnelns nycklar har förnyats
 
 # Languages
 language-cs-CZ = Tjeckiska

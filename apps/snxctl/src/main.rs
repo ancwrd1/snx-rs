@@ -1,8 +1,7 @@
-use std::{future::Future, io, path::PathBuf, sync::Arc};
-
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
+use snxcore::model::ConnectionStatus;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
@@ -11,7 +10,11 @@ use snxcore::{
     prompt::TtyPrompt,
     tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
 };
+use std::time::{Duration, Instant};
+use std::{future::Future, io, path::PathBuf, sync::Arc};
 use tracing::level_filters::LevelFilter;
+
+const REKEY_STATE_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Parser)]
 #[clap(about = "VPN client for Check Point security gateway", name = "snxctl", version = env!("CARGO_PKG_VERSION"))]
@@ -35,6 +38,14 @@ pub struct CmdlineParams {
 }
 
 #[derive(Parser)]
+enum IpsecCommand {
+    #[clap(name = "ike-state", about = "Print IPsec IKE state")]
+    IkeState,
+    #[clap(name = "rekey", about = "Rekey IPsec CHILD SA")]
+    Rekey,
+}
+
+#[derive(Parser)]
 enum SnxCommand {
     #[clap(name = "connect", about = "Connect a tunnel")]
     Connect,
@@ -48,6 +59,8 @@ enum SnxCommand {
     Info,
     #[clap(name = "list", about = "List connection profiles")]
     List,
+    #[clap(subcommand, name = "ipsec", about = "IPsec commands")]
+    Ipsec(IpsecCommand),
     #[clap(name = "completions", about = "Generate shell completions")]
     Completions {
         #[clap(
@@ -65,6 +78,8 @@ impl From<SnxCommand> for ServiceCommand {
             SnxCommand::Disconnect => ServiceCommand::Disconnect,
             SnxCommand::Reconnect => ServiceCommand::Reconnect,
             SnxCommand::Status => ServiceCommand::Status,
+            SnxCommand::Ipsec(IpsecCommand::IkeState) => ServiceCommand::Status,
+            SnxCommand::Ipsec(IpsecCommand::Rekey) => ServiceCommand::Rekey,
             SnxCommand::Info | SnxCommand::List | SnxCommand::Completions { .. } => {
                 unreachable!("Handled separately in main")
             }
@@ -143,6 +158,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         other => {
+            let ike_state = matches!(other, SnxCommand::Ipsec(IpsecCommand::IkeState));
+            let rekey = matches!(other, SnxCommand::Ipsec(IpsecCommand::Rekey));
             let command = other.into();
 
             let info = connector.get_gateway_information().await?;
@@ -163,7 +180,51 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
-            println!("{}", status.print());
+            let as_ike_state = |status: &ConnectionStatus| {
+                if let ConnectionStatus::Connected(info) = status
+                    && let Some(ref state) = info.ike_state
+                {
+                    Some(state.clone())
+                } else {
+                    None
+                }
+            };
+
+            let mut current_state = as_ike_state(&status);
+
+            if ike_state || rekey {
+                let mut state_changed = !rekey;
+
+                if rekey {
+                    let now = Instant::now();
+                    while now.elapsed() < REKEY_STATE_TIMEOUT {
+                        if let Ok(status) = service_controller
+                            .command(ServiceCommand::Status, tunnel_params.clone())
+                            .await
+                            && let new_state = as_ike_state(&status)
+                            && new_state != current_state
+                        {
+                            current_state = new_state;
+                            state_changed = true;
+                            break;
+                        }
+
+                        tokio::time::sleep(Duration::from_millis(100)).await;
+                    }
+                }
+
+                if !state_changed {
+                    println!("{}", tr!("cli-rekey-state-pending"));
+                }
+
+                if let Some(state) = current_state {
+                    println!("{}", state.print());
+                } else {
+                    println!("{}", tr!("cli-no-ike-state"));
+                }
+            } else {
+                println!("{}", status.print());
+            }
         }
     }
 

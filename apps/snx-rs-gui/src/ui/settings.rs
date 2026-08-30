@@ -6,7 +6,7 @@ use secrecy::ExposeSecret;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Window};
 use snxcore::{
     model::{
-        params::{CertType, DEFAULT_PROFILE_UUID, TunnelParams, TunnelType},
+        params::{CertType, DEFAULT_PROFILE_UUID, NotificationLevel, TunnelParams, TunnelType},
         proto::{GatewayInformation, LoginOption},
     },
     platform::{Keychain, Platform, PlatformAccess},
@@ -129,6 +129,20 @@ impl SettingsWindowController {
         self.scope
             .window
             .set_color_themes(ModelRc::new(VecModel::from(theme_names)));
+
+        let notification_levels: Vec<SharedString> = [
+            NotificationLevel::Off,
+            NotificationLevel::Minimal,
+            NotificationLevel::Standard,
+            NotificationLevel::Verbose,
+        ]
+        .iter()
+        .map(|level| level.as_i18n().into())
+        .collect();
+
+        self.scope
+            .window
+            .set_notification_levels(ModelRc::new(VecModel::from(notification_levels)));
 
         let mut locale_labels: Vec<SharedString> = vec![tr!("label-system-default").into()];
         let locales = i18n::get_locales();
@@ -537,6 +551,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
     let defaults = ConnectionProfilesStore::instance().get_default();
     window.set_icon_theme_index(defaults.icon_theme.as_u32() as i32);
     window.set_color_theme_index(defaults.color_theme.as_u32() as i32);
+    window.set_notification_level_index(defaults.notification_level.as_u32() as i32);
     window.set_auto_connect(defaults.auto_connect);
     let locale_index = defaults
         .locale
@@ -968,6 +983,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     params.mtu = window.get_mtu().parse()?;
     params.icon_theme = (window.get_icon_theme_index() as u32).into();
     params.color_theme = (window.get_color_theme_index() as u32).into();
+    params.notification_level = (window.get_notification_level_index() as u32).into();
 
     let selected_locale = window.get_locale_index();
     let new_locale: Option<String> = if selected_locale <= 0 {
@@ -986,6 +1002,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
         let mut default_params = (*ConnectionProfilesStore::instance().get_default()).clone();
         default_params.icon_theme = params.icon_theme;
         default_params.color_theme = params.color_theme;
+        default_params.notification_level = params.notification_level;
         default_params.locale = params.locale.clone();
         default_params.auto_connect = params.auto_connect;
         ConnectionProfilesStore::instance().save(Arc::new(default_params));

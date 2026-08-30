@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use snxcore::prompt::NotificationCategory;
 use zbus::{Connection, zvariant};
 
 #[zbus::proxy(
@@ -35,14 +36,21 @@ pub trait Notifications {
     ) -> zbus::Result<u32>;
 }
 
-pub async fn send_notification(summary: &str, message: &str) -> anyhow::Result<()> {
+pub async fn send_notification(summary: &str, message: &str, category: NotificationCategory) -> anyhow::Result<()> {
     let connection = Connection::session().await?;
     let proxy = NotificationsProxy::new(&connection).await?;
+
+    let icon = match category {
+        NotificationCategory::Info => "network-vpn",
+        NotificationCategory::Warning => "emblem-warning",
+        NotificationCategory::Error => "emblem-error",
+    };
+
     proxy
         .notify(
-            "SNX-RS VPN client",
+            &i18n::tr!("app-title"),
             0,
-            "network-vpn",
+            icon,
             summary,
             message,
             &[],

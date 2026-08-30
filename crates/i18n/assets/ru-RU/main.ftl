@@ -61,6 +61,7 @@ label-allow-forwarding = Разрешить пересылку пакетов д
 label-tls-version-max = Максимальная версия TLS
 label-pin-required = PIN-код требуется для аутентификации устройства HSM
 label-pin = PIN-код
+label-notification-level = Уровень уведомлений
 
 # Tabs and expanders
 tab-general = Основные
@@ -68,6 +69,7 @@ tab-advanced = Дополнительно
 expand-dns = DNS
 expand-routing = Маршрутизация
 expand-certificates = Сертификаты
+expand-ipsec = IPsec
 expand-misc = Прочие настройки
 expand-ui = Настройки интерфейса
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Неверный тип транспорта
 error-invalid-tls-version-max = Неверная максимальная версия TLS
 error-certificate-verify-failed = Проверка TLS-сертификата не удалась. Сертификат сервера недействителен, истёк или не является доверенным.
 error-invalid-gateway-info = Неверный ответ с информацией о шлюзе
+error-invalid-notification-level = Неверный уровень уведомлений
 
 # Placeholder texts
 placeholder-domains = Домены через запятую
@@ -168,6 +171,12 @@ transport-type-autodetect = Автоопределение
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Выключено
+notification-level-minimal = Минимальный
+notification-level-standard = Стандартный
+notification-level-verbose = Подробный
 
 # Icon themes
 theme-autodetect = Автоопределение
@@ -226,6 +235,17 @@ info-rate-received = Скорость приёма
 info-rate-sent = Скорость передачи
 info-packets-received = Принято пакетов
 info-packets-sent = Отправлено пакетов
+info-ike-initiator-spi = SPI инициатора IKE SA
+info-ike-responder-spi = SPI ответчика IKE SA
+info-ike-lifetime = Время жизни IKE SA
+info-ike-timestamp = Метка времени IKE SA
+info-esp-spi-in = Входящий SPI ESP
+info-esp-spi-out = Исходящий SPI ESP
+info-esp-encryption-in = Входящее шифрование ESP
+info-esp-authentication-in = Входящая аутентификация ESP
+info-esp-encryption-out = Исходящее шифрование ESP
+info-esp-authentication-out = Исходящая аутентификация ESP
+info-ipsec-sa = IPsec SA
 
 # CLI Messages
 cli-identity-provider-auth = Для аутентификации через провайдера идентификации откройте следующий URL в браузере:
@@ -235,9 +255,15 @@ cli-another-instance-running = Другая копия snx-rs уже запущ�
 cli-app-terminated = Приложение завершено по сигналу
 cli-mobile-access-auth = Для аутентификации мобильного доступа войдите на { $url }, затем найдите пароль пользователя в шестнадцатеричном виде в исходном коде HTML страницы и введите его здесь.
 cli-certificate-enrolled = Сертификат успешно зарегистрирован.
+cli-no-ike-state = Нет состояния IKE SA!
+cli-rekey-state-pending = Состояние IKE SA ещё не изменилось, показано предыдущее состояние
 
 # Connection Messages
 connection-connected-to = Подключено к {$server}
+connection-connecting-to = Подключение к {$server}
+connection-disconnected-from = Отключено от {$server}
+connection-disconnecting-ike-expiry = Скоро произойдёт отключение из-за истечения IKE SA
+connection-rekeyed = Ключи туннеля IPsec успешно обновлены
 
 # Languages
 language-cs-CZ = Чешский

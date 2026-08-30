@@ -4,7 +4,11 @@ use anyhow::{Context, anyhow};
 use async_channel::Sender;
 use i18n::tr;
 use slint::{ComponentHandle, Window};
-use snxcore::{model::PromptInfo, prompt::SecurePrompt};
+use snxcore::{
+    model::{PromptInfo, params::NotificationLevel},
+    profiles::ConnectionProfilesStore,
+    prompt::{NotificationCategory, SecurePrompt},
+};
 
 use crate::{
     platform::send_notification,
@@ -87,9 +91,14 @@ impl WindowController for PromptWindowController {
     }
 }
 
+#[derive(Clone, Default)]
 pub struct SlintPrompt;
 
 impl SlintPrompt {
+    pub fn new() -> Self {
+        Self
+    }
+
     async fn get_input(&self, prompt: PromptInfo, secure: bool) -> anyhow::Result<String> {
         let (tx, rx) = async_channel::bounded(1);
 
@@ -110,7 +119,17 @@ impl SecurePrompt for SlintPrompt {
         self.get_input(prompt, false).await
     }
 
-    async fn show_notification(&self, summary: &str, message: &str) -> anyhow::Result<()> {
-        send_notification(summary, message).await
+    async fn show_notification(
+        &self,
+        summary: &str,
+        message: &str,
+        category: NotificationCategory,
+        level: NotificationLevel,
+    ) -> anyhow::Result<()> {
+        if level <= ConnectionProfilesStore::instance().get_default().notification_level {
+            send_notification(summary, message, category).await
+        } else {
+            Ok(())
+        }
     }
 }

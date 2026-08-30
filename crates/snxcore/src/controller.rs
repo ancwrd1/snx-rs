@@ -46,6 +46,7 @@ pub enum ServiceCommand {
     Connect,
     Disconnect,
     Reconnect,
+    Rekey,
 }
 
 impl FromStr for ServiceCommand {
@@ -57,6 +58,7 @@ impl FromStr for ServiceCommand {
             "connect" => Ok(Self::Connect),
             "disconnect" => Ok(Self::Disconnect),
             "reconnect" => Ok(Self::Reconnect),
+            "rekey" => Ok(Self::Rekey),
             other => Err(anyhow!(tr!("error-invalid-command", command = other))),
         }
     }
@@ -123,6 +125,7 @@ where
             ServiceCommand::Connect => self.do_connect(params).await,
             ServiceCommand::Disconnect => self.do_disconnect(params).await,
             ServiceCommand::Reconnect => self.do_reconnect(params).await,
+            ServiceCommand::Rekey => self.do_rekey(params).await,
         }
     }
 
@@ -343,6 +346,11 @@ where
         let _ = self.do_disconnect(params.clone()).await;
         tokio::time::sleep(Duration::from_secs(1)).await;
         self.do_connect(params).await
+    }
+
+    async fn do_rekey(&mut self, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
+        self.send_receive(TunnelServiceRequest::Rekey, CONNECT_TIMEOUT).await?;
+        self.do_status(params, false).await
     }
 
     async fn send_receive(

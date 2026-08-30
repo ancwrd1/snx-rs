@@ -7,6 +7,7 @@ pub mod webkit;
 
 use std::{env, mem};
 
+use snxcore::prompt::NotificationCategory;
 use tauri_winrt_notification::Toast;
 use tracing::{debug, warn};
 #[cfg(feature = "mobile-access")]
@@ -31,7 +32,7 @@ use windows::{
     core::{s, w},
 };
 
-pub async fn send_notification(summary: &str, message: &str) -> anyhow::Result<()> {
+pub async fn send_notification(summary: &str, message: &str, _category: NotificationCategory) -> anyhow::Result<()> {
     Ok(Toast::new("com.github.snx-rs")
         .title(summary)
         .text1(message)

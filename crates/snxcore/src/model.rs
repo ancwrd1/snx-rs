@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt, net::Ipv4Addr, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Local};
 use ipnet::Ipv4Net;
-use isakmp::model::EspCryptMaterial;
+use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -13,6 +13,7 @@ use crate::{
         wrappers::SessionId,
     },
     platform::SearchDomain,
+    util,
 };
 
 pub mod params;
@@ -35,6 +36,8 @@ pub enum SessionState {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IPsecSession {
+    pub initiator_spi: u64,
+    pub responder_spi: u64,
     pub lifetime: Duration,
     pub address: Ipv4Addr,
     pub netmask: Ipv4Addr,
@@ -44,11 +47,15 @@ pub struct IPsecSession {
     pub esp_out: Arc<EspCryptMaterial>,
     pub transport_type: TransportType,
     pub address_lifetime: Duration,
+    pub ike_lifetime: Duration,
+    pub ike_timestamp: DateTime<Local>,
 }
 
 impl Default for IPsecSession {
     fn default() -> Self {
         Self {
+            initiator_spi: 0,
+            responder_spi: 0,
             lifetime: Duration::default(),
             address: Ipv4Addr::new(0, 0, 0, 0),
             netmask: Ipv4Addr::new(0, 0, 0, 0),
@@ -58,6 +65,8 @@ impl Default for IPsecSession {
             esp_out: Arc::default(),
             transport_type: TransportType::default(),
             address_lifetime: Duration::default(),
+            ike_lifetime: Duration::default(),
+            ike_timestamp: Local::now(),
         }
     }
 }
@@ -65,6 +74,25 @@ impl Default for IPsecSession {
 impl IPsecSession {
     pub fn ipv4net_address(&self) -> Ipv4Net {
         Ipv4Net::with_netmask(self.address, self.netmask).unwrap_or_else(|_| Ipv4Net::from(self.address))
+    }
+
+    pub fn to_ike_state(&self) -> IkeState {
+        IkeState {
+            initiator_spi: self.initiator_spi,
+            responder_spi: self.responder_spi,
+            lifetime: self.ike_lifetime,
+            timestamp: self.ike_timestamp,
+            esp_in: EspState {
+                spi: self.esp_in.spi,
+                enc_algorithm: self.esp_in.transform_id.into(),
+                auth_algorithm: self.esp_in.auth_algorithm.into(),
+            },
+            esp_out: EspState {
+                spi: self.esp_out.spi,
+                enc_algorithm: self.esp_out.transform_id.into(),
+                auth_algorithm: self.esp_out.auth_algorithm.into(),
+            },
+        }
     }
 }
 
@@ -154,6 +182,97 @@ pub struct LiveStats {
     pub bps_tx: u64,
 }
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+pub enum EncryptionAlgorithm {
+    #[default]
+    EspAesCbc,
+    Esp3Des,
+}
+
+impl fmt::Display for EncryptionAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EncryptionAlgorithm::EspAesCbc => f.write_str("AES-CBC"),
+            EncryptionAlgorithm::Esp3Des => f.write_str("3DES"),
+        }
+    }
+}
+
+impl From<TransformId> for EncryptionAlgorithm {
+    fn from(id: TransformId) -> Self {
+        match id {
+            TransformId::Esp3Des => Self::Esp3Des,
+            _ => Self::EspAesCbc,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+pub enum AuthenticationAlgorithm {
+    HmacSha96,
+    HmacSha160,
+    #[default]
+    HmacSha256,
+    HmacSha256v2,
+}
+
+impl fmt::Display for AuthenticationAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AuthenticationAlgorithm::HmacSha96 => f.write_str("HMAC-SHA96"),
+            AuthenticationAlgorithm::HmacSha160 => f.write_str("HMAC-SHA160"),
+            AuthenticationAlgorithm::HmacSha256 => f.write_str("HMAC-SHA256"),
+            AuthenticationAlgorithm::HmacSha256v2 => f.write_str("HMAC-SHA256V2"),
+        }
+    }
+}
+
+impl From<EspAuthAlgorithm> for AuthenticationAlgorithm {
+    fn from(algo: EspAuthAlgorithm) -> Self {
+        match algo {
+            EspAuthAlgorithm::HmacSha96 => Self::HmacSha96,
+            EspAuthAlgorithm::HmacSha160 => Self::HmacSha160,
+            EspAuthAlgorithm::HmacSha256v2 => Self::HmacSha256v2,
+            _ => Self::HmacSha256,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct EspState {
+    pub spi: u32,
+    pub enc_algorithm: EncryptionAlgorithm,
+    pub auth_algorithm: AuthenticationAlgorithm,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct IkeState {
+    pub initiator_spi: u64,
+    pub responder_spi: u64,
+    pub lifetime: Duration,
+    pub timestamp: DateTime<Local>,
+    pub esp_in: EspState,
+    pub esp_out: EspState,
+}
+
+impl IkeState {
+    pub fn print(&self) -> String {
+        let values = [
+            ("info-ike-initiator-spi", format!("{:016x}", self.initiator_spi)),
+            ("info-ike-responder-spi", format!("{:016x}", self.responder_spi)),
+            ("info-ike-lifetime", self.lifetime.as_secs().to_string()),
+            ("info-ike-timestamp", self.timestamp.to_rfc3339()),
+            ("info-esp-spi-in", format!("{:08x}", self.esp_in.spi)),
+            ("info-esp-spi-out", format!("{:08x}", self.esp_out.spi)),
+            ("info-esp-encryption-in", self.esp_in.enc_algorithm.to_string()),
+            ("info-esp-authentication-in", self.esp_in.auth_algorithm.to_string()),
+            ("info-esp-encryption-out", self.esp_out.enc_algorithm.to_string()),
+            ("info-esp-authentication-out", self.esp_out.auth_algorithm.to_string()),
+        ];
+        util::format_values(&values)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ConnectionInfo {
     pub since: Option<DateTime<Local>>,
@@ -173,6 +292,8 @@ pub struct ConnectionInfo {
     pub profile_name: String,
     #[serde(default)]
     pub live: LiveStats,
+    #[serde(default)]
+    pub ike_state: Option<IkeState>,
 }
 
 impl ConnectionInfo {
@@ -260,20 +381,7 @@ impl ConnectionInfo {
     }
 
     pub fn print(&self, with_stats: bool) -> String {
-        let values = self.to_values(with_stats);
-        let label_width = values
-            .iter()
-            .map(|(label, _)| i18n::translate(label).chars().count())
-            .max()
-            .unwrap_or_default();
-        let mut result = String::new();
-        for (index, (key, value)) in values.iter().enumerate() {
-            result.push_str(&format!("{:>label_width$}: {}", i18n::translate(key), value));
-            if index < values.len() - 1 {
-                result.push('\n');
-            }
-        }
-        result
+        util::format_values(&self.to_values(with_stats))
     }
 
     pub fn without_stats(&self) -> Self {
@@ -343,6 +451,7 @@ pub enum TunnelServiceRequest {
     ChallengeCode(String, TunnelParams),
     Disconnect,
     GetStatus,
+    Rekey,
 }
 
 impl TunnelServiceRequest {

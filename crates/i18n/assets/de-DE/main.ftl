@@ -61,6 +61,7 @@ label-allow-forwarding = Paketweiterleitung zulassen
 label-tls-version-max = Maximale TLS-Version
 label-pin-required = PIN ist für die HSM-Geräteauthentifizierung erforderlich
 label-pin = PIN
+label-notification-level = Benachrichtigungsstufe
 
 # Tabs and expanders
 tab-general = Allgemein
@@ -68,6 +69,7 @@ tab-advanced = Erweitert
 expand-dns = DNS
 expand-routing = Routing
 expand-certificates = Zertifikate
+expand-ipsec = IPsec
 expand-misc = Weitere Einstellungen
 expand-ui = Benutzeroberfläche
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Ungültiger Transporttyp
 error-invalid-tls-version-max = Ungültige maximale TLS-Version
 error-certificate-verify-failed = TLS-Zertifikatüberprüfung fehlgeschlagen. Das Serverzertifikat ist ungültig, abgelaufen oder nicht vertrauenswürdig.
 error-invalid-gateway-info = Ungültige Gateway-Informationsantwort
+error-invalid-notification-level = Ungültige Benachrichtigungsstufe
 
 # Placeholder texts
 placeholder-domains = Durch Komma getrennte Domänen
@@ -168,6 +171,12 @@ transport-type-autodetect = Automatisch erkennen
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Aus
+notification-level-minimal = Minimal
+notification-level-standard = Standard
+notification-level-verbose = Ausführlich
 
 # Icon themes
 theme-autodetect = Automatisch
@@ -226,6 +235,17 @@ info-rate-received = Empfangsrate
 info-rate-sent = Senderate
 info-packets-received = Empfangene Pakete
 info-packets-sent = Gesendete Pakete
+info-ike-initiator-spi = IKE-SA-Initiator-SPI
+info-ike-responder-spi = IKE-SA-Responder-SPI
+info-ike-lifetime = IKE-SA-Lebensdauer
+info-ike-timestamp = IKE-SA-Zeitstempel
+info-esp-spi-in = Eingehende ESP-SPI
+info-esp-spi-out = Ausgehende ESP-SPI
+info-esp-encryption-in = Eingehende ESP-Verschlüsselung
+info-esp-authentication-in = Eingehende ESP-Authentifizierung
+info-esp-encryption-out = Ausgehende ESP-Verschlüsselung
+info-esp-authentication-out = Ausgehende ESP-Authentifizierung
+info-ipsec-sa = IPsec-SA
 
 # CLI Messages
 cli-identity-provider-auth = Für die Authentifizierung über den Identitätsanbieter öffnen Sie die folgende URL in Ihrem Browser:
@@ -235,9 +255,15 @@ cli-another-instance-running = Eine andere Instanz von snx-rs läuft bereits
 cli-app-terminated = Anwendung durch Signal beendet
 cli-mobile-access-auth = Für die Authentifizierung des mobilen Zugriffs melden Sie sich bei { $url } an, suchen Sie anschließend ein Benutzerpasswort in hexadezimaler Form im HTML-Quelltext der Seite und geben Sie es hier ein.
 cli-certificate-enrolled = Zertifikat wurde erfolgreich registriert.
+cli-no-ike-state = Kein IKE-SA-Status!
+cli-rekey-state-pending = Der IKE-SA-Status hat sich noch nicht geändert, es wird der vorherige Status angezeigt
 
 # Connection Messages
 connection-connected-to = Verbunden mit {$server}
+connection-connecting-to = Verbindung zu {$server} wird hergestellt
+connection-disconnected-from = Verbindung zu {$server} getrennt
+connection-disconnecting-ike-expiry = Verbindung wird wegen Ablauf der IKE-SA bald getrennt
+connection-rekeyed = Schlüssel des IPsec-Tunnels erfolgreich erneuert
 
 # Languages
 language-cs-CZ = Tschechisch

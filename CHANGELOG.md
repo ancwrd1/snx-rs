@@ -1,3 +1,11 @@
+## v6.3.0 (TBD)
+* Added the `notification-level` option to control the verbosity of GUI desktop notifications: off, minimal, standard or verbose.
+* Added notifications for tunnel disconnection, connection attempts, IPsec rekeying and upcoming disconnection due to IKE SA expiry.
+* Added the `ipsec ike-state` and `ipsec rekey` commands to `snxctl` to display and renew the IPsec security associations.
+* When IKE SA expires, disconnect the tunnel automatically and remove the IKE persistent state.
+* GUI: moved the IPsec-specific options into a separate "IPsec" section in the advanced settings.
+* Linux: NAT-T traffic is now sent from the fixed port 4500 where possible, with a fallback to an ephemeral port.
+
 ## v6.2.4 (2026-08-12)
 * macOS: fixed the installer failing to upgrade over a running daemon (#241).
 * macOS: fixed GUI application crash upon exit when windows are still opened (#242).

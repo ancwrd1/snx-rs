@@ -61,6 +61,7 @@ label-allow-forwarding = Pakketdoorsturen toestaan
 label-tls-version-max = Maximale TLS-versie
 label-pin-required = PIN is vereist voor HSM-apparaatverificatie
 label-pin = PIN
+label-notification-level = Meldingsniveau
 
 # Tabs and expanders
 tab-general = Algemeen
@@ -68,6 +69,7 @@ tab-advanced = Geavanceerd
 expand-dns = DNS
 expand-routing = Routering
 expand-certificates = Certificaten
+expand-ipsec = IPsec
 expand-misc = Overige instellingen
 expand-ui = Gebruikersinterface
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Ongeldig transporttype
 error-invalid-tls-version-max = Ongeldige maximale TLS-versie
 error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
 error-invalid-gateway-info = Ongeldig gateway-informatieantwoord
+error-invalid-notification-level = Ongeldig meldingsniveau
 
 # Placeholder texts
 placeholder-domains = Door komma's gescheiden domeinen
@@ -168,6 +171,12 @@ transport-type-autodetect = Automatisch detecteren
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Uit
+notification-level-minimal = Minimaal
+notification-level-standard = Standaard
+notification-level-verbose = Uitgebreid
 
 # Icon themes
 theme-autodetect = Automatisch detecteren
@@ -196,6 +205,17 @@ info-rate-received = Ontvangstsnelheid
 info-rate-sent = Verzendsnelheid
 info-packets-received = Ontvangen pakketten
 info-packets-sent = Verzonden pakketten
+info-ike-initiator-spi = SPI van IKE SA-initiator
+info-ike-responder-spi = SPI van IKE SA-responder
+info-ike-lifetime = Levensduur van IKE SA
+info-ike-timestamp = Tijdstempel van IKE SA
+info-esp-spi-in = Inkomende ESP-SPI
+info-esp-spi-out = Uitgaande ESP-SPI
+info-esp-encryption-in = Inkomende ESP-versleuteling
+info-esp-authentication-in = Inkomende ESP-authenticatie
+info-esp-encryption-out = Uitgaande ESP-versleuteling
+info-esp-authentication-out = Uitgaande ESP-authenticatie
+info-ipsec-sa = IPsec SA
 
 # Application
 app-title = SNX-RS VPN-client
@@ -235,9 +255,15 @@ cli-another-instance-running = Er draait al een andere instantie van snx-rs
 cli-app-terminated = Applicatie beëindigd door signaal
 cli-mobile-access-auth = Voor mobiele toegangsauthenticatie: log in op { $url }, zoek vervolgens een gebruikerswachtwoord in hexvorm in de HTML-broncode van de pagina en voer het hier in.
 cli-certificate-enrolled = Certificaat is succesvol geregistreerd.
+cli-no-ike-state = Geen IKE SA-status!
+cli-rekey-state-pending = De IKE SA-status is nog niet gewijzigd, de vorige status wordt weergegeven
 
 # Connection Messages
 connection-connected-to = Verbonden met {$server}
+connection-connecting-to = Verbinden met {$server}
+connection-disconnected-from = Verbinding met {$server} verbroken
+connection-disconnecting-ike-expiry = Verbinding wordt binnenkort verbroken wegens verlopen van IKE SA
+connection-rekeyed = Sleutels van de IPsec-tunnel zijn vernieuwd
 
 # Languages
 language-cs-CZ = Tsjechisch

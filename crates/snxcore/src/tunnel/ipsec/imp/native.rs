@@ -88,7 +88,13 @@ impl NativeIPsecTunnel {
             ready.clone(),
         );
 
-        let natt_socket = UdpSocket::bind("0.0.0.0:0").await?;
+        let natt_socket = if let Ok(socket) = UdpSocket::bind("0.0.0.0:4500").await {
+            socket
+        } else {
+            warn!("UDP bind to port 4500 failed, falling back to ephemeral port");
+            UdpSocket::bind("0.0.0.0:0").await?
+        };
+
         natt_socket.set_encapsulation(UdpEncapType::EspInUdp)?;
 
         let device_config = DeviceConfig {
@@ -253,6 +259,7 @@ impl VpnTunnel for NativeIPsecTunnel {
             profile_id: self.params.profile_id,
             profile_name: self.params.profile_name.clone(),
             live: Default::default(),
+            ike_state: Some(session.to_ike_state()),
         };
         let _ = event_sender.send(TunnelEvent::Connected(Box::new(info))).await;
 
@@ -283,8 +290,7 @@ impl VpnTunnel for NativeIPsecTunnel {
                         self.ready.store(false, Ordering::SeqCst);
                         let _ = self.xfrm_configurator.rekey(&session).await;
                         self.ready.store(true, Ordering::SeqCst);
-                        let address = Ipv4Net::with_netmask(session.address, session.netmask).unwrap_or(ip_address);
-                        let _ = event_sender.send(TunnelEvent::Rekeyed(address)).await;
+                        let _ = event_sender.send(TunnelEvent::Rekeyed(session)).await;
                     }
                 }
             }

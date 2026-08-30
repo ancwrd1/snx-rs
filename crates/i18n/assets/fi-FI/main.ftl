@@ -61,6 +61,7 @@ label-allow-forwarding = Salli pakettien edelleenlähetys
 label-tls-version-max = TLS:n enimmäisversio
 label-pin-required = HSM-laitteen todennukseen vaaditaan PIN-koodi
 label-pin = PIN-koodi
+label-notification-level = Ilmoitustaso
 
 # Tabs and expanders
 tab-general = Yleiset
@@ -68,6 +69,7 @@ tab-advanced = Lisäasetukset
 expand-dns = DNS
 expand-routing = Reititys
 expand-certificates = Varmenne
+expand-ipsec = IPsec
 expand-misc = Muut asetukset
 expand-ui = Käyttöliittymän asetukset
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Virheellinen kuljetustyyppi
 error-invalid-tls-version-max = Virheellinen TLS-enimmäisversio
 error-certificate-verify-failed = TLS-varmenteen vahvistus epäonnistui. Palvelimen varmenne on virheellinen, vanhentunut tai ei luotettu.
 error-invalid-gateway-info = Virheellinen yhdyskäytävän tietovastaus
+error-invalid-notification-level = Virheellinen ilmoitustaso
 
 # Placeholder texts
 placeholder-domains = Pilkulla erotetut verkkotunnukset
@@ -168,6 +171,12 @@ transport-type-autodetect = Automaattinen tunnistus
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Pois
+notification-level-minimal = Vähäinen
+notification-level-standard = Vakio
+notification-level-verbose = Yksityiskohtainen
 
 # Icon themes
 theme-autodetect = Automaattinen tunnistus
@@ -196,6 +205,17 @@ info-rate-received = Vastaanottonopeus
 info-rate-sent = Lähetysnopeus
 info-packets-received = Vastaanotetut paketit
 info-packets-sent = Lähetetyt paketit
+info-ike-initiator-spi = IKE SA -aloittajan SPI
+info-ike-responder-spi = IKE SA -vastaajan SPI
+info-ike-lifetime = IKE SA:n elinaika
+info-ike-timestamp = IKE SA:n aikaleima
+info-esp-spi-in = Saapuva ESP-SPI
+info-esp-spi-out = Lähtevä ESP-SPI
+info-esp-encryption-in = Saapuva ESP-salaus
+info-esp-authentication-in = Saapuva ESP-todennus
+info-esp-encryption-out = Lähtevä ESP-salaus
+info-esp-authentication-out = Lähtevä ESP-todennus
+info-ipsec-sa = IPsec SA
 
 # Application
 app-title = SNX-RS VPN-asiakasohjelma
@@ -235,9 +255,15 @@ cli-another-instance-running = Toinen snx-rs-esiintymä on jo käynnissä
 cli-app-terminated = Sovellus päättyi signaalin vuoksi
 cli-mobile-access-auth = Mobiilikäyttöön kirjautumista varten kirjaudu osoitteeseen { $url }, etsi sivun HTML-lähdekoodista heksamuotoinen käyttäjän salasana ja syötä se tähän.
 cli-certificate-enrolled = Varmenne on rekisteröity onnistuneesti.
+cli-no-ike-state = Ei IKE SA -tilaa!
+cli-rekey-state-pending = IKE SA:n tila ei ole vielä muuttunut, näytetään edellinen tila
 
 # Connection Messages
 connection-connected-to = Yhdistetty palvelimeen {$server}
+connection-connecting-to = Yhdistetään palvelimeen {$server}
+connection-disconnected-from = Yhteys palvelimeen {$server} katkaistu
+connection-disconnecting-ike-expiry = Yhteys katkaistaan pian IKE SA:n vanhenemisen vuoksi
+connection-rekeyed = IPsec-tunnelin avaimet uusittiin onnistuneesti
 
 # Languages
 language-cs-CZ = Tšekki

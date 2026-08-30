@@ -61,6 +61,7 @@ label-allow-forwarding = Povoliť preposielanie paketov pre rozhranie tunela
 label-tls-version-max = Maximálna verzia TLS
 label-pin-required = PIN je potrebný na overenie zariadenia HSM
 label-pin = PIN
+label-notification-level = Úroveň oznámení
 
 # Tabs and expanders
 tab-general = Všeobecné
@@ -68,6 +69,7 @@ tab-advanced = Rozšírené
 expand-dns = DNS
 expand-routing = Smerovanie
 expand-certificates = Certifikáty
+expand-ipsec = IPsec
 expand-misc = Ďalšie nastavenia
 expand-ui = Používateľské rozhranie
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Neplatný typ prenosu
 error-invalid-tls-version-max = Neplatná maximálna verzia TLS
 error-certificate-verify-failed = Overenie TLS certifikátu zlyhalo. Certifikát servera je neplatný, vypršal alebo nie je dôveryhodný.
 error-invalid-gateway-info = Neplatná odpoveď s informáciami o bráne
+error-invalid-notification-level = Neplatná úroveň oznámení
 
 # Placeholder texts
 placeholder-domains = Domény oddelené čiarkami
@@ -168,6 +171,12 @@ transport-type-autodetect = Automatická detekcia
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Vypnuté
+notification-level-minimal = Minimálna
+notification-level-standard = Štandardná
+notification-level-verbose = Podrobná
 
 # Icon themes
 theme-autodetect = Automatická detekcia
@@ -196,6 +205,17 @@ info-rate-received = Rýchlosť príjmu
 info-rate-sent = Rýchlosť odosielania
 info-packets-received = Prijaté pakety
 info-packets-sent = Odoslané pakety
+info-ike-initiator-spi = SPI iniciátora IKE SA
+info-ike-responder-spi = SPI odpovedajúceho IKE SA
+info-ike-lifetime = Životnosť IKE SA
+info-ike-timestamp = Časová pečiatka IKE SA
+info-esp-spi-in = Prichádzajúce SPI ESP
+info-esp-spi-out = Odchádzajúce SPI ESP
+info-esp-encryption-in = Prichádzajúce šifrovanie ESP
+info-esp-authentication-in = Prichádzajúca autentifikácia ESP
+info-esp-encryption-out = Odchádzajúce šifrovanie ESP
+info-esp-authentication-out = Odchádzajúca autentifikácia ESP
+info-ipsec-sa = IPsec SA
 
 # Application
 app-title = SNX-RS VPN klient
@@ -235,9 +255,15 @@ cli-another-instance-running = Iná inštancia snx-rs už beží
 cli-app-terminated = Aplikácia ukončená signálom
 cli-mobile-access-auth = Na overenie mobilného prístupu sa prihláste na { $url }, potom nájdite používateľské heslo v hexadecimálnom tvare v HTML zdrojovom kóde stránky a zadajte ho sem.
 cli-certificate-enrolled = Certifikát bol úspešne zaregistrovaný.
+cli-no-ike-state = Žiadny stav IKE SA!
+cli-rekey-state-pending = Stav IKE SA sa zatiaľ nezmenil, zobrazuje sa predchádzajúci stav
 
 # Connection Messages
 connection-connected-to = Pripojené k {$server}
+connection-connecting-to = Pripájanie k {$server}
+connection-disconnected-from = Odpojené od {$server}
+connection-disconnecting-ike-expiry = Čoskoro dôjde k odpojeniu z dôvodu vypršania IKE SA
+connection-rekeyed = Kľúče tunela IPsec boli úspešne obnovené
 
 # Languages
 language-cs-CZ = Čeština

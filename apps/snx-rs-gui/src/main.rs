@@ -1,20 +1,5 @@
 #![windows_subsystem = "windows"]
 
-use std::{sync::Arc, time::Duration};
-
-use clap::{CommandFactory, Parser};
-use i18n::tr;
-use snxcore::{
-    controller::{ServiceCommand, ServiceController},
-    model::{ConnectionStatus, params::TunnelParams},
-    platform::{Platform, PlatformAccess, SingleInstance},
-    profiles::ConnectionProfilesStore,
-    prompt::SecurePrompt,
-    tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
-};
-use tokio::sync::mpsc;
-use tracing::{level_filters::LevelFilter, warn};
-
 use crate::{
     params::CmdlineParams,
     platform::{TrayCommand, TrayEvent},
@@ -23,6 +8,24 @@ use crate::{
         status::StatusWindowController,
     },
 };
+use chrono::Local;
+use clap::{CommandFactory, Parser};
+use i18n::tr;
+use snxcore::model::IkeState;
+use snxcore::{
+    controller::{ServiceCommand, ServiceController},
+    model::{
+        ConnectionStatus,
+        params::{NotificationLevel, TunnelParams},
+    },
+    platform::{Platform, PlatformAccess, SingleInstance},
+    profiles::ConnectionProfilesStore,
+    prompt::{NotificationCategory, SecurePrompt},
+    tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
+};
+use std::{sync::Arc, time::Duration};
+use tokio::sync::mpsc;
+use tracing::{level_filters::LevelFilter, warn};
 
 mod assets;
 mod ipc;
@@ -34,6 +37,8 @@ mod ui;
 mod webkit;
 
 pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
+
+const IKE_SA_EXPIRY_THRESHOLD: Duration = Duration::from_secs(300);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -105,7 +110,7 @@ async fn main() -> anyhow::Result<()> {
     {
         let cmd_sender = tray_command_sender.clone();
         let evt_sender = tray_event_sender.clone();
-        tokio::spawn(async move { status_poll(cmd_sender, evt_sender).await });
+        tokio::spawn(async move { status_poll(SlintPrompt::new(), cmd_sender, evt_sender).await });
     }
 
     let no_tray = cmdline_params.no_tray;
@@ -221,25 +226,95 @@ fn init_logging(params: &TunnelParams) {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 }
 
-async fn status_poll(command_sender: mpsc::Sender<TrayCommand>, event_sender: mpsc::Sender<TrayEvent>) {
+fn as_ike_state(status: &ConnectionStatus) -> Option<IkeState> {
+    if let ConnectionStatus::Connected(info) = status
+        && let Some(ref state) = info.ike_state
+    {
+        Some(state.clone())
+    } else {
+        None
+    }
+}
+
+async fn status_poll(
+    prompt: SlintPrompt,
+    command_sender: mpsc::Sender<TrayCommand>,
+    event_sender: mpsc::Sender<TrayEvent>,
+) {
     let mut controller = ServiceController::new(
-        SlintPrompt,
+        prompt.clone(),
         platform::new_browser_controller(ConnectionProfilesStore::instance().get_connected()),
     );
 
     let mut first_run = true;
     let mut old_status = Arc::new(Err(anyhow::anyhow!(tr!("app-connection-error"))));
+    let mut ike_expiry_shown = false;
 
     loop {
         let params = ConnectionProfilesStore::instance().get_connected();
         let status = controller.command(ServiceCommand::Status, params.clone()).await;
 
+        if !ike_expiry_shown
+            && let Ok(ref status) = status
+            && let Some(ike_state) = as_ike_state(status)
+            && ike_state.timestamp + ike_state.lifetime - IKE_SA_EXPIRY_THRESHOLD <= Local::now()
+        {
+            ike_expiry_shown = true;
+
+            let _ = prompt
+                .show_notification(
+                    &tr!("info-ipsec-sa"),
+                    &tr!("connection-disconnecting-ike-expiry"),
+                    NotificationCategory::Info,
+                    NotificationLevel::Standard,
+                )
+                .await;
+        }
+
         if !ui::status::same_status(&status, &old_status, false) {
             if let Ok(ConnectionStatus::Connected(ref info)) = status {
                 ConnectionProfilesStore::instance().set_connected(info.profile_id);
+            } else {
+                ike_expiry_shown = false;
+            }
+
+            if let (Ok(state), Ok(old_state)) = (&status, &*old_status)
+                && let Some(ike_state) = as_ike_state(state)
+                && let Some(old_ike_state) = as_ike_state(old_state)
+                && ike_state != old_ike_state
+            {
+                let _ = prompt
+                    .show_notification(
+                        &tr!("info-ipsec-sa"),
+                        &tr!("connection-rekeyed"),
+                        NotificationCategory::Info,
+                        NotificationLevel::Verbose,
+                    )
+                    .await;
             }
 
             let is_disconnected = matches!(status, Ok(ConnectionStatus::Disconnected));
+            if is_disconnected && !first_run {
+                let _ = prompt
+                    .show_notification(
+                        &tr!("connection-status-disconnected"),
+                        &tr!("connection-disconnected-from", server = params.server_name),
+                        NotificationCategory::Info,
+                        NotificationLevel::Standard,
+                    )
+                    .await;
+            }
+
+            if !first_run && matches!(status, Ok(ConnectionStatus::Connecting)) {
+                let _ = prompt
+                    .show_notification(
+                        &tr!("connection-status-connecting"),
+                        &tr!("connection-connecting-to", server = params.server_name),
+                        NotificationCategory::Info,
+                        NotificationLevel::Verbose,
+                    )
+                    .await;
+            }
 
             old_status = Arc::new(status);
 
@@ -279,7 +354,7 @@ async fn on_disconnect(
     params: Arc<TunnelParams>,
     cancel_sender: Option<mpsc::Sender<()>>,
 ) {
-    let mut controller = ServiceController::new(SlintPrompt, platform::new_browser_controller(params.clone()));
+    let mut controller = ServiceController::new(SlintPrompt::new(), platform::new_browser_controller(params.clone()));
     let status = controller.command(ServiceCommand::Disconnect, params).await;
     let _ = sender.send(TrayCommand::Update(Some(Arc::new(status)))).await;
     if let Some(cancel_sender) = cancel_sender {
@@ -301,11 +376,18 @@ async fn on_connect<F>(
 
     let connector = factory.new_gateway_connector(params.clone());
 
+    let prompt = SlintPrompt::new();
+
     let prompts = match connector.get_gateway_information().await {
         Ok(info) => info.get_login_prompts(&params.login_type),
         Err(e) => {
-            let _ = SlintPrompt
-                .show_notification(&tr!("app-connection-error"), &e.to_string())
+            let _ = prompt
+                .show_notification(
+                    &tr!("app-connection-error"),
+                    &e.to_string(),
+                    NotificationCategory::Error,
+                    NotificationLevel::Minimal,
+                )
                 .await;
 
             let _ = sender
@@ -315,8 +397,11 @@ async fn on_connect<F>(
         }
     };
 
-    let mut controller =
-        ServiceController::new_with_prompts(SlintPrompt, platform::new_browser_controller(params.clone()), prompts);
+    let mut controller = ServiceController::new_with_prompts(
+        prompt.clone(),
+        platform::new_browser_controller(params.clone()),
+        prompts,
+    );
 
     let mut status = tokio::select! {
         _ = cancel_receiver.recv() => Err(anyhow::anyhow!(tr!("error-connection-cancelled"))),
@@ -325,12 +410,24 @@ async fn on_connect<F>(
 
     if let Err(ref e) = status {
         let message = tr!("app-connection-error");
-        let _ = SlintPrompt.show_notification(&message, &e.to_string()).await;
+        let _ = prompt
+            .show_notification(
+                &message,
+                &e.to_string(),
+                NotificationCategory::Error,
+                NotificationLevel::Minimal,
+            )
+            .await;
         status = controller.command(ServiceCommand::Status, params).await;
     } else if let Ok(ConnectionStatus::Connected(_)) = status {
         let message = tr!("app-connection-success");
-        let _ = SlintPrompt
-            .show_notification(&message, &tr!("connection-connected-to", server = params.server_name))
+        let _ = prompt
+            .show_notification(
+                &message,
+                &tr!("connection-connected-to", server = params.server_name),
+                NotificationCategory::Info,
+                NotificationLevel::Minimal,
+            )
             .await;
     };
 

@@ -328,6 +328,7 @@ impl TunIPsecTunnel {
             profile_id: self.params.profile_id,
             profile_name: self.params.profile_name.clone(),
             live: Default::default(),
+            ike_state: Some(session.to_ike_state()),
         };
         let _ = event_sender.send(TunnelEvent::Connected(Box::new(info))).await;
         let ready = self.ready.clone();
@@ -380,7 +381,7 @@ impl TunIPsecTunnel {
 
                         ready.store(true, Ordering::SeqCst);
 
-                        let _ = event_sender.send(TunnelEvent::Rekeyed(new_address)).await;
+                        let _ = event_sender.send(TunnelEvent::Rekeyed(session)).await;
                     }
                 }
             }

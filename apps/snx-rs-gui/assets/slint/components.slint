@@ -144,6 +144,20 @@ export component CertsIcon inherits Path {
     commands: "M 8 2 L 14 4 L 14 8 L 11 13 L 8 14 L 5 13 L 2 8 L 2 4 Z";
 }
 
+export component IpsecIcon inherits Path {
+    in property <color> tint: Palette.control-foreground;
+    stroke: root.tint;
+    stroke-width: 1.4px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    commands: "M 4 7 L 4 5 A 4 4 0 0 1 12 5 L 12 7 M 3 7 L 13 7 L 13 14 L 3 14 Z";
+}
+
 export component MiscIcon inherits Path {
     in property <color> tint: Palette.control-foreground;
     stroke: root.tint;
@@ -386,6 +400,7 @@ export component Expander inherits VerticalLayout {
                 if root.icon-kind == "dns": DnsIcon { }
                 if root.icon-kind == "routing": RoutingIcon { }
                 if root.icon-kind == "certs": CertsIcon { }
+                if root.icon-kind == "ipsec": IpsecIcon { }
                 if root.icon-kind == "misc": MiscIcon { }
                 if root.icon-kind == "ui": UiIcon { }
             }

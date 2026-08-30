@@ -420,6 +420,71 @@ impl FromStr for TlsVersion {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+pub enum NotificationLevel {
+    Off,
+    #[default]
+    Minimal,
+    Standard,
+    Verbose,
+}
+
+impl NotificationLevel {
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::Off => 0,
+            Self::Minimal => 1,
+            Self::Standard => 2,
+            Self::Verbose => 3,
+        }
+    }
+
+    pub fn as_i18n(&self) -> String {
+        match self {
+            Self::Off => tr!("notification-level-off"),
+            Self::Minimal => tr!("notification-level-minimal"),
+            Self::Standard => tr!("notification-level-standard"),
+            Self::Verbose => tr!("notification-level-verbose"),
+        }
+    }
+}
+
+impl From<u32> for NotificationLevel {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::Minimal,
+            2 => Self::Standard,
+            3 => Self::Verbose,
+            _ => Self::Off,
+        }
+    }
+}
+
+impl fmt::Display for NotificationLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Off => write!(f, "off"),
+            Self::Minimal => write!(f, "minimal"),
+            Self::Standard => write!(f, "standard"),
+            Self::Verbose => write!(f, "verbose"),
+        }
+    }
+}
+
+impl FromStr for NotificationLevel {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "off" => Ok(Self::Off),
+            "minimal" => Ok(Self::Minimal),
+            "standard" => Ok(Self::Standard),
+            "verbose" => Ok(Self::Verbose),
+            _ => Err(anyhow!(tr!("error-invalid-notification-level"))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelParams {
     pub profile_name: String,
@@ -478,6 +543,8 @@ pub struct TunnelParams {
     #[serde(skip)]
     pub reg_key: Option<String>,
     pub client_logging_data: Option<PathBuf>,
+    #[serde(default)]
+    pub notification_level: NotificationLevel,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -531,6 +598,7 @@ impl Default for TunnelParams {
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
+            notification_level: NotificationLevel::default(),
             config_file: Self::default_config_path(),
         }
     }
@@ -583,6 +651,7 @@ impl PartialEq for TunnelParams {
             && self.mfa_code == other.mfa_code
             && self.reg_key == other.reg_key
             && self.client_logging_data == other.client_logging_data
+            && self.notification_level == other.notification_level
             && self.config_file == other.config_file
     }
 }
@@ -657,6 +726,7 @@ impl TunnelParams {
                 "allow-forwarding" => params.allow_forwarding = v.parse().unwrap_or_default(),
                 "tls-version-max" => params.tls_version_max = v.parse().unwrap_or_default(),
                 "client-logging-data" => params.client_logging_data = Some(v.into()),
+                "notification-level" => params.notification_level = v.parse().unwrap_or_default(),
                 "mfa-code" => params.mfa_code = Some(v),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
@@ -777,6 +847,8 @@ impl TunnelParams {
         if let Some(ref client_logging_data) = self.client_logging_data {
             writeln!(buf, "client-logging-data={}", client_logging_data.display())?;
         }
+
+        writeln!(buf, "notification-level={}", self.notification_level)?;
 
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);
@@ -915,6 +987,7 @@ mod tests {
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
+            notification_level: NotificationLevel::Standard,
             config_file: temp_path.to_owned(),
         };
 

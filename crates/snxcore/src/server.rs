@@ -4,6 +4,7 @@ use anyhow::{Context, anyhow};
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
 use interprocess::local_socket::traits::tokio::Listener;
+use ipnet::Ipv4Net;
 use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, warn};
 
@@ -47,6 +48,9 @@ enum ConnectorRequest {
     },
     TerminateTunnel {
         signout: bool,
+        reply: oneshot::Sender<anyhow::Result<()>>,
+    },
+    Rekey {
         reply: oneshot::Sender<anyhow::Result<()>>,
     },
 }
@@ -119,6 +123,9 @@ impl ConnectorHandle {
         self.send_recv(|reply| ConnectorRequest::TerminateTunnel { signout, reply })
             .await
     }
+    async fn rekey(&self) -> anyhow::Result<()> {
+        self.send_recv(|reply| ConnectorRequest::Rekey { reply }).await
+    }
 }
 
 fn spawn_connector_actor(mut connector: Box<dyn TunnelConnector + Send>) -> ConnectorHandle {
@@ -163,6 +170,9 @@ fn spawn_connector_actor(mut connector: Box<dyn TunnelConnector + Send>) -> Conn
                 }
                 ConnectorRequest::TerminateTunnel { signout, reply } => {
                     let _ = reply.send(connector.terminate_tunnel(signout).await);
+                }
+                ConnectorRequest::Rekey { reply } => {
+                    let _ = reply.send(connector.rekey().await);
                 }
             }
         }
@@ -302,10 +312,12 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
                 g.status = ConnectionStatus::Connected(info);
             }
             TunnelEvent::Disconnected => state.reset(),
-            TunnelEvent::Rekeyed(address) => {
+            TunnelEvent::Rekeyed(session) => {
                 let mut g = state.lock();
                 if let ConnectionStatus::Connected(ref mut info) = g.status {
-                    info.ip_address = address;
+                    info.ip_address = Ipv4Net::with_netmask(session.address, session.netmask)
+                        .unwrap_or_else(|_| session.address.into());
+                    info.ike_state = Some(session.to_ike_state());
                 }
             }
             TunnelEvent::Rtt(rtt) => {
@@ -377,6 +389,10 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
                     self.state.reset();
                     TunnelServiceResponse::Error(e.to_string())
                 }
+            },
+            TunnelServiceRequest::Rekey => match self.rekey().await {
+                Ok(()) => TunnelServiceResponse::Ok,
+                Err(e) => TunnelServiceResponse::Error(e.to_string()),
             },
         }
     }
@@ -492,5 +508,13 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
             }
         }
         status
+    }
+
+    async fn rekey(&mut self) -> anyhow::Result<()> {
+        if let Some(handle) = self.state.connector() {
+            handle.rekey().await
+        } else {
+            anyhow::bail!(tr!("error-no-connector"));
+        }
     }
 }

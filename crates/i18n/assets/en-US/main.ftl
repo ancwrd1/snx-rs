@@ -61,6 +61,7 @@ label-allow-forwarding = Allow packet forwarding for tunnel interface
 label-tls-version-max = Maximum TLS version
 label-pin-required = PIN is required for HSM device authentication
 label-pin = PIN
+label-notification-level = Notification level
 
 # Tabs and expanders
 tab-general = General
@@ -68,6 +69,7 @@ tab-advanced = Advanced
 expand-dns = DNS
 expand-routing = Routing
 expand-certificates = Certificates
+expand-ipsec = IPsec
 expand-misc = Misc Settings
 expand-ui = UI Settings
 
@@ -145,6 +147,7 @@ error-invalid-transport-type = Invalid transport type
 error-invalid-tls-version-max = Invalid maximum TLS version
 error-certificate-verify-failed = TLS certificate validation failed. The server’s certificate is invalid, expired, or not trusted.
 error-invalid-gateway-info = Invalid gateway information response
+error-invalid-notification-level = Invalid notification level
 
 # Placeholder texts
 placeholder-domains = Comma-separated domains
@@ -168,6 +171,12 @@ transport-type-autodetect = Autodetect
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# Notification levels
+notification-level-off = Off
+notification-level-minimal = Minimal
+notification-level-standard = Standard
+notification-level-verbose = Verbose
 
 # Icon themes
 theme-autodetect = Autodetect
@@ -226,6 +235,17 @@ info-rate-received = Receive rate
 info-rate-sent = Send rate
 info-packets-received = Packets received
 info-packets-sent = Packets sent
+info-ike-initiator-spi = IKE SA initiator SPI
+info-ike-responder-spi = IKE SA responder SPI
+info-ike-lifetime = IKE SA lifetime
+info-ike-timestamp = IKE SA timestamp
+info-esp-spi-in = ESP inbound SPI
+info-esp-spi-out = ESP outbound SPI
+info-esp-encryption-in = Inbound ESP encryption
+info-esp-authentication-in = Inbound ESP authentication
+info-esp-encryption-out = Outbound ESP encryption
+info-esp-authentication-out = Outbound ESP authentication
+info-ipsec-sa = IPsec SA
 
 # CLI Messages
 cli-identity-provider-auth = For identity provider authentication, open the following URL in your browser:
@@ -235,9 +255,8 @@ cli-another-instance-running = Another instance of snx-rs is already running
 cli-app-terminated = Application terminated due to a signal
 cli-mobile-access-auth = For mobile access authentication, login to { $url }, then find a user password in the hex form in the page HTML source and enter it here.
 cli-certificate-enrolled = Certificate enrolled successfully.
-
-# Connection Messages
-connection-connected-to = Connected to {$server}
+cli-no-ike-state = No IKE SA state!
+cli-rekey-state-pending = IKE SA state has not changed yet, showing the previous state
 
 # Languages
 language-cs-CZ = Czech
@@ -264,6 +283,11 @@ connection-status-connected = Connected
 connection-status-connecting = Connecting in progress
 connection-status-connected-since = Connected since: {$since}
 connection-status-mfa-pending = MFA pending: {$mfa_type}
+connection-connected-to = Connected to {$server}
+connection-connecting-to = Connecting to {$server}
+connection-disconnected-from = Disconnected from {$server}
+connection-disconnecting-ike-expiry = Disconnecting soon due to IKE SA expiry
+connection-rekeyed = IPsec tunnel rekeyed successfully
 
 # Login options
 login-options-server-address = Server address

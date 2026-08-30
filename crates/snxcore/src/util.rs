@@ -140,6 +140,22 @@ pub fn server_name_to_ipv4(server_name: &str, port: u16) -> anyhow::Result<Ipv4A
     Ok(address)
 }
 
+pub fn format_values(values: &[(&'static str, String)]) -> String {
+    let label_width = values
+        .iter()
+        .map(|(label, _)| i18n::translate(label).chars().count())
+        .max()
+        .unwrap_or_default();
+    let mut result = String::new();
+    for (index, (key, value)) in values.iter().enumerate() {
+        result.push_str(&format!("{:>label_width$}: {}", i18n::translate(key), value));
+        if index < values.len() - 1 {
+            result.push('\n');
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -43,5 +43,7 @@ There are two ways to use the application:
   - `reconnect`: Drop the connection and then reconnect.
   - `status`: Show connection status.
   - `info`: Show server authentication methods and supported tunnel types.
+  - `ipsec ike-state`: Show the IKE and ESP security association state of the established IPsec tunnel.
+  - `ipsec rekey`: Rekey the IPsec CHILD SA of the established tunnel and show the resulting state.
   - Run it with the `--help` option to get usage help.
 * **Standalone Service Mode**: Selected by the `-m standalone` parameter. This is the default mode if no parameters are specified. Run `snx-rs --help` to get help with all command line parameters. In this mode, the application takes connection parameters either from the command line or from the specified configuration file. This mode is recommended for headless usage.

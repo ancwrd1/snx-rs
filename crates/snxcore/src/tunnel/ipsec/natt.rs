@@ -108,6 +108,38 @@ impl NattProber {
     }
 }
 
+// start a fake UDP listener with the UDP_ENCAP option.
+// this is necessary to perform automatic decapsulation of incoming ESP packets
+pub async fn start_natt_listener(
+    socket: Arc<UdpSocket>,
+    sender: mpsc::Sender<TunnelEvent>,
+) -> anyhow::Result<oneshot::Sender<()>> {
+    let (tx, mut rx) = oneshot::channel();
+
+    debug!("Listening for NAT-T packets on port {}", socket.local_addr()?);
+
+    tokio::spawn(async move {
+        let mut buf = [0u8; 1024];
+
+        loop {
+            tokio::select! {
+                result = socket.recv_from(&mut buf) => {
+                    if let Ok((size, _)) = result {
+                        let data = Bytes::copy_from_slice(&buf[0..size]);
+                        let _ = sender.send(TunnelEvent::RemoteControlData(data)).await;
+                    }
+                }
+                _ = &mut rx => {
+                    break;
+                }
+            }
+        }
+        debug!("NAT-T listener stopped");
+    });
+
+    Ok(tx)
+}
+
 #[cfg(all(test, target_os = "linux"))]
 mod tests {
     use std::{
@@ -147,36 +179,4 @@ mod tests {
             "elapsed too long: {elapsed:?}, expected < 3.9s (regression to old fixed 2s timeout?)"
         );
     }
-}
-
-// start a fake UDP listener with the UDP_ENCAP option.
-// this is necessary to perform automatic decapsulation of incoming ESP packets
-pub async fn start_natt_listener(
-    socket: Arc<UdpSocket>,
-    sender: mpsc::Sender<TunnelEvent>,
-) -> anyhow::Result<oneshot::Sender<()>> {
-    let (tx, mut rx) = oneshot::channel();
-
-    debug!("Listening for NAT-T packets on port {}", socket.local_addr()?);
-
-    tokio::spawn(async move {
-        let mut buf = [0u8; 1024];
-
-        loop {
-            tokio::select! {
-                result = socket.recv_from(&mut buf) => {
-                    if let Ok((size, _)) = result {
-                        let data = Bytes::copy_from_slice(&buf[0..size]);
-                        let _ = sender.send(TunnelEvent::RemoteControlData(data)).await;
-                    }
-                }
-                _ = &mut rx => {
-                    break;
-                }
-            }
-        }
-        debug!("NAT-T listener stopped");
-    });
-
-    Ok(tx)
 }
