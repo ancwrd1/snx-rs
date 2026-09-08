@@ -566,7 +566,7 @@ impl IPsecTunnelConnector {
     async fn new_service(params: &TunnelParams, info: &GatewayInformation) -> anyhow::Result<Ikev1Service> {
         let identity = Self::new_identity(params, info).await?;
 
-        let ikev1_session = Box::new(Ikev1Session::new(identity, SessionType::Initiator)?);
+        let ikev1_session = Ikev1Session::new(identity, SessionType::Initiator)?;
 
         let address = util::server_name_with_port(&params.server_name, info.connectivity_info.tcpt_port);
 
