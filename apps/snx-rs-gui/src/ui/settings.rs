@@ -370,7 +370,11 @@ impl SettingsWindowController {
             self.scope.window.on_ok_clicked(move || {
                 let Some(w) = weak.upgrade() else { return };
                 match save_settings(&w.window, &state) {
-                    Ok(()) => close_window(Self::NAME),
+                    Ok(()) => {
+                        // Close it from the event loop to give the `update` function a chance to run.
+                        // Fixes a problem with tray icon menu translations being not updated.
+                        let _ = slint::invoke_from_event_loop(|| close_window(Self::NAME));
+                    }
                     Err(e) => w.window.set_error_text(e.to_string().into()),
                 }
             });
