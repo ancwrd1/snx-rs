@@ -239,6 +239,7 @@ info-ike-initiator-spi = SPI инициатора IKE SA
 info-ike-responder-spi = SPI ответчика IKE SA
 info-ike-lifetime = Время жизни IKE SA
 info-ike-timestamp = Метка времени IKE SA
+info-ike-expiration = Истечение IKE SA
 info-esp-spi-in = Входящий SPI ESP
 info-esp-spi-out = Исходящий SPI ESP
 info-esp-encryption-in = Входящее шифрование ESP

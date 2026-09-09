@@ -262,6 +262,7 @@ impl IkeState {
             ("info-ike-responder-spi", format!("{:016x}", self.responder_spi)),
             ("info-ike-lifetime", self.lifetime.as_secs().to_string()),
             ("info-ike-timestamp", self.timestamp.to_rfc3339()),
+            ("info-ike-expiration", (self.timestamp + self.lifetime).to_rfc3339()),
             ("info-esp-spi-in", format!("{:08x}", self.esp_in.spi)),
             ("info-esp-spi-out", format!("{:08x}", self.esp_out.spi)),
             ("info-esp-encryption-in", self.esp_in.enc_algorithm.to_string()),

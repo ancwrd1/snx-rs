@@ -209,6 +209,7 @@ info-ike-initiator-spi = SPI iniciátora IKE SA
 info-ike-responder-spi = SPI odpovídače IKE SA
 info-ike-lifetime = Životnost IKE SA
 info-ike-timestamp = Časové razítko IKE SA
+info-ike-expiration = Vypršení IKE SA
 info-esp-spi-in = Příchozí SPI ESP
 info-esp-spi-out = Odchozí SPI ESP
 info-esp-encryption-in = Příchozí šifrování ESP

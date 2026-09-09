@@ -209,6 +209,7 @@ info-ike-initiator-spi = IKE SA-initierar-SPI
 info-ike-responder-spi = IKE SA-svarar-SPI
 info-ike-lifetime = IKE SA-livslängd
 info-ike-timestamp = IKE SA-tidsstämpel
+info-ike-expiration = IKE SA-utgång
 info-esp-spi-in = Inkommande ESP-SPI
 info-esp-spi-out = Utgående ESP-SPI
 info-esp-encryption-in = Inkommande ESP-kryptering

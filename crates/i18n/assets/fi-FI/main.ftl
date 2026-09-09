@@ -209,6 +209,7 @@ info-ike-initiator-spi = IKE SA -aloittajan SPI
 info-ike-responder-spi = IKE SA -vastaajan SPI
 info-ike-lifetime = IKE SA:n elinaika
 info-ike-timestamp = IKE SA:n aikaleima
+info-ike-expiration = IKE SA:n vanheneminen
 info-esp-spi-in = Saapuva ESP-SPI
 info-esp-spi-out = Lähtevä ESP-SPI
 info-esp-encryption-in = Saapuva ESP-salaus

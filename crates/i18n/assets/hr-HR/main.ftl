@@ -239,6 +239,7 @@ info-ike-initiator-spi = SPI inicijatora IKE SA
 info-ike-responder-spi = SPI odgovaratelja IKE SA
 info-ike-lifetime = Životni vijek IKE SA
 info-ike-timestamp = Vremenska oznaka IKE SA
+info-ike-expiration = Istek IKE SA
 info-esp-spi-in = Ulazni ESP SPI
 info-esp-spi-out = Izlazni ESP SPI
 info-esp-encryption-in = Ulazna ESP enkripcija
