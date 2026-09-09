@@ -8,7 +8,7 @@ For NixOS follow the specific [configuration instructions](https://github.com/an
 For Ubuntu/Debian, a DEB package is provided in the release assets.<br/>
 For RPM-based distros (Fedora, CentOS, openSUSE) use the provided RPM package.<br/>
 For Windows, use the msi installer from the release page.<br/>
-For macOS, use the `.pkg` installer from the release page (see below).<br/>
+For macOS, install the Homebrew [formula](https://github.com/Homebrew/homebrew-core/commit/2cf2161a878a00504b93090fe1f722787a9ea0b3) or use the `.pkg` installer from the release page (see below).<br/>
 For manual installation using .run installer:
 
 1. Download the installer, then: `chmod +x snx-rs-*-linux-x86_64.run`
