@@ -16,8 +16,8 @@ For manual installation using .run installer:
 
 For macOS, install the CLI (`snx-rs`, `snxctl`) and the `com.github.snx-rs` LaunchDaemon from the `.pkg`:
 
-1. Download `snx-rs-<version>-aarch64-apple-darwin.pkg` from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
-2. Install it: `sudo installer -pkg snx-rs-*.pkg -target /`. This installs the `snx-rs`/`snxctl` tools and loads the LaunchDaemon (runs as root from a root-owned location, restarts on failure, logs to `/var/log/snx-rs.log`).
+1. Download `snx-rs-<version>-aarch64-apple-darwin.dmg` from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
+2. Mount it and install the containg package.
 3. The package is ad-hoc signed only (no Apple Developer ID) and not notarized. If Gatekeeper blocks it, right-click → Open once to approve it; a signed and notarized build opens with no prompt.
 4. To uninstall, run the bundled `uninstall.sh` as root: `sudo /Applications/SNX-RS.app/Contents/Resources/uninstall.sh` (it is also included on the `.dmg`).
 5. To build from source instead, see [Building from Sources](building.md). The `.dmg` contains the `SNX-RS` menu-bar app; drag it to Applications.
