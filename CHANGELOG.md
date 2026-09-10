@@ -1,4 +1,4 @@
-## v6.3.0 (TBD)
+## v6.3.0 (2026-09-10)
 * Added the `notification-level` option to control the verbosity of GUI desktop notifications: off, minimal, standard or verbose.
 * Added notifications for tunnel disconnection, connection attempts, IPsec rekeying and upcoming disconnection due to IKE SA expiry.
 * Added the `ipsec ike-state` and `ipsec rekey` commands to `snxctl` to display and renew the IPsec security associations.
