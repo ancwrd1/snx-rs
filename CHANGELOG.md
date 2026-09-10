@@ -2,6 +2,7 @@
 * Added the `notification-level` option to control the verbosity of GUI desktop notifications: off, minimal, standard or verbose.
 * Added notifications for tunnel disconnection, connection attempts, IPsec rekeying and upcoming disconnection due to IKE SA expiry.
 * Added the `ipsec ike-state` and `ipsec rekey` commands to `snxctl` to display and renew the IPsec security associations.
+* Added the `list` command to `snxctl` to list the connection profiles.
 * When IKE SA expires, disconnect the tunnel automatically and remove the IKE persistent state.
 * GUI: moved the IPsec-specific options into a separate "IPsec" section in the advanced settings.
 * GUI: fixed a problem with menu translations being not updated after closing the settings dialog. 
