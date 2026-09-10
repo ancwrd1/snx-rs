@@ -1,0 +1,7 @@
+[snx-rs]
+name=snx-rs
+baseurl=https://ancwrd1.github.io/snx-rs/rpm/$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://ancwrd1.github.io/snx-rs/KEY.gpg
