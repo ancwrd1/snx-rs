@@ -4,6 +4,7 @@
 * Added the `ipsec ike-state` and `ipsec rekey` commands to `snxctl` to display and renew the IPsec security associations.
 * When IKE SA expires, disconnect the tunnel automatically and remove the IKE persistent state.
 * GUI: moved the IPsec-specific options into a separate "IPsec" section in the advanced settings.
+* GUI: fixed a problem with menu translations being not updated after closing the settings dialog. 
 * Linux: NAT-T traffic is now sent from the fixed port 4500 where possible, with a fallback to an ephemeral port.
 
 ## v6.2.4 (2026-08-12)

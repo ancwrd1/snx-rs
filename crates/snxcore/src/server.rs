@@ -163,7 +163,7 @@ fn spawn_connector_actor(mut connector: Box<dyn TunnelConnector + Send>) -> Conn
                     let _ = reply.send(connector.create_tunnel(session, command_sender).await);
                 }
                 ConnectorRequest::HandleEvent { event, reply } => {
-                    let _ = reply.send(connector.handle_tunnel_event(event).await);
+                    let _ = reply.send(connector.handle_tunnel_event(event).await.inspect_err(|e| warn!("{e}")));
                 }
                 ConnectorRequest::DeleteSession { reply } => {
                     let _ = reply.send(connector.delete_session().await);

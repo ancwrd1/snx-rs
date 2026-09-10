@@ -410,12 +410,15 @@ impl IPsecTunnelConnector {
         if let Some(msg) = codec.decode(&data)? {
             let payload_types = msg.payloads.iter().map(|p| p.as_payload_type()).collect::<Vec<_>>();
             debug!(
-                "Received unsolicited ISAKMP message, exchange type: {:?}, message id: {:04x}, payloads: {:?}",
+                "Received unsolicited ISAKMP message, exchange type: {:?}, message id: {:08x}, payloads: {:?}",
                 msg.exchange_type, msg.message_id, payload_types,
             );
 
             if payload_types.contains(&PayloadType::SecurityAssociation) {
                 self.rekey_tunnel(false).await?;
+            } else if payload_types.contains(&PayloadType::Delete) {
+                self.terminate_tunnel(true).await?;
+                self.delete_session().await?;
             }
         }
         Ok(())

@@ -351,7 +351,10 @@ where
 
     tokio::spawn(async move {
         while let Some(event) = event_receiver.recv().await {
-            let _ = tunnel_connector.handle_tunnel_event(event.clone()).await;
+            let _ = tunnel_connector
+                .handle_tunnel_event(event.clone())
+                .await
+                .inspect_err(|e| warn!("{e}"));
 
             match event {
                 TunnelEvent::Connected(info) => {
