@@ -15,7 +15,6 @@ use snxcore::{
     prompt::{SecurePrompt, TtyPrompt},
     server::CommandServer,
     tunnel::{TunnelCommand, TunnelConnectorFactory, TunnelEvent, connector::CheckPointConnectorFactory},
-    util,
 };
 use tokio::sync::mpsc;
 use tracing::{debug, metadata::LevelFilter, warn};
@@ -203,7 +202,9 @@ fn process_cert_response(path: &Path, resp: CertificateResponse) -> anyhow::Resu
     if resp.error_code == 0
         && let Some(binary) = resp.binary
     {
-        std::fs::write(path, util::snx_deobfuscate(binary)?)?;
+        let mut decoded = hex::decode(&binary)?;
+        decoded.reverse();
+        std::fs::write(path, decoded)?;
         println!("{}", tr!("cli-certificate-enrolled"));
         Ok(())
     } else {

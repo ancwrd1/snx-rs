@@ -1,3 +1,6 @@
+## v6.3.1 (2026-09-17)
+* Fixed a non-working certificate enrollment and renewal, see [Certificates](https://github.com/ancwrd1/snx-rs/blob/main/docs/certificates.md) section in the documentation.
+
 ## v6.3.0 (2026-09-10)
 * Added the `notification-level` option to control the verbosity of GUI desktop notifications: off, minimal, standard or verbose.
 * Added notifications for tunnel disconnection, connection attempts, IPsec rekeying and upcoming disconnection due to IKE SA expiry.
