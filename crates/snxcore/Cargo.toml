@@ -14,7 +14,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-isakmp = { git = "https://github.com/ancwrd1/isakmp.git" }
+isakmp = { git = "https://github.com/ancwrd1/isakmp.git", branch = "ikev2" }
 i18n = { path = "../i18n" }
 
 pest = "2"

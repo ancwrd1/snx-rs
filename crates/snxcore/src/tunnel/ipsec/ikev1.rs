@@ -11,22 +11,21 @@ use bytes::{Buf, Bytes};
 use chrono::{Local, TimeZone};
 use i18n::tr;
 use ipnet::Ipv4Net;
+use isakmp::ikev1::model::{ConfigAttributeType, EspAttributeType, IdentityRequest, PayloadType};
+use isakmp::ikev1::payload::AttributesPayload;
 use isakmp::{
     ikev1::{service::Ikev1Service, session::Ikev1Session},
-    model::{ConfigAttributeType, EspAttributeType, Identity, IdentityRequest, PayloadType},
-    payload::AttributesPayload,
     session::{IsakmpSession, OfficeMode, SessionType},
     transport::{TcptDataType, TcptTransport},
 };
-use openssl::{nid::Nid, x509::X509};
 use tokio::{net::UdpSocket, sync::mpsc::Sender};
 use tracing::{debug, info, trace, warn};
 
 use crate::{
     model::{
         AuthenticatedSession, IPsecSession, MfaChallenge, MfaType, SessionState, TunnelSession,
-        params::{CertType, TransportType, TunnelParams},
-        proto::{AuthenticationRealm, ClientLoggingData, GatewayInformation},
+        params::{TransportType, TunnelParams},
+        proto::GatewayInformation,
         wrappers::SessionId,
     },
     platform::{NetworkInterface, Platform, PlatformAccess},
@@ -34,6 +33,7 @@ use crate::{
     tunnel::{
         GatewayConnector, TunnelCommand, TunnelConnector, TunnelEvent, VpnTunnel,
         ipsec::{
+            DEFAULT_ESP_LIFETIME, ESP_LIFETIME_LEEWAY, SessionStore, auth,
             imp::{native::NativeIPsecTunnel, tcpt::TcptIPsecTunnel, udp::UdpIPsecTunnel},
             natt::NattProber,
         },
@@ -41,20 +41,7 @@ use crate::{
     util,
 };
 
-const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
-const ESP_LIFETIME_LEEWAY: Duration = Duration::from_secs(60);
 const ADDRESS_LIFETIME_LEEWAY: Duration = Duration::from_secs(300);
-
-const SESSIONS_NAME: &str = "ike-sessions.db";
-
-const SQL_SCHEMA: &str = "
-CREATE TABLE IF NOT EXISTS ike_session(
-    id integer not null primary key,
-    profile_uuid text not null,
-    server_name text not null,
-    data blob not null,
-    timestamp text not null)
-";
 
 fn get_challenge_attribute_type(payload: &AttributesPayload) -> ConfigAttributeType {
     payload
@@ -101,7 +88,7 @@ fn get_short_attribute(payload: &AttributesPayload, attr: ConfigAttributeType) -
         .find_map(|a| if a.attribute_type == attr { a.as_short() } else { None })
 }
 
-pub struct IPsecTunnelConnector {
+pub struct Ikev1TunnelConnector {
     params: Arc<TunnelParams>,
     service: Ikev1Service,
     gateway_address: Ipv4Addr,
@@ -118,7 +105,7 @@ pub struct IPsecTunnelConnector {
     gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
 }
 
-impl IPsecTunnelConnector {
+impl Ikev1TunnelConnector {
     pub async fn new(
         params: Arc<TunnelParams>,
         gateway_connector: Arc<dyn GatewayConnector + Send + Sync>,
@@ -161,7 +148,7 @@ impl IPsecTunnelConnector {
 
         Ok(Self {
             params: params.clone(),
-            service: Self::new_service(&params, &info).await?,
+            service: Self::new_service(&params, &info)?,
             gateway_address,
             last_message_id: 0,
             last_identifier: 0,
@@ -191,36 +178,11 @@ impl IPsecTunnelConnector {
         debug!("Challenge msg: {}", parts[0]);
         trace!("msg_obj: {}", parts[1]);
 
-        let msg_obj = parts[1].parse::<SExpression>()?;
-
-        let state = msg_obj
-            .get_value::<String>("msg_obj:authentication_state")
-            .unwrap_or_else(|| "challenge".to_owned());
-
-        if state != "challenge" && state != "new_factor" && state != "failed_attempt" {
-            anyhow::bail!(tr!("error-not-challenge-state"));
-        }
-
-        let inner = msg_obj
-            .get("msg_obj:arguments:0:val")
-            .context("Invalid challenge reply!")?;
-
-        let id = inner.get_value::<String>("msg_obj:id").unwrap_or_else(String::new);
-
-        debug!("Challenge ID: {}", id);
-
-        let prompt = inner
-            .get_value::<String>("msg_obj:def_msg")
-            .context("No challenge prompt!")?;
-
-        debug!("Challenge prompt: {}", prompt);
+        let challenge = auth::challenge_from_msg_obj(&parts[1].parse::<SExpression>()?)?;
 
         Ok(Arc::new(TunnelSession {
             session_id: self.ccc_session.clone(),
-            state: SessionState::PendingChallenge(MfaChallenge {
-                mfa_type: MfaType::from_id(&id),
-                prompt,
-            }),
+            state: SessionState::PendingChallenge(challenge),
             username: None,
         }))
     }
@@ -239,7 +201,7 @@ impl IPsecTunnelConnector {
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
-            .context("No session in reply, VPN server may be running out of OM licenses!")?
+            .context(tr!("error-no-om-session"))?
             .into();
 
         self.ipsec_session.address = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
@@ -499,42 +461,16 @@ impl IPsecTunnelConnector {
         };
 
         let data = self.service.session().save(&office_mode)?;
-        let mut conn = self.new_session_db_connection()?;
-        let trans = conn.transaction()?;
-        trans.execute(
-            "DELETE FROM ike_session WHERE profile_uuid = ?1 AND server_name = ?2",
-            rusqlite::params![self.params.profile_id, &self.params.server_name],
-        )?;
-        trans.execute(
-            "INSERT INTO ike_session (profile_uuid, server_name, data, timestamp) VALUES (?1, ?2, ?3, current_timestamp)",
-            rusqlite::params![self.params.profile_id, &self.params.server_name, data],
-        )?;
-        trans.commit()?;
 
-        debug!(
-            "Saved IKE session: {}: {}",
-            self.params.server_name, self.params.profile_id
-        );
-
-        Ok(())
+        self.store().save(&data)
     }
 
-    fn new_session_db_connection(&self) -> anyhow::Result<rusqlite::Connection> {
-        let _ = std::fs::create_dir_all(Platform::get().data_dir());
-        let sessions_db = Platform::get().data_dir().join(SESSIONS_NAME);
-
-        let conn = rusqlite::Connection::open(&sessions_db)?;
-        conn.execute(SQL_SCHEMA, rusqlite::params![])?;
-        Ok(conn)
+    fn store(&self) -> SessionStore {
+        SessionStore::new("ike_session", self.params.profile_id, self.params.server_name.clone())
     }
 
     fn load_ike_session(&mut self) -> anyhow::Result<OfficeMode> {
-        let conn = self.new_session_db_connection()?;
-        let data = conn.query_row_and_then(
-            "SELECT data FROM ike_session WHERE profile_uuid = ?1 AND server_name = ?2",
-            rusqlite::params![self.params.profile_id, &self.params.server_name],
-            |row| row.get::<_, Vec<u8>>(0),
-        )?;
+        let data = self.store().load()?;
         let office_mode = self.service.session().load(&data)?;
 
         debug!("Loaded IKE session: {:?}", office_mode);
@@ -584,8 +520,8 @@ impl IPsecTunnelConnector {
         })
     }
 
-    async fn new_service(params: &TunnelParams, info: &GatewayInformation) -> anyhow::Result<Ikev1Service> {
-        let identity = Self::new_identity(params, info).await?;
+    fn new_service(params: &TunnelParams, info: &GatewayInformation) -> anyhow::Result<Ikev1Service> {
+        let identity = auth::new_identity(params, info)?;
 
         let ikev1_session = Ikev1Session::new(identity, SessionType::Initiator)?;
 
@@ -601,56 +537,10 @@ impl IPsecTunnelConnector {
 
         Ikev1Service::new(transport, ikev1_session)
     }
-
-    async fn new_identity(params: &TunnelParams, info: &GatewayInformation) -> anyhow::Result<Identity> {
-        let hybrid_auth = !info.is_certificate_login_type(&params.login_type);
-
-        let identity = match params.cert_type {
-            CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
-                (Some(path), Some(password)) => Identity::Pkcs12 {
-                    data: std::fs::read(path)?,
-                    password: password.clone(),
-                    hybrid_auth,
-                },
-                _ => anyhow::bail!(tr!("error-no-pkcs12")),
-            },
-            CertType::Pkcs8 => match params.cert_path {
-                Some(ref path) => Identity::Pkcs8 {
-                    path: path.clone(),
-                    hybrid_auth,
-                },
-                None => anyhow::bail!(tr!("error-no-pkcs8")),
-            },
-            CertType::Pkcs11 => match params.cert_password {
-                Some(ref pin) => Identity::Pkcs11 {
-                    driver_path: params.cert_path.clone().unwrap_or_else(|| "opensc-pkcs11.so".into()),
-                    pin: pin.clone(),
-                    key_id: params
-                        .cert_id
-                        .as_ref()
-                        .map(|s| hex::decode(s.replace(':', "")).unwrap_or_default().into()),
-                    hybrid_auth,
-                },
-                None => anyhow::bail!(tr!("error-no-pkcs11")),
-            },
-            #[cfg(windows)]
-            CertType::System => {
-                let common_name = match params.cert_id {
-                    Some(ref id) => id.clone(),
-                    None => hostname::get()?.to_string_lossy().into_owned(),
-                };
-                Identity::System { common_name }
-            }
-            #[cfg(not(windows))]
-            CertType::System => anyhow::bail!(tr!("error-not-implemented")),
-            CertType::None => Identity::None,
-        };
-        Ok(identity)
-    }
 }
 
 #[async_trait]
-impl TunnelConnector for IPsecTunnelConnector {
+impl TunnelConnector for Ikev1TunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         let my_address = Platform::get().new_network_interface().get_default_ipv4().await?;
         self.service.do_sa_proposal(self.params.ike_lifetime).await?;
@@ -665,63 +555,20 @@ impl TunnelConnector for IPsecTunnelConnector {
         self.ipsec_session.responder_spi = self.service.session().responder_spi();
 
         let info = self.gateway_connector.get_gateway_information().await?;
-        let login_option = info.get_login_option(&self.params.login_type);
 
         let machine_name = if self.service.session().hybrid_auth()
             && let Some(cert) = self.service.session().client_certificate()
         {
-            cert.certs()
-                .first()
-                .and_then(|der| X509::from_der(der.as_ref()).ok())
-                .and_then(|cert| {
-                    cert.subject_name().entries().find_map(|entry| {
-                        if entry.object().nid() == Nid::COMMONNAME {
-                            entry
-                                .data()
-                                .to_string()
-                                .ok()
-                                .and_then(|s| s.split('.').next().map(String::from))
-                        } else {
-                            None
-                        }
-                    })
-                })
+            auth::machine_name(&*cert)
         } else {
             None
         };
 
         debug!("Machine name: {:?}", machine_name);
 
-        let mut client_logging_data = self
-            .params
-            .client_logging_data
-            .as_ref()
-            .and_then(|path| ClientLoggingData::load(path).ok())
-            .unwrap_or_default();
-
-        client_logging_data.os_name.get_or_insert_with(|| "Windows".to_owned());
-        client_logging_data.device_id.get_or_insert_with(util::get_device_id);
-        if client_logging_data.machine_name.is_none() {
-            client_logging_data.machine_name = machine_name;
-        }
-
-        debug!("Client logging data: {:?}", client_logging_data);
-
-        let realm = AuthenticationRealm {
-            client_type: self.params.tunnel_type.as_client_type().to_owned(),
-            old_session_id: String::new(),
-            protocol_version: 100,
-            client_mode: self.params.client_mode.clone(),
-            selected_realm_id: self.params.login_type.clone(),
-            secondary_realm_hash: login_option.map(|o| o.secondary_realm_hash.clone()),
-            client_logging_data: Some(client_logging_data),
-        };
-
-        let realm_expr = SExpression::from(&realm);
+        let realm_expr = auth::auth_blob(&self.params, &info, machine_name);
 
         trace!("Authentication blob: {}", realm_expr);
-
-        let info = self.gateway_connector.get_gateway_information().await?;
 
         let internal_ca_fingerprints = info
             .connectivity_info
@@ -761,16 +608,7 @@ impl TunnelConnector for IPsecTunnelConnector {
     }
 
     async fn delete_session(&mut self) -> anyhow::Result<()> {
-        let conn = self.new_session_db_connection()?;
-        conn.execute(
-            "DELETE FROM ike_session WHERE profile_uuid = ?1 AND server_name = ?2",
-            rusqlite::params![self.params.profile_id, &self.params.server_name],
-        )?;
-        debug!(
-            "Deleted IKE session: {}: {}",
-            self.params.server_name, self.params.profile_id
-        );
-        Ok(())
+        self.store().delete()
     }
 
     async fn restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
@@ -779,7 +617,7 @@ impl TunnelConnector for IPsecTunnelConnector {
             Err(e) => {
                 let _ = self.delete_session().await;
                 let info = self.gateway_connector.get_gateway_information().await?;
-                self.service = Self::new_service(&self.params, &info).await?;
+                self.service = Self::new_service(&self.params, &info)?;
                 Err(e)
             }
         }
@@ -866,7 +704,7 @@ impl TunnelConnector for IPsecTunnelConnector {
     }
 }
 
-impl Drop for IPsecTunnelConnector {
+impl Drop for Ikev1TunnelConnector {
     fn drop(&mut self) {
         std::thread::scope(|s| {
             s.spawn(|| {

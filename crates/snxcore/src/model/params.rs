@@ -370,6 +370,65 @@ impl From<u32> for TransportType {
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum IkeVersion {
+    #[default]
+    AutoDetect,
+    V1,
+    V2,
+}
+
+impl IkeVersion {
+    pub fn as_i18n(&self) -> String {
+        match self {
+            Self::AutoDetect => tr!("ike-version-autodetect"),
+            Self::V1 => tr!("ike-version-1"),
+            Self::V2 => tr!("ike-version-2"),
+        }
+    }
+
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::AutoDetect => 0,
+            Self::V1 => 1,
+            Self::V2 => 2,
+        }
+    }
+}
+
+impl fmt::Display for IkeVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AutoDetect => write!(f, "auto"),
+            Self::V1 => write!(f, "1"),
+            Self::V2 => write!(f, "2"),
+        }
+    }
+}
+
+impl FromStr for IkeVersion {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(IkeVersion::AutoDetect),
+            "1" => Ok(IkeVersion::V1),
+            "2" => Ok(IkeVersion::V2),
+            _ => Err(anyhow!(tr!("error-invalid-ike-version"))),
+        }
+    }
+}
+
+impl From<u32> for IkeVersion {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::V1,
+            2 => Self::V2,
+            _ => Self::AutoDetect,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TlsVersion {
     #[default]
     Tls12,
@@ -522,6 +581,7 @@ pub struct TunnelParams {
     pub cert_id: Option<String>,
     pub if_name: Option<String>,
     pub keychain: bool,
+    pub ike_version: IkeVersion,
     pub ike_lifetime: Duration,
     pub ike_persist: bool,
     pub client_mode: String,
@@ -579,6 +639,7 @@ impl Default for TunnelParams {
             cert_id: None,
             if_name: None,
             keychain: false,
+            ike_version: IkeVersion::default(),
             ike_lifetime: DEFAULT_IKE_LIFETIME,
             ike_persist: false,
             client_mode: TunnelType::IPsec.as_client_mode().to_owned(),
@@ -633,6 +694,7 @@ impl PartialEq for TunnelParams {
             && self.cert_id == other.cert_id
             && self.if_name == other.if_name
             && self.keychain == other.keychain
+            && self.ike_version == other.ike_version
             && self.ike_lifetime == other.ike_lifetime
             && self.ike_persist == other.ike_persist
             && self.client_mode == other.client_mode
@@ -702,6 +764,7 @@ impl TunnelParams {
                 "cert-id" => params.cert_id = Some(v),
                 "if-name" => params.if_name = Some(v),
                 "keychain" => params.keychain = v.parse().unwrap_or_default(),
+                "ike-version" => params.ike_version = v.parse().unwrap_or_default(),
                 "ike-lifetime" => {
                     params.ike_lifetime = v.parse::<u64>().ok().map_or(DEFAULT_IKE_LIFETIME, Duration::from_secs);
                 }
@@ -819,6 +882,7 @@ impl TunnelParams {
             writeln!(buf, "if-name={if_name}")?;
         }
         writeln!(buf, "keychain={}", self.keychain)?;
+        writeln!(buf, "ike-version={}", self.ike_version)?;
         writeln!(buf, "ike-lifetime={}", self.ike_lifetime.as_secs())?;
         writeln!(buf, "ike-persist={}", self.ike_persist)?;
         writeln!(buf, "log-level={}", self.log_level)?;
@@ -968,6 +1032,7 @@ mod tests {
             cert_id: Some("id".to_string()),
             if_name: Some("ifname".to_string()),
             keychain: false,
+            ike_version: IkeVersion::V2,
             ike_lifetime: Duration::from_secs(100),
             ike_persist: true,
             client_mode: "client_mode".to_string(),

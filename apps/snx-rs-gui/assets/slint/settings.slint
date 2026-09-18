@@ -82,6 +82,8 @@ export component SettingsWindow inherits Window {
     in-out property <bool> port-knock: false;
     in property <[string]> transport-types: [];
     in-out property <int> transport-type-index: 0;
+    in property <[string]> ike-versions: [];
+    in-out property <int> ike-version-index: 0;
 
     // misc
     in-out property <string> password-factor;
@@ -648,6 +650,17 @@ export component SettingsWindow inherits Window {
                                     FormToggleRow {
                                         label: Tr.label-port-knock;
                                         Switch { checked <=> root.port-knock; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-ike-version;
+                                        ComboBox {
+                                            model: root.ike-versions;
+                                            current-index <=> root.ike-version-index;
+                                            min-width: root.min-form-width;
+                                        }
                                     }
 
                                     FormDivider { }

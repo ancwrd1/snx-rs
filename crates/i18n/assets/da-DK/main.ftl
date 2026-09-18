@@ -28,6 +28,7 @@ label-password-factor = Adgangskodefaktorindeks, 1..N
 label-keychain = Gem brugeradgangskode i nøgleringen
 label-ike-lifetime = IPsec IKE SA-levetid, sekunder
 label-ike-persist = Gem IPsec IKE-session
+label-ike-version = IKE-protokolversion
 label-no-keepalive = Deaktiver IPsec keepalive-pakker
 label-port-knock = Aktiver NAT-T port knocking
 label-no-routing = Ignorer alle modtagne ruter
@@ -140,10 +141,12 @@ error-not-implemented = Ikke implementeret
 error-unknown-packet-type = Ukendt pakketype
 error-no-sender = Ingen afsender
 error-empty-ccc-session = Tom CCC-session
+error-no-om-session = Ingen session i svaret, VPN-serveren er muligvis løbet tør for OM-licenser
 error-identity-timeout = Timeout ved venten på identitetssvar, er adgangstypen korrekt?
 error-probing-failed = Sondering mislykkedes, serveren er ikke tilgængelig via NATT-port!
 error-no-connector-for-challenge-code = Ingen connector til at sende challenge-koden til!
 error-invalid-transport-type = Ugyldig transporttype
+error-invalid-ike-version = Ugyldig IKE-version
 error-invalid-tls-version-max = Ugyldig maksimal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering mislykkedes. Serverens certifikat er ugyldigt, udløbet eller ikke betroet.
 error-invalid-gateway-info = Ugyldigt gateway-informationssvar
@@ -171,6 +174,11 @@ transport-type-autodetect = Automatisk registrering
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Automatisk registrering
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Fra

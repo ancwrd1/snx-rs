@@ -28,6 +28,7 @@ label-password-factor = Индекс фактора пароля, 1..N
 label-keychain = Хранить пароль пользователя в хранилище ключей
 label-ike-lifetime = Время жизни IPsec IKE SA, секунды
 label-ike-persist = Сохранять сессию IPsec IKE и переподключаться автоматически
+label-ike-version = Версия протокола IKE
 label-no-keepalive = Отключить пакеты keepalive IPsec
 label-port-knock = Включить NAT-T port knocking
 label-no-routing = Игнорировать все полученные маршруты
@@ -142,8 +143,10 @@ error-not-implemented = Не реализовано
 error-unknown-packet-type = Неизвестный тип пакета
 error-no-sender = Нет отправителя
 error-empty-ccc-session = Пустая сессия CCC
+error-no-om-session = В ответе нет сессии, возможно, на VPN-сервере закончились лицензии OM
 error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
 error-invalid-transport-type = Неверный тип транспорта
+error-invalid-ike-version = Неверная версия IKE
 error-invalid-tls-version-max = Неверная максимальная версия TLS
 error-certificate-verify-failed = Проверка TLS-сертификата не удалась. Сертификат сервера недействителен, истёк или не является доверенным.
 error-invalid-gateway-info = Неверный ответ с информацией о шлюзе
@@ -171,6 +174,11 @@ transport-type-autodetect = Автоопределение
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Автоопределение
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Выключено

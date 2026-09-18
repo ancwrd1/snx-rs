@@ -28,6 +28,7 @@ label-password-factor = Index of password factor, 1..N
 label-keychain = Store user password in the keychain
 label-ike-lifetime = IPsec IKE SA lifetime, seconds
 label-ike-persist = Save IPsec IKE session and reconnect automatically
+label-ike-version = IKE protocol version
 label-no-keepalive = Disable IPsec keepalive packets
 label-port-knock = Enable NAT-T port knocking
 label-no-routing = Ignore all acquired routes
@@ -142,8 +143,10 @@ error-not-implemented = Not implemented
 error-unknown-packet-type = Unknown packet type
 error-no-sender = No sender
 error-empty-ccc-session = Empty CCC session
+error-no-om-session = No session in reply, VPN server may be running out of OM licenses
 error-identity-timeout = Timeout while waiting for identity response, is the login type correct?
 error-invalid-transport-type = Invalid transport type
+error-invalid-ike-version = Invalid IKE version
 error-invalid-tls-version-max = Invalid maximum TLS version
 error-certificate-verify-failed = TLS certificate validation failed. The server’s certificate is invalid, expired, or not trusted.
 error-invalid-gateway-info = Invalid gateway information response
@@ -171,6 +174,11 @@ transport-type-autodetect = Autodetect
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Autodetect
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Off

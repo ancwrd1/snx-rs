@@ -2,7 +2,9 @@ use std::{net::Ipv4Addr, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use ipnet::Ipv4Net;
-use snxcore::model::params::{CertType, OperationMode, TlsVersion, TransportType, TunnelParams, TunnelType};
+use snxcore::model::params::{
+    CertType, IkeVersion, OperationMode, TlsVersion, TransportType, TunnelParams, TunnelType,
+};
 use tracing::level_filters::LevelFilter;
 
 #[derive(Parser)]
@@ -171,6 +173,9 @@ pub struct CmdlineParams {
         help = "Use OS keychain to store or retrieve user password"
     )]
     pub keychain: Option<bool>,
+
+    #[clap(long = "ike-version", help = "IKE protocol version [auto, 1, 2]")]
+    pub ike_version: Option<IkeVersion>,
 
     #[clap(long = "ike-lifetime", short = 'L', help = "IPsec IKE lifetime in seconds")]
     pub ike_lifetime: Option<u64>,
@@ -358,6 +363,10 @@ impl CmdlineParams {
 
         if let Some(keychain) = self.keychain {
             other.keychain = keychain;
+        }
+
+        if let Some(ike_version) = self.ike_version {
+            other.ike_version = ike_version;
         }
 
         if let Some(ike_lifetime) = self.ike_lifetime {

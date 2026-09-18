@@ -28,6 +28,7 @@ label-password-factor = Index hesla, 1..N
 label-keychain = Uložit heslo uživatele do úložiště klíčů
 label-ike-lifetime = Životnost IPsec IKE SA, sekundy
 label-ike-persist = Uložit IPsec IKE relaci
+label-ike-version = Verze protokolu IKE
 label-no-keepalive = Zakázat pakety keepalive IPsec
 label-port-knock = Povolit NAT-T port knocking
 label-no-routing = Ignorovat všechny získané trasy
@@ -142,8 +143,10 @@ error-not-implemented = Neimplementováno
 error-unknown-packet-type = Neznámý typ paketu
 error-no-sender = Žádný odesílatel
 error-empty-ccc-session = Prázdná CCC relace
+error-no-om-session = Odpověď neobsahuje relaci, na VPN serveru možná došly licence OM
 error-identity-timeout = Časový limit při čekání na odpověď identity, je typ přístupu správný?
 error-invalid-transport-type = Neplatný typ přenosu
+error-invalid-ike-version = Neplatná verze IKE
 error-invalid-tls-version-max = Neplatná maximální verze TLS
 error-certificate-verify-failed = Ověření TLS certifikátu selhalo. Certifikát serveru je neplatný, vypršel nebo není důvěryhodný.
 error-invalid-gateway-info = Neplatná odpověď s informacemi o bráně
@@ -171,6 +174,11 @@ transport-type-autodetect = Automatická detekce
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Automatická detekce
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Vypnuto

@@ -28,6 +28,7 @@ label-password-factor = Índice do fator de palavra-passe, 1..N
 label-keychain = Armazenar a palavra-passe do utilizador no porta-chaves
 label-ike-lifetime = Tempo de vida IPsec IKE SA, segundos
 label-ike-persist = Guardar sessão IPsec IKE
+label-ike-version = Versão do protocolo IKE
 label-no-keepalive = Desativar pacotes keepalive IPsec
 label-port-knock = Ativar port knocking NAT-T
 label-no-routing = Ignorar todas as rotas adquiridas
@@ -142,8 +143,10 @@ error-not-implemented = Não implementado
 error-unknown-packet-type = Tipo de pacote desconhecido
 error-no-sender = Sem remetente
 error-empty-ccc-session = Sessão CCC vazia
+error-no-om-session = Nenhuma sessão na resposta, o servidor VPN pode estar sem licenças OM
 error-identity-timeout = Tempo limite ao aguardar resposta de identidade, o tipo de acesso está correto?
 error-invalid-transport-type = Tipo de transporte inválido
+error-invalid-ike-version = Versão de IKE inválida
 error-invalid-tls-version-max = Versão TLS máxima inválida
 error-certificate-verify-failed = Validação do certificado TLS falhou. O certificado do servidor é inválido, expirou ou não é de confiança.
 error-invalid-gateway-info = Resposta de informações do gateway inválida
@@ -171,6 +174,11 @@ transport-type-autodetect = Deteção automática
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Deteção automática
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Desligado

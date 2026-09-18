@@ -28,6 +28,7 @@ label-password-factor = Indeks faktora lozinke, 1..N
 label-keychain = Spremi korisničku lozinku u privjesak za ključeve
 label-ike-lifetime = Životni vijek IPsec IKE SA, sekunde
 label-ike-persist = Spremi IPsec IKE sesiju
+label-ike-version = Verzija IKE protokola
 label-no-keepalive = Onemogući IPsec keepalive pakete
 label-port-knock = Omogući NAT-T port knocking
 label-no-routing = Zanemari sve dobivene rute
@@ -142,8 +143,10 @@ error-not-implemented = Nije implementirano
 error-unknown-packet-type = Nepoznata vrsta paketa
 error-no-sender = Nema pošiljatelja
 error-empty-ccc-session = Prazna CCC sesija
+error-no-om-session = Nema sesije u odgovoru, VPN poslužitelju možda ponestaje OM licenci
 error-identity-timeout = Istek vremena čekanja na odgovor identiteta, je li tip prijave ispravan?
 error-invalid-transport-type = Nevažeća vrsta prijenosa
+error-invalid-ike-version = Nevažeća verzija IKE-a
 error-invalid-tls-version-max = Nevažeća maksimalna TLS verzija
 error-certificate-verify-failed = TLS validacija certifikata nije uspjela. Certifikat poslužitelja je nevažeći, istekao ili nije pouzdan.
 error-invalid-gateway-info = Nevažeći odgovor s informacijama pristupnika
@@ -171,6 +174,11 @@ transport-type-autodetect = Automatsko otkrivanje
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Automatsko otkrivanje
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Isključeno

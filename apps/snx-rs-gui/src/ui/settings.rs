@@ -6,7 +6,7 @@ use secrecy::ExposeSecret;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Window};
 use snxcore::{
     model::{
-        params::{CertType, DEFAULT_PROFILE_UUID, NotificationLevel, TunnelParams, TunnelType},
+        params::{CertType, DEFAULT_PROFILE_UUID, IkeVersion, NotificationLevel, TunnelParams, TunnelType},
         proto::{GatewayInformation, LoginOption},
     },
     platform::{Keychain, Platform, PlatformAccess},
@@ -109,6 +109,16 @@ impl SettingsWindowController {
         self.scope
             .window
             .set_transport_types(ModelRc::new(VecModel::from(transport_types)));
+
+        let ike_versions: Vec<SharedString> = vec![
+            IkeVersion::AutoDetect.as_i18n().into(),
+            IkeVersion::V1.as_i18n().into(),
+            IkeVersion::V2.as_i18n().into(),
+        ];
+
+        self.scope
+            .window
+            .set_ike_versions(ModelRc::new(VecModel::from(ike_versions)));
 
         let tls_version_max_options: Vec<SharedString> =
             vec!["TLS 1.2".into(), "TLS 1.3".into(), tr!("label-system-default").into()];
@@ -534,6 +544,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
     );
     window.set_cert_id(params.cert_id.clone().unwrap_or_default().into());
     window.set_ca_cert(params.ca_cert.iter().map(|p| p.display().to_string()).join(",").into());
+    window.set_ike_version_index(params.ike_version.as_u32() as i32);
     window.set_ike_lifetime(params.ike_lifetime.as_secs().to_string().into());
     window.set_ike_persist(params.ike_persist);
     window.set_no_keepalive(params.no_keepalive);
@@ -968,6 +979,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
         .filter(|s| !s.is_empty())
         .map(|s| s.into())
         .collect();
+    params.ike_version = (window.get_ike_version_index() as u32).into();
     params.ike_lifetime = Duration::from_secs(window.get_ike_lifetime().parse()?);
     params.ike_persist = window.get_ike_persist();
     params.no_keepalive = window.get_no_keepalive();

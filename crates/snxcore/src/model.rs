@@ -2,7 +2,8 @@ use std::{borrow::Cow, fmt, net::Ipv4Addr, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Local};
 use ipnet::Ipv4Net;
-use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
+use isakmp::crypto::{CipherType, DigestType, IcvLength};
+use isakmp::model::EspCryptMaterial;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -84,13 +85,13 @@ impl IPsecSession {
             timestamp: self.ike_timestamp,
             esp_in: EspState {
                 spi: self.esp_in.spi,
-                enc_algorithm: self.esp_in.transform_id.into(),
-                auth_algorithm: self.esp_in.auth_algorithm.into(),
+                enc_algorithm: self.esp_in.cipher.into(),
+                auth_algorithm: self.esp_in.auth.map(|a| a.digest.into()),
             },
             esp_out: EspState {
                 spi: self.esp_out.spi,
-                enc_algorithm: self.esp_out.transform_id.into(),
-                auth_algorithm: self.esp_out.auth_algorithm.into(),
+                enc_algorithm: self.esp_out.cipher.into(),
+                auth_algorithm: self.esp_out.auth.map(|a| a.digest.into()),
             },
         }
     }
@@ -184,56 +185,74 @@ pub struct LiveStats {
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
 pub enum EncryptionAlgorithm {
+    Aes128Cbc,
+    Aes192Cbc,
     #[default]
-    EspAesCbc,
-    Esp3Des,
+    Aes256Cbc,
+    DesEde3Cbc,
+    Aes128Gcm(IcvLength),
+    Aes192Gcm(IcvLength),
+    Aes256Gcm(IcvLength),
 }
 
 impl fmt::Display for EncryptionAlgorithm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            EncryptionAlgorithm::EspAesCbc => f.write_str("AES-CBC"),
-            EncryptionAlgorithm::Esp3Des => f.write_str("3DES"),
+            EncryptionAlgorithm::Aes128Cbc => f.write_str("AES-128-CBC"),
+            EncryptionAlgorithm::Aes192Cbc => f.write_str("AES-192-CBC"),
+            EncryptionAlgorithm::Aes256Cbc => f.write_str("AES-256-CBC"),
+            EncryptionAlgorithm::DesEde3Cbc => f.write_str("3DES"),
+            EncryptionAlgorithm::Aes128Gcm(_) => f.write_str("AES-128-GCM"),
+            EncryptionAlgorithm::Aes192Gcm(_) => f.write_str("AES-192-GCM"),
+            EncryptionAlgorithm::Aes256Gcm(_) => f.write_str("AES-256-GCM"),
         }
     }
 }
 
-impl From<TransformId> for EncryptionAlgorithm {
-    fn from(id: TransformId) -> Self {
+impl From<CipherType> for EncryptionAlgorithm {
+    fn from(id: CipherType) -> Self {
         match id {
-            TransformId::Esp3Des => Self::Esp3Des,
-            _ => Self::EspAesCbc,
+            CipherType::Aes128Cbc => Self::Aes128Cbc,
+            CipherType::Aes192Cbc => Self::Aes192Cbc,
+            CipherType::Aes256Cbc => Self::Aes256Cbc,
+            CipherType::DesEde3Cbc => Self::DesEde3Cbc,
+            CipherType::Aes128Gcm(length) => Self::Aes128Gcm(length),
+            CipherType::Aes192Gcm(length) => Self::Aes192Gcm(length),
+            CipherType::Aes256Gcm(length) => Self::Aes256Gcm(length),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
 pub enum AuthenticationAlgorithm {
-    HmacSha96,
-    HmacSha160,
+    Md5,
+    HmacSha1,
     #[default]
     HmacSha256,
-    HmacSha256v2,
+    HmacSha384,
+    HmacSha512,
 }
 
 impl fmt::Display for AuthenticationAlgorithm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AuthenticationAlgorithm::HmacSha96 => f.write_str("HMAC-SHA96"),
-            AuthenticationAlgorithm::HmacSha160 => f.write_str("HMAC-SHA160"),
+            AuthenticationAlgorithm::Md5 => f.write_str("MD5"),
+            AuthenticationAlgorithm::HmacSha1 => f.write_str("HMAC-SHA1"),
             AuthenticationAlgorithm::HmacSha256 => f.write_str("HMAC-SHA256"),
-            AuthenticationAlgorithm::HmacSha256v2 => f.write_str("HMAC-SHA256V2"),
+            AuthenticationAlgorithm::HmacSha384 => f.write_str("HMAC-SHA384"),
+            AuthenticationAlgorithm::HmacSha512 => f.write_str("HMAC-SHA512"),
         }
     }
 }
 
-impl From<EspAuthAlgorithm> for AuthenticationAlgorithm {
-    fn from(algo: EspAuthAlgorithm) -> Self {
+impl From<DigestType> for AuthenticationAlgorithm {
+    fn from(algo: DigestType) -> Self {
         match algo {
-            EspAuthAlgorithm::HmacSha96 => Self::HmacSha96,
-            EspAuthAlgorithm::HmacSha160 => Self::HmacSha160,
-            EspAuthAlgorithm::HmacSha256v2 => Self::HmacSha256v2,
-            _ => Self::HmacSha256,
+            DigestType::Md5 => Self::Md5,
+            DigestType::Sha1 => Self::HmacSha1,
+            DigestType::Sha256 => Self::HmacSha256,
+            DigestType::Sha384 => Self::HmacSha384,
+            DigestType::Sha512 => Self::HmacSha512,
         }
     }
 }
@@ -242,7 +261,7 @@ impl From<EspAuthAlgorithm> for AuthenticationAlgorithm {
 pub struct EspState {
     pub spi: u32,
     pub enc_algorithm: EncryptionAlgorithm,
-    pub auth_algorithm: AuthenticationAlgorithm,
+    pub auth_algorithm: Option<AuthenticationAlgorithm>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -266,9 +285,15 @@ impl IkeState {
             ("info-esp-spi-in", format!("{:08x}", self.esp_in.spi)),
             ("info-esp-spi-out", format!("{:08x}", self.esp_out.spi)),
             ("info-esp-encryption-in", self.esp_in.enc_algorithm.to_string()),
-            ("info-esp-authentication-in", self.esp_in.auth_algorithm.to_string()),
+            (
+                "info-esp-authentication-in",
+                self.esp_in.auth_algorithm.map(|a| a.to_string()).unwrap_or_default(),
+            ),
             ("info-esp-encryption-out", self.esp_out.enc_algorithm.to_string()),
-            ("info-esp-authentication-out", self.esp_out.auth_algorithm.to_string()),
+            (
+                "info-esp-authentication-out",
+                self.esp_out.auth_algorithm.map(|a| a.to_string()).unwrap_or_default(),
+            ),
         ];
         util::format_values(&values)
     }

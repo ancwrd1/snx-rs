@@ -28,6 +28,7 @@ label-password-factor = Index van wachtwoordfactor, 1..N
 label-keychain = Gebruikerswachtwoord opslaan in de sleutelhanger
 label-ike-lifetime = IPsec IKE SA-levensduur, seconden
 label-ike-persist = IPsec IKE-sessie opslaan
+label-ike-version = IKE-protocolversie
 label-no-keepalive = IPsec keepalive-pakketten uitschakelen
 label-port-knock = NAT-T port knocking inschakelen
 label-no-routing = Alle verkregen routes negeren
@@ -131,6 +132,7 @@ error-not-implemented = Niet geïmplementeerd
 error-unknown-packet-type = Onbekend pakkettype
 error-no-sender = Geen afzender
 error-empty-ccc-session = Lege CCC-sessie
+error-no-om-session = Geen sessie in het antwoord, de VPN-server heeft mogelijk geen OM-licenties meer
 error-identity-timeout = Timeout tijdens wachten op identiteitsreactie, is het toegangstype correct?
 error-cannot-send-request = Kan verzoek niet naar service sturen
 error-cannot-read-reply = Kan antwoord van service niet lezen
@@ -144,6 +146,7 @@ error-no-pkcs8 = Geen PKCS8 PEM-pad opgegeven
 error-no-pkcs11 = Geen PKCS11 PIN opgegeven
 error-no-ipsec-session = Geen IPsec-sessie
 error-invalid-transport-type = Ongeldig transporttype
+error-invalid-ike-version = Ongeldige IKE-versie
 error-invalid-tls-version-max = Ongeldige maximale TLS-versie
 error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
 error-invalid-gateway-info = Ongeldig gateway-informatieantwoord
@@ -171,6 +174,11 @@ transport-type-autodetect = Automatisch detecteren
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Automatisch detecteren
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Uit

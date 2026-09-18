@@ -28,6 +28,7 @@ label-password-factor = Lösenordsfaktorindex, 1..N
 label-keychain = Spara användarlösenord i nyckelringen
 label-ike-lifetime = IPsec IKE SA-livstid, sekunder
 label-ike-persist = Spara IPsec IKE-session och återanslut automatiskt
+label-ike-version = IKE-protokollversion
 label-no-keepalive = Inaktivera IPsec keepalive-paket
 label-port-knock = Aktivera NAT-T port knocking
 label-no-routing = Ignorera alla erhållna rutter
@@ -142,8 +143,10 @@ error-not-implemented = Inte implementerat
 error-unknown-packet-type = Okänd pakettyp
 error-no-sender = Ingen avsändare
 error-empty-ccc-session = Tom CCC-session
+error-no-om-session = Ingen session i svaret, VPN-servern kan ha slut på OM-licenser
 error-identity-timeout = Timeout vid väntan på identitetssvar, är åtkomsttypen korrekt?
 error-invalid-transport-type = Ogiltig transporttyp
+error-invalid-ike-version = Ogiltig IKE-version
 error-invalid-tls-version-max = Ogiltig maximal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering misslyckades. Serverns certifikat är ogiltigt, utgånget eller inte betrott.
 error-invalid-gateway-info = Ogiltigt gateway-informationssvar
@@ -171,6 +174,11 @@ transport-type-autodetect = Automatisk identifiering
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Automatisk identifiering
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Av

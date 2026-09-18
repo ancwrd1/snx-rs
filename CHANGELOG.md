@@ -1,3 +1,6 @@
+## v6.4.0 (TBD)
+* Added IKEv2 support for the IPsec tunnel, controlled by the new `ike-version` option. The default value is `auto` which selects IKEv2 when the server prefers it. See [Tunnel Types](https://github.com/ancwrd1/snx-rs/blob/main/docs/tunnel-types.md) for the current limitations.
+
 ## v6.3.1 (2026-09-17)
 * Fixed a non-working certificate enrollment and renewal, see [Certificates](https://github.com/ancwrd1/snx-rs/blob/main/docs/certificates.md) section in the documentation.
 

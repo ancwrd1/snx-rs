@@ -28,6 +28,7 @@ label-password-factor = Indice del fattore password, 1..N
 label-keychain = Memorizzare la password utente nel portachiavi
 label-ike-lifetime = Durata IPsec IKE SA, secondi
 label-ike-persist = Memorizza sessione IPsec IKE
+label-ike-version = Versione del protocollo IKE
 label-no-keepalive = Disabilita pacchetti keepalive IPsec
 label-port-knock = Abilita port knocking NAT-T
 label-no-routing = Ignora tutte le route acquisite
@@ -131,6 +132,7 @@ error-not-implemented = Non implementato
 error-unknown-packet-type = Tipo di pacchetto sconosciuto
 error-no-sender = Nessun mittente
 error-empty-ccc-session = Sessione CCC vuota
+error-no-om-session = Nessuna sessione nella risposta, il server VPN potrebbe aver esaurito le licenze OM
 error-identity-timeout = Timeout durante l'attesa della risposta di identità, il tipo di accesso è corretto?
 error-not-challenge-state = Non è uno stato di sfida
 error-no-pkcs8 = Nessun percorso PEM PKCS8 fornito
@@ -144,6 +146,7 @@ error-endless-challenges = Loop infinito di sfide del nome utente
 error-cannot-send-request = Impossibile inviare la richiesta al servizio
 error-cannot-read-reply = Impossibile leggere la risposta dal servizio
 error-invalid-transport-type = Tipo di trasporto non valido
+error-invalid-ike-version = Versione IKE non valida
 error-invalid-tls-version-max = Versione TLS massima non valida
 error-certificate-verify-failed = Validazione del certificato TLS fallita. Il certificato del server è non valido, scaduto o non attendibile.
 error-invalid-gateway-info = Risposta informazioni gateway non valida
@@ -171,6 +174,11 @@ transport-type-autodetect = Rilevamento automatico
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Rilevamento automatico
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Disattivato

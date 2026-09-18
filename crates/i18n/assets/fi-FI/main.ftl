@@ -28,6 +28,7 @@ label-password-factor = Salasanatekijäindeksi, 1..N
 label-keychain = Tallenna käyttäjän salasana avainketjuun
 label-ike-lifetime = IPsec IKE SA -elinaika, sekuntia
 label-ike-persist = Tallenna IPsec IKE -istunto
+label-ike-version = IKE-protokollan versio
 label-no-keepalive = Poista IPsec keepalive-paketit käytöstä
 label-port-knock = Ota NAT-T port knocking käyttöön
 label-no-routing = Ohita kaikki vastaanotetut reitit
@@ -142,8 +143,10 @@ error-not-implemented = Ei toteutettu
 error-unknown-packet-type = Tuntematon pakettityyppi
 error-no-sender = Ei lähettäjää
 error-empty-ccc-session = Tyhjä CCC-istunto
+error-no-om-session = Vastauksessa ei ole istuntoa, VPN-palvelimen OM-lisenssit voivat olla lopussa
 error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kirjautumistyyppi oikea?
 error-invalid-transport-type = Virheellinen kuljetustyyppi
+error-invalid-ike-version = Virheellinen IKE-versio
 error-invalid-tls-version-max = Virheellinen TLS-enimmäisversio
 error-certificate-verify-failed = TLS-varmenteen vahvistus epäonnistui. Palvelimen varmenne on virheellinen, vanhentunut tai ei luotettu.
 error-invalid-gateway-info = Virheellinen yhdyskäytävän tietovastaus
@@ -171,6 +174,11 @@ transport-type-autodetect = Automaattinen tunnistus
 transport-type-kernel = UDP XFRM
 transport-type-tcpt = TCPT TUN
 transport-type-udp = UDP TUN
+
+# IKE versions
+ike-version-autodetect = Automaattinen tunnistus
+ike-version-1 = IKEv1
+ike-version-2 = IKEv2
 
 # Notification levels
 notification-level-off = Pois

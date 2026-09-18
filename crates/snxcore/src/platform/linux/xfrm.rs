@@ -1,6 +1,5 @@
-use std::net::{IpAddr, Ipv4Addr};
-
-use isakmp::model::{EspAuthAlgorithm, EspCryptMaterial, TransformId};
+use isakmp::crypto::{CipherType, DigestType};
+use isakmp::model::{EspAuthentication, EspCryptMaterial};
 use netlink_packet_xfrm::{
     constants::{
         IPPROTO_ESP, UDP_ENCAP_ESPINUDP, XFRM_MODE_TUNNEL, XFRM_POLICY_IN, XFRM_POLICY_OUT, XFRM_STATE_AF_UNSPEC,
@@ -9,6 +8,7 @@ use netlink_packet_xfrm::{
 };
 use rand::random;
 use rtnetlink::{LinkMessageBuilder, LinkXfrm};
+use std::net::{IpAddr, Ipv4Addr};
 use tracing::{debug, trace};
 
 use crate::{
@@ -74,16 +74,30 @@ struct XfrmState<'a> {
 
 impl XfrmState<'_> {
     fn auth_alg_as_xfrm_name(&self) -> anyhow::Result<&'static str> {
-        match self.params.auth_algorithm {
-            EspAuthAlgorithm::HmacSha96 | EspAuthAlgorithm::HmacSha160 => Ok("hmac(sha1)"),
-            EspAuthAlgorithm::HmacSha256 | EspAuthAlgorithm::HmacSha256v2 => Ok("hmac(sha256)"),
+        match self.params.auth {
+            Some(EspAuthentication {
+                digest: DigestType::Sha1,
+                ..
+            }) => Ok("hmac(sha1)"),
+            Some(EspAuthentication {
+                digest: DigestType::Sha256,
+                ..
+            }) => Ok("hmac(sha256)"),
+            Some(EspAuthentication {
+                digest: DigestType::Sha384,
+                ..
+            }) => Ok("hmac(sha384)"),
+            Some(EspAuthentication {
+                digest: DigestType::Sha512,
+                ..
+            }) => Ok("hmac(sha512)"),
             other => anyhow::bail!("Unsupported auth algorithm: {:?}", other),
         }
     }
     fn enc_alg_as_xfrm_name(&self) -> anyhow::Result<&'static str> {
-        match self.params.transform_id {
-            TransformId::EspAesCbc => Ok("cbc(aes)"),
-            TransformId::Esp3Des => Ok("cbc(des3_ede)"),
+        match self.params.cipher {
+            CipherType::Aes128Cbc | CipherType::Aes192Cbc | CipherType::Aes256Cbc => Ok("cbc(aes)"),
+            CipherType::DesEde3Cbc => Ok("cbc(des3_ede)"),
             other => anyhow::bail!("Unsupported encryption algorithm: {:?}", other),
         }
     }
@@ -92,26 +106,36 @@ impl XfrmState<'_> {
         let handle = new_xfrm_connection()?;
         let src: IpAddr = self.src.into();
         let dst: IpAddr = self.dst.into();
-        let trunc_len = (self.params.auth_algorithm.hash_len() * 8) as u32;
+        let trunc_len = self.params.auth.map(|a| (a.icv_len * 8) as u32).unwrap_or_default();
 
-        handle
+        let mut request = handle
             .state()
             .add(src, dst)
             .protocol(IPPROTO_ESP)
             .spi(self.params.spi)
             .mode(XFRM_MODE_TUNNEL)
             .flags(XFRM_STATE_AF_UNSPEC)
-            .authentication_trunc(self.auth_alg_as_xfrm_name()?, &self.params.sk_a.to_vec(), trunc_len)?
-            .encryption(self.enc_alg_as_xfrm_name()?, &self.params.sk_e.to_vec())?
             .ifid(self.if_id)
             .encapsulation(
                 UDP_ENCAP_ESPINUDP,
                 self.src_port,
                 self.dest_port,
                 Ipv4Addr::UNSPECIFIED.into(),
-            )
-            .execute()
-            .await?;
+            );
+
+        request = if !self.params.cipher.is_aead() {
+            request
+                .authentication_trunc(self.auth_alg_as_xfrm_name()?, &self.params.sk_a.to_vec(), trunc_len)?
+                .encryption(self.enc_alg_as_xfrm_name()?, &self.params.sk_e.to_vec())?
+        } else {
+            request.encryption_aead(
+                "rfc4106(gcm(aes))",
+                &self.params.sk_e.to_vec(),
+                self.params.cipher.icv_len() as u32 * 8,
+            )?
+        };
+
+        request.execute().await?;
 
         Ok(())
     }

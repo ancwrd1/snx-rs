@@ -310,6 +310,8 @@ pub struct GatewayInformation {
     pub login_options_data: Option<LoginOptionsData>,
 }
 
+const PREFER_IKEV2_PROTOCOL: &str = "Prefer_IKEv2_Support_IKEv1";
+
 impl GatewayInformation {
     pub fn get_login_prompts(&self, login_type: &str) -> Vec<PromptInfo> {
         let Some(login_option) = self.get_login_option(login_type) else {
@@ -350,6 +352,21 @@ impl GatewayInformation {
     pub fn is_certificate_login_type(&self, login_type: &str) -> bool {
         self.get_login_option(login_type)
             .map(|opt| opt.is_certificate())
+            .unwrap_or(true)
+    }
+
+    /// Whether the gateway asks for IKEv2. It advertises the preference as a
+    /// pseudo-protocol in the supported data tunnel protocols list.
+    pub fn prefers_ikev2(&self) -> bool {
+        self.connectivity_info
+            .supported_data_tunnel_protocols
+            .iter()
+            .any(|protocol| protocol == PREFER_IKEV2_PROTOCOL)
+    }
+
+    pub fn is_identity_provider_login_type(&self, login_type: &str) -> bool {
+        self.get_login_option(login_type)
+            .map(|opt| opt.is_identity_provider())
             .unwrap_or(true)
     }
 
@@ -507,6 +524,10 @@ impl LoginOption {
 
     pub fn is_certificate(&self) -> bool {
         self.factors.values().any(|v| v.factor_type == "certificate")
+    }
+
+    pub fn is_identity_provider(&self) -> bool {
+        self.factors.values().any(|v| v.factor_type == "identity_provider")
     }
 
     pub fn is_mobile_access(&self) -> bool {

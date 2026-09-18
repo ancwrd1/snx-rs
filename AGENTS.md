@@ -49,10 +49,10 @@ Top-level directories:
 * `model.rs` + `model/` — protocol types: `params.rs` (tunnel config / `TunnelParams`), `proto.rs` (wire structs), `wrappers.rs`.
 * `platform.rs` + `platform/` — `Platform` trait abstraction seam plus per-OS implementations (see below).
 * `tunnel/` — transport implementations:
-  * `connector.rs` — common tunnel connector trait.
+  * `connector.rs` — `CheckPointConnectorFactory`: picks the tunnel connector (SSL vs. IKEv1 vs. IKEv2) and resolves the IKE version when it is set to autodetect.
   * `gateway.rs` — Check Point command/gateway HTTPS client (CCC protocol).
   * `device.rs` — tun device abstraction.
-  * `ipsec/` — IPsec `connector.rs`, `natt.rs`, `keepalive.rs`, SCV policy emulation (`scv.rs`), plus the `imp/` impls selected at runtime (kernel XFRM vs. userspace TUN/TCPT).
+  * `ipsec/` — IPsec: `ikev1.rs` and `ikev2.rs` connectors, `auth.rs` (identity and CCC auth blob shared by both), `natt.rs`, `keepalive.rs`, SCV policy emulation (`scv.rs`), plus the `imp/` impls selected at runtime (kernel XFRM vs. userspace TUN/TCPT).
   * `ssl/` — SSL tunnel `codec.rs`, `connector.rs`, `keepalive.rs` (legacy fallback transport).
 * `util.rs` — misc helpers.
 * `tests/` — integration fixtures (`*.txt` captured wire payloads) and integration tests.
@@ -64,6 +64,28 @@ Per-OS platform modules under `crates/snxcore/src/platform/`:
 * `macos/` — `command_socket.rs` (filesystem-pinned local socket), `ipsec_stub.rs` (IPsec native kernel path not implemented; userspace TUN/ESP used instead), `keychain.rs` (Security.framework), `machine_uuid.rs` (gethostuuid), `net.rs` (utun device, ioctl SIOCAIFADDR/SIOCSIFMTU, interface stats via NET_RT_IFLIST2), `resolver.rs` (SCDynamicStore / SystemConfiguration split DNS), `routing.rs` (PF_ROUTE: split/full-route, IPv6 blackhole, ip.forwarding), `single_instance.rs` (flock guard), `stats.rs`. Marked `#![allow(unsafe_code)]` because the macOS APIs require FFI. IPsec keepalive is disabled (the gateway echoes the UDP checksum, which the kernel drops; macOS lacks SO_NO_CHECK).
 
 The external `isakmp` crate (git dep: `https://github.com/ancwrd1/isakmp.git`) provides IKE/ISAKMP primitives used by the IPsec tunnel.
+
+### IKE versions
+
+The IPsec tunnel speaks either IKEv1 or IKEv2, chosen by the `ike-version` option (`auto`, `1`, `2`). `auto` — the default —
+picks IKEv2 when `GatewayInformation::prefers_ikev2()` sees the `Prefer_IKEv2_Support_IKEv1` entry in the server's
+`supported_data_tunnel_protocols`, otherwise IKEv1. The decision lives in `tunnel/connector.rs`; neither connector inspects it.
+
+Both connectors implement the same `TunnelConnector` trait and produce the same `IPsecSession`, so everything downstream
+(the `imp/` ESP data paths, routing, DNS) is version-agnostic. What differs:
+
+* IKEv1 spreads the login over identity protection, office mode and quick mode, and can repeat the last two to rekey.
+* IKEv2 does all of it in IKE_SA_INIT + IKE_AUTH, with MFA as EAP, and rekeys the child SA with CREATE_CHILD_SA in both
+  directions — the gateway rekeys on its own schedule, since IKEv2 negotiates no child SA lifetime, and an unanswered
+  request ends with it deleting the SA. The office mode lease is renewed with a CFG_REQUEST in an INFORMATIONAL,
+  at half the `INTERNAL_ADDRESS_EXPIRY` the server grants — 15 minutes on the captured gateway, against an 8-hour IKE SA.
+  `ike-persist` resumes a saved IKE SA — the blob carries the Message ID as well as
+  the keys, so the peer's window continues rather than replaying — and creates a fresh child SA, since ESP material is
+  never persisted. Both versions share `SessionStore` in `tunnel/ipsec.rs` but keep separate tables, as the blob formats
+  differ. What is still missing: the tunnel is torn down when the IKE SA expires. Do not paper over that in `snxcore` — the fix belongs in `isakmp`.
+
+Anything both versions build identically (the client `Identity`, the CCC authentication blob, the `msg_obj` challenge
+parsing) belongs in `tunnel/ipsec/auth.rs`, not duplicated into the two connectors.
 
 ## Build & verify commands
 
@@ -151,7 +173,7 @@ User-facing docs are in `docs/`. If you change a config option, CLI flag, tunnel
 * `tunnel-types.md`, `dns-configuration.md`, `certificates.md`, etc. — topic deep-dives.
 * `troubleshooting.md` — add new entries when you diagnose a recurring issue.
 
-Also add a short bullet to `CHANGELOG.md` for any user-visible change, under the `v6.0.0 (TBD)` section (or whatever the current in-flight version is).
+Also add a short bullet to `CHANGELOG.md` for any user-visible change, under the `v6.4.0 (TBD)` section (or whatever the current in-flight version is).
 
 ## Runtime modes (useful context for changes)
 
@@ -173,6 +195,7 @@ The GUI (`snx-rs-gui`) always runs unprivileged and talks to a `command`-mode `s
 * **Don't add backwards-compat shims** for config flags that were renamed (e.g. `no-keychain` → `keychain` was flipped deliberately in 5.3.0). If you're changing a flag, change it cleanly and document in `CHANGELOG.md`.
 * **Don't bypass `secrecy`.** Passwords, IKE keys, tokens, and cert passwords must stay inside `SecretString` until the exact point of use.
 * **Don't forget MSRV.** Edition 2024 features are fine; `rustc 1.88+` features are fine; anything newer is not.
+* **Don't duplicate login logic across the IKE versions.** Shared pieces live in `tunnel/ipsec/auth.rs`; a change to the auth blob or the challenge format must serve both connectors.
 
 ## Git / PR hygiene
 
