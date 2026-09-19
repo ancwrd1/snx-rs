@@ -1,5 +1,24 @@
 #![windows_subsystem = "windows"]
 
+use std::{sync::Arc, time::Duration};
+
+use chrono::Local;
+use clap::{CommandFactory, Parser};
+use i18n::tr;
+use snxcore::{
+    controller::{ServiceCommand, ServiceController},
+    model::{
+        ConnectionStatus, IkeState,
+        params::{NotificationLevel, TunnelParams},
+    },
+    platform::{Platform, PlatformAccess, SingleInstance},
+    profiles::ConnectionProfilesStore,
+    prompt::{NotificationCategory, SecurePrompt},
+    tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
+};
+use tokio::sync::mpsc;
+use tracing::{level_filters::LevelFilter, warn};
+
 use crate::{
     params::CmdlineParams,
     platform::{TrayCommand, TrayEvent},
@@ -8,24 +27,6 @@ use crate::{
         status::StatusWindowController,
     },
 };
-use chrono::Local;
-use clap::{CommandFactory, Parser};
-use i18n::tr;
-use snxcore::model::IkeState;
-use snxcore::{
-    controller::{ServiceCommand, ServiceController},
-    model::{
-        ConnectionStatus,
-        params::{NotificationLevel, TunnelParams},
-    },
-    platform::{Platform, PlatformAccess, SingleInstance},
-    profiles::ConnectionProfilesStore,
-    prompt::{NotificationCategory, SecurePrompt},
-    tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
-};
-use std::{sync::Arc, time::Duration};
-use tokio::sync::mpsc;
-use tracing::{level_filters::LevelFilter, warn};
 
 mod assets;
 mod ipc;

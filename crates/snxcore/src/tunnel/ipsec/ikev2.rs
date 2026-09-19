@@ -43,21 +43,15 @@ use crate::{
     util,
 };
 
-/// How long a rekey check waits for a request the gateway may have opened. The
-/// check runs every 10 seconds, so this only has to catch one already waiting.
+// How long a rekey check waits for a request the gateway may have opened.
 const PEER_REQUEST_POLL: Duration = Duration::from_millis(200);
 
-/// Whether the exchange failed because the transport could not carry it — a
-/// timeout, or the socket erroring out — rather than because the gateway
-/// refused something we said.
 fn is_transport_failure(error: &anyhow::Error) -> bool {
     error
         .chain()
         .any(|e| e.is::<tokio::time::error::Elapsed>() || e.is::<std::io::Error>())
 }
 
-/// The bare timeout an unanswered identity exchange produces says nothing
-/// useful, and the login type is the usual cause.
 fn identity_timeout(error: anyhow::Error) -> anyhow::Error {
     match error.downcast_ref::<tokio::time::error::Elapsed>() {
         Some(_) => anyhow!(tr!("error-identity-timeout")),
@@ -415,9 +409,6 @@ impl Ikev2TunnelConnector {
         Ok(())
     }
 
-    /// The periodic tick: retire the tunnel when the IKE SA expires, rekey the
-    /// child SA when its own lifetime runs out, and answer anything the gateway
-    /// has opened in the meantime.
     async fn on_rekey_check(&mut self) -> anyhow::Result<()> {
         if !Platform::get().new_network_interface().is_online() {
             return Ok(());
@@ -429,8 +420,6 @@ impl Ikev2TunnelConnector {
             return Ok(());
         }
 
-        // the gateway rekeys on its own schedule, and an unanswered request
-        // ends with it deleting the SA
         self.handle_peer_request().await?;
 
         self.renew_address_lease().await?;
@@ -452,8 +441,6 @@ impl Ikev2TunnelConnector {
         Ok(())
     }
 
-    /// Answers a CREATE_CHILD_SA or DELETE the gateway opened, if one is
-    /// waiting on the IKE channel.
     async fn handle_peer_request(&mut self) -> anyhow::Result<()> {
         let Some(request) = self.service.poll_request(PEER_REQUEST_POLL).await? else {
             return Ok(());
@@ -469,9 +456,6 @@ impl Ikev2TunnelConnector {
         }
     }
 
-    /// Renews the office mode lease when it is half spent, which is what the
-    /// Windows client does — the gateway grants 15 minutes and the captured
-    /// client comes back at about seven and a half.
     async fn renew_address_lease(&mut self) -> anyhow::Result<()> {
         let lifetime = self.ipsec_session.address_lifetime;
 
@@ -521,13 +505,6 @@ impl Ikev2TunnelConnector {
         SessionStore::new("ikev2_session", self.params.profile_id, self.params.server_name.clone())
     }
 
-    /// Saves the session after anything that advanced the Message ID.
-    ///
-    /// Persisting only at login leaves a stale counter behind: every later
-    /// exchange moves it, and a restore that replays an ID the gateway has
-    /// already answered is met with its cached response (RFC 7296 §2.3) rather
-    /// than a fresh one — which looks like success until the next exchange
-    /// parses the wrong reply.
     fn persist_session(&mut self) {
         if !self.params.ike_persist {
             return;
@@ -553,9 +530,6 @@ impl Ikev2TunnelConnector {
         self.store().save(&data)
     }
 
-    /// Resumes a saved IKE SA: the office mode lease is renewed to confirm the
-    /// gateway still holds the session, then a child SA is created, since ESP
-    /// material is never persisted.
     async fn do_restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>> {
         let data = self.store().load()?;
         let office_mode = self.service.load_session(&data)?;
@@ -619,8 +593,6 @@ impl Ikev2TunnelConnector {
         Ok(())
     }
 
-    /// Hands the freshly keyed child SA to the data path, which installs it and
-    /// drops the one it replaces.
     async fn apply_new_child_sa(&mut self) -> anyhow::Result<()> {
         self.ipsec_session.esp_in = self.session.esp_in();
         self.ipsec_session.esp_out = self.session.esp_out();

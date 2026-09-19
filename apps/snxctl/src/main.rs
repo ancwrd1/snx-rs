@@ -1,17 +1,22 @@
+use std::{
+    future::Future,
+    io,
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, Instant},
+};
+
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
-use snxcore::model::ConnectionStatus;
 use snxcore::{
     browser::SystemBrowser,
     controller::{ServiceCommand, ServiceController},
-    model::params::TunnelParams,
+    model::{ConnectionStatus, params::TunnelParams},
     profiles::ConnectionProfilesStore,
     prompt::TtyPrompt,
     tunnel::{TunnelConnectorFactory, connector::CheckPointConnectorFactory},
 };
-use std::time::{Duration, Instant};
-use std::{future::Future, io, path::PathBuf, sync::Arc};
 use tracing::level_filters::LevelFilter;
 
 const REKEY_STATE_TIMEOUT: Duration = Duration::from_secs(5);

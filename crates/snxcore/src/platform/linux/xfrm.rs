@@ -1,5 +1,9 @@
-use isakmp::crypto::{CipherType, DigestType};
-use isakmp::model::{EspAuthentication, EspCryptMaterial};
+use std::net::{IpAddr, Ipv4Addr};
+
+use isakmp::{
+    crypto::{CipherType, DigestType},
+    model::{EspAuthentication, EspCryptMaterial},
+};
 use netlink_packet_xfrm::{
     constants::{
         IPPROTO_ESP, UDP_ENCAP_ESPINUDP, XFRM_MODE_TUNNEL, XFRM_POLICY_IN, XFRM_POLICY_OUT, XFRM_STATE_AF_UNSPEC,
@@ -8,7 +12,6 @@ use netlink_packet_xfrm::{
 };
 use rand::random;
 use rtnetlink::{LinkMessageBuilder, LinkXfrm};
-use std::net::{IpAddr, Ipv4Addr};
 use tracing::{debug, trace};
 
 use crate::{

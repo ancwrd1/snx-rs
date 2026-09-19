@@ -2,8 +2,10 @@ use std::{borrow::Cow, fmt, net::Ipv4Addr, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Local};
 use ipnet::Ipv4Net;
-use isakmp::crypto::{CipherType, DigestType, IcvLength};
-use isakmp::model::EspCryptMaterial;
+use isakmp::{
+    crypto::{CipherType, DigestType, IcvLength},
+    model::EspCryptMaterial,
+};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
