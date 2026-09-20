@@ -5,6 +5,11 @@
 * Optional: GTK 4.10+ and WebKit 6.0+ for the `mobile-access` feature.
 * GNOME desktop: [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension. Not needed for Ubuntu.
 
+## Windows
+
+* Windows 10 or later.
+* Administrator privileges are required for installation.
+
 ## macOS
 
 * macOS 11 (Big Sur) or later, Apple Silicon (`aarch64-apple-darwin`) or Intel (`x86_64-apple-darwin`).

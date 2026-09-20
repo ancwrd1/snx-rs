@@ -11,7 +11,7 @@ Currently supported platforms: Linux, Windows, macOS.
 ## Key Features
 
 * IPsec and SSL tunnel support
-* Browser-based SSO, username/password, certificate, HSM token and MFA authentication
+* Browser-based SSO, username/password, certificate, HSM token, DynamicID and MFA authentication
 * GUI frontend with tray icon
 * Split DNS for better privacy
 * OS keychain integration

@@ -21,18 +21,18 @@ If a certificate error is returned, try adding the `-X true` command line parame
 Example output (may differ for your server):
 
 ```text
-           Server address: remote.company.com
-                Server IP: 1.2.3.4
-           Client enabled: true
-      Supported protocols: IPsec, SSL, L2TP
-       Preferred protocol: IPsec
-                TCPT port: 443
-                NATT port: 4500
-  Internal CA fingerprint: MATE FRED PEN RANK LIP HUGH BEAD WET CAGE DEW FULL EDIT
-[Microsoft Authenticator]: vpn_Microsoft_Authenticator (password)
-       [Emergency Access]: vpn_Emergency_Access (password)
-      [Username Password]: vpn_Username_Password (password)
-   [Azure Authentication]: vpn_Azure_Authentication (identity_provider)
+                  Server address: remote.company.com
+                       Server IP: 172.24.1.5
+                  Client enabled: true
+             Supported protocols: IPSec, SSL, L2TP, Prefer_IKEv2_Support_IKEv1
+              Preferred protocol: IPSec
+                       TCPT port: 443
+                       NATT port: 4500
+         Internal CA fingerprint: BALE LOY TUFT GAIT HAIL SACK OIL CALL LEN ATOM RACY DOLL
+             [Username Password]: vpn_Username_Password (password)
+          [Personal Certificate]: vpn_Personal_Certificate (certificate)
+[Username and Password with MFA]: vpn_Username_Password_MFA (password, sms)
+       [Entra ID authentication]: vpn_EntraID (identity_provider)
 ```
 
 There are two ways to use the application:

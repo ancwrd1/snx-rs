@@ -4,7 +4,7 @@
 
 1. Run the GUI frontend from the application menu of the desktop manager.
 2. Click on the application tray icon, choose "Settings."
-3. In the opened dialog, type the server address and press "Fetch info" to retrieve a list of supported login types.
+3. In the opened dialog, type the server address and click on the small "refresh" icon next to it to retrieve a list of supported login types.
 4. Select the login type and save settings. Username and password fields are optional.
 5. Click on the application tray icon and choose "Connect."
 
