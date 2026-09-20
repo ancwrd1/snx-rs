@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::BTreeMap, net::Ipv4Addr, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Local;
@@ -9,7 +9,10 @@ use snxcore::{
         AuthenticatedSession, ConnectionInfo, ConnectionStatus, MfaChallenge, MfaType, PromptInfo, SessionState,
         TunnelSession,
         params::{NotificationLevel, TunnelParams},
-        proto::{AuthResponse, CertificateResponse, ClientSettingsResponse, GatewayInformation},
+        proto::{
+            AuthResponse, CertificateResponse, ClientSettingsResponse, ConnectivityInfo, GatewayInformation,
+            LoginOption, LoginOptionsData, ProtocolVersion,
+        },
         wrappers::SessionId,
     },
     prompt::{NotificationCategory, SecurePrompt},
@@ -58,7 +61,34 @@ impl GatewayConnector for MockGatewayConnector {
     }
 
     async fn get_gateway_information(&self) -> anyhow::Result<GatewayInformation> {
-        anyhow::bail!("not implemented")
+        Ok(GatewayInformation {
+            protocol_version: ProtocolVersion { protocol_version: 100 },
+            connectivity_info: ConnectivityInfo {
+                default_authentication_method: None,
+                client_enabled: true,
+                supported_data_tunnel_protocols: vec![],
+                connectivity_type: "".to_string(),
+                server_ip: Ipv4Addr::LOCALHOST,
+                ipsec_transport: "".to_string(),
+                tcpt_port: 0,
+                natt_port: 0,
+                connect_with_certificate_url: "".to_string(),
+                internal_ca_fingerprint: Default::default(),
+            },
+            login_options_data: Some(LoginOptionsData {
+                login_options_list: BTreeMap::from([(
+                    "1".to_string(),
+                    LoginOption {
+                        id: "vpn_Test".to_string(),
+                        secondary_realm_hash: "".to_string(),
+                        display_name: "test".to_string(),
+                        show_realm: 1,
+                        factors: Default::default(),
+                    },
+                )]),
+                login_options_md5: "".to_string(),
+            }),
+        })
     }
 
     async fn enroll_certificate(
@@ -299,6 +329,26 @@ async fn connect_with_mfa() {
 
     let status = controller.command(ServiceCommand::Disconnect, params).await.unwrap();
     assert_eq!(status, ConnectionStatus::Disconnected);
+
+    fixture.server_handle.abort();
+}
+
+#[tokio::test]
+async fn fail_wrong_login_type() {
+    let fixture = ServerFixture::new().await;
+
+    let params = Arc::new(TunnelParams {
+        server_name: "127.0.0.1".to_owned(),
+        login_type: "vpn_Other".to_string(),
+        ..Default::default()
+    });
+
+    let mut controller =
+        ServiceController::new_with_server_name(&fixture.socket_name, MockPrompt, MockBrowser, Vec::new());
+
+    let status = controller.command(ServiceCommand::Connect, params.clone()).await;
+
+    assert!(status.is_err());
 
     fixture.server_handle.abort();
 }
