@@ -439,6 +439,16 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
 
         self.state.reset();
 
+        let info = self
+            .connector_factory
+            .new_gateway_connector(params.clone())
+            .get_gateway_information()
+            .await?;
+
+        if !info.is_supported_login_type(&params.login_type) {
+            anyhow::bail!(tr!("error-unsupported-login-type"));
+        }
+
         let connector = self.connector_factory.new_tunnel_connector(params.clone()).await?;
         let handle = spawn_connector_actor(connector);
 

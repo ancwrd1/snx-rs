@@ -337,6 +337,12 @@ impl GatewayInformation {
         result
     }
 
+    pub fn is_supported_login_type(&self, login_type: &str) -> bool {
+        self.login_options_data
+            .as_ref()
+            .is_none_or(|_| self.get_login_option(login_type).is_some())
+    }
+
     pub fn get_login_option(&self, login_type: &str) -> Option<&LoginOption> {
         self.login_options_data
             .as_ref()

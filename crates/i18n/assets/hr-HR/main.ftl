@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Nevažeća maksimalna TLS verzija
 error-certificate-verify-failed = TLS validacija certifikata nije uspjela. Certifikat poslužitelja je nevažeći, istekao ili nije pouzdan.
 error-invalid-gateway-info = Nevažeći odgovor s informacijama pristupnika
 error-invalid-notification-level = Nevažeća razina obavijesti
+error-unsupported-login-type = Nepodržani tip prijave
 
 # Placeholder texts
 placeholder-domains = Domene odvojene zarezom

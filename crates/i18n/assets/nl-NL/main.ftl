@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Ongeldige maximale TLS-versie
 error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
 error-invalid-gateway-info = Ongeldig gateway-informatieantwoord
 error-invalid-notification-level = Ongeldig meldingsniveau
+error-unsupported-login-type = Niet-ondersteund inlogtype
 
 # Placeholder texts
 placeholder-domains = Door komma's gescheiden domeinen

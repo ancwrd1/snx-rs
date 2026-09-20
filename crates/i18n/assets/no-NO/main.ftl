@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Ugyldig maksimal TLS-versjon
 error-certificate-verify-failed = TLS-sertifikatvalidering mislyktes. Serverens sertifikat er ugyldig, utløpt eller ikke betrodd.
 error-invalid-gateway-info = Ugyldig gateway-informasjonssvar
 error-invalid-notification-level = Ugyldig varslingsnivå
+error-unsupported-login-type = Innloggingstypen støttes ikke
 
 # Placeholder texts
 placeholder-domains = Domener separert med komma

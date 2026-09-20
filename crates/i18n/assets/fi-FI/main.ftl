@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Virheellinen TLS-enimmäisversio
 error-certificate-verify-failed = TLS-varmenteen vahvistus epäonnistui. Palvelimen varmenne on virheellinen, vanhentunut tai ei luotettu.
 error-invalid-gateway-info = Virheellinen yhdyskäytävän tietovastaus
 error-invalid-notification-level = Virheellinen ilmoitustaso
+error-unsupported-login-type = Kirjautumistyyppiä ei tueta
 
 # Placeholder texts
 placeholder-domains = Pilkulla erotetut verkkotunnukset

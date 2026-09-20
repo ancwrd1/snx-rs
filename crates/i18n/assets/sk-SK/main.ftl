@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Neplatná maximálna verzia TLS
 error-certificate-verify-failed = Overenie TLS certifikátu zlyhalo. Certifikát servera je neplatný, vypršal alebo nie je dôveryhodný.
 error-invalid-gateway-info = Neplatná odpoveď s informáciami o bráne
 error-invalid-notification-level = Neplatná úroveň oznámení
+error-unsupported-login-type = Nepodporovaný typ prihlásenia
 
 # Placeholder texts
 placeholder-domains = Domény oddelené čiarkami

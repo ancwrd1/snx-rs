@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Неверная максимальная вер
 error-certificate-verify-failed = Проверка TLS-сертификата не удалась. Сертификат сервера недействителен, истёк или не является доверенным.
 error-invalid-gateway-info = Неверный ответ с информацией о шлюзе
 error-invalid-notification-level = Неверный уровень уведомлений
+error-unsupported-login-type = Неподдерживаемый тип входа
 
 # Placeholder texts
 placeholder-domains = Домены через запятую

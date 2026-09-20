@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Invalid maximum TLS version
 error-certificate-verify-failed = TLS certificate validation failed. The server’s certificate is invalid, expired, or not trusted.
 error-invalid-gateway-info = Invalid gateway information response
 error-invalid-notification-level = Invalid notification level
+error-unsupported-login-type = Unsupported login type
 
 # Placeholder texts
 placeholder-domains = Comma-separated domains

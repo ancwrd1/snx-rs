@@ -151,6 +151,7 @@ error-invalid-tls-version-max = Versão TLS máxima inválida
 error-certificate-verify-failed = Validação do certificado TLS falhou. O certificado do servidor é inválido, expirou ou não é confiável.
 error-invalid-gateway-info = Resposta de informações do gateway inválida
 error-invalid-notification-level = Nível de notificação inválido
+error-unsupported-login-type = Tipo de login não suportado
 
 # Placeholder texts
 placeholder-domains = Domínios separados por vírgulas

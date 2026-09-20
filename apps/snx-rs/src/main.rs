@@ -261,6 +261,10 @@ where
     let connector = factory.new_gateway_connector(params.clone());
     let info = connector.get_gateway_information().await?;
 
+    if !info.is_supported_login_type(&params.login_type) {
+        anyhow::bail!(tr!("error-unsupported-login-type"));
+    }
+
     let mfa_prompts = info.get_login_prompts(&params.login_type);
 
     let mut tunnel_connector = factory.new_tunnel_connector(params.clone()).await?;
