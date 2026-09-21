@@ -21,7 +21,7 @@ use crate::{
     },
     platform::{
         DeviceConfig, IPsecConfigurator, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig,
-        UdpEncapType, UdpSocketExt,
+        RoutingConfigurator, UdpEncapType, UdpSocketExt,
     },
     tunnel::{
         GatewayConnector, TunnelCommand, TunnelEvent, VpnTunnel,

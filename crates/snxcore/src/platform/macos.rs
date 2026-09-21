@@ -106,8 +106,8 @@ impl PlatformAccess for MacosPlatformAccess {
         &self,
         device: S,
         tunnel_type: TunnelType,
-    ) -> anyhow::Result<Box<dyn RoutingConfigurator + Send + Sync>> {
-        Ok(Box::new(routing::MacosRoutingConfigurator::new(device, tunnel_type)))
+    ) -> anyhow::Result<impl RoutingConfigurator + Send + Sync + 'static> {
+        Ok(routing::MacosRoutingConfigurator::new(device, tunnel_type))
     }
 
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static {

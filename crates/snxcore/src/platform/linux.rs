@@ -245,14 +245,12 @@ impl PlatformAccess for LinuxPlatformAccess {
         xfrm::XfrmConfigurator::new(device_config, ipsec_session, src_ip, src_port, dest_ip, dest_port)
     }
 
-    async fn new_routing_configurator<S: AsRef<str>>(
+    async fn new_routing_configurator<S: AsRef<str> + Send>(
         &self,
         device: S,
         tunnel_type: TunnelType,
-    ) -> anyhow::Result<Box<dyn RoutingConfigurator + Send + Sync>> {
-        Ok(Box::new(
-            routing::LinuxRoutingConfigurator::new(device, tunnel_type).await?,
-        ))
+    ) -> anyhow::Result<impl RoutingConfigurator + Send + Sync + 'static> {
+        routing::LinuxRoutingConfigurator::new(device, tunnel_type).await
     }
 
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static {

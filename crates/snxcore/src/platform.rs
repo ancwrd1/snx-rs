@@ -297,7 +297,7 @@ pub trait PlatformAccess {
         &self,
         device: S,
         tunnel_type: TunnelType,
-    ) -> impl Future<Output = anyhow::Result<Box<dyn RoutingConfigurator + Send + Sync>>> + Send;
+    ) -> impl Future<Output = anyhow::Result<impl RoutingConfigurator + Send + Sync + 'static>> + Send;
     fn new_network_interface(&self) -> impl NetworkInterface + Send + Sync + 'static;
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static>;
     fn data_dir(&self) -> PathBuf;

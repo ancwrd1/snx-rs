@@ -171,7 +171,7 @@ impl TunIPsecTunnel {
         };
 
         configurator.configure(&config).await?;
-        self.routing_configurator = Some(configurator);
+        self.routing_configurator = Some(Box::new(configurator));
 
         Ok(())
     }
