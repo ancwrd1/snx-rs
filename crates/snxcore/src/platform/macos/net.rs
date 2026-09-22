@@ -105,6 +105,17 @@ fn roundup(len: usize) -> usize {
 
 // `parts` must be supplied in ascending RTA_* bit order.
 pub(super) fn build_route_message(rtm_type: u8, rtm_flags: c_int, rtm_seq: c_int, parts: &[(c_int, &[u8])]) -> Vec<u8> {
+    build_scoped_route_message(rtm_type, rtm_flags, 0, rtm_seq, parts)
+}
+
+// With RTF_IFSCOPE in rtm_flags, rtm_index names the interface the route is scoped to.
+pub(super) fn build_scoped_route_message(
+    rtm_type: u8,
+    rtm_flags: c_int,
+    rtm_index: u16,
+    rtm_seq: c_int,
+    parts: &[(c_int, &[u8])],
+) -> Vec<u8> {
     let mut payload = Vec::new();
     let mut rtm_addrs = 0;
     for (bit, sa) in parts {
@@ -119,6 +130,7 @@ pub(super) fn build_route_message(rtm_type: u8, rtm_flags: c_int, rtm_seq: c_int
     hdr.rtm_msglen = total as u16;
     hdr.rtm_version = libc::RTM_VERSION as u8;
     hdr.rtm_type = rtm_type;
+    hdr.rtm_index = rtm_index;
     hdr.rtm_flags = rtm_flags;
     hdr.rtm_addrs = rtm_addrs;
     hdr.rtm_seq = rtm_seq;

@@ -16,8 +16,8 @@ use crate::{
     platform::{
         RoutingConfig, RoutingConfigurator,
         macos::net::{
-            build_route_message, next_seq, route_get, route_socket, send_route_message, sockaddr_dl, sockaddr_in,
-            sockaddr_in6, struct_bytes,
+            build_route_message, build_scoped_route_message, next_seq, route_get, route_socket, send_route_message,
+            sockaddr_dl, sockaddr_in, sockaddr_in6, struct_bytes,
         },
     },
 };
@@ -25,11 +25,12 @@ use crate::{
 struct TrackedRoute {
     dest: IpAddr,
     netmask: Option<IpAddr>,
+    ifscope: Option<u16>,
 }
 
 pub struct MacosRoutingConfigurator {
     device: String,
-    _tunnel_type: TunnelType,
+    tunnel_type: TunnelType,
     added: Mutex<Vec<TrackedRoute>>,
 }
 
@@ -37,7 +38,7 @@ impl MacosRoutingConfigurator {
     pub fn new<S: AsRef<str>>(device: S, tunnel_type: TunnelType) -> Self {
         Self {
             device: device.as_ref().to_owned(),
-            _tunnel_type: tunnel_type,
+            tunnel_type,
             added: Mutex::new(Vec::new()),
         }
     }
@@ -75,6 +76,7 @@ impl MacosRoutingConfigurator {
             Ok(()) => self.added.lock().unwrap_or_else(|e| e.into_inner()).push(TrackedRoute {
                 dest: prefix.network().into(),
                 netmask: Some(prefix.netmask().into()),
+                ifscope: None,
             }),
             Err(e) if e.raw_os_error() == Some(libc::EEXIST) => debug!("Route {prefix} already exists, not tracking"),
             Err(e) => return Err(e.into()),
@@ -121,9 +123,45 @@ impl MacosRoutingConfigurator {
             Ok(()) => self.added.lock().unwrap_or_else(|e| e.into_inner()).push(TrackedRoute {
                 dest: destination.into(),
                 netmask: None,
+                ifscope: None,
             }),
             Err(e) if e.raw_os_error() == Some(libc::EEXIST) => {
                 debug!("Host route {destination} already exists, not tracking")
+            }
+            Err(e) => return Err(e.into()),
+        }
+        Ok(())
+    }
+
+    // Keepalive and SCV sockets are bound to the tunnel with IP_BOUND_IF, which makes the kernel look up
+    // routes scoped to utun only. The gateway's host exclusion points at the physical interface, so without
+    // a utun-scoped host route the send fails with "not in table". Unscoped lookups (ESP) are unaffected.
+    fn add_scoped_host_route_via_tunnel(&self, destination: Ipv4Addr) -> anyhow::Result<()> {
+        debug!("Adding {destination} route scoped to {}", self.device);
+        let ifindex = self.tunnel_ifindex()?;
+        let dst = sockaddr_in(destination);
+        let gateway = sockaddr_dl(ifindex);
+
+        let msg = build_scoped_route_message(
+            libc::RTM_ADD as u8,
+            libc::RTF_UP | libc::RTF_STATIC | libc::RTF_HOST | libc::RTF_IFSCOPE,
+            ifindex,
+            next_seq(),
+            &[
+                (libc::RTA_DST, struct_bytes(&dst)),
+                (libc::RTA_GATEWAY, struct_bytes(&gateway)),
+            ],
+        );
+
+        let sock = route_socket()?;
+        match send_route_message(sock.as_fd(), &msg) {
+            Ok(()) => self.added.lock().unwrap_or_else(|e| e.into_inner()).push(TrackedRoute {
+                dest: destination.into(),
+                netmask: None,
+                ifscope: Some(ifindex),
+            }),
+            Err(e) if e.raw_os_error() == Some(libc::EEXIST) => {
+                debug!("Scoped route {destination} already exists, not tracking")
             }
             Err(e) => return Err(e.into()),
         }
@@ -154,6 +192,7 @@ impl MacosRoutingConfigurator {
             Ok(()) => self.added.lock().unwrap_or_else(|e| e.into_inner()).push(TrackedRoute {
                 dest: prefix.network().into(),
                 netmask: Some(prefix.netmask().into()),
+                ifscope: None,
             }),
             Err(e) if e.raw_os_error() == Some(libc::EEXIST) => {
                 debug!("IPv6 blackhole route {prefix} already exists, not tracking")
@@ -179,6 +218,10 @@ impl MacosRoutingConfigurator {
 
         for route in routes {
             let mut flags = libc::RTF_UP | libc::RTF_STATIC;
+            if route.ifscope.is_some() {
+                flags |= libc::RTF_IFSCOPE;
+            }
+            let ifscope = route.ifscope.unwrap_or_default();
             let msg = match route.dest {
                 IpAddr::V4(dest) => {
                     let dst = sockaddr_in(dest);
@@ -191,7 +234,7 @@ impl MacosRoutingConfigurator {
                         Some(mask) => parts.push((libc::RTA_NETMASK, struct_bytes(mask))),
                         None => flags |= libc::RTF_HOST,
                     }
-                    build_route_message(libc::RTM_DELETE as u8, flags, next_seq(), &parts)
+                    build_scoped_route_message(libc::RTM_DELETE as u8, flags, ifscope, next_seq(), &parts)
                 }
                 IpAddr::V6(dest) => {
                     let dst = sockaddr_in6(dest);
@@ -204,7 +247,7 @@ impl MacosRoutingConfigurator {
                         Some(mask) => parts.push((libc::RTA_NETMASK, struct_bytes(mask))),
                         None => flags |= libc::RTF_HOST,
                     }
-                    build_route_message(libc::RTM_DELETE as u8, flags, next_seq(), &parts)
+                    build_scoped_route_message(libc::RTM_DELETE as u8, flags, ifscope, next_seq(), &parts)
                 }
             };
 
@@ -275,6 +318,10 @@ impl RoutingConfigurator for MacosRoutingConfigurator {
                 self.add_route_via_tunnel(Ipv4Net::new(Ipv4Addr::new(0, 0, 0, 0), 1)?)?;
                 self.add_route_via_tunnel(Ipv4Net::new(Ipv4Addr::new(128, 0, 0, 0), 1)?)?;
 
+                if self.tunnel_type == TunnelType::IPsec {
+                    self.add_scoped_host_route_via_tunnel(*destination)?;
+                }
+
                 if *disable_ipv6 {
                     // Blackhole all IPv6 to prevent leaks past the IPv4 tunnel. Like the /1 halves
                     // above, two /1 blackholes win over any existing ::/0 default by longest-prefix
@@ -289,6 +336,10 @@ impl RoutingConfigurator for MacosRoutingConfigurator {
                 self.add_host_exclusion(*destination, false)?;
                 for route in routes {
                     self.add_route_via_tunnel(*route)?;
+                }
+
+                if self.tunnel_type == TunnelType::IPsec {
+                    self.add_scoped_host_route_via_tunnel(*destination)?;
                 }
             }
             RoutingConfig::Cleanup { .. } => {

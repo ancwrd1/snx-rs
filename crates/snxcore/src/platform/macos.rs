@@ -2,10 +2,13 @@
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
+    os::raw::c_int,
     path::PathBuf,
     time::Duration,
 };
 
+use anyhow::anyhow;
+use nix::{getsockopt_impl, setsockopt_impl, sockopt_impl, sys::socket};
 use tokio::net::UdpSocket;
 use uuid::Uuid;
 
@@ -27,19 +30,27 @@ mod routing;
 mod single_instance;
 mod stats;
 
-// macOS has no in-kernel ESP-in-UDP encapsulation; the userspace ESP data path
-// (forced by ipsec_native = false) drives the raw socket itself, so these are no-ops.
+const UDP_NOCKSUM: c_int = 0x01;
+
+sockopt_impl!(NoCheck, Both, libc::IPPROTO_UDP, UDP_NOCKSUM, bool);
+sockopt_impl!(IpBoundIf, Both, libc::IPPROTO_IP, libc::IP_BOUND_IF, u32);
+
 impl UdpSocketExt for UdpSocket {
+    // macOS has no in-kernel ESP-in-UDP encapsulation; the userspace ESP data path
+    // (forced by ipsec_native = false) drives the raw socket itself.
     fn set_encapsulation(&self, _encap: UdpEncapType) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn set_no_check(&self, _flag: bool) -> anyhow::Result<()> {
-        Ok(())
+    fn set_no_check(&self, flag: bool) -> anyhow::Result<()> {
+        socket::setsockopt(self, NoCheck, &flag).map_err(|e| anyhow!(i18n::tr!("error-so-no-check-failed", code = e)))
     }
 
-    fn bind_to_tunnel(&self, _device: &str) -> anyhow::Result<()> {
-        Ok(())
+    fn bind_to_tunnel(&self, device: &str) -> anyhow::Result<()> {
+        let index =
+            nix::net::if_::if_nametoindex(device).map_err(|e| anyhow!("if_nametoindex({device}) failed: {e}"))?;
+        socket::setsockopt(self, IpBoundIf, &index)
+            .map_err(|e| anyhow!("IP_BOUND_IF({device}, idx={index}) failed: {e}"))
     }
 
     async fn send_receive(&self, data: &[u8], timeout: Duration, target: SocketAddr) -> anyhow::Result<Vec<u8>> {
@@ -53,12 +64,7 @@ impl PlatformAccess for MacosPlatformAccess {
     async fn get_features(&self) -> PlatformFeatures {
         PlatformFeatures {
             ipsec_native: false,
-            // No app-level keepalive on macOS: the gateway echoes the request's UDP checksum in its
-            // reply, which the kernel drops as invalid. Linux/Windows zero the checksum via SO_NO_CHECK,
-            // which macOS lacks (a future fix could craft the keepalive over a raw socket). Enabling it
-            // would tear a healthy tunnel down; without it the ESP session still stays up and a dead
-            // peer is detected at the next SA rekey.
-            ipsec_keepalive: false,
+            ipsec_keepalive: true,
             split_dns: true,
         }
     }
