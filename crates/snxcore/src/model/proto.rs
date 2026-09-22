@@ -311,6 +311,7 @@ pub struct GatewayInformation {
 }
 
 const PREFER_IKEV2_PROTOCOL: &str = "Prefer_IKEv2_Support_IKEv1";
+const IKEV2_ONLY: &str = "IKEv2_Only";
 
 impl GatewayInformation {
     pub fn get_login_prompts(&self, login_type: &str) -> Vec<PromptInfo> {
@@ -367,7 +368,7 @@ impl GatewayInformation {
         self.connectivity_info
             .supported_data_tunnel_protocols
             .iter()
-            .any(|protocol| protocol == PREFER_IKEV2_PROTOCOL)
+            .any(|protocol| protocol == PREFER_IKEV2_PROTOCOL || protocol == IKEV2_ONLY)
     }
 
     pub fn is_identity_provider_login_type(&self, login_type: &str) -> bool {

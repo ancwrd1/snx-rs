@@ -15,7 +15,7 @@ The `kernel` value for `transport-type` is not available on those platforms; val
 ## IKE protocol version
 
 The IKE protocol version is autodetected by default: IKEv2 is used when the server advertises the
-`Prefer_IKEv2_Support_IKEv1` data tunnel protocol, otherwise IKEv1 is used. The `ike-version` option overrides this with
+`Prefer_IKEv2_Support_IKEv1` or `IKEv2_Only` data tunnel protocol, otherwise IKEv1 is used. The `ike-version` option overrides this with
 `1` or `2`. Both versions use the same transports, the same authentication methods and the same office mode configuration.
 
 Unlike IKEv1, the IKEv2 exchange itself runs over UDP on the NAT-T port rather than over TCPT, because the server will
