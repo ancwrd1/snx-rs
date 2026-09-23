@@ -12,7 +12,7 @@ The `transport-type` option can be used to choose the IPsec transport type manua
 macOS and Windows have no kernel `xfrm` support, so IPsec always uses the userspace TUN/ESP path there.
 The `kernel` value for `transport-type` is not available on those platforms; valid values are `auto`, `udp` and `tcpt`.
 
-## IKE protocol version
+## IKE Protocol Version
 
 The IKE protocol version is autodetected by default: IKEv2 is used when the server advertises the
 `Prefer_IKEv2_Support_IKEv1` or `IKEv2_Only` data tunnel protocol, otherwise IKEv1 is used. The `ike-version` option overrides this with
@@ -23,6 +23,8 @@ not carry ESP over UDP for a session it negotiated over TCPT. If that exchange d
 path that drops the IP fragments the server's certificate round needs — the client retries the whole login over TCPT and
 moves ESP there with it. That fallback applies only to the default `transport-type=auto`; an explicit `transport-type`
 is left as chosen.
+
+## SSL Tunnel
 
 For older VPN servers or in case IPsec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
 SSL tunnel has some limitations: it is slower, has no hardware token support and no MFA in combination with the certificates.
