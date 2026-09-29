@@ -45,6 +45,7 @@ label-language = Język
 label-system-default = Domyślny systemowy
 label-username-password = Nazwa użytkownika i hasło
 label-auto-connect = Automatycznie łącz przy starcie
+label-auto-disconnect = Automatycznie rozłączaj przy zamknięciu
 label-ip-lease-time = Niestandardowy czas dzierżawy IP, sekundy
 label-disable-ipv6 = Trasa domyślna wyłącza IPv6
 label-mtu = MTU

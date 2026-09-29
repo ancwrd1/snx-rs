@@ -45,6 +45,7 @@ label-language = Idioma
 label-system-default = Predeterminado del sistema
 label-username-password = Nombre de usuario y contraseña
 label-auto-connect = Conectar automáticamente al inicio
+label-auto-disconnect = Desconectar automáticamente al salir
 label-ip-lease-time = Tiempo de concesión IP personalizado, segundos
 label-disable-ipv6 = La ruta predeterminada desactiva IPv6
 label-mtu = MTU

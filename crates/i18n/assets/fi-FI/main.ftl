@@ -45,6 +45,7 @@ label-language = Kieli
 label-system-default = Järjestelmän oletus
 label-username-password = Käyttäjätunnus ja salasana
 label-auto-connect = Yhdistä automaattisesti käynnistyksessä
+label-auto-disconnect = Katkaise yhteys automaattisesti suljettaessa
 label-ip-lease-time = Mukautettu IP-vuokra-aika, sekuntia
 label-disable-ipv6 = Oletusreitti poistaa IPv6:n käytöstä
 label-mtu = MTU

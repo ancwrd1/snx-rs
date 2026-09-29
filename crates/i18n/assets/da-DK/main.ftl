@@ -45,6 +45,7 @@ label-language = Sprog
 label-system-default = Systemstandard
 label-username-password = Brugernavn og adgangskode
 label-auto-connect = Forbind automatisk ved opstart
+label-auto-disconnect = Afbryd forbindelsen automatisk ved afslutning
 label-ip-lease-time = Brugerdefineret IP-leasetid, sekunder
 label-disable-ipv6 = Standardrute deaktiverer IPv6
 label-mtu = MTU

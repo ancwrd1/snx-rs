@@ -45,6 +45,7 @@ label-language = Taal
 label-system-default = Systeemstandaard
 label-username-password = Gebruikersnaam en wachtwoord
 label-auto-connect = Automatisch verbinden bij opstarten
+label-auto-disconnect = Automatisch verbinding verbreken bij afsluiten
 label-ip-lease-time = Aangepaste IP-leasetijd, seconden
 label-disable-ipv6 = Standaardroute schakelt IPv6 uit
 label-mtu = MTU

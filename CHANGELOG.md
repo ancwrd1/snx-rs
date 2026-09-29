@@ -1,3 +1,6 @@
+## v6.4.2 (TBD)
+* Added the `auto-disconnect` option which disconnects the tunnel when the GUI frontend exits.
+
 ## v6.4.1 (2026-09-24)
 * macOS: enabled IPsec keepalive, so a dead tunnel is detected without waiting for the next rekey.
 * Fixed a problem with semicolon-separated DNS suffixes when using IKEv2 exchange.

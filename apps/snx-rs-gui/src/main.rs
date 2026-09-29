@@ -143,7 +143,21 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::task::block_in_place(slint::run_event_loop_until_quit)?;
 
+    if ConnectionProfilesStore::instance().get_default().auto_disconnect {
+        disconnect_on_exit().await;
+    }
+
     Ok(())
+}
+
+async fn disconnect_on_exit() {
+    let params = ConnectionProfilesStore::instance().get_connected();
+    let mut controller = ServiceController::new(SlintPrompt::new(), platform::new_browser_controller(params.clone()));
+    if let Ok(status) = controller.command(ServiceCommand::Status, params.clone()).await
+        && !matches!(status, ConnectionStatus::Disconnected)
+    {
+        let _ = controller.command(ServiceCommand::Disconnect, params).await;
+    }
 }
 
 #[cfg(unix)]

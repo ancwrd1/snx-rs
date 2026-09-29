@@ -568,6 +568,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
     window.set_color_theme_index(defaults.color_theme.as_u32() as i32);
     window.set_notification_level_index(defaults.notification_level.as_u32() as i32);
     window.set_auto_connect(defaults.auto_connect);
+    window.set_auto_disconnect(defaults.auto_disconnect);
     let locale_index = defaults
         .locale
         .as_ref()
@@ -1013,6 +1014,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     };
     params.locale = new_locale.clone();
     params.auto_connect = window.get_auto_connect();
+    params.auto_disconnect = window.get_auto_disconnect();
 
     if params.profile_id != DEFAULT_PROFILE_UUID {
         let mut default_params = (*ConnectionProfilesStore::instance().get_default()).clone();
@@ -1021,6 +1023,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
         default_params.notification_level = params.notification_level;
         default_params.locale = params.locale.clone();
         default_params.auto_connect = params.auto_connect;
+        default_params.auto_disconnect = params.auto_disconnect;
         ConnectionProfilesStore::instance().save(Arc::new(default_params));
     }
 

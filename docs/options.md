@@ -36,6 +36,7 @@
 | `color-theme=auto\|dark\|light`                      | Set window color theme for the GUI app.                                                                                                                  |
 | `locale=<locale>`                                    | Override system locale for i18n support.                                                                                                                 |
 | `auto-connect=true\|false`                           | Automatically connect when the GUI frontend starts.                                                                                                      |
+| `auto-disconnect=true\|false`                        | Automatically disconnect the tunnel when the GUI frontend exits.                                                                                         |
 | `notification-level=off\|minimal\|standard\|verbose` | Verbosity of the GUI desktop notifications. Default is minimal.                                                                                          |
 | `ip-lease-time=NN`                                   | Override IP lease time with a given value in seconds. The default is to use the lease time acquired from the VPN server.                                 |
 | `disable-ipv6=true\|false`                           | Disable IPv6 in the kernel when default route is enabled, to prevent IPv6 leaks.                                                                         |

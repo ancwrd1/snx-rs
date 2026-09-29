@@ -45,6 +45,7 @@ label-language = Jazyk
 label-system-default = Systémové výchozí
 label-username-password = Uživatelské jméno a heslo
 label-auto-connect = Automaticky se připojit při spuštění
+label-auto-disconnect = Automaticky se odpojit při ukončení
 label-ip-lease-time = Vlastní doba pronájmu IP, sekundy
 label-disable-ipv6 = Výchozí trasa zakáže IPv6
 label-mtu = MTU

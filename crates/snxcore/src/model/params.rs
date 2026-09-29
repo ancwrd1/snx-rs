@@ -592,6 +592,7 @@ pub struct TunnelParams {
     pub port_knock: bool,
     pub locale: Option<String>,
     pub auto_connect: bool,
+    pub auto_disconnect: bool,
     pub ip_lease_time: Option<Duration>,
     pub disable_ipv6: bool,
     pub mtu: u16,
@@ -650,6 +651,7 @@ impl Default for TunnelParams {
             port_knock: false,
             locale: None,
             auto_connect: false,
+            auto_disconnect: false,
             ip_lease_time: None,
             disable_ipv6: false,
             mtu: DEFAULT_MTU,
@@ -704,6 +706,7 @@ impl PartialEq for TunnelParams {
             && self.port_knock == other.port_knock
             && self.locale == other.locale
             && self.auto_connect == other.auto_connect
+            && self.auto_disconnect == other.auto_disconnect
             && self.ip_lease_time == other.ip_lease_time
             && self.disable_ipv6 == other.disable_ipv6
             && self.mtu == other.mtu
@@ -776,6 +779,7 @@ impl TunnelParams {
                 "port-knock" => params.port_knock = v.parse().unwrap_or_default(),
                 "locale" => params.locale = Some(v),
                 "auto-connect" => params.auto_connect = v.parse().unwrap_or_default(),
+                "auto-disconnect" => params.auto_disconnect = v.parse().unwrap_or_default(),
                 "ip-lease-time" => {
                     params.ip_lease_time = if !v.trim().is_empty() {
                         v.parse::<u64>().ok().map(Duration::from_secs)
@@ -897,6 +901,7 @@ impl TunnelParams {
         }
 
         writeln!(buf, "auto-connect={}", self.auto_connect)?;
+        writeln!(buf, "auto-disconnect={}", self.auto_disconnect)?;
         writeln!(
             buf,
             "ip-lease-time={}",
@@ -1043,6 +1048,7 @@ mod tests {
             port_knock: true,
             locale: Some("ja_JP".to_string()),
             auto_connect: true,
+            auto_disconnect: true,
             ip_lease_time: Some(Duration::from_secs(500)),
             disable_ipv6: true,
             mtu: 2000,

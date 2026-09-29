@@ -45,6 +45,7 @@ label-language = Jezik
 label-system-default = Zadano sustava
 label-username-password = Korisničko ime i lozinka
 label-auto-connect = Automatski se poveži pri pokretanju
+label-auto-disconnect = Automatski prekini vezu pri izlasku
 label-ip-lease-time = Prilagođeno vrijeme zakupa IP adrese, sekunde
 label-disable-ipv6 = Zadana ruta onemogućuje IPv6
 label-mtu = MTU
