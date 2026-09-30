@@ -8,11 +8,14 @@ Currently supported platforms: Linux, Windows, macOS.
 
 ## Key Features
 
-* IPsec and SSL tunnel support
-* Browser-based SSO, username/password, certificate, HSM token, DynamicID and MFA authentication
+* IPsec (IKEv1 + IKEv2) and legacy SSL tunnel support
+* Multiple login types with MFA: identity provider, username/password, user and machine certificate, HSM token, DynamicID
 * GUI frontend with tray icon
 * Split DNS for better privacy
+* Advanced routing configuration
+* Client certificate enrollment and renewal
 * OS keychain integration
+* Native kernel IPsec support on Linux
 * Multiple connection profiles
 * Persistent IPsec session for fast reconnect after network drops or suspend/resume — see [`ike-persist`](docs/persistent-ipsec-session.md)
 
