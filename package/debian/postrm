@@ -1,0 +1,12 @@
+#!/bin/bash
+
+case "$1" in
+	purge|remove)
+		rm -rf /var/cache/snx-rs || true
+		systemctl daemon-reload || true
+		;;
+	*)
+		;;
+esac
+
+exit 0

@@ -25,33 +25,35 @@ cp -a $RPM_BUILDROOT/* %{buildroot}/
 /usr/bin/snx-rs
 /usr/bin/snx-rs-gui
 /usr/bin/snxctl
-/etc/systemd/system/snx-rs.service
+/usr/lib/systemd/system/snx-rs.service
 /usr/share/applications/snx-rs-gui.desktop
 /usr/share/icons/hicolor/symbolic/apps/snx-rs-*.svg
 
 %pre
-case "$1" in
-    1)
-        # Fresh install
-        ;;
-    2)
-        # Upgrade
-        systemctl stop snx-rs 2>/dev/null >/dev/null || true
-        ;;
-esac
+if [ "$1" = 2 ]; then
+    systemctl stop snx-rs 2>/dev/null >/dev/null || true
+fi
+# Versions before 6.4.2 installed the unit into /etc/systemd/system. Once the unit lives in
+# /usr/lib, a file in /etc is an admin override and must be left alone.
+if [ -f /etc/systemd/system/snx-rs.service ] && [ ! -f /usr/lib/systemd/system/snx-rs.service ]; then
+    systemctl stop snx-rs 2>/dev/null >/dev/null || true
+    systemctl disable snx-rs 2>/dev/null >/dev/null || true
+    rm -f /etc/systemd/system/snx-rs.service
+    mkdir -p /var/lib/rpm-state/snx-rs
+    touch /var/lib/rpm-state/snx-rs/migrate-unit
+fi
 exit 0
 
 %post
-case "$1" in
-    1)
-        # Fresh install
-        systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
-        ;;
-    2)
-        # Upgrade
-        systemctl start snx-rs 2>/dev/null >/dev/null || true
-        ;;
-esac
+systemctl daemon-reload 2>/dev/null >/dev/null || true
+if [ -f /var/lib/rpm-state/snx-rs/migrate-unit ]; then
+    rm -rf /var/lib/rpm-state/snx-rs
+    systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
+elif [ "$1" = 1 ]; then
+    systemctl enable --now snx-rs 2>/dev/null >/dev/null || true
+else
+    systemctl start snx-rs 2>/dev/null >/dev/null || true
+fi
 gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
 pkill -USR1 -x snx-rs-gui 2>/dev/null >/dev/null || true
 exit 0
@@ -74,7 +76,6 @@ case "$1" in
     0)
         # Uninstall
         rm -rf /var/cache/snx-rs
-        rm -f /etc/systemd/system/snx-rs.service 2>/dev/null >/dev/null || true
         systemctl daemon-reload
         ;;
     1)

@@ -78,9 +78,10 @@ create_deb() {
     install -m 755 "$basedir/package/debian/postinst" "$debian/"
     install -m 755 "$basedir/package/debian/preinst" "$debian/"
     install -m 755 "$basedir/package/debian/prerm" "$debian/"
+    install -m 755 "$basedir/package/debian/postrm" "$debian/"
 
     mkdir -p "$tmpdir/debian/usr/bin"
-    mkdir -p "$tmpdir/debian/etc/systemd/system"
+    mkdir -p "$tmpdir/debian/usr/lib/systemd/system"
     mkdir -p "$tmpdir/debian/usr/share/applications"
     mkdir -p "$tmpdir/debian/usr/share/icons/hicolor/symbolic/apps"
 
@@ -92,9 +93,14 @@ create_deb() {
 
     sed "s/{{version}}/$deb_version/;s/{{arch}}/$deb_arch/;s/{{size}}/$size/;s/{{glibc}}/$glibc_version/" "$basedir/package/debian/control.in" > "$debian/control"
 
-    cp "$basedir/package/snx-rs.service" "$tmpdir/debian/etc/systemd/system/"
+    cp "$basedir/package/snx-rs.service" "$tmpdir/debian/usr/lib/systemd/system/"
     cp "$basedir/package/snx-rs-gui.desktop" "$tmpdir/debian/usr/share/applications/"
     cp "$basedir/package/icons"/*.svg "$tmpdir/debian/usr/share/icons/hicolor/symbolic/apps/"
+
+    if [ -d "$tmpdir/debian/etc" ]; then
+        (cd "$tmpdir/debian" && find etc -type f | sort | sed 's|^|/|') > "$debian/conffiles"
+        [ -s "$debian/conffiles" ] || rm -f "$debian/conffiles"
+    fi
 
     if ! fakeroot dpkg-deb --build "$tmpdir/debian" "$target/$name.deb"; then
         exit 1
@@ -122,7 +128,7 @@ create_rpm() {
     sed "s/{{version}}/$rpm_version/;s/{{arch}}/$arch/;s/{{glibc}}/$glibc_version/" "$basedir/package/rpm/package.spec.in" > "$rpm/SPECS/package.spec"
 
     mkdir -p "$RPM_BUILDROOT/usr/bin"
-    mkdir -p "$RPM_BUILDROOT/etc/systemd/system"
+    mkdir -p "$RPM_BUILDROOT/usr/lib/systemd/system"
     mkdir -p "$RPM_BUILDROOT/usr/share/applications"
     mkdir -p "$RPM_BUILDROOT/usr/share/icons/hicolor/symbolic/apps"
 
@@ -130,7 +136,7 @@ create_rpm() {
       install -m 755 "$target/$triple/lto/$app" "$RPM_BUILDROOT/usr/bin/"
     done
 
-    cp "$basedir/package/snx-rs.service" "$RPM_BUILDROOT/etc/systemd/system/"
+    cp "$basedir/package/snx-rs.service" "$RPM_BUILDROOT/usr/lib/systemd/system/"
     cp "$basedir/package/snx-rs-gui.desktop" "$RPM_BUILDROOT/usr/share/applications"
     cp "$basedir/package/icons"/*.svg "$RPM_BUILDROOT/usr/share/icons/hicolor/symbolic/apps/"
 

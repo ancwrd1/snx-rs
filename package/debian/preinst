@@ -3,6 +3,12 @@
 case "$1" in
 	install|upgrade)
 		systemctl stop snx-rs || true
+		# Versions before 6.4.2 installed the unit into /etc/systemd/system. Once the unit lives in
+		# /usr/lib, a file in /etc is an admin override and must be left alone.
+		if [ -f /etc/systemd/system/snx-rs.service ] && [ ! -f /usr/lib/systemd/system/snx-rs.service ]; then
+			systemctl disable snx-rs 2>/dev/null >/dev/null || true
+			rm -f /etc/systemd/system/snx-rs.service
+		fi
 		;;
 	*)
 		;;
