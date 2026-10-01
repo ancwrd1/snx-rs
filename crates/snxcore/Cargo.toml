@@ -36,7 +36,6 @@ libc = "0.2"
 base64 = "0.23"
 tracing = { version = "0.1", features = [] }
 async-trait = "0.1"
-async-recursion = "1"
 rand = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 passterm = "2"
