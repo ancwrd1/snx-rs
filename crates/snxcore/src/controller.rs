@@ -1,7 +1,6 @@
 use std::{str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::{Context, anyhow};
-use futures::future::{BoxFuture, FutureExt};
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
 use interprocess::local_socket::traits::tokio::Stream;
@@ -130,26 +129,19 @@ where
         }
     }
 
-    pub fn do_status(
-        &mut self,
-        params: Arc<TunnelParams>,
-        with_mfa: bool,
-    ) -> BoxFuture<'_, anyhow::Result<ConnectionStatus>> {
-        async move {
-            let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await?;
-            match response {
-                TunnelServiceResponse::ConnectionStatus(status) => {
-                    if let (true, ConnectionStatus::Mfa(mfa)) = (with_mfa, &status) {
-                        self.process_mfa_request(mfa, params).await
-                    } else {
-                        Ok(status)
-                    }
+    pub async fn do_status(&mut self, params: Arc<TunnelParams>, with_mfa: bool) -> anyhow::Result<ConnectionStatus> {
+        let response = self.send_receive(TunnelServiceRequest::GetStatus, RECV_TIMEOUT).await?;
+        match response {
+            TunnelServiceResponse::ConnectionStatus(status) => {
+                if let (true, ConnectionStatus::Mfa(mfa)) = (with_mfa, &status) {
+                    Box::pin(self.process_mfa_request(mfa, params)).await
+                } else {
+                    Ok(status)
                 }
-                TunnelServiceResponse::Error(e) => Err(anyhow!(e)),
-                TunnelServiceResponse::Ok => Err(anyhow!("Invalid response!")),
             }
+            TunnelServiceResponse::Error(e) => Err(anyhow!(e)),
+            TunnelServiceResponse::Ok => Err(anyhow!("Invalid response!")),
         }
-        .boxed()
     }
 
     async fn process_mfa_request(
