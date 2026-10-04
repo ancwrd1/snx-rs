@@ -604,6 +604,7 @@ pub struct TunnelParams {
     #[serde(skip)]
     pub reg_key: Option<String>,
     pub client_logging_data: Option<PathBuf>,
+    pub gateway_internal_ip: Option<Ipv4Addr>,
     #[serde(default)]
     pub notification_level: NotificationLevel,
     #[serde(skip)]
@@ -661,6 +662,7 @@ impl Default for TunnelParams {
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
+            gateway_internal_ip: None,
             notification_level: NotificationLevel::default(),
             config_file: Self::default_config_path(),
         }
@@ -716,6 +718,7 @@ impl PartialEq for TunnelParams {
             && self.mfa_code == other.mfa_code
             && self.reg_key == other.reg_key
             && self.client_logging_data == other.client_logging_data
+            && self.gateway_internal_ip == other.gateway_internal_ip
             && self.notification_level == other.notification_level
             && self.config_file == other.config_file
     }
@@ -793,6 +796,7 @@ impl TunnelParams {
                 "allow-forwarding" => params.allow_forwarding = v.parse().unwrap_or_default(),
                 "tls-version-max" => params.tls_version_max = v.parse().unwrap_or_default(),
                 "client-logging-data" => params.client_logging_data = Some(v.into()),
+                "gateway-internal-ip" => params.gateway_internal_ip = v.parse().ok(),
                 "notification-level" => params.notification_level = v.parse().unwrap_or_default(),
                 "mfa-code" => params.mfa_code = Some(v),
                 other => {
@@ -915,6 +919,10 @@ impl TunnelParams {
 
         if let Some(ref client_logging_data) = self.client_logging_data {
             writeln!(buf, "client-logging-data={}", client_logging_data.display())?;
+        }
+
+        if let Some(gateway_internal_ip) = self.gateway_internal_ip {
+            writeln!(buf, "gateway-internal-ip={gateway_internal_ip}")?;
         }
 
         writeln!(buf, "notification-level={}", self.notification_level)?;
@@ -1058,6 +1066,7 @@ mod tests {
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
+            gateway_internal_ip: Some(Ipv4Addr::new(192, 0, 2, 1)),
             notification_level: NotificationLevel::Standard,
             config_file: temp_path.to_owned(),
         };

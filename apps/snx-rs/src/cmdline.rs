@@ -256,6 +256,12 @@ pub struct CmdlineParams {
         help = "Path to a custom client logging data file in json format"
     )]
     pub client_logging_data: Option<PathBuf>,
+
+    #[clap(
+        long = "gateway-internal-ip",
+        help = "Internal IPv4 address of a gateway behind NAT, used as the peer address of ESP packets carried over TCPT"
+    )]
+    pub gateway_internal_ip: Option<Ipv4Addr>,
 }
 
 impl CmdlineParams {
@@ -423,6 +429,10 @@ impl CmdlineParams {
 
         if let Some(client_logging_data) = self.client_logging_data {
             other.client_logging_data = Some(client_logging_data);
+        }
+
+        if let Some(gateway_internal_ip) = self.gateway_internal_ip {
+            other.gateway_internal_ip = Some(gateway_internal_ip);
         }
     }
 }
