@@ -4,12 +4,13 @@ There are several ways to install `snx-rs`:
 
 - Download the latest binary and source release [here](https://github.com/ancwrd1/snx-rs/releases/latest).
   > NOTE: artifacts with `-webkit` tag require gtk4 and webkit6 packages and are compiled with the `mobile-access` feature (the embedded Mobile Access portal).
+- For Linux and macOS, the [Homebrew formula](https://formulae.brew.sh/formula/snx-rs) can be used: `brew install snx-rs` (see [below](#homebrew)).
 - For Arch Linux and derivatives, the [AUR package](https://aur.archlinux.org/packages/snx-rs) can be used.
 - For NixOS follow the specific [configuration instructions](https://github.com/ancwrd1/snx-rs/blob/main/docs/nixos.md).
 - For Ubuntu/Debian, a DEB package is provided in the release assets.
 - For RPM-based distros (Fedora, CentOS, openSUSE) use the provided RPM package.
 - For Windows, use the msi installer from the release page.
-- For macOS, install the Homebrew [formula](https://formulae.brew.sh/formula/snx-rs) or use the `.dmg` package from the release page (see [below](#macos)).
+- For macOS, use the `.dmg` package from the release page (see [below](#macos)).
 - For manual installation using the `.run` installer:
   1. Download the installer, then: `chmod +x snx-rs-*-linux-x86_64.run`
   2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
@@ -23,3 +24,10 @@ There are several ways to install `snx-rs`:
 4. To uninstall, run the bundled `uninstall.sh` as root: `sudo /Applications/SNX-RS.app/Contents/Resources/uninstall.sh` (it is also included on the `.dmg`).
 5. To build from source instead, see [Building from Sources](building.md).
 
+## Homebrew
+
+`brew install snx-rs` installs the `snx-rs`, `snxctl`, and `snx-rs-gui` binaries, on both Linux and macOS, with a few caveats:
+
+- The GUI is not integrated into the desktop automatically. On Linux, this can be done by creating a `.desktop` launcher based on the packaged [`snx-rs-gui.desktop`](https://github.com/ancwrd1/snx-rs/blob/main/package/snx-rs-gui.desktop) file, adjusting its `Exec`/`TryExec` paths to your Homebrew prefix (`$(brew --prefix)/bin/snx-rs-gui`). On macOS, use the `.dmg` instead for an integrated app.
+- The background service is not registered automatically. To have `snx-rs` run in command mode and start on boot, enable it once with `sudo brew services start snx-rs`.
+- On Linux the GUI is built without the `mobile-access` feature, matching the default release packages (see the `-webkit` note above). On macOS the feature is enabled, since it uses the system WebView.
