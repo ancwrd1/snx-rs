@@ -93,6 +93,7 @@ export component SettingsWindow inherits Window {
     in-out property <string> mtu;
     in property <[string]> tls-version-max-options: [];
     in-out property <int> tls-version-max-index: 0;
+    in-out property <string> gateway-internal-ip;
 
     // ui
     in property <[string]> icon-themes: [];
@@ -746,6 +747,15 @@ export component SettingsWindow inherits Window {
                                             model: root.tls-version-max-options;
                                             current-index <=> root.tls-version-max-index;
                                             min-width: root.min-form-width;
+                                        }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormStackRow {
+                                        label: Tr.label-gateway-internal-ip;
+                                        LineEdit {
+                                            text <=> root.gateway-internal-ip;
                                         }
                                     }
                                 }

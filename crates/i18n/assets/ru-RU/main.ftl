@@ -61,6 +61,7 @@ label-select-file = Выбрать файл
 label-ca-cert-files = Сертификаты X.509
 label-allow-forwarding = Разрешить пересылку пакетов для интерфейса туннеля
 label-tls-version-max = Максимальная версия TLS
+label-gateway-internal-ip = Внутренний IP-адрес шлюза
 label-pin-required = PIN-код требуется для аутентификации устройства HSM
 label-pin = PIN-код
 label-notification-level = Уровень уведомлений

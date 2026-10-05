@@ -61,6 +61,7 @@ label-select-file = Vyberte soubor
 label-ca-cert-files = Certifikáty X.509
 label-allow-forwarding = Povolit přeposílání paketů
 label-tls-version-max = Maximální verze TLS
+label-gateway-internal-ip = Interní IP adresa brány
 label-pin-required = PIN je vyžadován pro ověření zařízení HSM
 label-pin = PIN
 label-notification-level = Úroveň oznámení

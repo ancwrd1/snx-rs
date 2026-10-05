@@ -61,6 +61,7 @@ label-select-file = Valitse tiedosto
 label-ca-cert-files = X.509-varmenteet
 label-allow-forwarding = Salli pakettien edelleenlähetys
 label-tls-version-max = TLS:n enimmäisversio
+label-gateway-internal-ip = Yhdyskäytävän sisäinen IP-osoite
 label-pin-required = HSM-laitteen todennukseen vaaditaan PIN-koodi
 label-pin = PIN-koodi
 label-notification-level = Ilmoitustaso

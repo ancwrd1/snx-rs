@@ -61,6 +61,7 @@ label-select-file = Selecionar um ficheiro
 label-ca-cert-files = Certificados X.509
 label-allow-forwarding = Permitir reencaminhamento de pacotes
 label-tls-version-max = Versão máxima do TLS
+label-gateway-internal-ip = Endereço IP interno do gateway
 label-pin-required = O PIN é necessário para a autenticação do dispositivo HSM
 label-pin = PIN
 label-notification-level = Nível de notificação

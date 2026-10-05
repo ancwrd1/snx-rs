@@ -61,6 +61,7 @@ label-select-file = Select a file
 label-ca-cert-files = X.509 certificates
 label-allow-forwarding = Allow packet forwarding for tunnel interface
 label-tls-version-max = Maximum TLS version
+label-gateway-internal-ip = Gateway internal IP address
 label-pin-required = PIN is required for HSM device authentication
 label-pin = PIN
 label-notification-level = Notification level

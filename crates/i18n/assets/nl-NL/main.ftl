@@ -61,6 +61,7 @@ label-select-file = Selecteer een bestand
 label-ca-cert-files = X.509-certificaten
 label-allow-forwarding = Pakketdoorsturen toestaan
 label-tls-version-max = Maximale TLS-versie
+label-gateway-internal-ip = Intern IP-adres van de gateway
 label-pin-required = PIN is vereist voor HSM-apparaatverificatie
 label-pin = PIN
 label-notification-level = Meldingsniveau
