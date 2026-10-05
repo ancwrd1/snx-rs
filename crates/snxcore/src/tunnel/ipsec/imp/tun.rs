@@ -8,7 +8,7 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use chrono::Local;
 use futures::{
     SinkExt, StreamExt,
@@ -321,7 +321,9 @@ impl TunIPsecTunnel {
                     Ok(Ok(packet)) => {
                         let _ = match nat {
                             Some(nat) => {
-                                let mut packet = packet.to_vec();
+                                let mut packet = packet
+                                    .try_into_mut()
+                                    .unwrap_or_else(|shared| BytesMut::from(&shared[..]));
                                 nat.inbound(&mut packet);
                                 tun_sender.send(&packet).await
                             }
