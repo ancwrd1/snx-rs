@@ -146,6 +146,7 @@ error-unknown-packet-type = Nieznany typ pakietu
 error-no-sender = Brak nadawcy
 error-empty-ccc-session = Pusta sesja CCC
 error-no-om-session = Brak sesji w odpowiedzi, na serwerze VPN mogły skończyć się licencje OM
+error-no-office-mode-kernel-transport = Brama nie przydzieliła adresu Office Mode, co wymaga transportu tcpt lub udp
 error-identity-timeout = Przekroczenie czasu oczekiwania na odpowiedź tożsamości, czy typ dostępu jest poprawny?
 error-invalid-transport-type = Nieprawidłowy typ transportu
 error-invalid-ike-version = Nieprawidłowa wersja IKE

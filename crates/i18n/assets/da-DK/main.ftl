@@ -144,6 +144,7 @@ error-unknown-packet-type = Ukendt pakketype
 error-no-sender = Ingen afsender
 error-empty-ccc-session = Tom CCC-session
 error-no-om-session = Ingen session i svaret, VPN-serveren er muligvis løbet tør for OM-licenser
+error-no-office-mode-kernel-transport = Gatewayen tildelte ingen Office Mode-adresse, hvilket kræver transporten tcpt eller udp
 error-identity-timeout = Timeout ved venten på identitetssvar, er adgangstypen korrekt?
 error-probing-failed = Sondering mislykkedes, serveren er ikke tilgængelig via NATT-port!
 error-no-connector-for-challenge-code = Ingen connector til at sende challenge-koden til!

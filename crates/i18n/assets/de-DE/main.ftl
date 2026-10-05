@@ -146,6 +146,7 @@ error-unknown-packet-type = Unbekannter Pakettyp
 error-no-sender = Kein Absender
 error-empty-ccc-session = Leere CCC-Sitzung
 error-no-om-session = Keine Sitzung in der Antwort, dem VPN-Server gehen möglicherweise die OM-Lizenzen aus
+error-no-office-mode-kernel-transport = Das Gateway hat keine Office-Mode-Adresse zugewiesen, dafür ist der Transport tcpt oder udp erforderlich
 error-identity-timeout = Timeout beim Warten auf Identitätsantwort, ist der Anmeldetyp korrekt?
 error-invalid-transport-type = Ungültiger Transporttyp
 error-invalid-ike-version = Ungültige IKE-Version

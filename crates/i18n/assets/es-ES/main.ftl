@@ -135,6 +135,7 @@ error-unknown-packet-type = Tipo de paquete desconocido
 error-no-sender = No hay remitente
 error-empty-ccc-session = Sesión CCC vacía
 error-no-om-session = No hay sesión en la respuesta, puede que el servidor VPN se haya quedado sin licencias OM
+error-no-office-mode-kernel-transport = La puerta de enlace no asignó ninguna dirección de Office Mode, lo que requiere el transporte tcpt o udp
 error-identity-timeout = Tiempo de espera al esperar la respuesta de identidad, ¿es correcto el tipo de inicio de sesión?
 error-not-challenge-state = No es un estado de desafío
 error-no-pkcs8 = No se ha proporcionado la ruta PEM PKCS8

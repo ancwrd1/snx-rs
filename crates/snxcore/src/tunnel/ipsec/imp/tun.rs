@@ -33,7 +33,11 @@ use crate::{
     tunnel::{
         GatewayConnector, TunnelCommand, TunnelEvent,
         device::TunDevice,
-        ipsec::{keepalive::KeepaliveRunner, scv::ScvRunner},
+        ipsec::{
+            imp::nat::{StaticNat, placeholder_address},
+            keepalive::KeepaliveRunner,
+            scv::ScvRunner,
+        },
     },
     util,
 };
@@ -222,10 +226,29 @@ impl TunIPsecTunnel {
         let tun = TunDevice::new(name_hint)?;
         let tun_name = tun.name().to_owned();
 
+        let nat = session.physical_address.then(|| {
+            let excluded = self
+                .subnets
+                .iter()
+                .chain(&self.params.add_routes)
+                .copied()
+                .collect::<Vec<_>>();
+            StaticNat::new(placeholder_address(session.address, &excluded), session.address)
+        });
+
+        if let Some(nat) = nat {
+            debug!(
+                "No Office Mode address: {} uses {}, translated to {}",
+                tun_name,
+                nat.local(),
+                session.address
+            );
+        }
+
         let device_config = DeviceConfig {
             name: tun_name.clone(),
             mtu: self.params.mtu,
-            address: session.ipv4net_address(),
+            address: nat.map_or_else(|| session.ipv4net_address(), |nat| nat.local().into()),
             allow_forwarding: self.params.allow_forwarding,
         };
 
@@ -295,7 +318,14 @@ impl TunIPsecTunnel {
 
                 match result.await {
                     Ok(Ok(packet)) => {
-                        let _ = tun_sender.send(&packet).await;
+                        let _ = match nat {
+                            Some(nat) => {
+                                let mut packet = packet.to_vec();
+                                nat.inbound(&mut packet);
+                                tun_sender.send(&packet).await
+                            }
+                            None => tun_sender.send(&packet).await,
+                        };
                     }
                     Ok(Err(e)) => {
                         error!("Failed to decode packet: {}", e);
@@ -368,7 +398,7 @@ impl TunIPsecTunnel {
 
                         let new_address = Ipv4Net::with_netmask(session.address, session.netmask).unwrap_or(ip_address);
 
-                        if ip_address != new_address {
+                        if nat.is_none() && ip_address != new_address {
                             debug!(
                                 "IP address changed from {} to {}, replacing it for device {}",
                                 ip_address, new_address, tun_name
@@ -437,7 +467,10 @@ impl TunIPsecTunnel {
 
                 result = tun_receiver.recv(&mut buf) => {
                     if let Ok(size) = result {
-                        let item = buf[0..size].to_vec();
+                        let mut item = buf[0..size].to_vec();
+                        if let Some(nat) = nat {
+                            nat.outbound(&mut item);
+                        }
                         let codec = esp_codec_out.clone();
                         let result = tokio::task::spawn_blocking(move || {
                             codec.read().unwrap_or_else(|e| e.into_inner()).encode(&item)

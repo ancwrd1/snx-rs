@@ -146,6 +146,7 @@ error-unknown-packet-type = Tuntematon pakettityyppi
 error-no-sender = Ei lähettäjää
 error-empty-ccc-session = Tyhjä CCC-istunto
 error-no-om-session = Vastauksessa ei ole istuntoa, VPN-palvelimen OM-lisenssit voivat olla lopussa
+error-no-office-mode-kernel-transport = Yhdyskäytävä ei määrittänyt Office Mode -osoitetta, mikä edellyttää tcpt- tai udp-siirtoa
 error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kirjautumistyyppi oikea?
 error-invalid-transport-type = Virheellinen kuljetustyyppi
 error-invalid-ike-version = Virheellinen IKE-versio

@@ -44,6 +44,8 @@ pub struct IPsecSession {
     pub lifetime: Duration,
     pub address: Ipv4Addr,
     pub netmask: Ipv4Addr,
+    /// `address` is the host's own address, because the gateway assigned no Office Mode address.
+    pub physical_address: bool,
     pub dns: Vec<Ipv4Addr>,
     pub domains: Vec<String>,
     pub esp_in: Arc<EspCryptMaterial>,
@@ -62,6 +64,7 @@ impl Default for IPsecSession {
             lifetime: Duration::default(),
             address: Ipv4Addr::new(0, 0, 0, 0),
             netmask: Ipv4Addr::new(0, 0, 0, 0),
+            physical_address: false,
             dns: Vec::new(),
             domains: Vec::new(),
             esp_in: Arc::default(),

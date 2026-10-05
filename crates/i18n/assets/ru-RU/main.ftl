@@ -146,6 +146,7 @@ error-unknown-packet-type = Неизвестный тип пакета
 error-no-sender = Нет отправителя
 error-empty-ccc-session = Пустая сессия CCC
 error-no-om-session = В ответе нет сессии, возможно, на VPN-сервере закончились лицензии OM
+error-no-office-mode-kernel-transport = Шлюз не назначил адрес Office Mode, для этого требуется транспорт tcpt или udp
 error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
 error-invalid-transport-type = Неверный тип транспорта
 error-invalid-ike-version = Неверная версия IKE

@@ -146,6 +146,7 @@ error-unknown-packet-type = Ukjent pakketype
 error-no-sender = Ingen avsender
 error-empty-ccc-session = Tom CCC-økt
 error-no-om-session = Ingen økt i svaret, VPN-serveren er kanskje tom for OM-lisenser
+error-no-office-mode-kernel-transport = Gatewayen tildelte ingen Office Mode-adresse, noe som krever transporten tcpt eller udp
 error-identity-timeout = Timeout mens du venter på identitetssvar, er tilgangstypen korrekt?
 error-invalid-transport-type = Ugyldig transporttype
 error-invalid-ike-version = Ugyldig IKE-versjon

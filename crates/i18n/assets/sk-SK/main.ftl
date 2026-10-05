@@ -146,6 +146,7 @@ error-unknown-packet-type = Neznámy typ paketu
 error-no-sender = Žiadny odosielateľ
 error-empty-ccc-session = Prázdna CCC relácia
 error-no-om-session = V odpovedi nie je relácia, na VPN serveri sa možno minuli licencie OM
+error-no-office-mode-kernel-transport = Brána nepridelila adresu Office Mode, čo vyžaduje transport tcpt alebo udp
 error-identity-timeout = Časový limit pri čakaní na odpoveď identity, je typ prístupu správny?
 error-invalid-transport-type = Neplatný typ prenosu
 error-invalid-ike-version = Neplatná verzia IKE

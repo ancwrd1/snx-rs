@@ -146,6 +146,7 @@ error-unknown-packet-type = Nepoznata vrsta paketa
 error-no-sender = Nema pošiljatelja
 error-empty-ccc-session = Prazna CCC sesija
 error-no-om-session = Nema sesije u odgovoru, VPN poslužitelju možda ponestaje OM licenci
+error-no-office-mode-kernel-transport = Pristupnik nije dodijelio Office Mode adresu, što zahtijeva prijenos tcpt ili udp
 error-identity-timeout = Istek vremena čekanja na odgovor identiteta, je li tip prijave ispravan?
 error-invalid-transport-type = Nevažeća vrsta prijenosa
 error-invalid-ike-version = Nevažeća verzija IKE-a

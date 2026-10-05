@@ -45,6 +45,7 @@ use crate::{
 };
 
 const ADDRESS_LIFETIME_LEEWAY: Duration = Duration::from_secs(300);
+const PHYSICAL_ADDRESS_LIFETIME: Duration = Duration::from_secs(3600);
 
 fn get_challenge_attribute_type(payload: &AttributesPayload) -> ConfigAttributeType {
     payload
@@ -194,42 +195,60 @@ impl Ikev1TunnelConnector {
         let mac = Bytes::copy_from_slice(&util::get_device_id().as_bytes()[0..6]);
         debug!("Using dummy MAC address: {}", hex::encode(&mac));
 
-        let om_reply = self
-            .service
-            .send_om_request(
-                Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask).ok(),
-                Some(mac),
-            )
-            .await?;
+        // A physical address is not an Office Mode lease to renew.
+        let requested_address = Ipv4Net::with_netmask(self.ipsec_session.address, self.ipsec_session.netmask)
+            .ok()
+            .filter(|_| !self.ipsec_session.physical_address);
+
+        let om_reply = self.service.send_om_request(requested_address, Some(mac)).await?;
 
         self.ccc_session = get_long_attribute(&om_reply, ConfigAttributeType::CccSessionId)
             .map(|v| String::from_utf8_lossy(&v).trim_matches('\0').to_string())
             .context(tr!("error-no-om-session"))?
             .into();
 
-        self.ipsec_session.address = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address)
-            .context("No IPv4 in reply!")?
-            .reader()
-            .read_u32::<BigEndian>()?
-            .into();
+        if let Some(address) = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Address) {
+            self.ipsec_session.physical_address = false;
 
-        self.ipsec_session.netmask = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Netmask)
-            .context("No netmask in reply!")?
-            .reader()
-            .read_u32::<BigEndian>()?
-            .into();
+            self.ipsec_session.address = address.reader().read_u32::<BigEndian>()?.into();
 
-        self.ipsec_session.address_lifetime = if let Some(lease) = self.params.ip_lease_time {
-            lease
+            self.ipsec_session.netmask = get_long_attribute(&om_reply, ConfigAttributeType::Ipv4Netmask)
+                .context("No netmask in reply!")?
+                .reader()
+                .read_u32::<BigEndian>()?
+                .into();
+
+            self.ipsec_session.address_lifetime = if let Some(lease) = self.params.ip_lease_time {
+                lease
+            } else {
+                Duration::from_secs(
+                    get_long_attribute(&om_reply, ConfigAttributeType::AddressExpiry)
+                        .context("No address expiry in reply!")?
+                        .reader()
+                        .read_u32::<BigEndian>()?
+                        .into(),
+                )
+            };
         } else {
-            Duration::from_secs(
-                get_long_attribute(&om_reply, ConfigAttributeType::AddressExpiry)
-                    .context("No address expiry in reply!")?
-                    .reader()
-                    .read_u32::<BigEndian>()?
-                    .into(),
-            )
-        };
+            // Only the userspace data path can translate the tunnel interface address.
+            if self.esp_transport == TransportType::Kernel {
+                if self.params.transport_type != TransportType::AutoDetect || self.command_sender.is_some() {
+                    anyhow::bail!(tr!("error-no-office-mode-kernel-transport"));
+                }
+                self.esp_transport = TransportType::Udp;
+                debug!("ESP transport: {}", self.esp_transport);
+            }
+
+            // The tunnel translates to the first address for its whole life, so later SAs keep it.
+            if !self.ipsec_session.physical_address {
+                self.ipsec_session.physical_address = true;
+                self.ipsec_session.address = Platform::get().new_network_interface().get_default_ipv4().await?;
+            }
+            self.ipsec_session.netmask = Ipv4Addr::BROADCAST;
+            self.ipsec_session.address_lifetime = self.params.ip_lease_time.unwrap_or(PHYSICAL_ADDRESS_LIFETIME);
+
+            info!("No Office Mode address assigned, using the physical address");
+        }
         self.last_ip_lease = Some(SystemTime::now());
 
         self.ipsec_session.dns = get_long_attributes(&om_reply, ConfigAttributeType::Ipv4Dns)

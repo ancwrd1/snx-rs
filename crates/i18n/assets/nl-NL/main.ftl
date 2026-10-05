@@ -135,6 +135,7 @@ error-unknown-packet-type = Onbekend pakkettype
 error-no-sender = Geen afzender
 error-empty-ccc-session = Lege CCC-sessie
 error-no-om-session = Geen sessie in het antwoord, de VPN-server heeft mogelijk geen OM-licenties meer
+error-no-office-mode-kernel-transport = De gateway heeft geen Office Mode-adres toegewezen, daarvoor is het transport tcpt of udp vereist
 error-identity-timeout = Timeout tijdens wachten op identiteitsreactie, is het toegangstype correct?
 error-cannot-send-request = Kan verzoek niet naar service sturen
 error-cannot-read-reply = Kan antwoord van service niet lezen

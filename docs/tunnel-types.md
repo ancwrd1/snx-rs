@@ -12,6 +12,14 @@ The `transport-type` option can be used to choose the IPsec transport type manua
 macOS and Windows have no kernel `xfrm` support, so IPsec always uses the userspace TUN/ESP path there.
 The `kernel` value for `transport-type` is not available on those platforms; valid values are `auto`, `udp` and `tcpt`.
 
+## Gateways Without Office Mode
+
+Some gateways assign no Office Mode address. With IKEv1, snx-rs then does what the Windows client does: the tunnel
+carries the computer's own IPv4 address, while the TUN device gets a private placeholder address that overlaps neither
+the VPN routes nor the local network, and the userspace ESP path translates between the two. The kernel transport cannot
+do that translation, so `transport-type=auto` selects `udp` instead of `kernel` for such gateways, and an explicit
+`transport-type=kernel` fails with an error.
+
 ## IKE Protocol Version
 
 The IKE protocol version is autodetected by default: IKEv2 is used when the server advertises the
