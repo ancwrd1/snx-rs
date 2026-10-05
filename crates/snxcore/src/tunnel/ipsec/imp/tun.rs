@@ -232,6 +232,7 @@ impl TunIPsecTunnel {
                 .iter()
                 .chain(&self.params.add_routes)
                 .copied()
+                .filter(|net| !self.params.ignore_routes.contains(net))
                 .collect::<Vec<_>>();
             StaticNat::new(placeholder_address(session.address, &excluded), session.address)
         });
