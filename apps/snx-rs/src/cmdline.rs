@@ -259,7 +259,7 @@ pub struct CmdlineParams {
 
     #[clap(
         long = "gateway-internal-ip",
-        help = "Internal IPv4 address of a gateway behind NAT; keepalive, SCV and ESP carried over TCPT are sent to it"
+        help = "Internal IPv4 address of a gateway behind NAT; keepalive and SCV are sent to it, and with the tcpt transport ESP as well"
     )]
     pub gateway_internal_ip: Option<Ipv4Addr>,
 }

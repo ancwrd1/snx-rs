@@ -42,7 +42,7 @@
 | `disable-ipv6=true\|false`                           | Disable IPv6 in the kernel when default route is enabled, to prevent IPv6 leaks.                                                                         |
 | `mtu=<MTU>`                                          | Set MTU for the tunnel interface. Default is 1350.                                                                                                       |
 | `transport-type=<type>`                              | Set IPsec transport type. Possible values are: auto, kernel, udp, tcpt. Default is auto.                                                                 |
-| `gateway-internal-ip=<ip>`                           | Internal IPv4 address of a gateway behind NAT. With the tcpt and udp transports, keepalive, SCV and ESP carried over TCPT are sent to it.                |
+| `gateway-internal-ip=<ip>`                           | Internal IPv4 address of a gateway behind NAT. With the tcpt and udp transports, keepalive and SCV are sent to it; with tcpt, ESP as well.               |
 | `allow-forwarding=true\|false`                       | Enable or disable packet forwarding for the tunnel interface. Default is false.                                                                          |
 | `tls-version-max=1.2\|1.3\|default`                  | Maximum TLS version offered to the gateway. Default is `1.2` to work around gateways that hang on TLS 1.3 ClientHellos. Use `default` to remove the cap. |
 | `client-logging-data=<path>`                         | A path to a json file which contains a custom client_logging_data structure (*). Used to impersonate the official Check Point client.                    |
