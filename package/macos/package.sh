@@ -101,9 +101,10 @@ create_pkg() {
         fi
     done
 
-    # The root LaunchDaemon runs snx-rs from a root-owned directory rather than the user-writable
-    # Homebrew /usr/local prefix, so it cannot be swapped out to escalate to root. snxctl runs as the
-    # user; the /usr/local/bin/snx-rs symlink is only a convenience (root uses the absolute path).
+    # The root LaunchDaemon runs snx-rs from a root-owned directory rather than /usr/local, which
+    # Homebrew makes user-writable on Intel Macs, so it cannot be swapped out to escalate to root.
+    # snxctl runs as the user; the /usr/local/bin/snx-rs symlink is only a convenience (root uses
+    # the absolute path).
     install -m 755 "$bindir/snx-rs" "$libexec/snx-rs"
     install -m 755 "$bindir/snxctl" "$payload/usr/local/bin/snxctl"
     ln -s "/Library/Application Support/snx-rs/snx-rs" "$payload/usr/local/bin/snx-rs"

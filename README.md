@@ -24,6 +24,7 @@ Currently supported platforms: Linux, Windows, macOS.
 Signed APT and DNF repositories with the latest release builds are published at [ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).
 The page lists the installation commands for Debian/Ubuntu and Fedora/RHEL/openSUSE.
 Only the default (non-webkit) builds are served from the repository; the `-webkit` variant remains available as a direct download from the [Releases page](https://github.com/ancwrd1/snx-rs/releases).
+A [Homebrew package](docs/installation.md#homebrew) is also available, supporting both Linux and macOS.
 
 ## Documentation
 
