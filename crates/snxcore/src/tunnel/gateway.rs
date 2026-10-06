@@ -125,7 +125,14 @@ impl CccGatewayConnector {
                 session_id: Some(session_id.clone()),
                 protocol_version: Some(100),
             },
-            data: RequestData::ClientSettings(ClientSettingsRequest::default()),
+            data: RequestData::ClientSettings(ClientSettingsRequest {
+                data: ClientSettingsData {
+                    requested_policies_and_current_versions: PoliciesAndVersions {
+                        range: Vec::new(),
+                        mep: self.params.use_internal_gateway_ip.then(String::new),
+                    },
+                },
+            }),
         }
     }
 
@@ -342,5 +349,25 @@ impl GatewayConnector for CccGatewayConnector {
         self.send_ccc_request(req, SHORT_TIMEOUT).await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn client_settings_request(use_internal_gateway_ip: bool) -> String {
+        let params = TunnelParams {
+            use_internal_gateway_ip,
+            ..Default::default()
+        };
+        let request = CccGatewayConnector::new(Arc::new(params)).new_client_settings_request(&"session".into());
+        SExpression::from(CccClientRequest { data: request }).to_string()
+    }
+
+    #[test]
+    fn mep_policy_is_requested_only_for_the_internal_gateway_ip() {
+        assert!(client_settings_request(true).contains(":mep ()"));
+        assert!(!client_settings_request(false).contains(":mep"));
     }
 }

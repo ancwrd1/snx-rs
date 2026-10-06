@@ -56,7 +56,7 @@ pub(crate) struct TunIPsecTunnel {
     routing_configurator: Option<Box<dyn RoutingConfigurator + Send + Sync>>,
     ready: Arc<AtomicBool>,
     gateway_address: Ipv4Addr,
-    esp_gateway_address: Ipv4Addr,
+    internal_gateway_address: Option<Ipv4Addr>,
     encap_type: EspEncapType,
     esp_transport: TransportType,
     subnets: Vec<Ipv4Net>,
@@ -85,11 +85,20 @@ impl TunIPsecTunnel {
         let gateway_address =
             util::server_name_to_ipv4(&params.server_name, gateway_information.connectivity_info.tcpt_port)?;
 
-        let esp_gateway_address = params.gateway_internal_ip.unwrap_or(gateway_address);
+        let internal_gateway_address = params
+            .use_internal_gateway_ip
+            .then(|| client_settings.internal_gateway_ip())
+            .flatten();
+
+        if params.use_internal_gateway_ip && internal_gateway_address.is_none() {
+            warn!("No internal gateway address in the client settings, using the server address");
+        }
 
         debug!(
             "Resolved gateway address: {}, acquired internal address: {}, ESP gateway address: {}",
-            gateway_address, client_settings.gw_internal_ip, esp_gateway_address
+            gateway_address,
+            client_settings.gw_internal_ip,
+            internal_gateway_address.unwrap_or(gateway_address)
         );
 
         let ready = Arc::new(AtomicBool::new(false));
@@ -103,7 +112,7 @@ impl TunIPsecTunnel {
             routing_configurator: None,
             ready,
             gateway_address,
-            esp_gateway_address,
+            internal_gateway_address,
             encap_type,
             esp_transport,
             subnets,
@@ -278,8 +287,10 @@ impl TunIPsecTunnel {
 
         let mut snx_receiver = self.receiver.take().context("No receiver")?;
 
+        let esp_gateway_address = self.internal_gateway_address.unwrap_or(self.gateway_address);
+
         let esp_codec_in = Arc::new(RwLock::new(EspCodec::new(
-            self.esp_gateway_address,
+            esp_gateway_address,
             session.address,
             self.encap_type,
         )));
@@ -290,7 +301,7 @@ impl TunIPsecTunnel {
 
         let esp_codec_out = Arc::new(RwLock::new(EspCodec::new(
             session.address,
-            self.esp_gateway_address,
+            esp_gateway_address,
             self.encap_type,
         )));
         esp_codec_out
@@ -425,8 +436,8 @@ impl TunIPsecTunnel {
         };
         pin_mut!(command_fut);
 
-        let keepalive_address = params
-            .gateway_internal_ip
+        let keepalive_address = self
+            .internal_gateway_address
             .unwrap_or(self.gateway_information.connectivity_info.server_ip);
 
         let mut keepalive_runner = KeepaliveRunner::new(

@@ -258,10 +258,10 @@ pub struct CmdlineParams {
     pub client_logging_data: Option<PathBuf>,
 
     #[clap(
-        long = "gateway-internal-ip",
-        help = "Internal IPv4 address of a gateway behind NAT; keepalive and SCV are sent to it, and with the tcpt transport ESP as well"
+        long = "use-internal-gateway-ip",
+        help = "Detect the internal address of a gateway behind NAT for keepalive, SCV and ESP over TCPT"
     )]
-    pub gateway_internal_ip: Option<Ipv4Addr>,
+    pub use_internal_gateway_ip: Option<bool>,
 }
 
 impl CmdlineParams {
@@ -431,8 +431,8 @@ impl CmdlineParams {
             other.client_logging_data = Some(client_logging_data);
         }
 
-        if let Some(gateway_internal_ip) = self.gateway_internal_ip {
-            other.gateway_internal_ip = Some(gateway_internal_ip);
+        if let Some(use_internal_gateway_ip) = self.use_internal_gateway_ip {
+            other.use_internal_gateway_ip = use_internal_gateway_ip;
         }
     }
 }

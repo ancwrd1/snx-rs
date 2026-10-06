@@ -561,13 +561,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
     window.set_transport_type_index(params.transport_type.as_u32() as i32);
     window.set_tls_version_max_index(params.tls_version_max.as_u32() as i32);
     window.set_allow_forwarding(params.allow_forwarding);
-    window.set_gateway_internal_ip(
-        params
-            .gateway_internal_ip
-            .map(|ip| ip.to_string())
-            .unwrap_or_default()
-            .into(),
-    );
+    window.set_use_internal_gateway_ip(params.use_internal_gateway_ip);
 
     // Global (default-profile) settings
     let defaults = ConnectionProfilesStore::instance().get_default();
@@ -916,11 +910,6 @@ fn validate(window: &SettingsWindow) -> anyhow::Result<()> {
 
     window.get_mtu().parse::<u16>()?;
 
-    let gateway_internal_ip = window.get_gateway_internal_ip();
-    if !gateway_internal_ip.trim().is_empty() {
-        gateway_internal_ip.trim().parse::<Ipv4Addr>()?;
-    }
-
     Ok(())
 }
 
@@ -1001,6 +990,7 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     params.tls_version_max = (window.get_tls_version_max_index() as u32).into();
     params.disable_ipv6 = window.get_disable_ipv6();
     params.allow_forwarding = window.get_allow_forwarding();
+    params.use_internal_gateway_ip = window.get_use_internal_gateway_ip();
 
     let ip_lease_time = window.get_ip_lease_time();
     params.ip_lease_time = if ip_lease_time.trim().is_empty() {
@@ -1010,13 +1000,6 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     };
 
     params.mtu = window.get_mtu().parse()?;
-
-    let gateway_internal_ip = window.get_gateway_internal_ip();
-    params.gateway_internal_ip = if gateway_internal_ip.trim().is_empty() {
-        None
-    } else {
-        Some(gateway_internal_ip.trim().parse()?)
-    };
 
     params.icon_theme = (window.get_icon_theme_index() as u32).into();
     params.color_theme = (window.get_color_theme_index() as u32).into();
