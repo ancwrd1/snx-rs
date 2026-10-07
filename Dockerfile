@@ -7,9 +7,11 @@
 # Use Rust 1.92 to satisfy dependency requirements (aes 0.9.3, cached 4.0.1, uuid 1.27.0)
 FROM rust:1.92-slim AS builder
 
-# Install musl tools and musl target for static linking
+# Install musl tools, perl, and musl target for static linking
+# perl is required for openssl-sys build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     musl-tools \
+    perl \
     && rustup target add x86_64-unknown-linux-musl \
     && rm -rf /var/lib/apt/lists/*
 
