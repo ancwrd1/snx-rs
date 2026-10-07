@@ -13,6 +13,9 @@ FROM rust:1.92-slim AS builder
 # - make: required for openssl-sys build
 # - gcc: required for compiling C code
 # - pkg-config: often needed for finding libraries
+# Set DEBIAN_FRONTEND=noninteractive to avoid debconf warnings
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     musl-tools \
