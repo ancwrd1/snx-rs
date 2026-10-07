@@ -36,22 +36,18 @@ RUN cargo build --target x86_64-unknown-linux-musl \
 
 # Runtime stage - configurable base
 ARG BASE=alpine
-FROM ${BASE}:latest
+FROM alpine:latest AS runtime
 
 # Install runtime dependencies based on base image
 # Alpine uses apk, Arch uses pacman
-RUN if [ -f /etc/alpine-release ]; then \
+RUN if [ "${BASE}" = "archlinux" ]; then \
         apk add --no-cache iproute2 openssl ca-certificates bash sudo; \
-    elif [ -f /etc/arch-release ]; then \
-        pacman -Syu --noconfirm --needed iproute2 openssl ca-certificates bash sudo; \
+    else \
+        apk add --no-cache iproute2 openssl ca-certificates bash sudo; \
     fi
 
 # Create a non-root user to run snx-rs
-RUN if [ -f /etc/alpine-release ]; then \
-        adduser -D -u 1000 snxuser; \
-    else \
-        useradd -m -u 1000 snxuser; \
-    fi
+RUN adduser -D -u 1000 snxuser
 
 # Copy the static binary from the builder stage
 COPY --from=builder /usr/src/snx-rs/target/x86_64-unknown-linux-musl/lto/snx-rs /usr/local/bin/snx-rs
