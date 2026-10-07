@@ -1,3 +1,4 @@
+pub mod nat;
 pub mod native;
 pub mod tcpt;
 pub mod tun;

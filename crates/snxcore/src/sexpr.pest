@@ -6,15 +6,10 @@ array      = { elem+ }
 field      = { field_name ~ sexpr }
 elem       = { ":" ~ sexpr }
 field_name = @{ ":" ~ ident }
-ident      = @{ (ASCII_ALPHANUMERIC | "_")+ }
+ident      = @{ quoted_str | (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
 char       = @{ !("(" | ")") ~ ANY }
 value      = { quoted_str | simple_val }
 simple_val = { char+ }
-quoted_str = ${ "\"" ~ inner ~ "\"" }
-inner      = @{ schar* }
-schar      = {
-    !("\"" | "\\") ~ ANY
-    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
-    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
-}
+quoted_str = ${ "\"" ~ schar* ~ "\"" }
+schar      = { !("\"") ~ ANY | "\\" ~ "\"" }
 WHITESPACE = _{ " " | "\n" | "\r" | "\t" | "\x00" }

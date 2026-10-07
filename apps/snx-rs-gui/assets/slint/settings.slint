@@ -93,6 +93,7 @@ export component SettingsWindow inherits Window {
     in-out property <string> mtu;
     in property <[string]> tls-version-max-options: [];
     in-out property <int> tls-version-max-index: 0;
+    in-out property <bool> use-internal-gateway-ip: false;
 
     // ui
     in property <[string]> icon-themes: [];
@@ -705,6 +706,13 @@ export component SettingsWindow inherits Window {
                                     FormToggleRow {
                                         label: Tr.label-allow-forwarding;
                                         Switch { checked <=> root.allow-forwarding; }
+                                    }
+
+                                    FormDivider { }
+
+                                    FormToggleRow {
+                                        label: Tr.label-use-internal-gateway-ip;
+                                        Switch { checked <=> root.use-internal-gateway-ip; }
                                     }
 
                                     FormDivider { }

@@ -201,6 +201,7 @@ pub struct SignOutRequest {}
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PoliciesAndVersions {
     pub range: Vec<NetworkRange>,
+    pub mep: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -258,6 +259,29 @@ pub struct ClientSettingsResponse {
     pub updated_policies: UpdatedPolicies,
 }
 
+impl ClientSettingsResponse {
+    /// The first external interface of the current gateway in the MEP policy, its own address when behind NAT.
+    pub fn internal_gateway_ip(&self) -> Option<Ipv4Addr> {
+        let settings = self.updated_policies.mep.get("settings")?;
+        let current = settings.get("current_gateway");
+        let gateways = settings.get("gateways_summary")?.as_object()?;
+        let gateway = gateways
+            .values()
+            .find(|gateway| current.is_some() && gateway.get("gateway_name") == current)
+            .or_else(|| gateways.values().next())?;
+
+        gateway
+            .get("ext_interfaces")?
+            .get(0)?
+            .as_object()?
+            .keys()
+            .next()?
+            .strip_prefix('(')?
+            .parse()
+            .ok()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CertificateResponse {
     pub error_code: u32,
@@ -267,6 +291,8 @@ pub struct CertificateResponse {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UpdatedPolicies {
     pub range: Range,
+    #[serde(default)]
+    pub mep: serde_json::Value,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -567,4 +593,88 @@ pub struct AuthenticationRealm {
     pub selected_realm_id: String,
     pub secondary_realm_hash: Option<String>,
     pub client_logging_data: Option<ClientLoggingData>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sexpr::SExpression;
+
+    fn client_settings(mep: &str) -> ClientSettingsResponse {
+        format!(
+            "(:gw_internal_ip (198.51.100.1)
+              :updated_policies (
+                :range (:settings (: (:from (10.0.0.0) :to (10.255.255.255))))
+                {mep}
+              ))"
+        )
+        .parse::<SExpression>()
+        .unwrap()
+        .try_into()
+        .unwrap()
+    }
+
+    #[test]
+    fn internal_gateway_ip_is_the_first_ext_interface_of_the_current_gateway() {
+        let settings = client_settings(
+            ":mep (:settings (
+                :current_gateway (gw-b)
+                :gateways_summary (
+                    :0 (:gateway_name (gw-a) :ext_interfaces (: (192.0.2.1 :netmask (255.255.255.248))))
+                    :1 (:gateway_name (gw-b) :ext_interfaces (
+                        : (192.0.2.9 :netmask (255.255.255.248))
+                        : (192.0.2.10 :netmask (255.255.255.248))
+                    ))
+                )
+            ))",
+        );
+
+        assert_eq!(settings.internal_gateway_ip(), Some(Ipv4Addr::new(192, 0, 2, 9)));
+    }
+
+    #[test]
+    fn internal_gateway_ip_falls_back_to_the_first_gateway() {
+        let settings = client_settings(
+            ":mep (:settings (:gateways_summary (
+                :0 (:gateway_name (gw-a) :ext_interfaces (: (192.0.2.1 :netmask (255.255.255.248))))
+            )))",
+        );
+
+        assert_eq!(settings.internal_gateway_ip(), Some(Ipv4Addr::new(192, 0, 2, 1)));
+    }
+
+    #[test]
+    fn internal_gateway_ip_needs_the_mep_policy() {
+        assert_eq!(client_settings("").internal_gateway_ip(), None);
+        assert_eq!(client_settings(":mep (:name (mep))").internal_gateway_ip(), None);
+        assert_eq!(
+            client_settings(":mep (:settings (:gateways_summary ()))").internal_gateway_ip(),
+            None
+        );
+        assert_eq!(
+            client_settings(":mep (:settings (:gateways_summary (:0 (:gateway_name (gw-a)))))").internal_gateway_ip(),
+            None
+        );
+        assert_eq!(
+            client_settings(":mep (:settings (:gateways_summary (:0 (:ext_interfaces ()))))").internal_gateway_ip(),
+            None
+        );
+    }
+
+    #[test]
+    fn internal_gateway_ip_from_a_full_client_settings_reply() {
+        let response = include_str!("../../tests/client_settings.txt")
+            .parse::<SExpression>()
+            .unwrap()
+            .try_into::<CccServerResponse>()
+            .unwrap()
+            .data
+            .into_data()
+            .unwrap();
+
+        let ResponseData::ClientSettings(settings) = response else {
+            panic!("not a ClientSettings reply");
+        };
+        assert_eq!(settings.internal_gateway_ip(), Some(Ipv4Addr::new(1, 1, 1, 1)));
+    }
 }

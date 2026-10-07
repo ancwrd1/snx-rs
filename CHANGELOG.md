@@ -1,6 +1,8 @@
 ## v6.4.2 (TBD)
 * Added the `auto-disconnect` option which disconnects the tunnel when the GUI frontend exits.
 * Linux: the DEB, RPM and .run packages now install the systemd unit into `/usr/lib/systemd/system` instead of `/etc/systemd/system`. The service is re-enabled automatically on upgrade.
+* Added the `use-internal-gateway-ip` option, also in the GUI advanced settings, for gateways behind NAT. The gateway's internal address is detected from its MEP settings. With the `tcpt` and `udp` transports, keepalive and SCV are sent to it instead of the server address; with `tcpt`, ESP as well.
+* IKEv1: gateways that assign no Office Mode address are supported. Like the Windows client, the tunnel interface gets a private placeholder address that is translated to the physical one. This needs the userspace ESP path, so `transport-type=auto` uses `udp` instead of `kernel` for such gateways.
 
 ## v6.4.1 (2026-09-24)
 * macOS: enabled IPsec keepalive, so a dead tunnel is detected without waiting for the next rekey.

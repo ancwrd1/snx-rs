@@ -8,7 +8,7 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use chrono::Local;
 use futures::{
     SinkExt, StreamExt,
@@ -33,7 +33,11 @@ use crate::{
     tunnel::{
         GatewayConnector, TunnelCommand, TunnelEvent,
         device::TunDevice,
-        ipsec::{keepalive::KeepaliveRunner, scv::ScvRunner},
+        ipsec::{
+            imp::nat::{StaticNat, placeholder_address},
+            keepalive::KeepaliveRunner,
+            scv::ScvRunner,
+        },
     },
     util,
 };
@@ -52,6 +56,7 @@ pub(crate) struct TunIPsecTunnel {
     routing_configurator: Option<Box<dyn RoutingConfigurator + Send + Sync>>,
     ready: Arc<AtomicBool>,
     gateway_address: Ipv4Addr,
+    internal_gateway_address: Option<Ipv4Addr>,
     encap_type: EspEncapType,
     esp_transport: TransportType,
     subnets: Vec<Ipv4Net>,
@@ -80,9 +85,20 @@ impl TunIPsecTunnel {
         let gateway_address =
             util::server_name_to_ipv4(&params.server_name, gateway_information.connectivity_info.tcpt_port)?;
 
+        let internal_gateway_address = params
+            .use_internal_gateway_ip
+            .then(|| client_settings.internal_gateway_ip())
+            .flatten();
+
+        if params.use_internal_gateway_ip && internal_gateway_address.is_none() {
+            warn!("No internal gateway address in the client settings, using the server address");
+        }
+
         debug!(
-            "Resolved gateway address: {}, acquired internal address: {}",
-            gateway_address, client_settings.gw_internal_ip
+            "Resolved gateway address: {}, acquired internal address: {}, ESP gateway address: {}",
+            gateway_address,
+            client_settings.gw_internal_ip,
+            internal_gateway_address.unwrap_or(gateway_address)
         );
 
         let ready = Arc::new(AtomicBool::new(false));
@@ -96,6 +112,7 @@ impl TunIPsecTunnel {
             routing_configurator: None,
             ready,
             gateway_address,
+            internal_gateway_address,
             encap_type,
             esp_transport,
             subnets,
@@ -218,10 +235,30 @@ impl TunIPsecTunnel {
         let tun = TunDevice::new(name_hint)?;
         let tun_name = tun.name().to_owned();
 
+        let nat = session.physical_address.then(|| {
+            let excluded = self
+                .subnets
+                .iter()
+                .chain(&self.params.add_routes)
+                .copied()
+                .filter(|net| !self.params.ignore_routes.contains(net))
+                .collect::<Vec<_>>();
+            StaticNat::new(placeholder_address(session.address, &excluded), session.address)
+        });
+
+        if let Some(nat) = nat {
+            debug!(
+                "No Office Mode address: {} uses {}, translated to {}",
+                tun_name,
+                nat.local(),
+                session.address
+            );
+        }
+
         let device_config = DeviceConfig {
             name: tun_name.clone(),
             mtu: self.params.mtu,
-            address: session.ipv4net_address(),
+            address: nat.map_or_else(|| session.ipv4net_address(), |nat| nat.local().into()),
             allow_forwarding: self.params.allow_forwarding,
         };
 
@@ -250,8 +287,10 @@ impl TunIPsecTunnel {
 
         let mut snx_receiver = self.receiver.take().context("No receiver")?;
 
+        let esp_gateway_address = self.internal_gateway_address.unwrap_or(self.gateway_address);
+
         let esp_codec_in = Arc::new(RwLock::new(EspCodec::new(
-            self.gateway_address,
+            esp_gateway_address,
             session.address,
             self.encap_type,
         )));
@@ -262,7 +301,7 @@ impl TunIPsecTunnel {
 
         let esp_codec_out = Arc::new(RwLock::new(EspCodec::new(
             session.address,
-            self.gateway_address,
+            esp_gateway_address,
             self.encap_type,
         )));
         esp_codec_out
@@ -291,7 +330,16 @@ impl TunIPsecTunnel {
 
                 match result.await {
                     Ok(Ok(packet)) => {
-                        let _ = tun_sender.send(&packet).await;
+                        let _ = match nat {
+                            Some(nat) => {
+                                let mut packet = packet
+                                    .try_into_mut()
+                                    .unwrap_or_else(|shared| BytesMut::from(&shared[..]));
+                                nat.inbound(&mut packet);
+                                tun_sender.send(&packet).await
+                            }
+                            None => tun_sender.send(&packet).await,
+                        };
                     }
                     Ok(Err(e)) => {
                         error!("Failed to decode packet: {}", e);
@@ -364,7 +412,7 @@ impl TunIPsecTunnel {
 
                         let new_address = Ipv4Net::with_netmask(session.address, session.netmask).unwrap_or(ip_address);
 
-                        if ip_address != new_address {
+                        if nat.is_none() && ip_address != new_address {
                             debug!(
                                 "IP address changed from {} to {}, replacing it for device {}",
                                 ip_address, new_address, tun_name
@@ -388,8 +436,12 @@ impl TunIPsecTunnel {
         };
         pin_mut!(command_fut);
 
+        let keepalive_address = self
+            .internal_gateway_address
+            .unwrap_or(self.gateway_information.connectivity_info.server_ip);
+
         let mut keepalive_runner = KeepaliveRunner::new(
-            self.gateway_information.connectivity_info.server_ip,
+            keepalive_address,
             tun_name.clone(),
             if params.no_keepalive || !Platform::get().get_features().await.ipsec_keepalive {
                 Arc::new(AtomicBool::new(false))
@@ -402,11 +454,7 @@ impl TunIPsecTunnel {
         let ka_run = keepalive_runner.run();
         pin_mut!(ka_run);
 
-        let scv_runner = ScvRunner::new(
-            self.gateway_information.connectivity_info.server_ip,
-            tun_name.clone(),
-            ready.clone(),
-        );
+        let scv_runner = ScvRunner::new(keepalive_address, tun_name.clone(), ready.clone());
 
         let scv_run = scv_runner.run();
         pin_mut!(scv_run);
@@ -433,7 +481,10 @@ impl TunIPsecTunnel {
 
                 result = tun_receiver.recv(&mut buf) => {
                     if let Ok(size) = result {
-                        let item = buf[0..size].to_vec();
+                        let mut item = buf[0..size].to_vec();
+                        if let Some(nat) = nat {
+                            nat.outbound(&mut item);
+                        }
                         let codec = esp_codec_out.clone();
                         let result = tokio::task::spawn_blocking(move || {
                             codec.read().unwrap_or_else(|e| e.into_inner()).encode(&item)

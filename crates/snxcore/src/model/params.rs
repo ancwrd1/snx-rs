@@ -604,6 +604,7 @@ pub struct TunnelParams {
     #[serde(skip)]
     pub reg_key: Option<String>,
     pub client_logging_data: Option<PathBuf>,
+    pub use_internal_gateway_ip: bool,
     #[serde(default)]
     pub notification_level: NotificationLevel,
     #[serde(skip)]
@@ -661,6 +662,7 @@ impl Default for TunnelParams {
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
+            use_internal_gateway_ip: false,
             notification_level: NotificationLevel::default(),
             config_file: Self::default_config_path(),
         }
@@ -716,6 +718,7 @@ impl PartialEq for TunnelParams {
             && self.mfa_code == other.mfa_code
             && self.reg_key == other.reg_key
             && self.client_logging_data == other.client_logging_data
+            && self.use_internal_gateway_ip == other.use_internal_gateway_ip
             && self.notification_level == other.notification_level
             && self.config_file == other.config_file
     }
@@ -793,6 +796,7 @@ impl TunnelParams {
                 "allow-forwarding" => params.allow_forwarding = v.parse().unwrap_or_default(),
                 "tls-version-max" => params.tls_version_max = v.parse().unwrap_or_default(),
                 "client-logging-data" => params.client_logging_data = Some(v.into()),
+                "use-internal-gateway-ip" => params.use_internal_gateway_ip = v.parse().unwrap_or_default(),
                 "notification-level" => params.notification_level = v.parse().unwrap_or_default(),
                 "mfa-code" => params.mfa_code = Some(v),
                 other => {
@@ -912,6 +916,7 @@ impl TunnelParams {
         writeln!(buf, "transport-type={}", self.transport_type)?;
         writeln!(buf, "allow-forwarding={}", self.allow_forwarding)?;
         writeln!(buf, "tls-version-max={}", self.tls_version_max)?;
+        writeln!(buf, "use-internal-gateway-ip={}", self.use_internal_gateway_ip)?;
 
         if let Some(ref client_logging_data) = self.client_logging_data {
             writeln!(buf, "client-logging-data={}", client_logging_data.display())?;
@@ -1058,6 +1063,7 @@ mod tests {
             mfa_code: None,
             reg_key: None,
             client_logging_data: None,
+            use_internal_gateway_ip: true,
             notification_level: NotificationLevel::Standard,
             config_file: temp_path.to_owned(),
         };

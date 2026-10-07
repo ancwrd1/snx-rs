@@ -1,5 +1,3 @@
-use std::{collections::BTreeMap, fmt, str::FromStr};
-
 use anyhow::{Context, anyhow};
 use i18n::tr;
 use num_traits::Num;
@@ -7,6 +5,8 @@ use pest::{Parser, iterators::Pairs};
 use pest_derive::Parser;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::borrow::Cow;
+use std::{collections::BTreeMap, fmt, str::FromStr};
 
 type RulePairs<'a> = Pairs<'a, Rule>;
 
@@ -109,7 +109,7 @@ impl SExpression {
             .join("\n");
         format!(
             "({}{}{})",
-            name.unwrap_or(""),
+            maybe_quote(name.unwrap_or("")),
             if fields.is_empty() { "" } else { "\n" },
             fields
         )
@@ -210,12 +210,16 @@ fn to_json_value(v: &str) -> Value {
     }
 }
 
-fn format_value(value: &str) -> String {
-    if value.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
-        format!("(\"{value}\")")
+fn maybe_quote(value: &str) -> Cow<'_, str> {
+    if value.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '-' && c != '.') {
+        Cow::Owned(format!("\"{value}\""))
     } else {
-        format!("({value})")
+        Cow::Borrowed(value)
     }
+}
+
+fn format_value(value: &str) -> String {
+    format!("({})", maybe_quote(value))
 }
 
 fn to_json_object<N: AsRef<str>, K: AsRef<str>>(name: Option<N>, fields: &BTreeMap<K, SExpression>) -> Value {
@@ -253,7 +257,7 @@ fn parse_obj(pairs: RulePairs) -> anyhow::Result<SExpression> {
     for pair in pairs {
         match pair.as_rule() {
             Rule::ident => {
-                name = Some(pair.as_str().to_owned());
+                name = Some(pair.as_str().trim_matches('"').to_owned());
             }
             Rule::field => {
                 let (key, value) = parse_field(pair.into_inner())?;
@@ -473,5 +477,25 @@ mod tests {
         let sexpr = "(:key (0xAD))".parse::<SExpression>().unwrap();
         let data: Data = sexpr.try_into().unwrap();
         assert_eq!(data.key, 0xad);
+    }
+
+    #[test]
+    fn test_unusual_idents() {
+        let text = r#"("foo bar" :name ("BUILTIN\administrator"))"#;
+        let sexpr = text.parse::<SExpression>().unwrap();
+        let encoded = format!("{sexpr}");
+        assert!(matches!(sexpr, SExpression::Object(Some(name), attrs)
+                if name == "foo bar" && attrs.get("name").unwrap().as_value().unwrap() == "BUILTIN\\administrator"));
+
+        assert_eq!(encoded.replace("\t", "").replace("\n", " "), text);
+    }
+
+    #[test]
+    fn test_parse_client_settings() {
+        let text = include_str!("../tests/client_settings.txt");
+        let sexpr = text.parse::<SExpression>().unwrap();
+        let encoded = format!("{sexpr}");
+        let decoded = encoded.parse::<SExpression>().unwrap();
+        assert_eq!(decoded, sexpr);
     }
 }
