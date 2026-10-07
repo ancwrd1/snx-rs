@@ -17,12 +17,11 @@ WORKDIR /usr/src/snx-rs
 COPY . .
 
 # Build static binary with vendored dependencies
-# Using cargo directly since we're already in a container
+# Note: --profile and --release are mutually exclusive in cargo
 RUN cargo build --target x86_64-unknown-linux-musl \
     --features snxcore/vendored-openssl,snxcore/vendored-sqlite \
     -p snx-rs \
-    --profile lto \
-    --release
+    --profile lto
 
 # Runtime stage - configurable base
 ARG BASE=alpine
