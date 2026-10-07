@@ -4,7 +4,8 @@
 # Build for Arch: docker build -t snx-rs --build-arg BASE=archlinux .
 
 # Build stage - static binary
-FROM rust:1.88-slim AS builder
+# Use Rust 1.92 to satisfy dependency requirements (aes 0.9.3, cached 4.0.1, uuid 1.27.0)
+FROM rust:1.92-slim AS builder
 
 # Install musl tools and musl target for static linking
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,7 +18,6 @@ WORKDIR /usr/src/snx-rs
 COPY . .
 
 # Build static binary with vendored dependencies
-# Note: --profile and --release are mutually exclusive in cargo
 RUN cargo build --target x86_64-unknown-linux-musl \
     --features snxcore/vendored-openssl,snxcore/vendored-sqlite \
     -p snx-rs \
