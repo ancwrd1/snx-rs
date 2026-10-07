@@ -6,20 +6,19 @@
 # Build stage - static binary
 FROM rust:1.88-slim AS builder
 
-# Install musl tools for static linking
+# Install musl tools and musl target for static linking
 RUN apt-get update && apt-get install -y --no-install-recommends \
     musl-tools \
+    && rustup target add x86_64-unknown-linux-musl \
     && rm -rf /var/lib/apt/lists/*
-
-# Install cross-rs for cross-compilation
-RUN cargo install cross
 
 # Copy the entire repository
 WORKDIR /usr/src/snx-rs
 COPY . .
 
 # Build static binary with vendored dependencies
-RUN cross build --target x86_64-unknown-linux-musl \
+# Using cargo directly since we're already in a container
+RUN cargo build --target x86_64-unknown-linux-musl \
     --features snxcore/vendored-openssl,snxcore/vendored-sqlite \
     -p snx-rs \
     --profile lto \
