@@ -262,15 +262,17 @@ pub struct ClientSettingsResponse {
 impl ClientSettingsResponse {
     /// The first external interface of the current gateway in the MEP policy, its own address when behind NAT.
     pub fn internal_gateway_ip(&self) -> Option<Ipv4Addr> {
-        let settings = &self.updated_policies.mep["settings"];
-        let current = &settings["current_gateway"];
-        let gateways = settings["gateways_summary"].as_object()?;
+        let settings = self.updated_policies.mep.get("settings")?;
+        let current = settings.get("current_gateway");
+        let gateways = settings.get("gateways_summary")?.as_object()?;
         let gateway = gateways
             .values()
-            .find(|gateway| !current.is_null() && gateway["gateway_name"] == *current)
+            .find(|gateway| current.is_some() && gateway.get("gateway_name") == current)
             .or_else(|| gateways.values().next())?;
 
-        gateway["ext_interfaces"][0]
+        gateway
+            .get("ext_interfaces")?
+            .get(0)?
             .as_object()?
             .keys()
             .next()?
@@ -644,8 +646,13 @@ mod tests {
     #[test]
     fn internal_gateway_ip_needs_the_mep_policy() {
         assert_eq!(client_settings("").internal_gateway_ip(), None);
+        assert_eq!(client_settings(":mep (:name (mep))").internal_gateway_ip(), None);
         assert_eq!(
             client_settings(":mep (:settings (:gateways_summary ()))").internal_gateway_ip(),
+            None
+        );
+        assert_eq!(
+            client_settings(":mep (:settings (:gateways_summary (:0 (:gateway_name (gw-a)))))").internal_gateway_ip(),
             None
         );
         assert_eq!(
