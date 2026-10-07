@@ -1,7 +1,17 @@
 # Dockerfile for building and running snx-rs (Check Point VPN client)
 # Supports multiple base images: alpine (default), archlinux
+#
+# ==== BUILDING ====
 # Build: docker build -t snx-rs .
 # Build for Arch: docker build -t snx-rs --build-arg BASE=archlinux .
+#
+# ==== RUNNING ====
+# Basic usage (replace placeholders):
+#   docker run -it --rm --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW snx-rs snx-rs connect -s vpn.example.com -u username
+# With config volume:
+#   docker run -it --rm --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW -v $PWD/config:/home/snxuser/.config/snx-rs snx-rs snx-rs <command>
+#
+# Note: --net=host and NET_ADMIN/NET_RAW capabilities are required for VPN tunnel establishment.
 
 # Build stage - static binary
 # Use Rust 1.92 to satisfy dependency requirements (aes 0.9.3, cached 4.0.1, uuid 1.27.0)
@@ -58,11 +68,6 @@ USER snxuser
 
 # Create a directory for configuration
 RUN mkdir -p /home/snxuser/.config/snx-rs
-
-# The container can be run with a command like:
-# docker run -it --rm --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW snx-rs snx-rs connect -s vpn.example.com -u username
-# Or with a volume for config:
-# docker run -it --rm --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW -v $PWD/config:/home/snxuser/.config/snx-rs snx-rs snx-rs <command>
 
 ENTRYPOINT ["snx-rs"]
 CMD ["--help"]
