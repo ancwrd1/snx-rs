@@ -1,3 +1,5 @@
+use std::{borrow::Cow, collections::BTreeMap, fmt, str::FromStr};
+
 use anyhow::{Context, anyhow};
 use i18n::tr;
 use num_traits::Num;
@@ -5,8 +7,6 @@ use pest::{Parser, iterators::Pairs};
 use pest_derive::Parser;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::borrow::Cow;
-use std::{collections::BTreeMap, fmt, str::FromStr};
 
 type RulePairs<'a> = Pairs<'a, Rule>;
 

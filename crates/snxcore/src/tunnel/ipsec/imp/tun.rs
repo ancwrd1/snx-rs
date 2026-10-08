@@ -27,17 +27,14 @@ use crate::{
         params::{TransportType, TunnelParams, TunnelType},
         proto::GatewayInformation,
     },
+    nat::{StaticNat, placeholder_address},
     platform::{
         DeviceConfig, NetworkInterface, Platform, PlatformAccess, ResolverConfig, RoutingConfig, RoutingConfigurator,
     },
     tunnel::{
         GatewayConnector, TunnelCommand, TunnelEvent,
         device::TunDevice,
-        ipsec::{
-            imp::nat::{StaticNat, placeholder_address},
-            keepalive::KeepaliveRunner,
-            scv::ScvRunner,
-        },
+        ipsec::{keepalive::KeepaliveRunner, scv::ScvRunner},
     },
     util,
 };
