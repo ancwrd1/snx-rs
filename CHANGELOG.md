@@ -1,3 +1,6 @@
+## v6.5.2 (TBD)
+* Linux: fixed tunnel teardown right after connecting on systems with systemd-resolved older than 240 (e.g. RHEL 8), which lack the `SetLinkDefaultRoute` D-Bus method.
+
 ## v6.5.1 (2026-10-12)
 * Bugfix for IKEv2 over TCPT (#273)
 

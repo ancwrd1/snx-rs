@@ -4,13 +4,14 @@ use anyhow::Context;
 use async_trait::async_trait;
 use cached::cached;
 use itertools::Itertools;
-use tracing::debug;
+use tracing::{debug, warn};
 use zbus::Connection;
 
 use crate::platform::{ResolverConfig, ResolverConfigurator};
 
 const RESOLV_CONF: &str = "/etc/resolv.conf";
 const AF_INET: i32 = 2;
+const UNKNOWN_METHOD_ERROR: &str = "org.freedesktop.DBus.Error.UnknownMethod";
 
 #[derive(Clone, Debug, PartialEq)]
 enum ResolverType {
@@ -56,7 +57,15 @@ impl ResolverConfigurator for SystemdResolvedConfigurator {
             .collect();
 
         proxy.set_link_domains(ifindex, domains).await?;
-        proxy.set_link_default_route(ifindex, !config.split_dns).await?;
+
+        // SetLinkDefaultRoute is only available since systemd 240 (e.g. missing on RHEL 8)
+        match proxy.set_link_default_route(ifindex, !config.split_dns).await {
+            Err(zbus::Error::MethodError(name, _, _)) if name.as_str() == UNKNOWN_METHOD_ERROR => {
+                warn!("systemd-resolved does not support SetLinkDefaultRoute, skipping");
+            }
+            other => other?,
+        }
+
         proxy.set_link_multicast_dns(ifindex, "no").await?;
         proxy.set_link_llmnr(ifindex, "no").await?;
         proxy.set_link_dns_over_tls(ifindex, "no").await?;
