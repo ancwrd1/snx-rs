@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use anyhow::{Context, anyhow};
+use bytes::Bytes;
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
 use interprocess::local_socket::traits::tokio::Listener;
@@ -354,7 +355,7 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
         while let Some(Ok(packet)) = codec.next().await {
             let reply = self.handle_packet(&packet).await;
             let reply = serde_json::to_vec(&reply)?;
-            codec.send(reply.into()).await?;
+            codec.send(Bytes::from(reply)).await?;
         }
 
         Ok(())

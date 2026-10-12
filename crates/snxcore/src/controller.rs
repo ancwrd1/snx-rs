@@ -1,6 +1,7 @@
 use std::{str::FromStr, sync::Arc, time::Duration};
 
 use anyhow::{Context, anyhow};
+use bytes::Bytes;
 use futures::{SinkExt, StreamExt};
 use i18n::tr;
 use interprocess::local_socket::traits::tokio::Stream;
@@ -371,7 +372,7 @@ where
 
         let data = serde_json::to_vec(&request)?;
 
-        let Ok(Ok(_)) = tokio::time::timeout(SEND_TIMEOUT, codec.send(data.into())).await else {
+        let Ok(Ok(_)) = tokio::time::timeout(SEND_TIMEOUT, codec.send(Bytes::from(data))).await else {
             self.stream = None;
             anyhow::bail!(tr!("error-cannot-send-request"));
         };

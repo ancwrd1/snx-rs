@@ -44,7 +44,7 @@ num-traits = "0.2"
 parse_int = "0.9"
 byteorder = "1"
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
-opener = { version = "0.8"}
+opener = { version = "0.9"}
 cached = {  version = "4",  features = ["async"] }
 openssl = "0.10"
 itertools = "0.15"
