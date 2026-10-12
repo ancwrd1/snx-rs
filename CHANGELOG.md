@@ -1,3 +1,6 @@
+## v6.5.1 (2026-10-12)
+* Bugfix for IKEv2 over TCPT (#273)
+
 ## v6.5.0 (2026-10-12)
 * Added the `auto-disconnect` option which disconnects the tunnel when the GUI frontend exits.
 * Linux: the DEB, RPM and .run packages now install the systemd unit into `/usr/lib/systemd/system` instead of `/etc/systemd/system`. The service is re-enabled automatically on upgrade.

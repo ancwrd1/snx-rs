@@ -442,7 +442,7 @@ impl Ikev2TunnelConnector {
     }
 
     async fn handle_peer_request(&mut self) -> anyhow::Result<()> {
-        let Some(request) = self.service.poll_request(PEER_REQUEST_POLL).await? else {
+        let Ok(Some(request)) = self.service.poll_request(PEER_REQUEST_POLL).await else {
             return Ok(());
         };
 
