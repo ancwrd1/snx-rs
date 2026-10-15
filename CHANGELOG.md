@@ -1,5 +1,5 @@
 ## v6.5.2 (TBD)
-* Fixed service panic when a stray packet is received on NAT-T UDP port which is not a valid IKE message (#274).
+* Fixed a problem with service crash when a stray packet is received on NAT-T UDP port that is not a valid IKE message (#274).
 * Fixed a problem with TCPT IKE transport being disconnected after some idle timeout.
 * Linux x86_64: release packages (non-webkit) are now linked against glibc 2.28, so they also run on RHEL/Alma/Rocky/Oracle Linux 8.
 
