@@ -1,3 +1,6 @@
+## v6.5.2 (TBD)
+* Linux x86_64: release packages (non-webkit) are now linked against glibc 2.28, so they also run on RHEL/Alma/Rocky/Oracle Linux 8.
+
 ## v6.5.1 (2026-10-12)
 * Bugfix for IKEv2 over TCPT (#273)
 
