@@ -15,6 +15,7 @@ There are several ways to install `snx-rs`:
   1. Download the installer, then: `chmod +x snx-rs-*-linux-x86_64.run`
   2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
 - Signed repositories for APT (Debian/Ubuntu), DNF (Fedora/RHEL) and zypper (openSUSE) with the latest release builds are published at [ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).
+  > NOTE: older RPM distributions such as RHEL/Alma/Rocky/Oracle Linux 8 do not recognize the current Ed25519 signing key, the current workaround is to use rpm command with `--nosignature` option to install the package. This will be fixed in the future releases.
 
 ## macOS
 
