@@ -1,4 +1,4 @@
-## v6.5.2 (TBD)
+## v6.5.2 (2026-10-16)
 * Fixed a problem with service crash when a stray packet is received on NAT-T UDP port that is not a valid IKE message (#274).
 * Fixed a problem with TCPT IKE transport being disconnected after some idle timeout.
 * Linux: fixed tunnel teardown right after connecting on systems with systemd-resolved older than 240 (e.g. RHEL 8), which lack the `SetLinkDefaultRoute` D-Bus method.
