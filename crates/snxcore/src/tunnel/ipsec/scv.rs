@@ -15,6 +15,7 @@ use crate::{
 };
 
 const SCV_INTERVAL: Duration = Duration::from_secs(20);
+const SCV_DEADLINE: Duration = Duration::from_mins(10);
 const LOOP_INTERVAL: Duration = Duration::from_secs(1);
 
 const SCV_COMPLIANCE_DATA: &[u8] = &[
@@ -44,7 +45,9 @@ impl ScvRunner {
         // Force egress via the tunnel adapter — see KeepaliveRunner for why.
         udp.bind_to_tunnel(&self.tunnel_device)?;
 
-        loop {
+        let now = std::time::Instant::now();
+
+        while now.elapsed() < SCV_DEADLINE {
             if Platform::get().new_network_interface().is_online() && self.ready.load(Ordering::SeqCst) {
                 trace!("Sending SCV data to {}", self.dst);
                 let _ = udp
@@ -55,5 +58,6 @@ impl ScvRunner {
                 tokio::time::sleep(LOOP_INTERVAL).await;
             }
         }
+        futures::future::pending().await
     }
 }

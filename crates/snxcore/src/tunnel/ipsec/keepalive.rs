@@ -77,6 +77,8 @@ impl KeepaliveRunner {
 
         let mut num_failures = 0;
 
+        tokio::time::sleep(KEEPALIVE_INTERVAL).await;
+
         loop {
             let sleep_interval =
                 if Platform::get().new_network_interface().is_online() && self.ready.load(Ordering::SeqCst) {
