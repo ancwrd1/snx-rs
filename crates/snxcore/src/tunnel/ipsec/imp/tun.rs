@@ -445,6 +445,7 @@ impl TunIPsecTunnel {
             } else {
                 ready.clone()
             },
+            Some(KeepaliveRunner::KEEPALIVE_INTERVAL),
         );
         keepalive_runner.set_event_sender(event_sender.clone());
 

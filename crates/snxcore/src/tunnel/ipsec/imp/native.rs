@@ -80,6 +80,7 @@ impl NativeIPsecTunnel {
             } else {
                 ready.clone()
             },
+            Some(KeepaliveRunner::KEEPALIVE_INTERVAL),
         );
 
         let scv_runner = ScvRunner::new(

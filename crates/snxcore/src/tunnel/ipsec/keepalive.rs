@@ -17,7 +17,6 @@ use crate::{
     tunnel::TunnelEvent,
 };
 
-const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
 const KEEPALIVE_RETRY_INTERVAL: Duration = Duration::from_secs(2);
 const LOOP_INTERVAL: Duration = Duration::from_secs(1);
 const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(2);
@@ -42,15 +41,19 @@ pub struct KeepaliveRunner {
     dst: Ipv4Addr,
     tunnel_device: String,
     ready: Arc<AtomicBool>,
+    initial_delay: Option<Duration>,
     event_sender: Option<mpsc::Sender<TunnelEvent>>,
 }
 
 impl KeepaliveRunner {
-    pub fn new(dst: Ipv4Addr, tunnel_device: String, ready: Arc<AtomicBool>) -> Self {
+    pub const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(20);
+
+    pub fn new(dst: Ipv4Addr, tunnel_device: String, ready: Arc<AtomicBool>, initial_delay: Option<Duration>) -> Self {
         Self {
             dst,
             tunnel_device,
             ready,
+            initial_delay,
             event_sender: None,
         }
     }
@@ -77,7 +80,9 @@ impl KeepaliveRunner {
 
         let mut num_failures = 0;
 
-        tokio::time::sleep(KEEPALIVE_INTERVAL).await;
+        if let Some(delay) = self.initial_delay {
+            tokio::time::sleep(delay).await;
+        }
 
         loop {
             let sleep_interval =
@@ -112,7 +117,7 @@ impl KeepaliveRunner {
                         );
                     }
                     if num_failures == 0 {
-                        KEEPALIVE_INTERVAL
+                        Self::KEEPALIVE_INTERVAL
                     } else {
                         KEEPALIVE_RETRY_INTERVAL
                     }
@@ -151,7 +156,7 @@ mod tests {
         });
 
         let ready = Arc::new(AtomicBool::new(true));
-        let mut runner = KeepaliveRunner::new(Ipv4Addr::LOCALHOST, String::new(), ready);
+        let mut runner = KeepaliveRunner::new(Ipv4Addr::LOCALHOST, String::new(), ready, None);
         let (tx, mut rx) = mpsc::channel(8);
         runner.set_event_sender(tx);
 
@@ -171,7 +176,7 @@ mod tests {
     async fn failed_keepalive_returns_error_after_max_retries() {
         // Nothing listens on 127.0.0.2:IPSEC_KEEPALIVE_PORT, so every send_receive call times out.
         let ready = Arc::new(AtomicBool::new(true));
-        let runner = KeepaliveRunner::new(Ipv4Addr::new(127, 0, 0, 2), String::new(), ready);
+        let runner = KeepaliveRunner::new(Ipv4Addr::new(127, 0, 0, 2), String::new(), ready, None);
 
         let result = tokio::time::timeout(Duration::from_secs(120), runner.run())
             .await
