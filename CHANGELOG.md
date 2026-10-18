@@ -1,3 +1,6 @@
+## v6.5.3 (2026-10-18)
+* Fixed a regression with IKEv1 tunnel rekeying.
+
 ## v6.5.2 (2026-10-16)
 * Fixed a problem with service crash when a stray packet is received on NAT-T UDP port that is not a valid IKE message (#274).
 * Fixed a problem with TCPT IKE transport being disconnected after some idle timeout.
