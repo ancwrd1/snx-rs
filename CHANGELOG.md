@@ -1,3 +1,8 @@
+## v6.5.4 (2026-10-19)
+* Fixed IPsec login failing with InvalidCookie when browser/MFA authentication takes longer than 20 seconds (#279)
+* Change GPG signing key for packages from Ed25519 to RSA for compatibility with older enterprise distros.
+  Existing APT users must re-download `/etc/apt/sources.list.d/snx-rs.sources` (it embeds the key); DNF and zypper prompt to import the new key.
+
 ## v6.5.3 (2026-10-18)
 * Fixed a regression with IKEv1 tunnel rekeying.
 

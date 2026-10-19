@@ -695,9 +695,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.8.0"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6651c9ed80effdc7db0ff72512157f901af5e3549e341e24b1dd4887d836d838"
+checksum = "877bf67ac8e52449eb2f9e98a344ea163beb70dd1f9eebe3cc5357dcfeaee4df"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1530,9 +1530,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
+checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
 name = "fixed_decimal"
@@ -3048,7 +3048,7 @@ dependencies = [
 
 [[package]]
 name = "i18n"
-version = "6.5.3"
+version = "6.5.4"
 dependencies = [
  "cached",
  "fluent-templates",
@@ -3341,9 +3341,9 @@ dependencies = [
 
 [[package]]
 name = "inout"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ce983bb6fb399067d101fbfc9e74174e07e9f29a2bc679efefeb8c645819c3f"
+checksum = "3b5cf4372d022092674a83b8febf5865f7a573cc0c5baec5e49c879b6a20978f"
 dependencies = [
  "block-padding",
  "hybrid-array",
@@ -3431,7 +3431,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "isakmp"
 version = "0.2.0"
-source = "git+https://github.com/ancwrd1/isakmp.git#a07c7a5bb653047ed9bbdb77e8fc07c59dd73139"
+source = "git+https://github.com/ancwrd1/isakmp.git#82fd33294ebad95739517063115b391accff2902"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6211,7 +6211,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs"
-version = "6.5.3"
+version = "6.5.4"
 dependencies = [
  "anyhow",
  "clap",
@@ -6231,7 +6231,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "6.5.3"
+version = "6.5.4"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -6280,7 +6280,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "6.5.3"
+version = "6.5.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6338,7 +6338,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "6.5.3"
+version = "6.5.4"
 dependencies = [
  "anyhow",
  "clap",
