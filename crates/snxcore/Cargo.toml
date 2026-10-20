@@ -55,7 +55,7 @@ http-body-util = "0.1"
 rusqlite = { version = "0.40", features = [ "uuid" ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-zbus = { version = "5", default-features = false, features = ["tokio"] }
+zbus = { version = "6", default-features = false, features = ["tokio", "proxy"] }
 secret-service = {  version = "5", features = ["rt-tokio-crypto-rust"] }
 sysctl = "0.7"
 rtnetlink = "0.23"

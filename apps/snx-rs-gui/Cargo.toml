@@ -42,7 +42,7 @@ ksni = "0.3"
 gtk4 = { version = "0.11", features = ["v4_10"], optional = true }
 nix = "0.31"
 webkit6 = { version = "0.6", optional = true }
-zbus = { version = "5", default-features = false, features = ["tokio"] }
+zbus = { version = "6", default-features = false, features = ["tokio"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 nix = "0.31"

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use snxcore::prompt::NotificationCategory;
-use zbus::{Connection, zvariant};
+use zbus::{Connection, wire};
 
 #[zbus::proxy(
     interface = "org.freedesktop.portal.Settings",
@@ -12,9 +12,9 @@ use zbus::{Connection, zvariant};
 )]
 pub trait DesktopSettings {
     #[zbus(signal)]
-    fn setting_changed(&self, namespace: &str, key: &str, value: zvariant::Value<'_>) -> zbus::Result<()>;
+    fn setting_changed(&self, namespace: &str, key: &str, value: wire::Variant<'_>) -> zbus::Result<()>;
 
-    fn read_one(&self, namespace: &str, key: &str) -> zbus::Result<zvariant::OwnedValue>;
+    fn read_one(&self, namespace: &str, key: &str) -> zbus::Result<wire::OwnedVariant>;
 }
 
 #[zbus::proxy(
@@ -31,7 +31,7 @@ pub trait Notifications {
         summary: &str,
         body: &str,
         actions: &[&str],
-        hints: HashMap<String, zvariant::OwnedValue>,
+        hints: HashMap<String, wire::OwnedVariant>,
         expire_timeout: i32,
     ) -> zbus::Result<u32>;
 }

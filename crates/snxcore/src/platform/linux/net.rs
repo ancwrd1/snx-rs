@@ -89,7 +89,7 @@ pub trait NetworkManager {
     #[zbus(property)]
     fn state(&self) -> zbus::Result<u32>;
 
-    fn get_device_by_ip_iface(&self, iface: &str) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
+    fn get_device_by_ip_iface(&self, iface: &str) -> zbus::Result<zbus::OwnedObjectPath>;
 }
 
 #[zbus::proxy(
@@ -193,7 +193,7 @@ impl NetworkInterface for LinuxNetworkInterface {
             && let Ok(nm_proxy) = NetworkManagerProxy::new(&connection).await
             && let Ok(device_path) = nm_proxy.get_device_by_ip_iface(&device_config.name).await
             && let Ok(device_proxy) = NetworkManagerDeviceProxy::builder(&connection)
-                .path(device_path)?
+                .path(device_path)
                 .build()
                 .await
         {
