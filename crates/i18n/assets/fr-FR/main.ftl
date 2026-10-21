@@ -111,6 +111,7 @@ error-no-pkcs11 = Pas de code PIN PKCS11 fourni
 error-no-ipsec-session = Pas de session IPsec
 error-request-failed-error-code = Échec de la requête, code d'erreur : {$error_code}
 error-no-root-privileges = Ce programme doit être exécuté en tant qu'utilisateur root !
+error-no-net-admin-capability = Ce programme nécessite les privilèges root ou la capacité CAP_NET_ADMIN !
 error-missing-required-parameters = Paramètres obligatoires manquants : nom du serveur et/ou type de connexion !
 error-missing-server-name = Paramètre obligatoire manquant : nom du serveur !
 error-no-connector-for-challenge-code = Pas de connecteur pour envoyer le code de défi !

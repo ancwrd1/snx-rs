@@ -29,7 +29,7 @@ docker run -it --rm \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
   snx-rs \
-  snx-rs connect -s vpn.example.com -u username
+  snx-rs -s vpn.example.com -o vpn_Username_Password -u username
 ```
 
 To persist configuration across runs, mount a volume:
@@ -46,6 +46,19 @@ docker run -it --rm \
 ```
 
 > **Note:** The `--net=host` and network capabilities (`NET_ADMIN`, `NET_RAW`) are required for VPN tunnel establishment.
+
+### Privileges
+
+On Linux, snx-rs does not require the root user: it checks for the `CAP_NET_ADMIN` capability instead.
+The image sets this capability on the binary (`setcap cap_net_admin+ep`), so `snxuser` gets it as long as
+the container is started with `--cap-add=NET_ADMIN`. Without that flag, snx-rs refuses to start, even when the
+container runs as root, because Docker does not grant `NET_ADMIN` by default.
+
+The file capability is ignored when the container runs with `--security-opt no-new-privileges`. In that case,
+run the container as root (`--user root`) instead.
+
+Because the container user cannot modify `/etc/resolv.conf`, use the `no-dns=true` option and configure name
+resolution for the VPN domains separately, or run the container as root.
 
 ### Dockerfile Details
 

@@ -111,6 +111,7 @@ error-no-pkcs11 = Nije naveden PKCS11 pin
 error-no-ipsec-session = Nema IPsec sesije
 error-request-failed-error-code = Zahtjev nije uspio, kod greške: {$error_code}
 error-no-root-privileges = Ovaj program treba pokrenuti kao root korisnik!
+error-no-net-admin-capability = Ovaj program zahtijeva root ovlasti ili sposobnost CAP_NET_ADMIN!
 error-missing-required-parameters = Nedostaju obavezni parametri: naziv poslužitelja i/ili tip prijave!
 error-missing-server-name = Nedostaje obavezni parametar: naziv poslužitelja!
 error-no-connector-for-challenge-code = Nema konektora za slanje koda izazova!

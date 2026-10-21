@@ -111,6 +111,7 @@ error-no-pkcs11 = Ei PKCS11 PIN-koodia annettu
 error-no-ipsec-session = Ei IPsec-istuntoa
 error-request-failed-error-code = Pyyntö epäonnistui, virhekoodi: {$error_code}
 error-no-root-privileges = Tämä ohjelma pitää ajaa root-käyttäjänä!
+error-no-net-admin-capability = Tämä ohjelma vaatii root-oikeudet tai CAP_NET_ADMIN-kyvykkyyden!
 error-missing-required-parameters = Pakolliset parametrit puuttuvat: palvelimen nimi ja/tai kirjautumistyyppi!
 error-missing-server-name = Pakollinen parametri puuttuu: palvelimen nimi!
 error-no-connector-for-challenge-code = Ei konektoria haastekoodin lähettämiseen!

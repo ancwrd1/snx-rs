@@ -84,8 +84,11 @@ impl PlatformAccess for MacosPlatformAccess {
         machine_uuid::get_machine_uuid()
     }
 
-    fn is_root(&self) -> bool {
-        nix::unistd::Uid::effective().is_root()
+    fn check_privileges(&self) -> anyhow::Result<()> {
+        if !nix::unistd::Uid::effective().is_root() {
+            anyhow::bail!(i18n::tr!("error-no-root-privileges"));
+        }
+        Ok(())
     }
 
     fn init(&self) {

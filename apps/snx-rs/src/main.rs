@@ -67,8 +67,8 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if cmdline_params.mode.requires_root() && !Platform::get().is_root() {
-        anyhow::bail!(tr!("error-no-root-privileges"));
+    if cmdline_params.mode.requires_root() {
+        Platform::get().check_privileges()?;
     }
 
     #[cfg(target_os = "windows")]

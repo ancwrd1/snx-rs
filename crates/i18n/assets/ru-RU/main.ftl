@@ -111,6 +111,7 @@ error-no-pkcs11 = Не указан PIN-код PKCS11
 error-no-ipsec-session = Нет сессии IPsec
 error-request-failed-error-code = Ошибка запроса, код ошибки: {$error_code}
 error-no-root-privileges = Эта программа должна быть запущена с правами root!
+error-no-net-admin-capability = Для работы программы требуются права root или возможность CAP_NET_ADMIN!
 error-missing-required-parameters = Отсутствуют обязательные параметры: имя сервера и/или тип входа!
 error-missing-server-name = Отсутствует обязательный параметр: имя сервера!
 error-no-connector-for-challenge-code = Нет коннектора для отправки кода запроса!

@@ -200,8 +200,11 @@ impl PlatformAccess for WindowsPlatformAccess {
         machine_uuid::get_machine_uuid()
     }
 
-    fn is_root(&self) -> bool {
-        is_elevated()
+    fn check_privileges(&self) -> anyhow::Result<()> {
+        if !is_elevated() {
+            anyhow::bail!(i18n::tr!("error-no-root-privileges"));
+        }
+        Ok(())
     }
 
     fn init(&self) {}

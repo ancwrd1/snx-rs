@@ -111,6 +111,7 @@ error-no-pkcs11 = Ingen PKCS11 PIN angiven
 error-no-ipsec-session = Ingen IPsec-session
 error-request-failed-error-code = Förfrågan misslyckades, felkod: {$error_code}
 error-no-root-privileges = Detta program måste köras som root-användare!
+error-no-net-admin-capability = Det här programmet kräver root-behörighet eller CAP_NET_ADMIN-förmågan!
 error-missing-required-parameters = Saknade obligatoriska parametrar: servernamn och/eller åtkomsttyp!
 error-missing-server-name = Saknad obligatorisk parameter: servernamn!
 error-no-connector-for-challenge-code = Ingen anslutning för att skicka utmaningskod!

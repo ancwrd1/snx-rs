@@ -1,3 +1,6 @@
+## v6.5.5 (TBD)
+* Linux: snx-rs checks for the `CAP_NET_ADMIN` capability instead of the root user, so it can run as a regular user with that capability, for example in a Docker container. The Dockerfile sets the capability on the binary.
+
 ## v6.5.4 (2026-10-19)
 * Fixed IPsec login failing with InvalidCookie when browser/MFA authentication takes longer than 20 seconds (#279)
 * Change GPG signing key for packages from Ed25519 to RSA for compatibility with older enterprise distros.

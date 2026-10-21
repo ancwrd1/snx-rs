@@ -111,6 +111,7 @@ error-no-pkcs11 = Ingen PKCS11 PIN angivet
 error-no-ipsec-session = Ingen IPsec-session
 error-request-failed-error-code = Anmodning mislykkedes, feilkode: {$error_code}
 error-no-root-privileges = Dette program skal køres som root-bruger!
+error-no-net-admin-capability = Dette program kræver root-rettigheder eller CAP_NET_ADMIN-kapabiliteten!
 error-missing-required-parameters = Manglende påkrævede parametre: servernavn og/eller adgangstype!
 error-missing-server-name = Manglende påkrævet parameter: servernavn!
 error-invalid-sexpr = Ugyldig sexpr: {$value}

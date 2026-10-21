@@ -51,16 +51,21 @@ FROM alpine:latest AS runtime
 # Install runtime dependencies based on base image
 # Alpine uses apk, Arch uses pacman
 RUN if [ "${BASE}" = "archlinux" ]; then \
-        apk add --no-cache iproute2 openssl ca-certificates bash sudo; \
+        apk add --no-cache iproute2 openssl ca-certificates bash sudo libcap-utils; \
     else \
-        apk add --no-cache iproute2 openssl ca-certificates bash sudo; \
+        apk add --no-cache iproute2 openssl ca-certificates bash sudo libcap-utils; \
     fi
 
 # Create a non-root user to run snx-rs
-RUN adduser -D -u 1000 snxuser
+RUN adduser -D -u 1000 snxuser \
+    && mkdir -p /var/cache/snx-rs \
+    && chown snxuser:snxuser /var/cache/snx-rs
 
 # Copy the static binary from the builder stage
 COPY --from=builder /usr/src/snx-rs/target/x86_64-unknown-linux-musl/lto/snx-rs /usr/local/bin/snx-rs
+
+# Docker grants --cap-add capabilities to a non-root user only through file capabilities
+RUN setcap cap_net_admin+ep /usr/local/bin/snx-rs
 
 # Set up entry point
 WORKDIR /home/snxuser

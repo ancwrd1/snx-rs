@@ -111,6 +111,7 @@ error-no-pkcs11 = No PKCS11 pin provided
 error-no-ipsec-session = No IPsec session
 error-request-failed-error-code = Request failed, error code: {$error_code}
 error-no-root-privileges = This program should be run as a root user!
+error-no-net-admin-capability = This program requires root privileges or the CAP_NET_ADMIN capability!
 error-missing-required-parameters = Missing required parameters: server name and/or login type!
 error-missing-server-name = Missing required parameter: server name!
 error-no-connector-for-challenge-code = No connector to send the challenge code to!

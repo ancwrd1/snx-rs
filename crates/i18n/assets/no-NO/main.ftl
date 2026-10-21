@@ -111,6 +111,7 @@ error-no-pkcs11 = Ingen PKCS11 PIN oppgitt
 error-no-ipsec-session = Ingen IPsec-økt
 error-request-failed-error-code = Forespørsel mislyktes, feilkode: {$error_code}
 error-no-root-privileges = Dette programmet må kjøres som root-bruker!
+error-no-net-admin-capability = Dette programmet krever root-rettigheter eller CAP_NET_ADMIN-kapabiliteten!
 error-missing-required-parameters = Manglende påkrevde parametere: servernavn og/eller tilgangstype!
 error-missing-server-name = Manglende påkrevd parameter: servernavn!
 error-no-connector-for-challenge-code = Ingen kobling for å sende utfordringskode!

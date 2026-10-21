@@ -282,7 +282,7 @@ pub trait PlatformAccess {
     ) -> anyhow::Result<Box<dyn ResolverConfigurator + Send + Sync>>;
     fn new_keychain(&self) -> impl Keychain + Send + Sync;
     fn get_machine_uuid(&self) -> anyhow::Result<Uuid>;
-    fn is_root(&self) -> bool;
+    fn check_privileges(&self) -> anyhow::Result<()>;
     fn init(&self);
     fn new_ipsec_configurator(
         &self,

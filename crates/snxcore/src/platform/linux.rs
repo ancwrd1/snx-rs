@@ -217,8 +217,17 @@ impl PlatformAccess for LinuxPlatformAccess {
         get_machine_uuid()
     }
 
-    fn is_root(&self) -> bool {
-        nix::unistd::Uid::effective().is_root()
+    // A container may run as root without CAP_NET_ADMIN, or as a regular user that has it.
+    fn check_privileges(&self) -> anyhow::Result<()> {
+        let has_net_admin = fs::read_to_string("/proc/self/status")
+            .ok()
+            .and_then(|status| has_net_admin_capability(&status))
+            .unwrap_or_else(|| unistd::Uid::effective().is_root());
+
+        if !has_net_admin {
+            anyhow::bail!(i18n::tr!("error-no-net-admin-capability"));
+        }
+        Ok(())
     }
 
     fn init(&self) {
@@ -263,5 +272,35 @@ impl PlatformAccess for LinuxPlatformAccess {
 
     fn data_dir(&self) -> PathBuf {
         PathBuf::from("/var/cache/snx-rs")
+    }
+}
+
+fn has_net_admin_capability(proc_status: &str) -> Option<bool> {
+    const CAP_NET_ADMIN: u32 = 12;
+
+    let caps = proc_status.lines().find_map(|line| line.strip_prefix("CapEff:"))?;
+    let caps = u64::from_str_radix(caps.trim(), 16).ok()?;
+
+    Some(caps & (1 << CAP_NET_ADMIN) != 0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_net_admin_capability() {
+        assert_eq!(
+            has_net_admin_capability("Name:\tsnx-rs\nCapEff:\t000001ffffffffff\n"),
+            Some(true)
+        );
+        assert_eq!(
+            has_net_admin_capability("CapPrm:\t0000000000001000\nCapEff:\t0000000000001000\n"),
+            Some(true)
+        );
+        assert_eq!(has_net_admin_capability("CapEff:\t00000000a80425fb\n"), Some(false));
+        assert_eq!(has_net_admin_capability("CapEff:\t0000000000000000\n"), Some(false));
+        assert_eq!(has_net_admin_capability("Name:\tsnx-rs\n"), None);
+        assert_eq!(has_net_admin_capability("CapEff:\tgarbage\n"), None);
     }
 }

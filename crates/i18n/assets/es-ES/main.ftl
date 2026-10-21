@@ -100,6 +100,7 @@ error-no-login-type = Falta el parámetro obligatorio: login-type
 error-connection-timeout = Tiempo de conexión agotado
 error-request-failed-error-code = Error en la solicitud, código de error: {$error_code}
 error-no-root-privileges = ¡Este programa debe ejecutarse como usuario root!
+error-no-net-admin-capability = ¡Este programa requiere privilegios de root o la capacidad CAP_NET_ADMIN!
 error-missing-required-parameters = ¡Faltan parámetros obligatorios: nombre del servidor y/o tipo de inicio de sesión!
 error-missing-server-name = ¡Falta el parámetro obligatorio: nombre del servidor!
 error-no-connector-for-challenge-code = ¡No hay conector para enviar el código de desafío!

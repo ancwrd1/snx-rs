@@ -111,6 +111,7 @@ error-no-pkcs11 = Žádný PIN PKCS11 není poskytnut
 error-no-ipsec-session = Žádná IPsec relace
 error-request-failed-error-code = Požadavek selhal, kód chyby: {$error_code}
 error-no-root-privileges = Tento program musí být spuštěn jako root uživatel!
+error-no-net-admin-capability = Tento program vyžaduje oprávnění uživatele root nebo schopnost CAP_NET_ADMIN!
 error-missing-required-parameters = Chybí povinné parametry: název serveru a/nebo typ přístupu!
 error-missing-server-name = Chybí povinný parametr: název serveru!
 error-no-connector-for-challenge-code = Žádný konektor pro odeslání kódu výzvy!

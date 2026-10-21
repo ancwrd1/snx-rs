@@ -100,6 +100,7 @@ error-invalid-response = Ongeldige reactie!
 error-cannot-acquire-access-cookie = Toegangscookie kan niet worden verkregen!
 error-request-failed-error-code = Verzoek mislukt, foutcode: {$error_code}
 error-no-root-privileges = Dit programma moet als root-gebruiker worden uitgevoerd!
+error-no-net-admin-capability = Dit programma vereist rootrechten of de CAP_NET_ADMIN-capability!
 error-missing-required-parameters = Verplichte parameters ontbreken: servernaam en/of toegangstype!
 error-missing-server-name = Verplichte parameter ontbreekt: servernaam!
 error-no-connector-for-challenge-code = Geen connector voor het verzenden van de uitdagingscode!

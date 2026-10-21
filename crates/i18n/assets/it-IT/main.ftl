@@ -100,6 +100,7 @@ error-invalid-response = Risposta non valida!
 error-cannot-acquire-access-cookie = Impossibile ottenere il cookie di accesso!
 error-request-failed-error-code = Richiesta fallita, codice di errore: {$error_code}
 error-no-root-privileges = Questo programma deve essere eseguito come utente root!
+error-no-net-admin-capability = Questo programma richiede i privilegi di root o la capability CAP_NET_ADMIN!
 error-missing-required-parameters = Parametri obbligatori mancanti: nome server e/o tipo di accesso!
 error-missing-server-name = Parametro obbligatorio mancante: nome server!
 error-no-connector-for-challenge-code = Nessun connettore per inviare il codice di sfida!
