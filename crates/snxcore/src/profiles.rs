@@ -1,5 +1,7 @@
 use std::{
-    path::Path,
+    cmp::Ordering,
+    fs,
+    path::{Path, PathBuf},
     sync::{Arc, LazyLock, Mutex, MutexGuard},
 };
 
@@ -8,6 +10,37 @@ use uuid::Uuid;
 use crate::model::params::{DEFAULT_PROFILE_UUID, TunnelParams};
 
 static STORE: LazyLock<ConnectionProfilesStore> = LazyLock::new(ConnectionProfilesStore::new);
+
+fn order_file(dir: &Path) -> PathBuf {
+    dir.join("profiles.order")
+}
+
+fn sort_by_saved_order(profiles: &mut [TunnelParams], order_file: &Path) {
+    let order: Vec<Uuid> = fs::read_to_string(order_file)
+        .ok()
+        .map(|s| s.lines().filter_map(|l| l.trim().parse().ok()).collect())
+        .unwrap_or_default();
+
+    profiles.sort_by(|a, b| {
+        let ai = order.iter().position(|id| *id == a.profile_id);
+        let bi = order.iter().position(|id| *id == b.profile_id);
+        match (ai, bi) {
+            (Some(x), Some(y)) => x.cmp(&y),
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            // unknown to the order file: default goes first, rest alphabetical
+            (None, None) => {
+                if a.profile_id == DEFAULT_PROFILE_UUID {
+                    Ordering::Less
+                } else if b.profile_id == DEFAULT_PROFILE_UUID {
+                    Ordering::Greater
+                } else {
+                    a.profile_name.cmp(&b.profile_name)
+                }
+            }
+        }
+    });
+}
 
 struct ProfilesState {
     profiles: Vec<Arc<TunnelParams>>,
@@ -26,6 +59,7 @@ impl ProfilesState {
 
 pub struct ConnectionProfilesStore {
     state: Mutex<ProfilesState>,
+    path: PathBuf,
 }
 
 impl ConnectionProfilesStore {
@@ -34,15 +68,22 @@ impl ConnectionProfilesStore {
     }
 
     pub fn new_in<P: AsRef<Path>>(path: P) -> Self {
-        let mut all = TunnelParams::load_all_from(path);
+        let path = path.as_ref().to_owned();
+        let mut all = TunnelParams::load_all_from(&path);
         if all.is_empty() {
-            all.push(TunnelParams::default());
+            all.push(TunnelParams {
+                config_file: path.join("snx-rs.conf"),
+                ..Default::default()
+            });
         }
+        sort_by_saved_order(&mut all, &order_file(&path));
+
         Self {
             state: Mutex::new(ProfilesState {
                 profiles: all.into_iter().map(Arc::new).collect(),
                 connected: DEFAULT_PROFILE_UUID,
             }),
+            path,
         }
     }
 
@@ -68,7 +109,7 @@ impl ConnectionProfilesStore {
             state.profiles.insert(to, item);
             state.order()
         };
-        let _ = TunnelParams::save_profile_order(&order);
+        let _ = self.save_profile_order(&order);
     }
 
     pub fn get(&self, uuid: Uuid) -> Option<Arc<TunnelParams>> {
@@ -116,7 +157,7 @@ impl ConnectionProfilesStore {
             added.then(|| state.order())
         };
         if let Some(order) = order {
-            let _ = TunnelParams::save_profile_order(&order);
+            let _ = self.save_profile_order(&order);
         }
     }
 
@@ -134,7 +175,14 @@ impl ConnectionProfilesStore {
         if let Some(path) = file {
             let _ = std::fs::remove_file(path);
         }
-        let _ = TunnelParams::save_profile_order(&order);
+        let _ = self.save_profile_order(&order);
+    }
+
+    fn save_profile_order(&self, order: &[Uuid]) -> anyhow::Result<()> {
+        fs::create_dir_all(&self.path)?;
+        let body: String = order.iter().map(|u| format!("{u}\n")).collect();
+        fs::write(order_file(&self.path), body)?;
+        Ok(())
     }
 }
 
@@ -165,6 +213,7 @@ mod tests {
         let all = store.all();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].profile_id, DEFAULT_PROFILE_UUID);
+        assert_eq!(all[0].config_file, dir.path().join("snx-rs.conf"));
     }
 
     #[test]
@@ -290,5 +339,21 @@ mod tests {
         let after = store.all();
         assert_eq!(after[0].profile_id, second);
         assert_eq!(after[1].profile_id, first);
+    }
+
+    #[test]
+    fn reorder_persists_in_store_dir() {
+        let dir = TempDir::new().unwrap();
+        write_profile(dir.path(), "alpha", Uuid::new_v4());
+        write_profile(dir.path(), "beta", Uuid::new_v4());
+
+        let store = ConnectionProfilesStore::new_in(dir.path());
+        store.reorder(0, 1);
+        let expected: Vec<Uuid> = store.all().iter().map(|p| p.profile_id).collect();
+        assert!(dir.path().join("profiles.order").exists());
+
+        let reloaded = ConnectionProfilesStore::new_in(dir.path());
+        let actual: Vec<Uuid> = reloaded.all().iter().map(|p| p.profile_id).collect();
+        assert_eq!(actual, expected);
     }
 }
