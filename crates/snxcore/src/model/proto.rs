@@ -368,6 +368,7 @@ impl GatewayInformation {
         self.login_options_data
             .as_ref()
             .is_none_or(|_| self.get_login_option(login_type).is_some())
+            || login_type == LoginOption::MOBILE_ACCESS_ID
     }
 
     pub fn get_login_option(&self, login_type: &str) -> Option<&LoginOption> {
