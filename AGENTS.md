@@ -173,7 +173,7 @@ User-facing docs are in `docs/`. If you change a config option, CLI flag, tunnel
 * `tunnel-types.md`, `dns-configuration.md`, `certificates.md`, etc. — topic deep-dives.
 * `troubleshooting.md` — add new entries when you diagnose a recurring issue.
 
-Also add a short bullet to `CHANGELOG.md` for any user-visible change, under the `v6.4.0 (TBD)` section (or whatever the current in-flight version is).
+Also add a short bullet to `CHANGELOG.md` for any user-visible change, under the `## [Unreleased]` section, in the matching `### Added` / `### Changed` / `### Removed` / `### Fixed` / `### Security` subsection. The file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); on release, `[Unreleased]` is renamed to `[X.Y.Z] - YYYY-MM-DD` (the release workflow extracts notes by that header) and the compare links at the bottom are updated.
 
 ## Runtime modes (useful context for changes)
 

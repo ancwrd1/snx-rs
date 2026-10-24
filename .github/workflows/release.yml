@@ -170,11 +170,10 @@ jobs:
         run: |
           TAG_NAME=$(echo ${{ github.ref_name }})
           VERSION_NAME=$(echo $TAG_NAME | sed 's/^v//;s/-test//')
-          VERSION_HEADER=$(echo $TAG_NAME | sed 's/-test//')
           echo "Extracting changelog for tag: $TAG_NAME"
 
           # Find the changelog section for this tag
-          CHANGELOG=$(awk -v tag="## $VERSION_HEADER " '$0 ~ tag {flag=1; next} /^## / && flag {flag=0} flag {print}' CHANGELOG.md)
+          CHANGELOG=$(awk -v tag="## [$VERSION_NAME]" 'index($0, tag) == 1 {flag=1; next} /^(## |\[[^]]+\]: )/ && flag {flag=0} flag {print}' CHANGELOG.md)
 
           if [ -z "$CHANGELOG" ]; then
             echo "No changelog entries found for $TAG_NAME"
