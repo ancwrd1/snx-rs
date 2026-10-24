@@ -882,6 +882,396 @@ with feature parity with the Check Point Windows client, while offering better p
 - Don't require a username to be specified for password logins. The user will be prompted for it if needed.
 - Improved MFA prompts retrieval from the server.
 
+## [2.4.0] - 2024-08-25
+
+### Added
+
+- Added `client-mode` advanced parameter which may help with some compatibility issues.
+
+### Changed
+
+- By default, system browser is now used for SAML SSO authentication, instead of WebKit. This reduces the target system dependencies when building and running the application. WebKit can still be enabled during compilation via the `webkit2gtk` feature flag.
+
+### Fixed
+
+- Fixed a regression in the certificate authentication when MFA codes are not required (only for IPSec tunnel).
+- Minor fixes for the UI application.
+
+## [2.3.0] - 2024-08-09
+
+### Added
+
+- Added an option to enable certificate validation for IPSec tunnel via the new `ipsec-cert-check` parameter. Requires a custom CA root certificate to be specified.
+
+### Changed
+
+- Changed `ca-cert` option to be a comma-separated list of certificates rather than a single certificate.
+
+### Fixed
+
+- Fixed a compatibility issue with the old Check Point servers which do not advertise authentication methods.
+- Fixed a bug with the keepalive packets for the SSL tunnel when large amount of data was sent to the tun device.
+
+### Security
+
+- Added IP address check and signature validation of the IKE ID payload.
+
+## [2.2.8] - 2024-07-31
+
+### Added
+
+- Added support for certificate authentication type which requires additional MFA code or password (only for IPSec tunnel).
+
+## [2.2.7] - 2024-07-27
+
+### Fixed
+
+- SSL tunnel: fixed a bug with network interface and routes which are not deleted after disconnect.
+
+## [2.2.6] - 2024-07-21
+
+### Fixed
+
+- Fixed a bug with saving the configuration from the GUI app when `~/.config/snx-rs` directory does not exist.
+
+## [2.2.5] - 2024-07-09
+
+### Added
+
+- Added About dialog to the GUI application.
+
+### Changed
+
+- Compatibility changes in the authentication request to work with more Check Point servers (#26).
+- Better error recovery when SSL tunnel fails to parse the client hello reply.
+
+### Fixed
+
+- Fixed parsing of the server response with multiple domains (#27).
+
+## [2.2.4] - 2024-06-19
+
+### Added
+
+- Added support for 3DES encryption when doing ESP SA proposal, to be able to connect to older or misconfigured Check Point servers.
+
+## [2.2.3] - 2024-06-11
+
+### Fixed
+
+- Fixed a regression which broke the certificate authentication in versions 2.2.1 and higher (#23).
+
+## [2.2.2] - 2024-06-04
+
+### Fixed
+
+- Fixed a problem with second MFA factor when Check Point server requests it as 'UserPassword'.
+- Fixed a problem with some Check Point servers which do not include challenge ID or challenge state in the replies.
+
+## [2.2.1] - 2024-05-28
+
+### Fixed
+
+- Fixed a bug with snxctl and snx-rs-gui not starting if there is no configuration file.
+- Fixed a bug with incorrect logic around `cert-type` in the IPSec tunnel.
+
+## [2.2.0] - 2024-05-13
+
+### Changed
+
+- Rearranged all certificate settings into a separate UI group.
+- Skip non-interactive MFA prompts.
+
+### Fixed
+
+- Fixed a bug with fetching server information in some cases.
+- Fixed a problem with manually defined routes not correctly added for IPSec tunnel.
+
+## [2.1.0] - 2024-05-10
+
+### Added
+
+- Added support for certificate authentication via HW token and PKCS11 interface.
+
+### Changed
+
+- Changed command line options for certificate authentication.
+
+## [2.0.2] - 2024-04-12
+
+### Fixed
+
+- Better compatibility of tray icon with GNOME desktop environments.
+
+## [2.0.1] - 2024-04-07
+
+### Added
+
+- Added `ike-port` option to choose between port 500 and 4500 for IKE exchange.
+
+### Changed
+
+- Option `ignore-server-cert` now also works for SAML webview.
+
+## [2.0.0] - 2024-03-29
+
+### Added
+
+- Added GTK UI support.
+
+### Changed
+
+- Switched from VTI to XFRM device for IPSec tunnel.
+
+### Fixed
+
+- Fixed an issue with semicolon-separated search domains.
+- Various bugfixes.
+
+## [1.0.2] - 2024-03-22
+
+### Added
+
+- Support AES-192 encryption.
+
+### Changed
+
+- Tray icons are now built into the application instead of relying on external theme.
+
+## [1.0.1] - 2024-03-14
+
+### Added
+
+- IPSec tunnel: added certificate authentication.
+- IPSec tunnel: added weaker algorithms support.
+- IPSec tunnel: added support for DH 2048 group.
+
+### Fixed
+
+- IPSec tunnel: various fixes for rekeying and keepalive.
+
+## [1.0.0] - 2024-03-07
+
+This release adds a major feature: SAML SSO support via web browser. It was preceded by three release candidates (1.0.0-rc.1 to 1.0.0-rc.3), whose changes are included below.
+
+### Added
+
+- SAML SSO support via external identity provider login.
+- Added embedded webview support via `webkit2gtk` compile-time feature flag, for SAML SSO authentication.
+- Implemented IPSec tunnel re-keying after ESP SA is expired.
+- New option: `esp-lifetime`, which controls CHILD SA expiration time in seconds. Default is 3600 (1 hour).
+- New option: `ike-lifetime`, which controls IKE SA expiration time in seconds. Default is 28800 (8 hours).
+
+### Changed
+
+- IPSec tunnel is now implemented using IKE exchange instead of HTTP call for key management.
+- Use port 500 for IKE exchange.
+- NAT-T probing uses the external gateway IP.
+- Add custom routes even if `no-routing` flag is set (#12).
+- User passwords are no longer required and no longer prompted by default. User may still be prompted for a password via the tunnel MFA request.
+
+### Fixed
+
+- Fixed a bug with the same input being used for multiple MFA codes (#13).
+- Fixed an endless loop if challenge input is canceled.
+
+## [0.12.0] - 2024-02-29
+
+### Added
+
+- Added `server-prompt` option to fetch password prompts text from the server (enabled by default) (#11).
+
+## [0.11.0] - 2024-02-27
+
+### Added
+
+- Added password prompt for standalone mode.
+
+### Fixed
+
+- Fixed a bug with infinite challenge requests.
+- Fixed status check after tunnel is configured.
+- Fixed a regression with the whitespaces in search domains.
+
+## [0.10.0] - 2024-02-18
+
+### Added
+
+- Added `no-keychain` option to disable libsecret integration.
+
+### Changed
+
+- Use search domains instead of routing domains when configuring tunnel interface.
+- Trim whitespaces from search domains.
+- Only store password in the OS keychain after the tunnel is established successfully.
+- `login-type` is a required option now.
+
+## [0.9.1] - 2024-01-28
+
+### Added
+
+- Added UI popup notifications for errors.
+
+### Fixed
+
+- Fixed a bug with tray icon and endless prompt loop when password is incorrect.
+
+## [0.9.0] - 2024-01-24
+
+### Added
+
+- Added new configuration option: `ignore-routes`.
+- Added new configuration option: `ignore-server-cert` (dangerous).
+
+### Changed
+
+- Set up all acquired routes, not only the one to which acquired client IP belongs.
+- Better error parsing in case of bad requests to the server.
+
+### Removed
+
+- Removed `reauthenticate` option as unreliable.
+
+### Fixed
+
+- Fixed a bug with acquiring a default interface IP.
+- Fixed a problem with overlapping routes returned from VPN server terminating the app.
+
+## [0.8.3] - 2024-01-17
+
+### Added
+
+- Added PFX/PKCS12 client certificate support.
+- Added `cert-password` option for PFX keychains.
+
+## [0.8.2] - 2024-01-17
+
+### Added
+
+- Added `if-name` tunnel parameter to specify TUN/VTI interface name.
+
+### Fixed
+
+- Fixed certificate authentication to use `/clients/cert/` HTTP path.
+
+### Security
+
+- Removed logging of MFA code.
+
+## [0.8.1] - 2024-01-15
+
+### Fixed
+
+- Fixed a bug with non-working keepalive packets when PC wakes up from sleep.
+
+## [0.8.0] - 2024-01-13
+
+### Added
+
+- Tray icon support via running `snxctl` without parameters.
+
+## [0.7.0] - 2024-01-11
+
+### Added
+
+- Added certificate authentication via `--client-cert` parameter.
+- Show acquired error messages and codes.
+- Show acquired MFA prompt if available.
+
+### Fixed
+
+- Bugfixes.
+
+## [0.6.1] - 2024-01-08
+
+### Fixed
+
+- Bugfixes for the Secret Service keychain integration.
+
+## [0.6.0] - 2024-01-08
+
+### Added
+
+- Initial support for MFA codes via TTY.
+- Support for storing of the user password in the keychain via libsecret binding.
+- Added `add-routes` parameter to specify custom static routes for the tunnel.
+- Added `ignore-search-domains` to ignore the specified domain names from the acquired list.
+
+### Changed
+
+- Better error handling.
+
+## [0.5.1] - 2023-12-01
+
+### Fixed
+
+- Bugfixes for IPSec reauthentication.
+
+## [0.5.0] - 2023-11-24
+
+### Added
+
+- Added reauthentication for IPSec tunnel.
+
+### Changed
+
+- Relicensed under AGPL 3.0.
+- `login-type` parameter requires a string value which matches the one from remote gateway info packet.
+- Renamed `reauth` option to `reauthentication`.
+
+## [0.4.0] - 2023-07-29
+
+### Added
+
+- Introduced `snxctl` utility for easier tunnel control. The main service can be started in command mode and controlled by `snxctl` application without the root privileges.
+
+## [0.3.3] - 2023-07-28
+
+### Added
+
+- Added network monitoring which will pause the keepalive packets while being offline.
+
+### Changed
+
+- Allow empty parameters in the configuration file, they will be ignored.
+
+## [0.3.2] - 2023-07-13
+
+### Added
+
+- Added `info` operation mode to query server information in JSON format.
+
+### Changed
+
+- Mark created tun/vti device as unmanaged in the NetworkManager to avoid conflicts and disconnects.
+
+## [0.3.1] - 2023-07-07
+
+### Fixed
+
+- Fixed a bug with `no-cert-check` option.
+
+## [0.3.0] - 2023-07-06
+
+### Added
+
+- Added `login-type` option.
+- Added `ca-cert` option.
+- Added `no-cert-check` option.
+
+## [0.2.0] - 2023-07-03
+
+Initial release.
+
+### Added
+
+- SSL tunnel.
+- IPSec tunnel (Linux only), with rule-based routing.
+- Microsoft MFA Authenticator support.
+- Keepalive with a watchdog, and periodic re-authentication.
+- `search-domains` option for additional search domains.
+- systemd service for running the client as a daemon.
+
 [unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.5.4...HEAD
 [6.5.4]: https://github.com/ancwrd1/snx-rs/compare/v6.5.3...v6.5.4
 [6.5.3]: https://github.com/ancwrd1/snx-rs/compare/v6.5.2...v6.5.3
@@ -958,3 +1348,41 @@ with feature parity with the Check Point Windows client, while offering better p
 [2.5.0]: https://github.com/ancwrd1/snx-rs/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/ancwrd1/snx-rs/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/ancwrd1/snx-rs/compare/v2.4.0...v2.4.1
+[2.4.0]: https://github.com/ancwrd1/snx-rs/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/ancwrd1/snx-rs/compare/v2.2.8...v2.3.0
+[2.2.8]: https://github.com/ancwrd1/snx-rs/compare/v2.2.7...v2.2.8
+[2.2.7]: https://github.com/ancwrd1/snx-rs/compare/v2.2.6...v2.2.7
+[2.2.6]: https://github.com/ancwrd1/snx-rs/compare/v2.2.5...v2.2.6
+[2.2.5]: https://github.com/ancwrd1/snx-rs/compare/v2.2.4...v2.2.5
+[2.2.4]: https://github.com/ancwrd1/snx-rs/compare/v2.2.3...v2.2.4
+[2.2.3]: https://github.com/ancwrd1/snx-rs/compare/v2.2.2...v2.2.3
+[2.2.2]: https://github.com/ancwrd1/snx-rs/compare/v2.2.1...v2.2.2
+[2.2.1]: https://github.com/ancwrd1/snx-rs/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/ancwrd1/snx-rs/compare/2.1.0...v2.2.0
+[2.1.0]: https://github.com/ancwrd1/snx-rs/compare/2.0.2...2.1.0
+[2.0.2]: https://github.com/ancwrd1/snx-rs/compare/2.0.1...2.0.2
+[2.0.1]: https://github.com/ancwrd1/snx-rs/compare/2.0.0...2.0.1
+[2.0.0]: https://github.com/ancwrd1/snx-rs/compare/1.0.2...2.0.0
+[1.0.2]: https://github.com/ancwrd1/snx-rs/compare/1.0.1...1.0.2
+[1.0.1]: https://github.com/ancwrd1/snx-rs/compare/1.0.0...1.0.1
+[1.0.0]: https://github.com/ancwrd1/snx-rs/compare/0.12.0...1.0.0
+[0.12.0]: https://github.com/ancwrd1/snx-rs/compare/0.11.0...0.12.0
+[0.11.0]: https://github.com/ancwrd1/snx-rs/compare/0.10.0...0.11.0
+[0.10.0]: https://github.com/ancwrd1/snx-rs/compare/0.9.1...0.10.0
+[0.9.1]: https://github.com/ancwrd1/snx-rs/compare/0.9.0...0.9.1
+[0.9.0]: https://github.com/ancwrd1/snx-rs/compare/0.8.3...0.9.0
+[0.8.3]: https://github.com/ancwrd1/snx-rs/compare/0.8.2...0.8.3
+[0.8.2]: https://github.com/ancwrd1/snx-rs/compare/0.8.1...0.8.2
+[0.8.1]: https://github.com/ancwrd1/snx-rs/compare/0.8.0...0.8.1
+[0.8.0]: https://github.com/ancwrd1/snx-rs/compare/0.7.0...0.8.0
+[0.7.0]: https://github.com/ancwrd1/snx-rs/compare/0.6.1...0.7.0
+[0.6.1]: https://github.com/ancwrd1/snx-rs/compare/0.6.0...0.6.1
+[0.6.0]: https://github.com/ancwrd1/snx-rs/compare/0.5.1...0.6.0
+[0.5.1]: https://github.com/ancwrd1/snx-rs/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/ancwrd1/snx-rs/compare/0.4.0...0.5.0
+[0.4.0]: https://github.com/ancwrd1/snx-rs/compare/0.3.3...0.4.0
+[0.3.3]: https://github.com/ancwrd1/snx-rs/compare/0.3.2...0.3.3
+[0.3.2]: https://github.com/ancwrd1/snx-rs/compare/0.3.1...0.3.2
+[0.3.1]: https://github.com/ancwrd1/snx-rs/compare/0.3.0...0.3.1
+[0.3.0]: https://github.com/ancwrd1/snx-rs/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/ancwrd1/snx-rs/releases/tag/0.2.0
