@@ -1,7 +1,6 @@
 #![allow(unsafe_code)]
 
 pub mod theme;
-pub mod tray;
 #[cfg(feature = "mobile-access")]
 pub mod webkit;
 

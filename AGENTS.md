@@ -22,7 +22,7 @@ This is a Cargo workspace (`resolver = "2"`, `edition = "2024"`) declared in the
 | `i18n`       | `crates/i18n`     | library | Fluent-based localization. Wraps `fluent-templates` and exposes `tr!`/`translate` helpers. |
 | `snx-rs`     | `apps/snx-rs`     | binary  | The service / daemon. Runs in standalone or command mode; needs root for tunnel setup.     |
 | `snxctl`     | `apps/snxctl`     | binary  | Thin CLI that talks to `snx-rs` in command mode (connect/disconnect/status/info).          |
-| `snx-rs-gui` | `apps/snx-rs-gui` | binary  | Slint-based GUI with tray icon. Linux uses KSNI; macOS/Windows use the `tray-icon` crate. Talks to `snx-rs` over IPC. |
+| `snx-rs-gui` | `apps/snx-rs-gui` | binary  | Slint-based GUI with a `tray-icon` tray (KSNI backend on Linux). Talks to `snx-rs` over IPC. |
 
 Top-level directories:
 
@@ -184,7 +184,7 @@ The `snx-rs` binary runs in one of two operating modes selected by `-m`:
 
 Plus one-shot utility modes: `info` (query server for auth methods), certificate enrollment, etc.
 
-The GUI (`snx-rs-gui`) always runs unprivileged and talks to a `command`-mode `snx-rs` service over IPC (`interprocess` crate). On Linux, D-Bus (`zbus`) is used for desktop integration (KSNI tray, notifications). On macOS and Windows the tray is provided by the `tray-icon` crate; on macOS notifications go through `UNUserNotificationCenter`. The GUI is **not** a replacement for the service; it's a client of it.
+The GUI (`snx-rs-gui`) always runs unprivileged and talks to a `command`-mode `snx-rs` service over IPC (`interprocess` crate). On Linux, D-Bus (`zbus`) is used for desktop integration (notifications). The tray is provided by the `tray-icon` crate on all platforms (0.26 on Linux, with the KSNI backend, and on Windows; 0.24 on macOS, where newer versions pull in a `muda` that clashes with the one linked by `slint`); on macOS notifications go through `UNUserNotificationCenter`. The GUI is **not** a replacement for the service; it's a client of it.
 
 ## Things agents commonly get wrong here
 

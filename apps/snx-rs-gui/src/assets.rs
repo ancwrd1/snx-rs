@@ -3,7 +3,9 @@ use std::sync::LazyLock;
 use resvg::{tiny_skia, usvg};
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
 
-const ICON_SIZE: u32 = 256;
+pub const ICON_SIZE: u32 = 256;
+
+const SYSTEM_ICONS_DIR: &str = "/usr/share/icons/hicolor/symbolic/apps";
 
 const ACQUIRING_SVG: &str = include_str!("../../../package/icons/snx-rs-acquiring-symbolic.svg");
 const CONNECTED_SVG: &str = include_str!("../../../package/icons/snx-rs-connected-symbolic.svg");
@@ -41,16 +43,8 @@ fn render_pixmap(svg: &str, colors: &ThemeColors, size: u32) -> Option<tiny_skia
     Some(pixmap)
 }
 
-fn render_argb(svg: &str, colors: &ThemeColors, size: u32) -> Vec<u8> {
-    let Some(pixmap) = render_pixmap(svg, colors, size) else {
-        return Vec::new();
-    };
-
-    let mut bytes = pixmap.take();
-    for pixel in bytes.as_chunks_mut::<4>().0 {
-        pixel.rotate_right(1);
-    }
-    bytes
+fn render_rgba(svg: &str, colors: &ThemeColors, size: u32) -> Vec<u8> {
+    render_pixmap(svg, colors, size).map(|p| p.take()).unwrap_or_default()
 }
 
 fn render_image(svg: &str, colors: &ThemeColors, size: u32) -> Image {
@@ -72,10 +66,10 @@ pub struct IconTheme {
 impl IconTheme {
     fn render(colors: &ThemeColors) -> Self {
         Self {
-            acquiring: render_argb(ACQUIRING_SVG, colors, ICON_SIZE),
-            error: render_argb(ERROR_SVG, colors, ICON_SIZE),
-            disconnected: render_argb(DISCONNECTED_SVG, colors, ICON_SIZE),
-            connected: render_argb(CONNECTED_SVG, colors, ICON_SIZE),
+            acquiring: render_rgba(ACQUIRING_SVG, colors, ICON_SIZE),
+            error: render_rgba(ERROR_SVG, colors, ICON_SIZE),
+            disconnected: render_rgba(DISCONNECTED_SVG, colors, ICON_SIZE),
+            connected: render_rgba(CONNECTED_SVG, colors, ICON_SIZE),
         }
     }
 }
@@ -89,4 +83,13 @@ pub fn connected_icon_for_dark_bg() -> Image {
 
 pub fn connected_icon_for_light_bg() -> Image {
     render_image(CONNECTED_SVG, &LIGHT_BG_COLORS, ICON_SIZE)
+}
+
+pub fn system_icons_installed() -> bool {
+    std::fs::read_dir(SYSTEM_ICONS_DIR)
+        .map(|r| {
+            r.flatten()
+                .any(|e| e.file_name().to_string_lossy().starts_with("snx-rs"))
+        })
+        .unwrap_or(false)
 }

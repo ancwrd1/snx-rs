@@ -5,7 +5,6 @@ use tokio::signal::unix::{SignalKind, signal};
 
 pub mod dbus;
 pub mod theme;
-pub mod tray;
 #[cfg(feature = "mobile-access")]
 pub mod webkit;
 

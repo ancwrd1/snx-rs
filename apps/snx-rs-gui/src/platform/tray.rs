@@ -1,6 +1,5 @@
-// Tray implementation shared by the macOS and Windows backends, both built on the `tray-icon` crate.
-// The only platform differences are in update_tray: macOS marks the icon as a template and runs as an
-// accessory, Windows sets a tooltip.
+// macOS stays on tray-icon 0.24: newer versions pull in a muda release whose symbols clash with the one
+// linked by slint. On Linux the icon is themed by name when the symbolic icons are installed system-wide.
 
 use std::{
     cell::RefCell,
@@ -20,6 +19,8 @@ use snxcore::{
     profiles::ConnectionProfilesStore,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
+#[cfg(target_os = "linux")]
+use tray_icon::NativeIcon;
 use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder,
     menu::{Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem, Submenu},
@@ -32,7 +33,46 @@ use crate::{
     theme::{SystemColorTheme, ThemeMonitor},
 };
 
-const ICON_SIZE: u32 = 256;
+const TRAY_ID: &str = "SNX-RS";
+
+enum TrayImage {
+    Pixmap(Vec<u8>),
+    #[cfg(target_os = "linux")]
+    Named(&'static str),
+}
+
+impl TrayImage {
+    fn pixmap_icon(rgba: Vec<u8>) -> Option<Icon> {
+        if rgba.is_empty() {
+            None
+        } else {
+            Icon::from_rgba(rgba, assets::ICON_SIZE, assets::ICON_SIZE).ok()
+        }
+    }
+
+    fn apply(self, tray: &TrayIcon) {
+        match self {
+            TrayImage::Pixmap(rgba) => {
+                let _ = tray.set_icon(Self::pixmap_icon(rgba));
+            }
+            #[cfg(target_os = "linux")]
+            TrayImage::Named(name) => {
+                let _ = tray.set_native_icon(Some(NativeIcon::from_name(name)));
+            }
+        }
+    }
+
+    fn apply_to_builder(self, builder: TrayIconBuilder) -> TrayIconBuilder {
+        match self {
+            TrayImage::Pixmap(rgba) => match Self::pixmap_icon(rgba) {
+                Some(icon) => builder.with_icon(icon),
+                None => builder,
+            },
+            #[cfg(target_os = "linux")]
+            TrayImage::Named(name) => builder.with_native_icon(NativeIcon::from_name(name)),
+        }
+    }
+}
 
 #[derive(Default, Clone)]
 struct MenuIds {
@@ -97,19 +137,30 @@ impl AppTray {
     fn icon_rgba(&self) -> Vec<u8> {
         let theme = self.icon_theme();
 
-        let argb = match &*self.status {
+        match &*self.status {
             Ok(ConnectionStatus::Connected(_)) => theme.connected.clone(),
             Ok(ConnectionStatus::Disconnected) => theme.disconnected.clone(),
             Ok(ConnectionStatus::Mfa(_) | ConnectionStatus::Connecting) => theme.acquiring.clone(),
             _ => theme.error.clone(),
-        };
-
-        // assets stores ARGB (rotate_right of tiny_skia's RGBA); convert back to RGBA.
-        let mut rgba = argb;
-        for pixel in rgba.as_chunks_mut::<4>().0 {
-            pixel.rotate_left(1);
         }
-        rgba
+    }
+
+    #[cfg(target_os = "linux")]
+    fn icon_name(&self) -> &'static str {
+        match &*self.status {
+            Ok(ConnectionStatus::Connected(_)) => "snx-rs-connected-symbolic",
+            Ok(ConnectionStatus::Disconnected) => "snx-rs-disconnected-symbolic",
+            Ok(ConnectionStatus::Mfa(_) | ConnectionStatus::Connecting) => "snx-rs-acquiring-symbolic",
+            Err(_) => "snx-rs-error-symbolic",
+        }
+    }
+
+    fn tray_image(&self) -> TrayImage {
+        #[cfg(target_os = "linux")]
+        if assets::system_icons_installed() {
+            return TrayImage::Named(self.icon_name());
+        }
+        TrayImage::Pixmap(self.icon_rgba())
     }
 
     fn status_label(&self) -> String {
@@ -120,7 +171,7 @@ impl AppTray {
     }
 
     fn update_tray(&self) {
-        let icon_rgba = self.icon_rgba();
+        let image = self.tray_image();
         let tooltip = self.status_label();
         let disconnected = (*self.status)
             .as_ref()
@@ -137,22 +188,16 @@ impl AppTray {
                 *guard = ids;
             }
 
-            let icon = if icon_rgba.is_empty() {
-                None
-            } else {
-                Icon::from_rgba(icon_rgba, ICON_SIZE, ICON_SIZE).ok()
-            };
-
             TRAY_ICON.with(|cell| {
                 let mut slot = cell.borrow_mut();
                 match slot.as_mut() {
                     Some(tray) => {
                         tray.set_menu(Some(Box::new(menu)));
-                        let _ = tray.set_icon(icon);
+                        image.apply(tray);
                         // A template image is tinted by the menu bar for the current appearance.
                         #[cfg(target_os = "macos")]
                         tray.set_icon_as_template(true);
-                        #[cfg(windows)]
+                        #[cfg(not(target_os = "macos"))]
                         let _ = tray.set_tooltip(Some(&tooltip));
                     }
                     None => {
@@ -165,17 +210,15 @@ impl AppTray {
                                 .setActivationPolicy(NSApplicationActivationPolicy::Accessory);
                         }
 
-                        let mut builder = TrayIconBuilder::new().with_menu(Box::new(menu));
+                        let mut builder =
+                            image.apply_to_builder(TrayIconBuilder::new().with_id(TRAY_ID).with_menu(Box::new(menu)));
                         #[cfg(target_os = "macos")]
                         {
                             builder = builder.with_icon_as_template(true);
                         }
-                        #[cfg(windows)]
+                        #[cfg(not(target_os = "macos"))]
                         {
                             builder = builder.with_tooltip(&tooltip);
-                        }
-                        if let Some(icon) = icon {
-                            builder = builder.with_icon(icon);
                         }
                         match builder.build() {
                             Ok(tray) => *slot = Some(tray),
