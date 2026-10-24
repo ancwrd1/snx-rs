@@ -6,6 +6,7 @@ use anyhow::Context;
 use i18n::tr;
 use isakmp::{certs::ClientCertificate, model::Identity};
 use openssl::{nid::Nid, x509::X509};
+use secrecy::ExposeSecret;
 use tracing::debug;
 
 use crate::{
@@ -22,17 +23,17 @@ pub(crate) fn new_identity(params: &TunnelParams, info: &GatewayInformation) -> 
     let hybrid_auth = !info.is_certificate_login_type(&params.login_type);
 
     let identity = match params.cert_type {
-        CertType::Pkcs12 => match (&params.cert_path, &params.cert_password) {
-            (Some(path), Some(password)) => Identity::Pkcs12 {
-                data: std::fs::read(path)?,
+        CertType::Pkcs12 => match (&params.cert_data, &params.cert_password) {
+            (Some(data), Some(password)) => Identity::Pkcs12 {
+                data: data.expose_secret().to_vec(),
                 password: password.clone(),
                 hybrid_auth,
             },
             _ => anyhow::bail!(tr!("error-no-pkcs12")),
         },
-        CertType::Pkcs8 => match params.cert_path {
-            Some(ref path) => Identity::Pkcs8 {
-                path: path.clone(),
+        CertType::Pkcs8 => match &params.cert_data {
+            Some(data) => Identity::Pkcs8 {
+                data: data.expose_secret().to_vec(),
                 hybrid_auth,
             },
             None => anyhow::bail!(tr!("error-no-pkcs8")),

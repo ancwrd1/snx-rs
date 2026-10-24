@@ -1,6 +1,7 @@
 ## v6.5.5 (TBD)
 * Linux: snx-rs checks for the `CAP_NET_ADMIN` capability instead of the root user, so it can run as a regular user with that capability, for example in a Docker container. The Dockerfile sets the capability on the binary.
 * Fixed a regression where mobile access authentication with webkit did not work.
+* The PKCS12/PKCS8 client certificate is now read by the GUI or `snxctl` and sent to the service, so certificate login works when the service is sandboxed. The certificate file must be readable by the user running the frontend.
 
 ## v6.5.4 (2026-10-19)
 * Fixed IPsec login failing with InvalidCookie when browser/MFA authentication takes longer than 20 seconds (#279)

@@ -108,6 +108,7 @@ error-endless-challenges = Loop infinito na negociação do nome de usuário
 error-no-pkcs12 = Não foram informados o caminho PKCS12 e a senha do certificado
 error-no-pkcs8 = Não foi informado um caminho para o certificado PEM PKCS8
 error-no-pkcs11 = Não foi informado um PIN PKCS11
+error-cannot-read-cert = Não foi possível ler o certificado do cliente: {$path}
 error-no-ipsec-session = Sem sessão IPsec
 error-request-failed-error-code = Falha na requisição, código de erro: {$error_code}
 error-no-root-privileges = Este programa deve ser executado como usuário root!

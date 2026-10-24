@@ -246,6 +246,8 @@ where
         anyhow::bail!(tr!("error-missing-required-parameters"));
     }
 
+    params.load_cert_data().await?;
+
     if params.cert_type == CertType::Pkcs11 && params.cert_password.is_none() {
         let prompt = PromptInfo::new(tr!("label-pin-required"), tr!("label-pin"));
         match tty_prompt.get_secure_input(prompt).await {

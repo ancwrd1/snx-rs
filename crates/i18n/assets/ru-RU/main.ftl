@@ -108,6 +108,7 @@ error-endless-challenges = Бесконечный цикл запросов им
 error-no-pkcs12 = Не указан путь к PKCS12 и пароль
 error-no-pkcs8 = Не указан путь к PKCS8 PEM
 error-no-pkcs11 = Не указан PIN-код PKCS11
+error-cannot-read-cert = Не удаётся прочитать клиентский сертификат: {$path}
 error-no-ipsec-session = Нет сессии IPsec
 error-request-failed-error-code = Ошибка запроса, код ошибки: {$error_code}
 error-no-root-privileges = Эта программа должна быть запущена с правами root!

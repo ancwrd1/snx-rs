@@ -224,12 +224,12 @@ impl CccGatewayConnector {
 
         let mut path = Cow::Borrowed("/clients/");
 
-        if let (true, Some(client_cert)) = (with_cert, &self.params.cert_path) {
-            let data = std::fs::read(client_cert)?;
+        if let (true, Some(cert_data)) = (with_cert, &self.params.cert_data) {
+            let data = cert_data.expose_secret();
             let identity = match self.params.cert_type {
-                CertType::Pkcs8 => Some(Identity::from_pkcs8_pem(&data, &data)?),
+                CertType::Pkcs8 => Some(Identity::from_pkcs8_pem(data, data)?),
                 CertType::Pkcs12 => Some(Identity::from_pkcs12_der(
-                    &data,
+                    data,
                     self.params
                         .cert_password
                         .as_ref()

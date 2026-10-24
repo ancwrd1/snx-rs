@@ -108,6 +108,7 @@ error-endless-challenges = Nekonečná smyčka výzev uživatelského jména
 error-no-pkcs12 = Žádná cesta PKCS12 a heslo nejsou poskytnuty
 error-no-pkcs8 = Žádná cesta PKCS8 PEM není poskytnuta
 error-no-pkcs11 = Žádný PIN PKCS11 není poskytnut
+error-cannot-read-cert = Nelze přečíst klientský certifikát: {$path}
 error-no-ipsec-session = Žádná IPsec relace
 error-request-failed-error-code = Požadavek selhal, kód chyby: {$error_code}
 error-no-root-privileges = Tento program musí být spuštěn jako root uživatel!

@@ -142,6 +142,7 @@ error-not-challenge-state = No es un estado de desafío
 error-no-pkcs8 = No se ha proporcionado la ruta PEM PKCS8
 error-no-pkcs12 = No se ha proporcionado la ruta y contraseña PKCS12
 error-no-pkcs11 = No se ha proporcionado el PIN PKCS11
+error-cannot-read-cert = No se puede leer el certificado de cliente: {$path}
 error-no-ipv4 = No hay dirección IPv4 para {$server}
 error-sysctl-not-converged = Sysctl no convergió: {$entry}
 error-no-ipsec-session = No hay sesión IPsec

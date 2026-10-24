@@ -264,6 +264,12 @@ where
             anyhow::bail!(tr!("error-no-login-type"));
         }
 
+        if params.cert_data.is_none() {
+            let mut loaded = (*params).clone();
+            loaded.load_cert_data().await?;
+            params = Arc::new(loaded);
+        }
+
         if params.cert_type == CertType::Pkcs11 && params.cert_password.is_none() {
             let prompt = PromptInfo::new(tr!("label-pin-required"), tr!("label-pin"));
             match self.prompt.get_secure_input(prompt).await {
@@ -317,7 +323,13 @@ where
     async fn do_challenge_code(&mut self, code: String, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
         let response = self
             .send_receive(
-                TunnelServiceRequest::ChallengeCode(code, (*params).clone()),
+                TunnelServiceRequest::ChallengeCode(
+                    code,
+                    TunnelParams {
+                        cert_data: None,
+                        ..(*params).clone()
+                    },
+                ),
                 CONNECT_TIMEOUT,
             )
             .await;

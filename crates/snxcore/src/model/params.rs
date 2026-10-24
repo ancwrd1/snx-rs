@@ -7,12 +7,12 @@ use std::{
     time::Duration,
 };
 
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use base64::Engine;
 use cached::cached;
 use i18n::tr;
 use ipnet::Ipv4Net;
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::{ExposeSecret, SecretSlice, SecretString};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::warn;
 use uuid::Uuid;
@@ -70,6 +70,30 @@ where
 {
     let opt = Option::<String>::deserialize(deserializer)?;
     Ok(opt.map(|s| s.into()))
+}
+
+fn serialize_option_secret_bytes<S>(secret: &Option<SecretSlice<u8>>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match secret {
+        Some(s) => serializer.serialize_some(&base64::engine::general_purpose::STANDARD.encode(s.expose_secret())),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_secret_bytes<'de, D>(deserializer: D) -> Result<Option<SecretSlice<u8>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::<String>::deserialize(deserializer)?
+        .map(|s| {
+            base64::engine::general_purpose::STANDARD
+                .decode(s)
+                .map(Into::into)
+                .map_err(serde::de::Error::custom)
+        })
+        .transpose()
 }
 
 const DEFAULT_IKE_LIFETIME: Duration = Duration::from_secs(28800);
@@ -573,6 +597,13 @@ pub struct TunnelParams {
     pub cert_type: CertType,
     pub cert_path: Option<PathBuf>,
     #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_option_secret_bytes",
+        deserialize_with = "deserialize_option_secret_bytes"
+    )]
+    pub cert_data: Option<SecretSlice<u8>>,
+    #[serde(
         serialize_with = "serialize_option_secret_string",
         deserialize_with = "deserialize_option_secret_string"
     )]
@@ -636,6 +667,7 @@ impl Default for TunnelParams {
             login_type: String::new(),
             cert_type: CertType::default(),
             cert_path: None,
+            cert_data: None,
             cert_password: None,
             cert_id: None,
             if_name: None,
@@ -692,6 +724,7 @@ impl PartialEq for TunnelParams {
             && self.login_type == other.login_type
             && self.cert_type == other.cert_type
             && self.cert_path == other.cert_path
+            && self.cert_data.as_ref().map(|s| s.expose_secret()) == other.cert_data.as_ref().map(|s| s.expose_secret())
             && self.cert_password.as_ref().map(|s| s.expose_secret())
                 == other.cert_password.as_ref().map(|s| s.expose_secret())
             && self.cert_id == other.cert_id
@@ -728,6 +761,19 @@ impl TunnelParams {
     pub const IPSEC_SCV_PORT: u16 = 18233;
     pub const DEFAULT_IPSEC_IF_NAME: &'static str = "snx-xfrm";
     pub const DEFAULT_SSL_IF_NAME: &'static str = "snx-tun";
+
+    /// The client certificate is read by the frontend, which can access user files when the service is sandboxed.
+    pub async fn load_cert_data(&mut self) -> anyhow::Result<()> {
+        if matches!(self.cert_type, CertType::Pkcs12 | CertType::Pkcs8)
+            && let Some(ref path) = self.cert_path
+        {
+            let data = tokio::fs::read(path)
+                .await
+                .with_context(|| tr!("error-cannot-read-cert", path = path.display().to_string()))?;
+            self.cert_data = Some(data.into());
+        }
+        Ok(())
+    }
 
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut params = Self::default();
@@ -998,6 +1044,7 @@ mod tests {
             login_type: "vpn_test".to_string(),
             cert_type: CertType::Pkcs8,
             cert_path: Some(PathBuf::from("cert.pem")),
+            cert_data: None,
             cert_password: Some("password".into()),
             cert_id: Some("id".to_string()),
             if_name: Some("ifname".to_string()),
@@ -1032,5 +1079,27 @@ mod tests {
 
         let loaded = TunnelParams::load(&temp_path).unwrap();
         assert_eq!(loaded, params);
+    }
+
+    #[test]
+    fn test_cert_data_serde() {
+        let params = TunnelParams {
+            cert_data: Some(vec![0u8, 1, 0xfe, 0xff].into()),
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&params).unwrap();
+        assert!(json.contains("\"cert_data\":\"AAH+/w==\""));
+        let decoded = serde_json::from_str::<TunnelParams>(&json).unwrap();
+        assert_eq!(decoded.cert_data.unwrap().expose_secret(), &[0u8, 1, 0xfe, 0xff]);
+
+        let mut value = serde_json::to_value(TunnelParams::default()).unwrap();
+        assert!(value.get("cert_data").is_none());
+        value.as_object_mut().unwrap().remove("cert_data");
+        assert!(
+            serde_json::from_value::<TunnelParams>(value)
+                .unwrap()
+                .cert_data
+                .is_none()
+        );
     }
 }

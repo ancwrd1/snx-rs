@@ -108,6 +108,7 @@ error-endless-challenges = Beskonačna petlja izazova korisničkog imena
 error-no-pkcs12 = Nije navedena PKCS12 putanja i lozinka
 error-no-pkcs8 = Nije navedena PKCS8 PEM putanja
 error-no-pkcs11 = Nije naveden PKCS11 pin
+error-cannot-read-cert = Nije moguće pročitati klijentski certifikat: {$path}
 error-no-ipsec-session = Nema IPsec sesije
 error-request-failed-error-code = Zahtjev nije uspio, kod greške: {$error_code}
 error-no-root-privileges = Ovaj program treba pokrenuti kao root korisnik!

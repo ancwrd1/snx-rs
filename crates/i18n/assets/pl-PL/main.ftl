@@ -108,6 +108,7 @@ error-endless-challenges = Nieskończona pętla wyzwań nazwy użytkownika
 error-no-pkcs12 = Nie podano ścieżki PKCS12 i hasła
 error-no-pkcs8 = Nie podano ścieżki PKCS8 PEM
 error-no-pkcs11 = Nie podano kodu PIN PKCS11
+error-cannot-read-cert = Nie można odczytać certyfikatu klienta: {$path}
 error-no-ipsec-session = Brak sesji IPsec
 error-request-failed-error-code = Żądanie nie powiodło się, kod błędu: {$error_code}
 error-no-root-privileges = Ten program musi być uruchomiony jako użytkownik root!

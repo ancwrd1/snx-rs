@@ -108,6 +108,7 @@ error-endless-challenges = Loputon silmukka käyttäjätunnushaasteita
 error-no-pkcs12 = Ei PKCS12-polku ja salasana annettu
 error-no-pkcs8 = Ei PKCS8 PEM-polku annettu
 error-no-pkcs11 = Ei PKCS11 PIN-koodia annettu
+error-cannot-read-cert = Asiakasvarmennetta ei voi lukea: {$path}
 error-no-ipsec-session = Ei IPsec-istuntoa
 error-request-failed-error-code = Pyyntö epäonnistui, virhekoodi: {$error_code}
 error-no-root-privileges = Tämä ohjelma pitää ajaa root-käyttäjänä!
