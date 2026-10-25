@@ -7,7 +7,7 @@
 #
 # ==== RUNNING ====
 # Basic usage (replace placeholders):
-#   docker run -it --rm --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW snx-rs snx-rs connect -s vpn.example.com -u username
+#   docker run -it --rm --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW snx-rs snx-rs -s vpn.example.com -u username -o vpn_Username_Password
 # With config volume:
 #   docker run -it --rm --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW -v $PWD/config:/home/snxuser/.config/snx-rs snx-rs snx-rs <command>
 #
