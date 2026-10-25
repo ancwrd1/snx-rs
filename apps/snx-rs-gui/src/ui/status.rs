@@ -65,13 +65,20 @@ fn close_fn(exit_on_close: bool, stop_tx: Sender<()>, sender: Sender<TrayEvent>)
     close_window(StatusWindowController::NAME);
 }
 
-// An explicit set_size() bypasses the window's min-width constraint, and the reported size may not
-// be valid yet before the platform window exists, so the width is clamped explicitly.
+// The height of the wrapped entries depends on the width, so it is only measured once the window has
+// its final width. An explicit set_size() bypasses the window's min-width constraint.
 fn resize_to_preferred_height(window: &StatusWindow) {
     let win = window.window();
     let current = win.size().to_logical(win.scale_factor());
-    let width = current.width.max(window.get_preferred_content_width());
-    win.set_size(LogicalSize::new(width, window.get_preferred_content_height()));
+    let min_width = window.get_preferred_content_width();
+    if current.width < min_width {
+        win.set_size(LogicalSize::new(min_width, current.height.max(1.0)));
+    } else {
+        let height = window.get_preferred_content_height();
+        if current.height != height {
+            win.set_size(LogicalSize::new(current.width, height));
+        }
+    }
 }
 
 pub struct StatusWindowController {
@@ -167,13 +174,13 @@ impl WindowController for StatusWindowController {
                 let entries = to_status_entries(&last_info_for_toggle.borrow(), show);
                 window.set_entries(ModelRc::new(VecModel::from(entries)));
             }
+        });
 
-            let weak_window = weak_window.clone();
-            slint::Timer::single_shot(std::time::Duration::ZERO, move || {
-                if let Some(window) = weak_window.upgrade() {
-                    resize_to_preferred_height(&window);
-                }
-            });
+        let weak_window = self.scope.window.as_weak();
+        self.scope.window.on_fit_height(move || {
+            if let Some(window) = weak_window.upgrade() {
+                resize_to_preferred_height(&window);
+            }
         });
 
         let (status_tx, status_rx) = async_channel::bounded::<Arc<anyhow::Result<ConnectionStatus>>>(1);
@@ -225,7 +232,6 @@ impl WindowController for StatusWindowController {
                     if !shown {
                         shown = true;
                         let _ = scope.show();
-                        resize_to_preferred_height(&scope.window);
                     }
                 }
             }
