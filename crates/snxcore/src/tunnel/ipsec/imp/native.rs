@@ -31,7 +31,7 @@ use crate::{
 };
 
 pub(crate) struct NativeIPsecTunnel {
-    xfrm_configurator: Box<dyn IPsecConfigurator + Send + Sync>,
+    configurator: Box<dyn IPsecConfigurator + Send + Sync>,
     keepalive_runner: KeepaliveRunner,
     scv_runner: ScvRunner,
     natt_socket: Arc<UdpSocket>,
@@ -119,7 +119,7 @@ impl NativeIPsecTunnel {
         configurator.configure().await?;
 
         Ok(Self {
-            xfrm_configurator: Box::new(configurator),
+            configurator: Box::new(configurator),
             keepalive_runner,
             scv_runner,
             natt_socket: Arc::new(natt_socket),
@@ -206,7 +206,7 @@ impl NativeIPsecTunnel {
                 .inspect_err(|e| warn!("{e}"));
         }
 
-        self.xfrm_configurator.cleanup().await;
+        self.configurator.cleanup().await;
     }
 }
 
@@ -289,7 +289,7 @@ impl VpnTunnel for NativeIPsecTunnel {
                             session.lifetime.as_secs()
                         );
                         self.ready.store(false, Ordering::SeqCst);
-                        let _ = self.xfrm_configurator.rekey(&session).await;
+                        let _ = self.configurator.rekey(&session).await;
                         self.ready.store(true, Ordering::SeqCst);
                         let _ = event_sender.send(TunnelEvent::Rekeyed(session)).await;
                     }
