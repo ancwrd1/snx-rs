@@ -1,0 +1,11 @@
+// Allows members of the snx-rs group to configure DNS through systemd-resolved
+// and to unmanage the tunnel device in NetworkManager without a password prompt.
+// Only needed when snx-rs runs as a regular user with CAP_NET_ADMIN instead of root.
+// Install as /etc/polkit-1/rules.d/50-snx-rs.rules.
+polkit.addRule(function(action, subject) {
+    if ((action.id.indexOf("org.freedesktop.resolve1.set-") == 0 ||
+         action.id == "org.freedesktop.NetworkManager.network-control") &&
+        subject.isInGroup("snx-rs")) {
+        return polkit.Result.YES;
+    }
+});

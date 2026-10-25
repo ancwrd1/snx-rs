@@ -60,6 +60,29 @@ run the container as root (`--user root`) instead.
 Because the container user cannot modify `/etc/resolv.conf`, use the `no-dns=true` option and configure name
 resolution for the VPN domains separately, or run the container as root.
 
+### Running as a regular user on the host
+
+`CAP_NET_ADMIN` covers the kernel side of the tunnel, but systemd-resolved and NetworkManager authorize D-Bus
+callers through polkit, which only trusts the root user. When snx-rs runs as a regular user with
+`CAP_NET_ADMIN` on a host that uses systemd-resolved, setting up DNS fails with
+`org.freedesktop.DBus.Error.InteractiveAuthorizationRequired`.
+
+The repository ships a polkit rule, [`package/50-snx-rs.rules`](../package/50-snx-rs.rules), that grants
+these permissions to the members of the `snx-rs` group. It is not installed by the packages. To use it:
+
+```bash
+sudo groupadd --system snx-rs
+sudo usermod -aG snx-rs <user running snx-rs>
+sudo install -m 0644 package/50-snx-rs.rules /etc/polkit-1/rules.d/50-snx-rs.rules
+```
+
+polkit checks the groups of the running snx-rs process, not the user database, so the new group membership must be
+active in the process that starts snx-rs: `id` must list `snx-rs`. Logging out may not be enough because the
+`systemd --user` manager keeps running while any session of the user is open, and applications it launches inherit
+its old groups. Reboot, or start snx-rs with `sg snx-rs -c "snx-rs ..."`.
+
+Alternatively, run snx-rs as root or use the `no-dns=true` option.
+
 ### Dockerfile Details
 
 - **Build stage:** Uses `rust:1.92-slim` with musl cross-compilation to produce a static binary

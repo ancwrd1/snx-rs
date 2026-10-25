@@ -15,7 +15,7 @@ use rtnetlink::{
     },
 };
 use sysctl::{Ctl, Sysctl};
-use tracing::debug;
+use tracing::{debug, warn};
 use zbus::Connection;
 
 use crate::platform::{DeviceConfig, NetworkInterface, StatsPoller, linux::stats::LinuxStatsPoller};
@@ -198,7 +198,9 @@ impl NetworkInterface for LinuxNetworkInterface {
                 .await
         {
             debug!("NM: setting device {} to unmanaged", device_config.name);
-            device_proxy.set_managed(false).await?;
+            if let Err(e) = device_proxy.set_managed(false).await {
+                warn!("NM: cannot set device {} to unmanaged: {}", device_config.name, e);
+            }
         }
 
         let handle = super::new_netlink_connection()?;
