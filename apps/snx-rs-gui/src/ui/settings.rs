@@ -499,7 +499,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
         .borrow()
         .gateway_information
         .as_ref()
-        .map(|info| info.is_multi_factor_login_type(&params.login_type))
+        .map(|info| info.is_multi_factor_login_type(&params.login_type, params.user_defined_factor.as_deref()))
         .unwrap_or(true);
 
     window.set_machine_cert(params.cert_type != CertType::None && is_mfa);

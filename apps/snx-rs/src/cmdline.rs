@@ -262,6 +262,12 @@ pub struct CmdlineParams {
         help = "Detect the internal address of a gateway behind NAT for keepalive, SCV and ESP over TCPT"
     )]
     pub use_internal_gateway_ip: Option<bool>,
+
+    #[clap(
+        long = "user-defined-factor",
+        help = "Authentication factor to use when the server advertises a user_defined factor, e.g. certificate"
+    )]
+    pub user_defined_factor: Option<String>,
 }
 
 impl CmdlineParams {
@@ -433,6 +439,10 @@ impl CmdlineParams {
 
         if let Some(use_internal_gateway_ip) = self.use_internal_gateway_ip {
             other.use_internal_gateway_ip = use_internal_gateway_ip;
+        }
+
+        if let Some(user_defined_factor) = self.user_defined_factor {
+            other.user_defined_factor = Some(user_defined_factor).filter(|v| !v.is_empty());
         }
     }
 }

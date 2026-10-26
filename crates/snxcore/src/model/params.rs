@@ -637,6 +637,7 @@ pub struct TunnelParams {
     pub use_internal_gateway_ip: bool,
     #[serde(default)]
     pub notification_level: NotificationLevel,
+    pub user_defined_factor: Option<String>,
     #[serde(skip)]
     pub config_file: PathBuf,
 }
@@ -695,6 +696,7 @@ impl Default for TunnelParams {
             client_logging_data: None,
             use_internal_gateway_ip: false,
             notification_level: NotificationLevel::default(),
+            user_defined_factor: None,
             config_file: Self::default_config_path(),
         }
     }
@@ -752,6 +754,7 @@ impl PartialEq for TunnelParams {
             && self.client_logging_data == other.client_logging_data
             && self.use_internal_gateway_ip == other.use_internal_gateway_ip
             && self.notification_level == other.notification_level
+            && self.user_defined_factor == other.user_defined_factor
             && self.config_file == other.config_file
     }
 }
@@ -843,6 +846,7 @@ impl TunnelParams {
                 "client-logging-data" => params.client_logging_data = Some(v.into()),
                 "use-internal-gateway-ip" => params.use_internal_gateway_ip = v.parse().unwrap_or_default(),
                 "notification-level" => params.notification_level = v.parse().unwrap_or_default(),
+                "user-defined-factor" => params.user_defined_factor = Some(v).filter(|v| !v.is_empty()),
                 "mfa-code" => params.mfa_code = Some(v),
                 other => {
                     warn!("Ignoring unknown option: {}", other);
@@ -969,6 +973,10 @@ impl TunnelParams {
 
         writeln!(buf, "notification-level={}", self.notification_level)?;
 
+        if let Some(ref user_defined_factor) = self.user_defined_factor {
+            writeln!(buf, "user-defined-factor={user_defined_factor}")?;
+        }
+
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);
         });
@@ -1072,6 +1080,7 @@ mod tests {
             client_logging_data: None,
             use_internal_gateway_ip: true,
             notification_level: NotificationLevel::Standard,
+            user_defined_factor: Some("certificate".to_string()),
             config_file: temp_path.to_owned(),
         };
 

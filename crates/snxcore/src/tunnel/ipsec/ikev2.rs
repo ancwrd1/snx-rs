@@ -618,7 +618,7 @@ impl TunnelConnector for Ikev2TunnelConnector {
 
         if self.params.user_name.is_empty()
             && !info.is_identity_provider_login_type(&self.params.login_type)
-            && !info.is_certificate_login_type(&self.params.login_type)
+            && !info.is_certificate_login_type(&self.params.login_type, self.params.user_defined_factor.as_deref())
         {
             self.awaiting_username = true;
 

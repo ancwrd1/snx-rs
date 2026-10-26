@@ -377,16 +377,21 @@ impl GatewayInformation {
             .and_then(|data| data.login_options_list.values().find(|option| option.id == login_type))
     }
 
-    pub fn is_multi_factor_login_type(&self, login_type: &str) -> bool {
+    pub fn is_multi_factor_login_type(&self, login_type: &str, user_defined_factor: Option<&str>) -> bool {
         self.get_login_option(login_type)
-            .map(|opt| opt.is_multi_factor())
+            .map(|opt| opt.is_multi_factor(user_defined_factor))
             .unwrap_or(true)
     }
 
-    pub fn is_certificate_login_type(&self, login_type: &str) -> bool {
+    pub fn is_certificate_login_type(&self, login_type: &str, user_defined_factor: Option<&str>) -> bool {
         self.get_login_option(login_type)
-            .map(|opt| opt.is_certificate())
+            .map(|opt| opt.is_certificate(user_defined_factor))
             .unwrap_or(true)
+    }
+
+    pub fn is_user_defined_login_type(&self, login_type: &str) -> bool {
+        self.get_login_option(login_type)
+            .is_some_and(|opt| opt.is_user_defined())
     }
 
     /// Whether the gateway asks for IKEv2. It advertises the preference as a
@@ -552,12 +557,28 @@ impl LoginOption {
         }
     }
 
-    pub fn is_multi_factor(&self) -> bool {
-        self.factors.values().any(|v| v.factor_type != "certificate")
+    pub const USER_DEFINED_FACTOR: &'static str = "user_defined";
+
+    /// Some gateways advertise a generic "user_defined" factor whose real meaning is configured on the client side.
+    fn factor_types<'a>(&'a self, user_defined_factor: Option<&'a str>) -> impl Iterator<Item = &'a str> {
+        self.factors.values().map(move |v| match user_defined_factor {
+            Some(factor) if v.factor_type == Self::USER_DEFINED_FACTOR => factor,
+            _ => v.factor_type.as_str(),
+        })
     }
 
-    pub fn is_certificate(&self) -> bool {
-        self.factors.values().any(|v| v.factor_type == "certificate")
+    pub fn is_multi_factor(&self, user_defined_factor: Option<&str>) -> bool {
+        self.factor_types(user_defined_factor).any(|v| v != "certificate")
+    }
+
+    pub fn is_certificate(&self, user_defined_factor: Option<&str>) -> bool {
+        self.factor_types(user_defined_factor).any(|v| v == "certificate")
+    }
+
+    pub fn is_user_defined(&self) -> bool {
+        self.factors
+            .values()
+            .any(|v| v.factor_type == Self::USER_DEFINED_FACTOR)
     }
 
     pub fn is_identity_provider(&self) -> bool {

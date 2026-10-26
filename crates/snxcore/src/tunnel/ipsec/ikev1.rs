@@ -602,7 +602,8 @@ impl TunnelConnector for Ikev1TunnelConnector {
 
         let identity_request = IdentityRequest {
             auth_blob: realm_expr.to_string(),
-            with_mfa: info.is_multi_factor_login_type(&self.params.login_type),
+            with_mfa: info
+                .is_multi_factor_login_type(&self.params.login_type, self.params.user_defined_factor.as_deref()),
             internal_ca_fingerprints,
         };
 
