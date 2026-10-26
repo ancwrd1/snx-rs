@@ -71,13 +71,13 @@ fn resize_to_preferred_height(window: &StatusWindow) {
     let win = window.window();
     let current = win.size().to_logical(win.scale_factor());
     let min_width = window.get_preferred_content_width();
+    let height = window.get_preferred_content_height();
     if current.width < min_width {
         win.set_size(LogicalSize::new(min_width, current.height.max(1.0)));
+    } else if (current.height - height).abs() < 1.0 {
+        window.set_fitted(true);
     } else {
-        let height = window.get_preferred_content_height();
-        if current.height != height {
-            win.set_size(LogicalSize::new(current.width, height));
-        }
+        win.set_size(LogicalSize::new(current.width, height));
     }
 }
 
@@ -174,6 +174,13 @@ impl WindowController for StatusWindowController {
                 let entries = to_status_entries(&last_info_for_toggle.borrow(), show);
                 window.set_entries(ModelRc::new(VecModel::from(entries)));
             }
+
+            let weak_window = weak_window.clone();
+            slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+                if let Some(window) = weak_window.upgrade() {
+                    resize_to_preferred_height(&window);
+                }
+            });
         });
 
         let weak_window = self.scope.window.as_weak();

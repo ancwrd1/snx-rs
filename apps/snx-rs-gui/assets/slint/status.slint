@@ -12,8 +12,9 @@ export component StatusWindow inherits Window {
     preferred-width: root.min-content-width;
     min-width: root.min-content-width;
     // Measured before the first layout pass, the wrapped entries report a height far above the screen,
-    // which an X11 window manager maximizes the window for. The height is set by fit-height() instead.
-    min-height: 0px;
+    // which an X11 window manager maximizes the window for. Until fit-height() has sized the window,
+    // the layout constraints are kept out of the way.
+    min-height: root.fitted ? root-layout.min-height : 0px;
     preferred-height: 0px;
     default-font-size: 14px;
 
@@ -36,9 +37,11 @@ export component StatusWindow inherits Window {
     out property <length> preferred-content-height: root-layout.preferred-height;
     out property <length> preferred-content-width: root.min-content-width;
 
-    changed width => { root.fit-height(); }
-    changed height => { root.fit-height(); }
-    changed preferred-content-height => { root.fit-height(); }
+    in-out property <bool> fitted: false;
+
+    changed width => { if !root.fitted { root.fit-height(); } }
+    changed height => { if !root.fitted { root.fit-height(); } }
+    changed preferred-content-height => { if !root.fitted { root.fit-height(); } }
 
     property <color> status-color:
         root.is-connected ? #22c55e
