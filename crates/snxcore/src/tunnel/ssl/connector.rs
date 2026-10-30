@@ -190,7 +190,7 @@ impl TunnelConnector for SslTunnelConnector {
             TunnelEvent::Rekeyed(_) => {
                 debug!("Tunnel rekeyed");
             }
-            TunnelEvent::Rtt(_) => {}
+            TunnelEvent::Rtt(_) | TunnelEvent::KeepaliveFailed => {}
         }
         Ok(())
     }

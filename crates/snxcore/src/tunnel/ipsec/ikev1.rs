@@ -47,6 +47,8 @@ use crate::{
 const ADDRESS_LIFETIME_LEEWAY: Duration = Duration::from_secs(300);
 const PHYSICAL_ADDRESS_LIFETIME: Duration = Duration::from_secs(3600);
 
+const REKEY_RECOVERY_FAILURES: u32 = 2;
+
 fn get_challenge_attribute_type(payload: &AttributesPayload) -> ConfigAttributeType {
     payload
         .attributes
@@ -103,6 +105,8 @@ pub struct Ikev1TunnelConnector {
     username: String,
     ipsec_session: IPsecSession,
     last_rekey: Option<SystemTime>,
+    unverified_rekey: bool,
+    keepalive_failures: u32,
     last_ip_lease: Option<SystemTime>,
     command_sender: Option<Sender<TunnelCommand>>,
     esp_transport: TransportType,
@@ -161,6 +165,8 @@ impl Ikev1TunnelConnector {
             username: String::new(),
             ipsec_session: IPsecSession::default(),
             last_rekey: None,
+            unverified_rekey: false,
+            keepalive_failures: 0,
             last_ip_lease: None,
             command_sender: None,
             esp_transport,
@@ -453,6 +459,7 @@ impl Ikev1TunnelConnector {
         }
 
         if rekeyed {
+            self.unverified_rekey = true;
             debug!(
                 "New ESP SPI: {:04x}, {:04x}",
                 self.ipsec_session.esp_in.spi, self.ipsec_session.esp_out.spi
@@ -466,6 +473,19 @@ impl Ikev1TunnelConnector {
         } else {
             Ok(())
         }
+    }
+
+    async fn on_keepalive_failed(&mut self) -> anyhow::Result<()> {
+        self.keepalive_failures += 1;
+
+        if !self.unverified_rekey || self.keepalive_failures < REKEY_RECOVERY_FAILURES {
+            return Ok(());
+        }
+
+        warn!("Keepalive failed after rekey, repeating the quick mode exchange");
+        let result = self.rekey_tunnel(true).await;
+        self.unverified_rekey = false;
+        result
     }
 
     async fn delete_sa(&mut self) -> anyhow::Result<()> {
@@ -717,7 +737,13 @@ impl TunnelConnector for Ikev1TunnelConnector {
             TunnelEvent::Rekeyed(_) => {
                 debug!("Tunnel rekeyed");
             }
-            TunnelEvent::Rtt(_) => {}
+            TunnelEvent::Rtt(_) => {
+                self.unverified_rekey = false;
+                self.keepalive_failures = 0;
+            }
+            TunnelEvent::KeepaliveFailed => {
+                self.on_keepalive_failed().await?;
+            }
         }
         Ok(())
     }

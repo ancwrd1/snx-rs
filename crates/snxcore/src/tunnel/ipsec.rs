@@ -6,13 +6,12 @@ use uuid::Uuid;
 
 use crate::platform::{Platform, PlatformAccess};
 
-/// How long an ESP child SA is used before it is replaced. IKEv1 asks the
-/// gateway for this in quick mode; IKEv2 does not negotiate one at all
-/// (RFC 7296 leaves it to each side's policy), so both ends up here.
+/// How long an ESP child SA is used before it is replaced.
+/// IKEv1 negotiates this in quick mode.
+/// IKEv2 uses the hardcoded value unless gateway sends a rekey notification.
 pub(crate) const DEFAULT_ESP_LIFETIME: Duration = Duration::from_secs(3600);
 
-/// Rekeying starts this far before the lifetime runs out, so the replacement
-/// is in place before the old SA stops being accepted.
+/// Rekeying starts this far before the lifetime runs out
 pub(crate) const ESP_LIFETIME_LEEWAY: Duration = Duration::from_secs(60);
 
 pub mod auth;

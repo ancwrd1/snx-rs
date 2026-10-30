@@ -115,6 +115,9 @@ impl KeepaliveRunner {
                             "Keepalive failed, retrying in {} secs",
                             KEEPALIVE_RETRY_INTERVAL.as_secs()
                         );
+                        if let Some(tx) = &self.event_sender {
+                            let _ = tx.send(TunnelEvent::KeepaliveFailed).await;
+                        }
                     }
                     if num_failures == 0 {
                         Self::KEEPALIVE_INTERVAL

@@ -731,7 +731,7 @@ impl TunnelConnector for Ikev2TunnelConnector {
                 self.parse_isakmp(data).await?;
             }
             TunnelEvent::Rekeyed(_) => {}
-            TunnelEvent::Rtt(_) => {}
+            TunnelEvent::Rtt(_) | TunnelEvent::KeepaliveFailed => {}
         }
         Ok(())
     }

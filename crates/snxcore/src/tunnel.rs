@@ -31,6 +31,7 @@ pub enum TunnelEvent {
     RemoteControlData(Bytes),
     Rekeyed(IPsecSession),
     Rtt(Duration),
+    KeepaliveFailed,
 }
 
 #[async_trait]

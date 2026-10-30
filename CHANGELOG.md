@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed a regression where mobile access authentication with webkit did not work.
+- IKEv1: when keepalive keeps failing after an ESP rekey, the quick mode exchange is repeated once instead of dropping the tunnel. Some gateways never switch to the new SA pair after a rekey (#282).
 - GUI: fixed the connection status window stretching to the full screen height, or opening with empty space below the entries, under X11.
 
 ## [6.5.4] - 2026-10-19
