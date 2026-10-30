@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Linux: an optional polkit rule, `package/50-snx-rs.rules`, lets members of the `snx-rs` group configure DNS through systemd-resolved when snx-rs runs as a regular user with `CAP_NET_ADMIN`. It is not installed by default.
+- New `user-defined-factor` config file option and `--user-defined-factor` command line flag, for gateways that advertise a `user_defined` authentication factor. Set it to `certificate` to use certificate authentication instead of hybrid (username + machine certificate) authentication.
 
 ### Changed
 

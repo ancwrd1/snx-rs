@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub(crate) fn new_identity(params: &TunnelParams, info: &GatewayInformation) -> anyhow::Result<Identity> {
-    let hybrid_auth = !info.is_certificate_login_type(&params.login_type);
+    let hybrid_auth = !info.is_certificate_login_type(&params.login_type, params.user_defined_factor.as_deref());
 
     let identity = match params.cert_type {
         CertType::Pkcs12 => match (&params.cert_data, &params.cert_password) {
