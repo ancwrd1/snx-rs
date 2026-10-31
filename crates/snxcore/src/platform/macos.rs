@@ -3,7 +3,7 @@
 use std::{
     net::{Ipv4Addr, SocketAddr},
     os::raw::c_int,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::Duration,
 };
 
@@ -127,6 +127,10 @@ impl PlatformAccess for MacosPlatformAccess {
         single_instance::MacosSingleInstance::new(name)
     }
 
+    fn trusted_library_path(&self, path: &Path) -> Option<PathBuf> {
+        super::unix::trusted_library_path(path)
+    }
+
     fn data_dir(&self) -> PathBuf {
         // Root's home rather than world-readable /tmp: the session store may hold secrets.
         let home = std::env::var("HOME").unwrap_or_else(|_| "/var/root".to_owned());
@@ -141,7 +145,7 @@ impl PlatformAccess for MacosPlatformAccess {
         command_socket::secure(name)
     }
 
-    fn authorize_socket_peer(&self, stream: &interprocess::local_socket::tokio::Stream) -> bool {
+    async fn authorize_socket_peer(&self, stream: &interprocess::local_socket::tokio::Stream) -> bool {
         command_socket::authorize_peer(stream)
     }
 }

@@ -108,6 +108,7 @@ error-endless-challenges = Endless loop of username challenges
 error-no-pkcs12 = No PKCS12 path and password provided
 error-no-pkcs8 = No PKCS8 PEM path provided
 error-no-pkcs11 = No PKCS11 pin provided
+error-untrusted-pkcs11-driver = The PKCS11 driver {$path} is not trusted: use a library name or an absolute path that only administrators can modify
 error-cannot-read-cert = Cannot read the client certificate: {$path}
 error-no-ipsec-session = No IPsec session
 error-request-failed-error-code = Request failed, error code: {$error_code}

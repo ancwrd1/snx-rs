@@ -108,6 +108,7 @@ error-endless-challenges = Nekonečná slučka výziev používateľského mena
 error-no-pkcs12 = Žiadna cesta PKCS12 a heslo nie sú poskytnuté
 error-no-pkcs8 = Žiadna cesta PKCS8 PEM nie je poskytnutá
 error-no-pkcs11 = Žiadny PIN PKCS11 nie je poskytnutý
+error-untrusted-pkcs11-driver = Ovládač PKCS11 {$path} nie je dôveryhodný: použite názov knižnice alebo absolútnu cestu, ktorú môžu meniť iba správcovia
 error-cannot-read-cert = Nie je možné prečítať klientsky certifikát: {$path}
 error-no-ipsec-session = Žiadna IPsec relácia
 error-request-failed-error-code = Požiadavka zlyhala, kód chyby: {$error_code}

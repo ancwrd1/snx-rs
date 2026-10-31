@@ -2,7 +2,7 @@ use std::{
     fmt,
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
@@ -30,6 +30,8 @@ use crate::model::{
 mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(unix)]
+mod unix;
 #[cfg(target_os = "windows")]
 mod windows;
 
@@ -302,6 +304,10 @@ pub trait PlatformAccess {
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static>;
     fn data_dir(&self) -> PathBuf;
 
+    // The path to load a PKCS#11 driver from, or None when someone other than an administrator could
+    // replace the library that the privileged service would load.
+    fn trusted_library_path(&self, path: &Path) -> Option<PathBuf>;
+
     // Local-socket name of the command server, resolved the same way on both sides. The default is an
     // OS-namespaced name; macOS pins it to a filesystem path instead.
     fn command_socket_name(&self, name: &str) -> std::io::Result<interprocess::local_socket::Name<'static>> {
@@ -315,9 +321,10 @@ pub trait PlatformAccess {
         Ok(())
     }
 
-    // Authorize a freshly accepted command-socket peer; allows every peer where the socket itself is
-    // already access-controlled.
-    fn authorize_socket_peer(&self, _stream: &interprocess::local_socket::tokio::Stream) -> bool {
-        true
-    }
+    // Authorize a freshly accepted command-socket peer. There is no default: allowing everyone is only
+    // correct where the socket itself is access-controlled, and each platform must say so.
+    fn authorize_socket_peer(
+        &self,
+        stream: &interprocess::local_socket::tokio::Stream,
+    ) -> impl Future<Output = bool> + Send;
 }

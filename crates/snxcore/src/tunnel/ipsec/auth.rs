@@ -2,6 +2,8 @@
 //! the client identity, and the CCC authentication blob which travels in an
 //! IKEv1 attribute payload or an IKEv2 notify without changing shape.
 
+use std::path::{Path, PathBuf};
+
 use anyhow::Context;
 use i18n::tr;
 use isakmp::{certs::ClientCertificate, model::Identity};
@@ -15,6 +17,7 @@ use crate::{
         params::{CertType, TunnelParams},
         proto::{AuthenticationRealm, ClientLoggingData, GatewayInformation},
     },
+    platform::{Platform, PlatformAccess},
     sexpr::SExpression,
     util,
 };
@@ -40,7 +43,7 @@ pub(crate) fn new_identity(params: &TunnelParams, info: &GatewayInformation) -> 
         },
         CertType::Pkcs11 => match params.cert_password {
             Some(ref pin) => Identity::Pkcs11 {
-                driver_path: params.cert_path.clone().unwrap_or_else(|| "opensc-pkcs11.so".into()),
+                driver_path: pkcs11_driver_path(params)?,
                 pin: pin.clone(),
                 key_id: params
                     .cert_id
@@ -63,6 +66,15 @@ pub(crate) fn new_identity(params: &TunnelParams, info: &GatewayInformation) -> 
         CertType::None => Identity::None,
     };
     Ok(identity)
+}
+
+// The driver path comes from the client of the command socket, so it is only loaded when an administrator
+// controls the library behind it.
+fn pkcs11_driver_path(params: &TunnelParams) -> anyhow::Result<PathBuf> {
+    let path = params.cert_path.as_deref().unwrap_or(Path::new("opensc-pkcs11.so"));
+    Platform::get()
+        .trusted_library_path(path)
+        .ok_or_else(|| anyhow::anyhow!(tr!("error-untrusted-pkcs11-driver", path = path.display().to_string())))
 }
 
 /// The host part of the machine certificate's common name, which the gateway

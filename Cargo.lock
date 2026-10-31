@@ -3066,7 +3066,7 @@ dependencies = [
 
 [[package]]
 name = "i18n"
-version = "6.6.0"
+version = "6.6.1"
 dependencies = [
  "cached",
  "fluent-templates",
@@ -3837,9 +3837,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.34"
+version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
 name = "lyon_algorithms"
@@ -6258,7 +6258,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs"
-version = "6.6.0"
+version = "6.6.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -6278,7 +6278,7 @@ dependencies = [
 
 [[package]]
 name = "snx-rs-gui"
-version = "6.6.0"
+version = "6.6.1"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -6327,7 +6327,7 @@ dependencies = [
 
 [[package]]
 name = "snxcore"
-version = "6.6.0"
+version = "6.6.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6385,7 +6385,7 @@ dependencies = [
 
 [[package]]
 name = "snxctl"
-version = "6.6.0"
+version = "6.6.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -7782,9 +7782,9 @@ dependencies = [
 
 [[package]]
 name = "webbrowser"
-version = "1.2.5"
+version = "1.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c8ddfbbf66e501434657400268cefe51b95140a0266236415cda7627732df7"
+checksum = "fe8d20d0214027baf11b8b0cc307c1da7657d8f4db9aa956f7de27a6fb1acbd5"
 dependencies = [
  "jni",
  "log",
@@ -8862,9 +8862,9 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[package]]
 name = "zruntime"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfc035df602243402949ddf3dcc5bcfad7edeb732dd49ec6e605431c4eca54ce"
+checksum = "23ef5ed7d628cdf0af82f93dfe03330a8e37383bf7422a1d3d6eb72326680be5"
 dependencies = [
  "futures-core",
  "futures-io",

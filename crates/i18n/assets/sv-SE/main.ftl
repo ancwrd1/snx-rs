@@ -108,6 +108,7 @@ error-endless-challenges = Oändlig loop av användarnamnsutmaningar
 error-no-pkcs12 = Ingen PKCS12-sökväg och lösenord angivna
 error-no-pkcs8 = Ingen PKCS8 PEM-sökväg angiven
 error-no-pkcs11 = Ingen PKCS11 PIN angiven
+error-untrusted-pkcs11-driver = PKCS11-drivrutinen {$path} är inte betrodd: använd ett biblioteksnamn eller en absolut sökväg som endast administratörer kan ändra
 error-cannot-read-cert = Kan inte läsa klientcertifikatet: {$path}
 error-no-ipsec-session = Ingen IPsec-session
 error-request-failed-error-code = Förfrågan misslyckades, felkod: {$error_code}

@@ -108,6 +108,7 @@ error-endless-challenges = Uendelig løkke af brugernavnudfordringer
 error-no-pkcs12 = Ingen PKCS12-sti og adgangskode angivet
 error-no-pkcs8 = Ingen PKCS8 PEM-sti angivet
 error-no-pkcs11 = Ingen PKCS11 PIN angivet
+error-untrusted-pkcs11-driver = PKCS11-driveren {$path} er ikke betroet: brug et biblioteksnavn eller en absolut sti, som kun administratorer kan ændre
 error-cannot-read-cert = Kan ikke læse klientcertifikatet: {$path}
 error-no-ipsec-session = Ingen IPsec-session
 error-request-failed-error-code = Anmodning mislykkedes, feilkode: {$error_code}

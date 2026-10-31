@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.6.1] - 2026-10-31
+
+### Security
+
+- The service loads a PKCS11 driver only by library name, or from an absolute path that only root (Linux, macOS) or administrators (Windows) can modify. Before, any user allowed to send commands to the service could make it load an arbitrary library with elevated privileges. On Windows, the driver must be given as a full path.
+- Linux: the service accepts commands only from root, its own user, users logged in on a local seat (through logind or elogind) and members of the optional `snx-rs` group. Before, any local user could connect to the service. Users of systems without logind or elogind, or of `snxctl` over SSH, must be added to the `snx-rs` group, see [Troubleshooting](docs/troubleshooting.md).
+
 ## [6.6.0] - 2026-10-31
 
 ### Added
@@ -1282,7 +1289,8 @@ Initial release.
 - `search-domains` option for additional search domains.
 - systemd service for running the client as a daemon.
 
-[unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.6.0...HEAD
+[unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.6.1...HEAD
+[6.6.1]: https://github.com/ancwrd1/snx-rs/compare/v6.6.0...v6.6.1
 [6.6.0]: https://github.com/ancwrd1/snx-rs/compare/v6.5.4...v6.6.0
 [6.5.4]: https://github.com/ancwrd1/snx-rs/compare/v6.5.3...v6.5.4
 [6.5.3]: https://github.com/ancwrd1/snx-rs/compare/v6.5.2...v6.5.3

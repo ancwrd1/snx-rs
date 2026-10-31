@@ -148,6 +148,7 @@ error-endless-challenges = Oneindige lus van gebruikersnaamuitdagingen
 error-no-pkcs12 = Geen PKCS12-pad en wachtwoord opgegeven
 error-no-pkcs8 = Geen PKCS8 PEM-pad opgegeven
 error-no-pkcs11 = Geen PKCS11 PIN opgegeven
+error-untrusted-pkcs11-driver = Het PKCS11-stuurprogramma {$path} wordt niet vertrouwd: gebruik een bibliotheeknaam of een absoluut pad dat alleen beheerders kunnen wijzigen
 error-cannot-read-cert = Kan het clientcertificaat niet lezen: {$path}
 error-no-ipsec-session = Geen IPsec-sessie
 error-invalid-transport-type = Ongeldig transporttype

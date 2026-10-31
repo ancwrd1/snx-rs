@@ -2,7 +2,7 @@ use std::{
     fs,
     net::{Ipv4Addr, SocketAddr},
     os::fd::{AsFd, OwnedFd},
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::Duration,
 };
 
@@ -26,6 +26,7 @@ use crate::{
     },
 };
 
+mod command_socket;
 mod keychain;
 pub mod net;
 pub mod resolver;
@@ -268,6 +269,14 @@ impl PlatformAccess for LinuxPlatformAccess {
 
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static> {
         UnixSingleInstance::new(name)
+    }
+
+    fn trusted_library_path(&self, path: &Path) -> Option<PathBuf> {
+        super::unix::trusted_library_path(path)
+    }
+
+    async fn authorize_socket_peer(&self, stream: &interprocess::local_socket::tokio::Stream) -> bool {
+        command_socket::authorize_peer(stream).await
     }
 
     fn data_dir(&self) -> PathBuf {

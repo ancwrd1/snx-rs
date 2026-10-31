@@ -3,7 +3,7 @@
 use std::{
     net::{Ipv4Addr, SocketAddr},
     os::windows::io::AsRawSocket,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::Duration,
 };
 
@@ -39,6 +39,7 @@ mod resolver;
 mod routing;
 mod single_instance;
 mod stats;
+mod trusted_path;
 
 #[macro_export]
 macro_rules! utf16z {
@@ -235,6 +236,16 @@ impl PlatformAccess for WindowsPlatformAccess {
 
     fn new_single_instance<S: AsRef<str>>(&self, name: S) -> anyhow::Result<impl SingleInstance + 'static> {
         single_instance::WindowsSingleInstance::new(name)
+    }
+
+    fn trusted_library_path(&self, path: &Path) -> Option<PathBuf> {
+        trusted_path::trusted_library_path(path)
+    }
+
+    // The named pipe's security descriptor already limits access to SYSTEM, administrators and
+    // interactive users.
+    async fn authorize_socket_peer(&self, _stream: &interprocess::local_socket::tokio::Stream) -> bool {
+        true
     }
 
     fn data_dir(&self) -> PathBuf {

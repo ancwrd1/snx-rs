@@ -271,18 +271,16 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> CommandServer<F> {
         });
 
         while let Ok(stream) = listener.accept().await {
-            // Drop peers the platform does not authorize (on macOS, anyone but root, the console user
-            // or an admin; elsewhere the socket's own security descriptor already gates access).
-            if !Platform::get().authorize_socket_peer(&stream) {
-                continue;
-            }
-
             let sender = event_sender.clone();
             let state = self.connection_state.clone();
 
             let factory = self.connector_factory.clone();
 
+            // Authorized inside the task, as the check may wait on D-Bus or a directory service.
             tokio::spawn(async move {
+                if !Platform::get().authorize_socket_peer(&stream).await {
+                    return Ok(());
+                }
                 let mut handler = ServerHandler::new(state, sender, factory);
                 handler.handle(stream).await
             });
