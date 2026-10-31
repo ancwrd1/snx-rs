@@ -7,21 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.6.0] - 2026-10-31
+
 ### Added
 
 - Linux: an optional polkit rule, `package/50-snx-rs.rules`, lets members of the `snx-rs` group configure DNS through systemd-resolved when snx-rs runs as a regular user with `CAP_NET_ADMIN`. It is not installed by default.
-- New `user-defined-factor` config file option and `--user-defined-factor` command line flag, for gateways that advertise a `user_defined` authentication factor. Set it to `certificate` to use certificate authentication instead of hybrid (username + machine certificate) authentication.
+- New `user-defined-factor` config file option and `--user-defined-factor` command line flag, for gateways that advertise a `user_defined` authentication factor. Set it to `certificate` to use certificate authentication instead of hybrid (username + machine certificate) authentication (#284).
 
 ### Changed
 
-- Linux: snx-rs checks for the `CAP_NET_ADMIN` capability instead of the root user, so it can run as a regular user with that capability, for example in a Docker container. The Dockerfile sets the capability on the binary.
+- Linux: snx-rs checks for the `CAP_NET_ADMIN` capability instead of the root user, so it can run as a regular user with that capability, for example in a Docker container. The Dockerfile sets the capability on the binary (#280).
 - Linux: a failure to set the tunnel device to unmanaged in NetworkManager is logged as a warning instead of aborting the connection.
-- The PKCS12/PKCS8 client certificate is now read by the GUI or `snxctl` and sent to the service, so certificate login works when the service is sandboxed. The certificate file must be readable by the user running the frontend.
+- The PKCS12/PKCS8 client certificate is now read by the GUI or `snxctl` and sent to the service, so certificate login works when the service is sandboxed. The certificate file must be readable by the user running the frontend (#281).
 
 ### Fixed
 
 - Fixed a regression where mobile access authentication with webkit did not work.
-- IKEv1: when keepalive keeps failing after an ESP rekey, the quick mode exchange is repeated once instead of dropping the tunnel. Some gateways never switch to the new SA pair after a rekey (#282).
+- IKEv1: when keepalive keeps failing after an ESP rekey, the quick mode exchange is repeated once instead of dropping the tunnel. Some gateways never switch to the new SA pair after a rekey (#282, #140).
 - GUI: fixed the connection status window stretching to the full screen height, or opening with empty space below the entries, under X11.
 
 ## [6.5.4] - 2026-10-19
@@ -1280,7 +1282,8 @@ Initial release.
 - `search-domains` option for additional search domains.
 - systemd service for running the client as a daemon.
 
-[unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.5.4...HEAD
+[unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.6.0...HEAD
+[6.6.0]: https://github.com/ancwrd1/snx-rs/compare/v6.5.4...v6.6.0
 [6.5.4]: https://github.com/ancwrd1/snx-rs/compare/v6.5.3...v6.5.4
 [6.5.3]: https://github.com/ancwrd1/snx-rs/compare/v6.5.2...v6.5.3
 [6.5.2]: https://github.com/ancwrd1/snx-rs/compare/v6.5.1...v6.5.2
