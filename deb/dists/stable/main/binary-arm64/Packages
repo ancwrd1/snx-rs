@@ -1,0 +1,16 @@
+Package: snx-rs
+Architecture: arm64
+Version: 6.6.1
+Priority: optional
+Section: net
+Maintainer: Dmitry Pankratov <dmitry@pankratov.net>
+Installed-Size: 48692
+Depends: libc6 (>= 2.39)
+Filename: pool/main/s/snx-rs/arm64/snx-rs-v6.6.1-linux-arm64.deb
+Size: 19078664
+MD5sum: 55e68b50bcb3a3a0ecbb5674b261dd3b
+SHA1: d9a4b2e6b8bf87ae8f7ac1d0976199aabade6267
+SHA256: dc81b4c857c43fd2c724245f2beca01f7092a14d8bf07c874440487e5217509c
+SHA512: 3492318bc06a0b733512dc902e186c1016ab8f8f366c1dacd552f39e7cf8cb767db5623a88f1bf671ace1181687bd04d3f984e849c7bcb8d85340ad42f57f501
+Description: SNX-RS Check Point VPN Client for Linux
+
