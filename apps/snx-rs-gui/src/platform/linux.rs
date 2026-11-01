@@ -1,6 +1,6 @@
 use std::os::unix::process::CommandExt;
 
-use slint::winit_030::winit::platform::{wayland::WindowAttributesExtWayland, x11::WindowAttributesExtX11};
+use i_slint_backend_winit::winit::platform::{wayland::WindowAttributesExtWayland, x11::WindowAttributesExtX11};
 use tokio::signal::unix::{SignalKind, signal};
 
 pub mod dbus;
@@ -21,15 +21,14 @@ pub fn user_tag() -> String {
     nix::unistd::Uid::current().to_string()
 }
 
-pub fn init_process_env() {}
-
 pub fn init_gui_backend() -> anyhow::Result<()> {
-    slint::BackendSelector::new()
-        .with_winit_window_attributes_hook(|attr| {
+    let backend = i_slint_backend_winit::Backend::builder()
+        .with_window_attributes_hook(|attr| {
             let attr = WindowAttributesExtWayland::with_name(attr, APP_ID, "");
             WindowAttributesExtX11::with_name(attr, APP_ID, APP_ID)
         })
-        .select()?;
+        .build()?;
+    slint::platform::set_platform(Box::new(backend))?;
 
     Ok(())
 }

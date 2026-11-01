@@ -33,11 +33,12 @@ async-channel = "2"
 itertools = "0.15"
 uuid = { version = "1", features = ["v4"] }
 rfd = "0.17"
-i-slint-backend-winit = { version = "1", default-features = false }
+i-slint-backend-winit = { version = "1", default-features = false, features = ["renderer-femtovg", "renderer-software"] }
 hostname = "0.4"
 chrono = "0.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+i-slint-backend-winit = { version = "1", default-features = false, features = ["wayland", "x11"] }
 ksni = "0.3"
 gtk4 = { version = "0.11", features = ["v4_10"], optional = true }
 nix = "0.31"
@@ -46,7 +47,7 @@ zbus = { version = "6", default-features = false, features = ["tokio"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 nix = "0.31"
-tray-icon = "0.24"
+tray-icon = "0.26"
 objc2-foundation = { version = "0.3", features = [
     "NSString",
     "NSBundle",
@@ -82,7 +83,7 @@ objc2-web-kit = { version = "0.3", optional = true, features = [
 ] }
 
 [target.'cfg(windows)'.dependencies]
-tray-icon = "0.24"
+tray-icon = "0.26"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
@@ -101,7 +102,7 @@ tempfile = "3"
 [dependencies.slint]
 version = "1"
 default-features = false
-features = ["std", "backend-default", "renderer-femtovg", "renderer-software", "compat-1-2", "unstable-winit-030"]
+features = ["std", "renderer-femtovg", "renderer-software", "compat-1-2"]
 
 [build-dependencies]
 slint-build = "1"

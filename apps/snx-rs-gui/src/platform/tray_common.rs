@@ -148,10 +148,11 @@ impl AppTray {
                 match slot.as_mut() {
                     Some(tray) => {
                         tray.set_menu(Some(Box::new(menu)));
-                        let _ = tray.set_icon(icon);
                         // A template image is tinted by the menu bar for the current appearance.
                         #[cfg(target_os = "macos")]
-                        tray.set_icon_as_template(true);
+                        let _ = tray.set_icon_templated(icon);
+                        #[cfg(windows)]
+                        let _ = tray.set_icon(icon);
                         #[cfg(windows)]
                         let _ = tray.set_tooltip(Some(&tooltip));
                     }
@@ -166,16 +167,19 @@ impl AppTray {
                         }
 
                         let mut builder = TrayIconBuilder::new().with_menu(Box::new(menu));
-                        #[cfg(target_os = "macos")]
-                        {
-                            builder = builder.with_icon_as_template(true);
-                        }
                         #[cfg(windows)]
                         {
                             builder = builder.with_tooltip(&tooltip);
                         }
                         if let Some(icon) = icon {
-                            builder = builder.with_icon(icon);
+                            #[cfg(target_os = "macos")]
+                            {
+                                builder = builder.with_icon_templated(icon);
+                            }
+                            #[cfg(windows)]
+                            {
+                                builder = builder.with_icon(icon);
+                            }
                         }
                         match builder.build() {
                             Ok(tray) => *slot = Some(tray),

@@ -21,8 +21,7 @@ use macos as platform_impl;
 #[cfg(feature = "mobile-access")]
 pub use platform_impl::webkit_main;
 pub use platform_impl::{
-    init_gui_backend, init_process_env, send_notification, theme::spawn_theme_monitor, tray::AppTray, user_tag,
-    wait_restart_signal,
+    init_gui_backend, send_notification, theme::spawn_theme_monitor, tray::AppTray, user_tag, wait_restart_signal,
 };
 use snxcore::{browser::BrowserController, model::params::TunnelParams};
 #[cfg(windows)]
