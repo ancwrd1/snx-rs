@@ -41,8 +41,16 @@ pub const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 const IKE_SA_EXPIRY_THRESHOLD: Duration = Duration::from_secs(300);
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
+    platform::init_process_env();
+
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(async_main())
+}
+
+async fn async_main() -> anyhow::Result<()> {
     let cmdline_params = params::CmdlineParams::parse();
 
     if let Some(shell) = cmdline_params.completions {

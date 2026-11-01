@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows, macOS: choosing a profile from the "Connect" menu in the status window did nothing when more than one connection profile is defined.
+
 ## [6.6.1] - 2026-10-31
 
 ### Security

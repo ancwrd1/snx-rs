@@ -33,6 +33,14 @@ pub fn user_tag() -> String {
         .collect()
 }
 
+// The tray and Slint share muda's global menu event handler, which can only be set once, and the tray's
+// events claim it first. Slint's native context menus would then never receive their activations,
+// so it is made to draw them itself, as it does on Linux.
+pub fn init_process_env() {
+    // SAFETY: called from `main` before the async runtime or any other thread is started.
+    unsafe { std::env::set_var("SLINT_NO_MUDA", "1") };
+}
+
 pub fn init_gui_backend() -> anyhow::Result<()> {
     slint::BackendSelector::new().select()?;
     Ok(())

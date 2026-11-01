@@ -21,6 +21,8 @@ pub fn user_tag() -> String {
     nix::unistd::Uid::current().to_string()
 }
 
+pub fn init_process_env() {}
+
 pub fn init_gui_backend() -> anyhow::Result<()> {
     slint::BackendSelector::new()
         .with_winit_window_attributes_hook(|attr| {
