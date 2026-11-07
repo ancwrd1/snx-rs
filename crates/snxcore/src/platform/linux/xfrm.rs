@@ -79,6 +79,10 @@ impl XfrmState<'_> {
     fn auth_alg_as_xfrm_name(&self) -> anyhow::Result<&'static str> {
         match self.params.auth {
             Some(EspAuthentication {
+                digest: DigestType::Md5,
+                ..
+            }) => Ok("hmac(md5)"),
+            Some(EspAuthentication {
                 digest: DigestType::Sha1,
                 ..
             }) => Ok("hmac(sha1)"),
