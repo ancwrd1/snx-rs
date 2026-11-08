@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.6.2] - 2026-11-09
+
+### Added
+
+- HMAC-MD5 support in the IPsec ESP layer, for compatibility with the older or misconfigured gateways (#285)
+
 ### Fixed
 
 - Windows, macOS: choosing a profile from the "Connect" menu in the status window did nothing when more than one connection profile is defined.
@@ -1293,7 +1299,8 @@ Initial release.
 - `search-domains` option for additional search domains.
 - systemd service for running the client as a daemon.
 
-[unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.6.1...HEAD
+[unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.6.2...HEAD
+[6.6.2]: https://github.com/ancwrd1/snx-rs/compare/v6.6.1...v6.6.2
 [6.6.1]: https://github.com/ancwrd1/snx-rs/compare/v6.6.0...v6.6.1
 [6.6.0]: https://github.com/ancwrd1/snx-rs/compare/v6.5.4...v6.6.0
 [6.5.4]: https://github.com/ancwrd1/snx-rs/compare/v6.5.3...v6.5.4

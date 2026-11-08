@@ -32,7 +32,7 @@ bytes = "1"
 async-channel = "2"
 itertools = "0.15"
 uuid = { version = "1", features = ["v4"] }
-rfd = "0.17"
+rfd = "0.18"
 i-slint-backend-winit = { version = "1", default-features = false, features = ["renderer-femtovg", "renderer-software"] }
 hostname = "0.4"
 chrono = "0.4"

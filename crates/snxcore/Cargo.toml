@@ -14,7 +14,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-isakmp = { git = "https://github.com/ancwrd1/isakmp.git", branch = "esp-md5" }
+isakmp = { git = "https://github.com/ancwrd1/isakmp.git" }
 i18n = { path = "../i18n" }
 
 pest = "2"
@@ -58,7 +58,7 @@ rusqlite = { version = "0.41", features = [ "uuid" ] }
 zbus = { version = "6", default-features = false, features = ["tokio", "proxy"] }
 secret-service = {  version = "5", features = ["rt-tokio-crypto-rust"] }
 sysctl = "0.7"
-rtnetlink = "0.23"
+rtnetlink = "0.24"
 xfrmnetlink = "0.4"
 netlink-packet-xfrm = "0.5"
 nix = { version = "0.31", features = ["fs", "user", "socket"] }

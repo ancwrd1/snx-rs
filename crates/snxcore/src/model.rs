@@ -241,7 +241,7 @@ pub enum AuthenticationAlgorithm {
 impl fmt::Display for AuthenticationAlgorithm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AuthenticationAlgorithm::Md5 => f.write_str("MD5"),
+            AuthenticationAlgorithm::Md5 => f.write_str("HMAC-MD5"),
             AuthenticationAlgorithm::HmacSha1 => f.write_str("HMAC-SHA1"),
             AuthenticationAlgorithm::HmacSha256 => f.write_str("HMAC-SHA256"),
             AuthenticationAlgorithm::HmacSha384 => f.write_str("HMAC-SHA384"),
