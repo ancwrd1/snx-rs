@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- GUI settings: the machine certificate authentication option is hidden for the SSL tunnel type, and the hardware token and system certificate types are not offered for the SSL tunnel.
+
 ## [6.6.2] - 2026-11-09
 
 ### Added

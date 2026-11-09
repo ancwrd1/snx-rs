@@ -69,15 +69,7 @@ impl SettingsWindowController {
             .window
             .set_tunnel_types(ModelRc::new(VecModel::from(tunnel_types)));
 
-        let mut cert_types: Vec<SharedString> = vec![
-            tr!("cert-type-none").into(),
-            tr!("cert-type-pfx").into(),
-            tr!("cert-type-pem").into(),
-            tr!("cert-type-hw").into(),
-        ];
-
         if cfg!(windows) {
-            cert_types.push(tr!("cert-type-system").into());
             self.scope.window.set_cert_id_placeholder(
                 hostname::get()
                     .unwrap_or_default()
@@ -89,7 +81,7 @@ impl SettingsWindowController {
 
         self.scope
             .window
-            .set_cert_types(ModelRc::new(VecModel::from(cert_types)));
+            .set_cert_types(ModelRc::new(VecModel::from(cert_type_names(TunnelType::IPsec))));
 
         let transport_types: Vec<SharedString> = if cfg!(target_os = "linux") {
             vec![
@@ -209,6 +201,15 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             self.scope.window.on_auth_type_changed(move || {
+                if let Some(w) = weak.upgrade() {
+                    refresh_auth_visibility(&w.window);
+                }
+            });
+        }
+
+        {
+            let weak = self.scope.weak();
+            self.scope.window.on_tunnel_type_changed(move || {
                 if let Some(w) = weak.upgrade() {
                     refresh_auth_visibility(&w.window);
                 }
@@ -628,13 +629,40 @@ fn refresh_auth_visibility(window: &SettingsWindow) {
     if is_mobile {
         window.set_tunnel_type_index(TunnelType::SSL.as_u32() as i32);
     }
+    let tunnel_type: TunnelType = (window.get_tunnel_type_index() as u32).into();
+    let is_ipsec = tunnel_type == TunnelType::IPsec;
+    window.set_machine_cert_visible(is_ipsec);
     window.set_machine_cert_enabled(!is_cert && !is_mobile);
-    if (is_cert || is_mobile) && machine_cert {
+    if (is_cert || is_mobile || !is_ipsec) && machine_cert {
         window.set_machine_cert(false);
+    }
+
+    let cert_types = cert_type_names(tunnel_type);
+    if window.get_cert_types().row_count() != cert_types.len() {
+        if window.get_cert_type_index() as usize >= cert_types.len() {
+            window.set_cert_type_index(CertType::None.as_u32() as i32);
+        }
+        window.set_cert_types(ModelRc::new(VecModel::from(cert_types)));
     }
     if !is_cert && !machine_cert {
         window.set_cert_type_index(CertType::None.as_u32() as i32);
     }
+}
+
+// The combo box index is the CertType discriminant, so only trailing entries may be dropped.
+fn cert_type_names(tunnel_type: TunnelType) -> Vec<SharedString> {
+    let mut names: Vec<SharedString> = vec![
+        tr!("cert-type-none").into(),
+        tr!("cert-type-pfx").into(),
+        tr!("cert-type-pem").into(),
+    ];
+    if tunnel_type == TunnelType::IPsec {
+        names.push(tr!("cert-type-hw").into());
+        if cfg!(windows) {
+            names.push(tr!("cert-type-system").into());
+        }
+    }
+    names
 }
 
 thread_local! {

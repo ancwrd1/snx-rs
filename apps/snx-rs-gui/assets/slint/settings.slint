@@ -39,6 +39,7 @@ export component SettingsWindow inherits Window {
     in property <bool> tunnel-type-enabled: true;
     in-out property <bool> machine-cert: false;
     in property <bool> machine-cert-enabled: false;
+    in property <bool> machine-cert-visible: true;
     in property <bool> show-user-auth: false;
     in property <bool> show-cert-auth: false;
     in-out property <string> username;
@@ -133,6 +134,7 @@ export component SettingsWindow inherits Window {
     callback profile-reorder(int /* from */, int /* to */);
     callback auth-type-changed();
     callback machine-cert-changed();
+    callback tunnel-type-changed();
     callback browse-ca-cert-clicked();
     callback browse-cert-path-clicked();
     callback ok-clicked();
@@ -157,12 +159,14 @@ export component SettingsWindow inherits Window {
 
     changed profile-index => { root.profile-changed(); }
     changed auth-type-index => { root.auth-type-changed(); }
+    changed tunnel-type-index => { root.tunnel-type-changed(); }
     changed machine-cert => {
         self.height = max(self.preferred-height, root.min-height);
         root.machine-cert-changed();
     }
     changed show-user-auth => { self.height = max(self.preferred-height, root.min-height); }
     changed show-cert-auth => { self.height = max(self.preferred-height, root.min-height); }
+    changed machine-cert-visible => { self.height = max(self.preferred-height, root.min-height); }
 
     VerticalLayout {
         padding: 10px;
@@ -389,9 +393,8 @@ export component SettingsWindow inherits Window {
                                         }
                                     }
 
-                                    FormDivider { }
-
-                                    FormToggleRow {
+                                    if root.machine-cert-visible: FormDivider { }
+                                    if root.machine-cert-visible: FormToggleRow {
                                         label: Tr.label-machine-cert-auth;
                                         Switch {
                                             checked <=> root.machine-cert;
@@ -418,7 +421,7 @@ export component SettingsWindow inherits Window {
 
                                     if root.show-cert-auth || root.machine-cert: FormDivider { }
                                     if root.show-cert-auth || root.machine-cert: FormStackRow {
-                                        label: Tr.label-cert-auth-type;
+                                        label: Tr.label-cert-source;
                                         // A ComboBox placed directly in a conditional row leaks its min-width into the row height, so keep it wrapped.
                                         Rectangle {
                                             min-height: cert-type-box.min-height;
