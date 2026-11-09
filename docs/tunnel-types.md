@@ -35,4 +35,5 @@ is left as chosen.
 ## SSL Tunnel
 
 For older VPN servers or in case IPsec does not work for some reason, the legacy SSL tunnel can be used as well, selected with `tunnel-type=ssl`.
-SSL tunnel has some limitations: it is slower, has no hardware token support and no MFA in combination with the certificates.
+
+> HSM token and machine certificate authentication are not supported for SSL tunnel.
