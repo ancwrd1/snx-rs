@@ -658,7 +658,7 @@ fn cert_type_names(tunnel_type: TunnelType) -> Vec<SharedString> {
     ];
     if tunnel_type == TunnelType::IPsec {
         names.push(tr!("cert-type-hw").into());
-        if cfg!(windows) {
+        if cfg!(any(windows, target_os = "macos")) {
             names.push(tr!("cert-type-system").into());
         }
     }

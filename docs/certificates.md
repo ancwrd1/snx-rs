@@ -17,10 +17,10 @@ The following parameters control certificate-based authentication:
   - `pkcs12` - read the certificate from an external PFX/PKCS12 file.
   - `pkcs8` - read the certificate from an external PEM file (containing both private key and x509 cert). Private key must come first in this file.
   - `pkcs11` - use a hardware token via a PKCS11 driver.
-  - `system` - read the certificate from the Windows system certificate store.
+  - `system` - read the certificate from the system certificate store: LocalMachine\\MY on Windows, the keychain on macOS (the default keychain search list first, then the System keychain).
 * `cert-path`: Path to the PFX, PEM, or custom PKCS11 driver file, depending on the selected cert type. The default PKCS11 driver is `opensc-pkcs11.so`, which requires the opensc package to be installed. Because the service loads the driver with elevated privileges, it only accepts a library name, such as `opensc-pkcs11.so`, which the system loader looks up in the system library paths, or an absolute path whose file and parent directories can be modified only by root (Linux, macOS) or by administrators (Windows). On Windows, a library name is not accepted, so give the full path, for example `C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll`.
 * `cert-password`: Password for PKCS12 or PIN for PKCS11. Must be provided for those types.
-* `cert-id`: For `pkcs11`, an optional hexadecimal ID of the certificate. Could be in the form of `xx:xx:xx` or `xxxxxx`. For `system`, a common name of the certificate from the system certificate store. The default is the PC host name. 
+* `cert-id`: For `pkcs11`, an optional hexadecimal ID of the certificate. Could be in the form of `xx:xx:xx` or `xxxxxx`. For `system`, a substring of the certificate subject in the system certificate store. The default is the PC host name (on macOS, without the `.local` suffix). 
 
 Certificate authentication should be used with the appropriate vpn_XXX login type which has a "certificate" as its authentication factor.
 

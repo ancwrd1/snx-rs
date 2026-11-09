@@ -67,6 +67,7 @@ nix = { version = "0.31", features = ["fs", "user", "socket"] }
 nix = { version = "0.31", features = ["user", "socket", "net", "fs"] }
 system-configuration = "0.8"
 security-framework = "3"
+hostname = "0.4"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }

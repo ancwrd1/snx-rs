@@ -143,7 +143,7 @@ pub struct CmdlineParams {
     #[clap(
         long = "cert-type",
         short = 'y',
-        help = "Enable certificate authentication via the provided method, one of: pkcs8, pkcs11, pkcs12, none"
+        help = "Enable certificate authentication via the provided method, one of: pkcs8, pkcs11, pkcs12, system (Windows, macOS), none"
     )]
     pub cert_type: Option<CertType>,
 
@@ -161,7 +161,11 @@ pub struct CmdlineParams {
     )]
     pub cert_password: Option<String>,
 
-    #[clap(long = "cert-id", short = 'w', help = "Certificate ID in hexadecimal form")]
+    #[clap(
+        long = "cert-id",
+        short = 'w',
+        help = "Certificate ID in hexadecimal form (pkcs11), or a substring of the certificate subject (system)"
+    )]
     pub cert_id: Option<String>,
 
     #[clap(long = "if-name", short = 'f', help = "Interface name for tun or xfrm device")]

@@ -53,19 +53,30 @@ pub(crate) fn new_identity(params: &TunnelParams, info: &GatewayInformation) -> 
             },
             None => anyhow::bail!(tr!("error-no-pkcs11")),
         },
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         CertType::System => {
             let common_name = match params.cert_id {
                 Some(ref id) => id.clone(),
-                None => hostname::get()?.to_string_lossy().into_owned(),
+                None => default_system_cert_name()?,
             };
             Identity::System { common_name }
         }
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         CertType::System => anyhow::bail!(tr!("error-not-implemented")),
         CertType::None => Identity::None,
     };
     Ok(identity)
+}
+
+// macOS reports the Bonjour name ("host.local"), while the machine certificate's CN carries the bare host name.
+#[cfg(any(windows, target_os = "macos"))]
+fn default_system_cert_name() -> anyhow::Result<String> {
+    let name = hostname::get()?.to_string_lossy().into_owned();
+    if cfg!(target_os = "macos") {
+        Ok(name.split('.').next().unwrap_or_default().to_owned())
+    } else {
+        Ok(name)
+    }
 }
 
 // The driver path comes from the client of the command socket, so it is only loaded when an administrator
