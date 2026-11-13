@@ -114,6 +114,9 @@ jobs:
           path: target/snx-rs-*.msi
 
   build-macos:
+    strategy:
+      matrix:
+        triple: [aarch64-apple-darwin, x86_64-apple-darwin]
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -125,14 +128,18 @@ jobs:
         run: |
           rustup update stable
           rustup default stable
-          rustup target add aarch64-apple-darwin
+          rustup target add ${{ matrix.triple }}
 
       - name: Build project
+        env:
+          TARGETS: ${{ matrix.triple }}
         run: |
           chmod +x package/macos/build.sh
           ./package/macos/build.sh
 
       - name: Package project
+        env:
+          TRIPLE: ${{ matrix.triple }}
         run: |
           chmod +x package/macos/package.sh
           ./package/macos/package.sh
@@ -140,7 +147,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-aarch64-macos
+          name: artifacts-${{ matrix.triple }}
           path: target/snx-rs-*.dmg
 
   release:
@@ -266,16 +273,18 @@ jobs:
             // package/macos/package.sh names the .dmg after `git describe`, which
             // equals tagName exactly on a tagged release build (see package/package.sh
             // for the same convention on Linux). The .dmg now bundles the installer
-            // .pkg and the uninstaller, so it is the only macOS asset.
-            const macosName = `snx-rs-${tagName}-aarch64-apple-darwin.dmg`;
-            const macosArtifact = fs.readFileSync(`artifacts/${macosName}`);
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: macosName,
-              data: macosArtifact
-            });
+            // .pkg and the uninstaller, so it is the only macOS asset per arch.
+            for (const triple of ["aarch64-apple-darwin", "x86_64-apple-darwin"]) {
+              const macosName = `snx-rs-${tagName}-${triple}.dmg`;
+              const macosArtifact = fs.readFileSync(`artifacts/${macosName}`);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.data.id,
+                name: macosName,
+                data: macosArtifact
+              });
+            }
 
             if (tagName.endsWith("-test")) {
               await github.rest.repos.deleteRelease({

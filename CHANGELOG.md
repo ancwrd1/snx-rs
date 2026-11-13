@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - macOS: added system certificate store support.
+- macOS: release builds are now also published for Intel Macs (#286)
 
 ### Changed
 

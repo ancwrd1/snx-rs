@@ -18,7 +18,7 @@ There are several ways to install `snx-rs`:
 
 ## macOS
 
-1. Download `snx-rs-<version>-aarch64-apple-darwin.dmg` from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
+1. Download `snx-rs-<version>-aarch64-apple-darwin.dmg` (Apple Silicon) or `snx-rs-<version>-x86_64-apple-darwin.dmg` (Intel) from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
 2. Mount it and install the contained package.
 3. The package is ad-hoc signed only (no Apple Developer ID) and not notarized. If Gatekeeper blocks it, right-click → Open once to approve it; a signed and notarized build opens with no prompt.
 4. To uninstall, run the bundled `uninstall.sh` as root: `sudo /Applications/SNX-RS.app/Contents/Resources/uninstall.sh` (it is also included on the `.dmg`).
