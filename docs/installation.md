@@ -16,6 +16,11 @@ There are several ways to install `snx-rs`:
   2. Install the application: `sudo ./snx-rs-*-linux-x86_64.run`
 - Signed repositories for APT (Debian/Ubuntu), DNF (Fedora/RHEL) and zypper (openSUSE) with the latest release builds are published at [ancwrd1.github.io/snx-rs](https://ancwrd1.github.io/snx-rs/).
 
+## Linux
+
+When using a GNOME desktop environment other than Ubuntu, make sure to install the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension, otherwise tray icon will not be visible.
+
+
 ## macOS
 
 1. Download `snx-rs-<version>-aarch64-apple-darwin.dmg` (Apple Silicon) or `snx-rs-<version>-x86_64-apple-darwin.dmg` (Intel) from the [releases](https://github.com/ancwrd1/snx-rs/releases/latest) page.
