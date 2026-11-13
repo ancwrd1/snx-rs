@@ -9,8 +9,6 @@ use crate::{
     ui::{AboutWindow, WindowController, WindowScope, close_window},
 };
 
-const WEBSITE_URL: &str = "https://github.com/ancwrd1/snx-rs";
-
 pub struct AboutWindowController {
     scope: Rc<WindowScope<AboutWindow>>,
 }
@@ -37,11 +35,11 @@ impl WindowController for AboutWindowController {
         self.scope.window.set_app_name(tr!("app-title").into());
         self.scope.window.set_version(env!("CARGO_PKG_VERSION").into());
         self.scope.window.set_authors(env!("CARGO_PKG_AUTHORS").into());
-        self.scope.window.set_website(WEBSITE_URL.into());
+        self.scope.window.set_website(env!("CARGO_PKG_REPOSITORY").into());
         self.scope.window.set_license(env!("CARGO_PKG_LICENSE").into());
 
         self.scope.window.on_website_clicked(|| {
-            let _ = SystemBrowser::default().open(WEBSITE_URL);
+            let _ = SystemBrowser::default().open(env!("CARGO_PKG_REPOSITORY"));
         });
 
         self.scope.window.on_ok_clicked(|| close_window(Self::NAME));
