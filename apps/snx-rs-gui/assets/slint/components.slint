@@ -8,10 +8,25 @@ export component IconButton inherits Rectangle {
     width: 24px;
     height: 24px;
     border-radius: 4px;
+    border-width: fs.has-focus ? 2px : 0px;
+    border-color: Palette.accent-background;
     background: !root.enabled ? transparent
               : ta.pressed ? Palette.control-background.darker(0.2)
               : ta.has-hover ? Palette.control-background.darker(0.1)
               : transparent;
+
+    // Focus only via Tab so mouse clicks don't leave a focus ring behind.
+    fs := FocusScope {
+        enabled: root.enabled;
+        focus-on-click: false;
+        key-pressed(event) => {
+            if (event.text == " " || event.text == Key.Return) {
+                root.clicked();
+                return accept;
+            }
+            reject
+        }
+    }
 
     ta := TouchArea {
         enabled: root.enabled;

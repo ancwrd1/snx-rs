@@ -24,6 +24,8 @@ export component SettingsWindow inherits Window {
     property <length> profile-row-height: 32px;
     property <length> profile-row-spacing: 2px;
     property <length> profile-row-pitch: self.profile-row-height + self.profile-row-spacing;
+    // Repeated rows can't address each other, so arrow-key focus moves go through here.
+    property <int> profile-focus-request: -1;
 
     // profile management
     in property <[string]> profiles: [];
@@ -240,10 +242,54 @@ export component SettingsWindow inherits Window {
                                         : row-ta.has-hover || drag-ta.pressed
                                             ? Palette.control-background.darker(0.1)
                                             : transparent;
+                                    border-width: row-fs.has-focus ? 2px : 0px;
+                                    border-color: root.profile-index == i
+                                        ? Palette.accent-foreground
+                                        : Palette.accent-background;
                                     drop-shadow-blur: drag-ta.pressed ? 12px : 0;
                                     drop-shadow-color: #00000066;
                                     drop-shadow-offset-y: drag-ta.pressed ? 2px : 0;
                                     opacity: drag-ta.pressed ? 0.92 : 1.0;
+
+                                    row-fs := FocusScope {
+                                        property <bool> focus-requested: root.profile-focus-request == i;
+                                        changed focus-requested => {
+                                            if (self.focus-requested) {
+                                                self.focus();
+                                            }
+                                        }
+                                        focus-on-click: false;
+                                        focus-gained(reason) => { root.profile-focus-request = -1; }
+                                        key-pressed(event) => {
+                                            if (event.text == Key.UpArrow) {
+                                                if (i > 0) {
+                                                    root.profile-focus-request = i - 1;
+                                                }
+                                                return accept;
+                                            }
+                                            if (event.text == Key.DownArrow) {
+                                                if (i < root.profiles.length - 1) {
+                                                    root.profile-focus-request = i + 1;
+                                                }
+                                                return accept;
+                                            }
+                                            if (event.text == " " || event.text == Key.Return) {
+                                                root.profile-index = i;
+                                                return accept;
+                                            }
+                                            if (event.text == Key.F2) {
+                                                root.profile-index = i;
+                                                root.profile-rename-clicked();
+                                                return accept;
+                                            }
+                                            if (event.text == Key.Delete && i != root.default-profile-index) {
+                                                root.profile-index = i;
+                                                root.profile-delete-clicked();
+                                                return accept;
+                                            }
+                                            reject
+                                        }
+                                    }
 
                                     row-ta := TouchArea {
                                         clicked => { root.profile-index = i; }
