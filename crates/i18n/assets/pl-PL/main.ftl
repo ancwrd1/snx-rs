@@ -17,6 +17,7 @@ label-username-required = Nazwa użytkownika jest wymagana do uwierzytelnienia
 label-password = Hasło
 label-no-dns = Nie zmieniaj konfiguracji resolvera DNS
 label-no-split-dns = Wyłącz podzielony DNS dla systemd-resolved
+label-dns-resolver = Resolver DNS
 label-dns-servers = Dodatkowe serwery DNS
 label-ignored-dns-servers = Ignorowane serwery DNS
 label-search-domains = Dodatkowe domeny wyszukiwania
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Brama nie przydzieliła adresu Office Mo
 error-identity-timeout = Przekroczenie czasu oczekiwania na odpowiedź tożsamości, czy typ dostępu jest poprawny?
 error-invalid-transport-type = Nieprawidłowy typ transportu
 error-invalid-ike-version = Nieprawidłowa wersja IKE
+error-invalid-dns-resolver = Nieprawidłowy resolver DNS
+error-netns-shared-resolv-conf = systemd-resolved działa w innej sieciowej przestrzeni nazw, która współdzieli /etc/resolv.conf z bieżącą. Utwórz /etc/netns/<name>/resolv.conf dla przestrzeni nazw lub ustaw opcję dns-resolver.
 error-invalid-tls-version-max = Nieprawidłowa maksymalna wersja TLS
 error-certificate-verify-failed = Weryfikacja certyfikatu TLS nie powiodła się. Certyfikat serwera jest nieprawidłowy, wygasł lub nie jest zaufany.
 error-invalid-gateway-info = Nieprawidłowa odpowiedź z informacjami o bramie
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatyczne wykrywanie
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatyczne wykrywanie
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Wyłączone

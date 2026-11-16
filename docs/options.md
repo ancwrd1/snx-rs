@@ -22,6 +22,7 @@
 | `ignore-routes=<routes>`                             | Ignore the specified routes acquired from the VPN server                                                                                                 |
 | `no-dns=true\|false`                                 | Do not change DNS resolver configuration, default is false                                                                                               |
 | `no-split-dns=true\|false`                           | Disable split DNS for systemd-resolved. This option is useful for container images. Default is false.                                                    |
+| `dns-resolver=auto\|systemd-resolved\|resolv-conf`   | Linux only: DNS resolver backend. Default is auto. See [DNS Configuration](dns-configuration.md).                                                        |
 | `ignore-server-cert=true\|false`                     | Disable all certificate checks, default is false                                                                                                         |
 | `ca-cert=<ca_certs>`                                 | One or more comma-separated custom CA root certificates used to validate TLS connection.                                                                 |
 | `tunnel-type=ipsec\|ssl`                             | Tunnel type, default is ipsec                                                                                                                            |

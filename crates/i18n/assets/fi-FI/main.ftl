@@ -17,6 +17,7 @@ label-username-required = Käyttäjätunnus vaaditaan todennukseen
 label-password = Salasana
 label-no-dns = Älä muuta DNS-konfiguraatiota
 label-no-split-dns = Poista jaettu DNS käytöstä systemd-resolvedille
+label-dns-resolver = DNS-selvitin
 label-dns-servers = Lisä-DNS-palvelimet
 label-ignored-dns-servers = Ohitettavat DNS-palvelimet
 label-search-domains = Lisähakualueet
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Yhdyskäytävä ei määrittänyt Office
 error-identity-timeout = Aikakatkaisu odottaessa identiteettivastausta, onko kirjautumistyyppi oikea?
 error-invalid-transport-type = Virheellinen kuljetustyyppi
 error-invalid-ike-version = Virheellinen IKE-versio
+error-invalid-dns-resolver = Virheellinen DNS-selvitin
+error-netns-shared-resolv-conf = systemd-resolved toimii toisessa verkkonimiavaruudessa, joka jakaa tiedoston /etc/resolv.conf tämän kanssa. Luo nimiavaruudelle /etc/netns/<name>/resolv.conf tai aseta dns-resolver-asetus.
 error-invalid-tls-version-max = Virheellinen TLS-enimmäisversio
 error-certificate-verify-failed = TLS-varmenteen vahvistus epäonnistui. Palvelimen varmenne on virheellinen, vanhentunut tai ei luotettu.
 error-invalid-gateway-info = Virheellinen yhdyskäytävän tietovastaus
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automaattinen tunnistus
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automaattinen tunnistus
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Pois

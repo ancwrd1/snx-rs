@@ -59,6 +59,9 @@ export component SettingsWindow inherits Window {
     in-out property <bool> no-dns: false;
     in-out property <bool> show-no-split-dns: true;
     in-out property <bool> no-split-dns: false;
+    in-out property <bool> show-dns-resolver: false;
+    in property <[string]> dns-resolvers: [];
+    in-out property <int> dns-resolver-index: 0;
     in-out property <string> dns-servers;
     in-out property <string> ignored-dns-servers;
     in-out property <string> search-domains;
@@ -509,6 +512,18 @@ export component SettingsWindow inherits Window {
                                     }
 
                                     if root.show-no-split-dns: FormDivider { }
+
+                                    if root.show-dns-resolver: FormStackRow {
+                                        label: Tr.label-dns-resolver;
+                                        ComboBox {
+                                            model: root.dns-resolvers;
+                                            current-index <=> root.dns-resolver-index;
+                                            min-width: root.min-form-width;
+                                            enabled: !root.no-dns;
+                                        }
+                                    }
+
+                                    if root.show-dns-resolver: FormDivider { }
 
                                     FormStackRow {
                                         label: Tr.label-dns-servers;

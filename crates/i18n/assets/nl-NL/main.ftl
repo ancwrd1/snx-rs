@@ -17,6 +17,7 @@ label-username-required = Gebruikersnaam is vereist voor authenticatie
 label-password = Wachtwoord
 label-no-dns = DNS-resolverconfiguratie niet wijzigen
 label-no-split-dns = Schakel split-DNS uit voor systemd-resolved
+label-dns-resolver = DNS-resolver
 label-dns-servers = Extra DNS-servers
 label-ignored-dns-servers = Genegeerde DNS-servers
 label-search-domains = Extra zoekdomeinen
@@ -153,6 +154,8 @@ error-cannot-read-cert = Kan het clientcertificaat niet lezen: {$path}
 error-no-ipsec-session = Geen IPsec-sessie
 error-invalid-transport-type = Ongeldig transporttype
 error-invalid-ike-version = Ongeldige IKE-versie
+error-invalid-dns-resolver = Ongeldige DNS-resolver
+error-netns-shared-resolv-conf = systemd-resolved draait in een andere netwerknaamruimte die /etc/resolv.conf met deze deelt. Maak /etc/netns/<name>/resolv.conf aan voor de naamruimte of stel de optie dns-resolver in.
 error-invalid-tls-version-max = Ongeldige maximale TLS-versie
 error-certificate-verify-failed = TLS-certificaatvalidatie mislukt. Het certificaat van de server is ongeldig, verlopen of niet vertrouwd.
 error-invalid-gateway-info = Ongeldig gateway-informatieantwoord
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatisch detecteren
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatisch detecteren
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Uit

@@ -17,6 +17,7 @@ label-username-required = Benutzername ist für die Authentifizierung erforderli
 label-password = Passwort
 label-no-dns = DNS-Resolver-Konfiguration nicht ändern
 label-no-split-dns = Split-DNS für systemd-resolved deaktivieren
+label-dns-resolver = DNS-Resolver
 label-dns-servers = Zusätzliche DNS-Server
 label-ignored-dns-servers = Ignorierte DNS-Server
 label-search-domains = Zusätzliche Suchdomänen
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Das Gateway hat keine Office-Mode-Adress
 error-identity-timeout = Timeout beim Warten auf Identitätsantwort, ist der Anmeldetyp korrekt?
 error-invalid-transport-type = Ungültiger Transporttyp
 error-invalid-ike-version = Ungültige IKE-Version
+error-invalid-dns-resolver = Ungültiger DNS-Resolver
+error-netns-shared-resolv-conf = systemd-resolved läuft in einem anderen Netzwerk-Namespace, der /etc/resolv.conf mit diesem teilt. Erstellen Sie /etc/netns/<name>/resolv.conf für den Namespace oder setzen Sie die Option dns-resolver.
 error-invalid-tls-version-max = Ungültige maximale TLS-Version
 error-certificate-verify-failed = TLS-Zertifikatüberprüfung fehlgeschlagen. Das Serverzertifikat ist ungültig, abgelaufen oder nicht vertrauenswürdig.
 error-invalid-gateway-info = Ungültige Gateway-Informationsantwort
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatisch erkennen
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatisch erkennen
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Aus

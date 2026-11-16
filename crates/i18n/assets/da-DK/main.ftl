@@ -17,6 +17,7 @@ label-username-required = Brugernavn er påkrævet for godkendelse
 label-password = Adgangskode
 label-no-dns = Ændr ikke DNS-konfigurationen
 label-no-split-dns = Deaktiver split-DNS for systemd-resolved
+label-dns-resolver = DNS-resolver
 label-dns-servers = Yderligere DNS-servere
 label-ignored-dns-servers = Ignorerede DNS-servere
 label-search-domains = Yderligere søgedomæner
@@ -153,6 +154,8 @@ error-probing-failed = Sondering mislykkedes, serveren er ikke tilgængelig via 
 error-no-connector-for-challenge-code = Ingen connector til at sende challenge-koden til!
 error-invalid-transport-type = Ugyldig transporttype
 error-invalid-ike-version = Ugyldig IKE-version
+error-invalid-dns-resolver = Ugyldig DNS-resolver
+error-netns-shared-resolv-conf = systemd-resolved kører i et andet netværksnavnerum, som deler /etc/resolv.conf med dette. Opret /etc/netns/<name>/resolv.conf for navnerummet, eller angiv indstillingen dns-resolver.
 error-invalid-tls-version-max = Ugyldig maksimal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering mislykkedes. Serverens certifikat er ugyldigt, udløbet eller ikke betroet.
 error-invalid-gateway-info = Ugyldigt gateway-informationssvar
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatisk registrering
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatisk registrering
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Fra

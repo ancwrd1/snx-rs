@@ -17,6 +17,7 @@ label-username-required = Для аутентификации требуется
 label-password = Пароль
 label-no-dns = Не изменять настройки DNS-серверов
 label-no-split-dns = Отключить раздельный DNS для systemd-resolved
+label-dns-resolver = DNS-резолвер
 label-dns-servers = Дополнительные DNS-серверы
 label-ignored-dns-servers = Игнорируемые DNS-серверы
 label-search-domains = Дополнительные домены поиска
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Шлюз не назначил адре�
 error-identity-timeout = Таймаут при ожидании ответа идентификации, правильный ли тип входа?
 error-invalid-transport-type = Неверный тип транспорта
 error-invalid-ike-version = Неверная версия IKE
+error-invalid-dns-resolver = Неверный DNS-резолвер
+error-netns-shared-resolv-conf = systemd-resolved работает в другом сетевом пространстве имён, которое использует общий /etc/resolv.conf с текущим. Создайте /etc/netns/<name>/resolv.conf для пространства имён или задайте параметр dns-resolver.
 error-invalid-tls-version-max = Неверная максимальная версия TLS
 error-certificate-verify-failed = Проверка TLS-сертификата не удалась. Сертификат сервера недействителен, истёк или не является доверенным.
 error-invalid-gateway-info = Неверный ответ с информацией о шлюзе
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Автоопределение
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Автоопределение
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Выключено

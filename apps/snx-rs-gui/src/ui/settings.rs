@@ -6,7 +6,9 @@ use secrecy::ExposeSecret;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Window};
 use snxcore::{
     model::{
-        params::{CertType, DEFAULT_PROFILE_UUID, IkeVersion, NotificationLevel, TunnelParams, TunnelType},
+        params::{
+            CertType, DEFAULT_PROFILE_UUID, DnsResolver, IkeVersion, NotificationLevel, TunnelParams, TunnelType,
+        },
         proto::{GatewayInformation, LoginOption},
     },
     platform::{Keychain, Platform, PlatformAccess},
@@ -112,6 +114,19 @@ impl SettingsWindowController {
             .window
             .set_ike_versions(ModelRc::new(VecModel::from(ike_versions)));
 
+        let dns_resolvers: Vec<SharedString> = [
+            DnsResolver::AutoDetect,
+            DnsResolver::SystemdResolved,
+            DnsResolver::ResolvConf,
+        ]
+        .iter()
+        .map(|resolver| resolver.as_i18n().into())
+        .collect();
+
+        self.scope
+            .window
+            .set_dns_resolvers(ModelRc::new(VecModel::from(dns_resolvers)));
+
         let tls_version_max_options: Vec<SharedString> =
             vec!["TLS 1.2".into(), "TLS 1.3".into(), tr!("label-system-default").into()];
 
@@ -165,6 +180,7 @@ impl SettingsWindowController {
 
         self.state.borrow_mut().locales = locales;
         self.scope.window.set_show_no_split_dns(!cfg!(windows));
+        self.scope.window.set_show_dns_resolver(cfg!(target_os = "linux"));
     }
 
     fn populate_profiles(&self) {
@@ -508,6 +524,7 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
     window.set_password_factor(params.password_factor.to_string().into());
     window.set_no_dns(params.no_dns);
     window.set_no_split_dns(params.no_split_dns);
+    window.set_dns_resolver_index(params.dns_resolver.as_u32() as i32);
     window.set_search_domains(params.search_domains.join(",").into());
     window.set_ignored_domains(params.ignore_search_domains.join(",").into());
     window.set_dns_servers(params.dns_servers.iter().map(|ip| ip.to_string()).join(",").into());
@@ -962,6 +979,9 @@ fn save_settings(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) ->
     params.password_factor = window.get_password_factor().parse()?;
     params.no_dns = window.get_no_dns();
     params.no_split_dns = window.get_no_split_dns();
+    if cfg!(target_os = "linux") {
+        params.dns_resolver = (window.get_dns_resolver_index() as u32).into();
+    }
     params.set_routing_domains = window.get_set_routing_domains();
     params.search_domains = split_non_empty(&window.get_search_domains());
     params.ignore_search_domains = split_non_empty(&window.get_ignored_domains());

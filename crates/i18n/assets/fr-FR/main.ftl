@@ -17,6 +17,7 @@ label-username-required = Le nom d'utilisateur est requis pour l'authentificatio
 label-password = Mot de passe
 label-no-dns = Ne pas modifier la configuration du résolveur DNS
 label-no-split-dns = Désactiver le DNS partagé pour systemd-resolved
+label-dns-resolver = Résolveur DNS
 label-dns-servers = Serveurs DNS supplémentaires
 label-ignored-dns-servers = Serveurs DNS ignorés
 label-search-domains = Domaines de recherche supplémentaires
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = La passerelle n'a attribué aucune adres
 error-identity-timeout = Délai d'attente lors de l'attente de la réponse d'identité, le type de connexion est-il correct ?
 error-invalid-transport-type = Type de transport invalide
 error-invalid-ike-version = Version IKE invalide
+error-invalid-dns-resolver = Résolveur DNS invalide
+error-netns-shared-resolv-conf = systemd-resolved s'exécute dans un autre espace de noms réseau qui partage /etc/resolv.conf avec celui-ci. Créez /etc/netns/<name>/resolv.conf pour l'espace de noms ou définissez l'option dns-resolver.
 error-invalid-tls-version-max = Version TLS maximale invalide
 error-certificate-verify-failed = La validation du certificat TLS a échoué. Le certificat du serveur est invalide, expiré ou non fiable.
 error-invalid-gateway-info = Réponse d'informations de passerelle invalide
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Détection automatique
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Détection automatique
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Désactivé

@@ -23,7 +23,7 @@ use windows::WindowsPlatformAccess as PlatformAccessImpl;
 
 use crate::model::{
     IPsecSession, LiveStats,
-    params::{TunnelParams, TunnelType},
+    params::{DnsResolver, TunnelParams, TunnelType},
 };
 
 #[cfg(target_os = "linux")]
@@ -118,6 +118,7 @@ pub struct DeviceConfig {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ResolverConfig {
+    pub resolver: DnsResolver,
     pub split_dns: bool,
     pub search_domains: Vec<SearchDomain>,
     pub dns_servers: Vec<Ipv4Addr>,
@@ -195,6 +196,7 @@ impl ResolverConfigBuilder {
         self.dns_servers.retain(|s| !self.params.ignore_dns_servers.contains(s));
 
         ResolverConfig {
+            resolver: self.params.dns_resolver,
             split_dns: self.features.split_dns && !self.params.no_split_dns,
             search_domains: self.search_domains,
             dns_servers: self.dns_servers,

@@ -17,6 +17,7 @@ label-username-required = Se requiere nombre de usuario para la autenticación
 label-password = Contraseña
 label-no-dns = No modificar la configuración del resolvedor DNS
 label-no-split-dns = Desactivar DNS dividido para systemd-resolved
+label-dns-resolver = Resolvedor DNS
 label-dns-servers = Servidores DNS adicionales
 label-ignored-dns-servers = Servidores DNS ignorados
 label-search-domains = Dominios de búsqueda adicionales
@@ -153,6 +154,8 @@ error-cannot-send-request = No se puede enviar la solicitud al servicio
 error-cannot-read-reply = No se puede leer la respuesta del servicio
 error-invalid-transport-type = Tipo de transporte no válido
 error-invalid-ike-version = Versión de IKE no válida
+error-invalid-dns-resolver = Resolvedor DNS no válido
+error-netns-shared-resolv-conf = systemd-resolved se ejecuta en otro espacio de nombres de red que comparte /etc/resolv.conf con este. Cree /etc/netns/<name>/resolv.conf para el espacio de nombres o establezca la opción dns-resolver.
 error-invalid-tls-version-max = Versión máxima de TLS no válida
 error-certificate-verify-failed = Falló la validación del certificado TLS. El certificado del servidor es inválido, ha expirado o no es de confianza.
 error-invalid-gateway-info = Respuesta de información de gateway no válida
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Detección automática
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Detección automática
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Desactivado

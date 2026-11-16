@@ -17,6 +17,7 @@ label-username-required = Používateľské meno je potrebné na overenie
 label-password = Heslo
 label-no-dns = Nemeniť konfiguráciu DNS resolvera
 label-no-split-dns = Zakázať rozdelené DNS pre systemd-resolved
+label-dns-resolver = Prekladač DNS
 label-dns-servers = Ďalšie DNS servery
 label-ignored-dns-servers = Ignorované DNS servery
 label-search-domains = Ďalšie vyhľadávacie domény
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Brána nepridelila adresu Office Mode, �
 error-identity-timeout = Časový limit pri čakaní na odpoveď identity, je typ prístupu správny?
 error-invalid-transport-type = Neplatný typ prenosu
 error-invalid-ike-version = Neplatná verzia IKE
+error-invalid-dns-resolver = Neplatný prekladač DNS
+error-netns-shared-resolv-conf = systemd-resolved beží v inom sieťovom mennom priestore, ktorý zdieľa /etc/resolv.conf s týmto. Vytvorte pre menný priestor /etc/netns/<name>/resolv.conf alebo nastavte voľbu dns-resolver.
 error-invalid-tls-version-max = Neplatná maximálna verzia TLS
 error-certificate-verify-failed = Overenie TLS certifikátu zlyhalo. Certifikát servera je neplatný, vypršal alebo nie je dôveryhodný.
 error-invalid-gateway-info = Neplatná odpoveď s informáciami o bráne
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatická detekcia
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatická detekcia
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Vypnuté

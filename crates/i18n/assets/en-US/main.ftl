@@ -17,6 +17,7 @@ label-username-required = Username is required for authentication
 label-password = Password
 label-no-dns = Do not change DNS resolver configuration
 label-no-split-dns = Disable split DNS for systemd-resolved
+label-dns-resolver = DNS resolver
 label-dns-servers = Additional DNS servers
 label-ignored-dns-servers = Ignored DNS servers
 label-search-domains = Additional search domains
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = The gateway assigned no Office Mode addr
 error-identity-timeout = Timeout while waiting for identity response, is the login type correct?
 error-invalid-transport-type = Invalid transport type
 error-invalid-ike-version = Invalid IKE version
+error-invalid-dns-resolver = Invalid DNS resolver
+error-netns-shared-resolv-conf = systemd-resolved runs in another network namespace which shares /etc/resolv.conf with this one. Create /etc/netns/<name>/resolv.conf for the namespace or set the dns-resolver option.
 error-invalid-tls-version-max = Invalid maximum TLS version
 error-certificate-verify-failed = TLS certificate validation failed. The server’s certificate is invalid, expired, or not trusted.
 error-invalid-gateway-info = Invalid gateway information response
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Autodetect
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Autodetect
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Off

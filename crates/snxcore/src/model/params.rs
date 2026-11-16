@@ -452,6 +452,65 @@ impl From<u32> for IkeVersion {
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub enum DnsResolver {
+    #[default]
+    AutoDetect,
+    SystemdResolved,
+    ResolvConf,
+}
+
+impl DnsResolver {
+    pub fn as_i18n(&self) -> String {
+        match self {
+            Self::AutoDetect => tr!("dns-resolver-autodetect"),
+            Self::SystemdResolved => tr!("dns-resolver-systemd-resolved"),
+            Self::ResolvConf => tr!("dns-resolver-resolv-conf"),
+        }
+    }
+
+    pub fn as_u32(&self) -> u32 {
+        match self {
+            Self::AutoDetect => 0,
+            Self::SystemdResolved => 1,
+            Self::ResolvConf => 2,
+        }
+    }
+}
+
+impl fmt::Display for DnsResolver {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AutoDetect => write!(f, "auto"),
+            Self::SystemdResolved => write!(f, "systemd-resolved"),
+            Self::ResolvConf => write!(f, "resolv-conf"),
+        }
+    }
+}
+
+impl FromStr for DnsResolver {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(Self::AutoDetect),
+            "systemd-resolved" => Ok(Self::SystemdResolved),
+            "resolv-conf" => Ok(Self::ResolvConf),
+            _ => Err(anyhow!(tr!("error-invalid-dns-resolver"))),
+        }
+    }
+}
+
+impl From<u32> for DnsResolver {
+    fn from(value: u32) -> Self {
+        match value {
+            1 => Self::SystemdResolved,
+            2 => Self::ResolvConf,
+            _ => Self::AutoDetect,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TlsVersion {
     #[default]
     Tls12,
@@ -590,6 +649,8 @@ pub struct TunnelParams {
     pub ignore_routes: Vec<Ipv4Net>,
     pub no_dns: bool,
     pub no_split_dns: bool,
+    #[serde(default)]
+    pub dns_resolver: DnsResolver,
     pub ignore_server_cert: bool,
     pub tunnel_type: TunnelType,
     pub ca_cert: Vec<PathBuf>,
@@ -662,6 +723,7 @@ impl Default for TunnelParams {
             ignore_routes: Vec::new(),
             no_dns: false,
             no_split_dns: false,
+            dns_resolver: DnsResolver::default(),
             ignore_server_cert: false,
             tunnel_type: TunnelType::default(),
             ca_cert: Vec::new(),
@@ -720,6 +782,7 @@ impl PartialEq for TunnelParams {
             && self.add_routes == other.add_routes
             && self.ignore_routes == other.ignore_routes
             && self.no_dns == other.no_dns
+            && self.dns_resolver == other.dns_resolver
             && self.ignore_server_cert == other.ignore_server_cert
             && self.tunnel_type == other.tunnel_type
             && self.ca_cert == other.ca_cert
@@ -808,6 +871,7 @@ impl TunnelParams {
                 }
                 "no-dns" => params.no_dns = v.parse().unwrap_or_default(),
                 "no-split-dns" => params.no_split_dns = v.parse().unwrap_or_default(),
+                "dns-resolver" => params.dns_resolver = v.parse().unwrap_or_default(),
                 "ignore-server-cert" => params.ignore_server_cert = v.parse().unwrap_or_default(),
                 "tunnel-type" => params.tunnel_type = v.parse().unwrap_or_default(),
                 "ca-cert" => params.ca_cert = v.split(',').map(|s| s.trim().into()).collect(),
@@ -913,6 +977,7 @@ impl TunnelParams {
         )?;
         writeln!(buf, "no-dns={}", self.no_dns)?;
         writeln!(buf, "no-split-dns={}", self.no_split_dns)?;
+        writeln!(buf, "dns-resolver={}", self.dns_resolver)?;
         writeln!(buf, "ignore-server-cert={}", self.ignore_server_cert)?;
         writeln!(buf, "tunnel-type={}", self.tunnel_type.as_str())?;
         writeln!(
@@ -1046,6 +1111,7 @@ mod tests {
             ignore_routes: vec![Ipv4Net::new(Ipv4Addr::new(21, 22, 23, 24), 24).unwrap()],
             no_dns: true,
             no_split_dns: true,
+            dns_resolver: DnsResolver::ResolvConf,
             ignore_server_cert: true,
             tunnel_type: TunnelType::SSL,
             ca_cert: vec![PathBuf::from("ca.cert")],

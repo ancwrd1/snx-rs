@@ -17,6 +17,7 @@ label-username-required = Korisničko ime je potrebno za autentifikaciju
 label-password = Lozinka
 label-no-dns = Ne mijenjaj konfiguraciju DNS razrješitelja
 label-no-split-dns = Onemogući podijeljeni DNS za systemd-resolved
+label-dns-resolver = DNS razrješivač
 label-dns-servers = Dodatni DNS poslužitelji
 label-ignored-dns-servers = Zanemareni DNS poslužitelji
 label-search-domains = Dodatne domene za pretraživanje
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Pristupnik nije dodijelio Office Mode ad
 error-identity-timeout = Istek vremena čekanja na odgovor identiteta, je li tip prijave ispravan?
 error-invalid-transport-type = Nevažeća vrsta prijenosa
 error-invalid-ike-version = Nevažeća verzija IKE-a
+error-invalid-dns-resolver = Nevažeći DNS razrješivač
+error-netns-shared-resolv-conf = systemd-resolved radi u drugom mrežnom imenskom prostoru koji s ovim dijeli /etc/resolv.conf. Stvorite /etc/netns/<name>/resolv.conf za imenski prostor ili postavite opciju dns-resolver.
 error-invalid-tls-version-max = Nevažeća maksimalna TLS verzija
 error-certificate-verify-failed = TLS validacija certifikata nije uspjela. Certifikat poslužitelja je nevažeći, istekao ili nije pouzdan.
 error-invalid-gateway-info = Nevažeći odgovor s informacijama pristupnika
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatsko otkrivanje
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatsko otkrivanje
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Isključeno

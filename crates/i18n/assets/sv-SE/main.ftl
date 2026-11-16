@@ -17,6 +17,7 @@ label-username-required = Användarnamn krävs för autentisering
 label-password = Lösenord
 label-no-dns = Ändra inte DNS-konfigurationen
 label-no-split-dns = Inaktivera delad DNS för systemd-resolved
+label-dns-resolver = DNS-resolver
 label-dns-servers = Ytterligare DNS-servrar
 label-ignored-dns-servers = Ignorerade DNS-servrar
 label-search-domains = Ytterligare sökdomäner
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Gatewayen tilldelade ingen Office Mode-a
 error-identity-timeout = Timeout vid väntan på identitetssvar, är åtkomsttypen korrekt?
 error-invalid-transport-type = Ogiltig transporttyp
 error-invalid-ike-version = Ogiltig IKE-version
+error-invalid-dns-resolver = Ogiltig DNS-resolver
+error-netns-shared-resolv-conf = systemd-resolved körs i ett annat nätverksnamnområde som delar /etc/resolv.conf med detta. Skapa /etc/netns/<name>/resolv.conf för namnområdet eller ange alternativet dns-resolver.
 error-invalid-tls-version-max = Ogiltig maximal TLS-version
 error-certificate-verify-failed = TLS-certifikatvalidering misslyckades. Serverns certifikat är ogiltigt, utgånget eller inte betrott.
 error-invalid-gateway-info = Ogiltigt gateway-informationssvar
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatisk identifiering
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatisk identifiering
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Av

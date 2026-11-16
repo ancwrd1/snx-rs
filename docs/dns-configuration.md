@@ -24,6 +24,30 @@ The `set-routing-domains=true|false` option controls whether to treat all acquir
 
 For container images which have `systemd-resovled` enabled, it may be necessary to disable split DNS via the `no-split-dns=true` option.
 
+### Choosing the resolver backend
+
+The `dns-resolver` option selects how DNS is configured on Linux:
+
+* `auto` (default): use systemd-resolved if `/etc/resolv.conf` points to it, otherwise modify `/etc/resolv.conf`.
+* `systemd-resolved`: always use systemd-resolved.
+* `resolv-conf`: always modify `/etc/resolv.conf` (or the file it links to).
+
+### Network namespaces
+
+systemd-resolved can only configure interfaces in its own network namespace, so it cannot be used when snx-rs
+runs in another one, for example via `ip netns exec`. In `auto` mode snx-rs detects this and modifies the
+namespace's own `/etc/resolv.conf` instead. Create one for the namespace before connecting, it is bind-mounted
+by `ip netns exec`:
+
+```sh
+sudo mkdir -p /etc/netns/vpn
+echo "nameserver 1.1.1.1" | sudo tee /etc/netns/vpn/resolv.conf
+```
+
+Without it, `/etc/resolv.conf` would be shared with the host, and snx-rs refuses to modify it. Note that the
+command socket is also bound to the network namespace, so `snxctl` and the GUI must run in the same namespace
+as the service.
+
 ## macOS
 
 DNS is configured via the macOS SystemConfiguration framework (`SCDynamicStore`). Split DNS is implemented using scoped and supplemental match domains, the macOS equivalent of systemd-resolved's routing domains.

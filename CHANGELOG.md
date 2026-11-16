@@ -11,10 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - macOS: added system certificate store support.
 - macOS: release builds are now also published for Intel Macs (#286)
+- Linux: `dns-resolver` option and GUI setting to choose between systemd-resolved and `/etc/resolv.conf` for DNS configuration.
 
 ### Changed
 
 - GUI settings: the machine certificate authentication option is hidden for the SSL tunnel type, and the hardware token and system certificate types are not offered for the SSL tunnel.
+
+### Fixed
+
+- Linux: DNS configuration in a network namespace no longer goes to the host's systemd-resolved; the namespace's own `/etc/resolv.conf` is used instead.
 
 ## [6.6.2] - 2026-11-09
 

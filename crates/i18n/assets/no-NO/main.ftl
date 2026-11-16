@@ -17,6 +17,7 @@ label-username-required = Brukernavn er påkrevd for autentisering
 label-password = Passord
 label-no-dns = Ikke endre DNS-konfigurasjonen
 label-no-split-dns = Deaktiver delt DNS for systemd-resolved
+label-dns-resolver = DNS-resolver
 label-dns-servers = Tilleggs-DNS-servere
 label-ignored-dns-servers = Ignorerte DNS-servere
 label-search-domains = Tilleggssøkedomener
@@ -153,6 +154,8 @@ error-no-office-mode-kernel-transport = Gatewayen tildelte ingen Office Mode-adr
 error-identity-timeout = Timeout mens du venter på identitetssvar, er tilgangstypen korrekt?
 error-invalid-transport-type = Ugyldig transporttype
 error-invalid-ike-version = Ugyldig IKE-versjon
+error-invalid-dns-resolver = Ugyldig DNS-resolver
+error-netns-shared-resolv-conf = systemd-resolved kjører i et annet nettverksnavnerom som deler /etc/resolv.conf med dette. Opprett /etc/netns/<name>/resolv.conf for navnerommet, eller angi alternativet dns-resolver.
 error-invalid-tls-version-max = Ugyldig maksimal TLS-versjon
 error-certificate-verify-failed = TLS-sertifikatvalidering mislyktes. Serverens sertifikat er ugyldig, utløpt eller ikke betrodd.
 error-invalid-gateway-info = Ugyldig gateway-informasjonssvar
@@ -186,6 +189,11 @@ transport-type-udp = UDP TUN
 ike-version-autodetect = Automatisk oppdag
 ike-version-1 = IKEv1
 ike-version-2 = IKEv2
+
+# DNS resolvers
+dns-resolver-autodetect = Automatisk oppdag
+dns-resolver-systemd-resolved = systemd-resolved
+dns-resolver-resolv-conf = /etc/resolv.conf
 
 # Notification levels
 notification-level-off = Av

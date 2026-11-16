@@ -3,7 +3,7 @@ use std::{net::Ipv4Addr, path::PathBuf, time::Duration};
 use clap::Parser;
 use ipnet::Ipv4Net;
 use snxcore::model::params::{
-    CertType, IkeVersion, OperationMode, TlsVersion, TransportType, TunnelParams, TunnelType,
+    CertType, DnsResolver, IkeVersion, OperationMode, TlsVersion, TransportType, TunnelParams, TunnelType,
 };
 use tracing::level_filters::LevelFilter;
 
@@ -121,6 +121,12 @@ pub struct CmdlineParams {
 
     #[clap(long = "no-split-dns", short = 'E', help = "Disable split DNS for systemd-resolved")]
     pub no_split_dns: Option<bool>,
+
+    #[clap(
+        long = "dns-resolver",
+        help = "DNS resolver backend on Linux [auto, systemd-resolved, resolv-conf]"
+    )]
+    pub dns_resolver: Option<DnsResolver>,
 
     #[clap(
         long = "ignore-server-cert",
@@ -331,6 +337,10 @@ impl CmdlineParams {
 
         if let Some(no_split_dns) = self.no_split_dns {
             other.no_split_dns = no_split_dns;
+        }
+
+        if let Some(dns_resolver) = self.dns_resolver {
+            other.dns_resolver = dns_resolver;
         }
 
         if !self.add_routes.is_empty() {
