@@ -520,4 +520,10 @@ mod tests {
         let new_conf = fs::read_to_string(&conf).unwrap();
         assert_eq!(new_conf, "# comment\nsearch acme.com\nnameserver 10.0.0.1\n");
     }
+
+    #[tokio::test]
+    #[ignore = "queries the host's systemd-resolved; run as root with --ignored, optionally under `ip netns exec`"]
+    async fn autodetect_resolver_in_current_namespace() {
+        println!("Detected resolver: {:?}", autodetect_resolver().await);
+    }
 }
