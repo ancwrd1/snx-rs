@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- macOS: added system certificate store support.
+- macOS: system certificate store support.
 - macOS: release builds are now also published for Intel Macs (#286)
 - Linux: `dns-resolver` option and GUI setting to choose between systemd-resolved and `/etc/resolv.conf` for DNS configuration.
 - GUI settings: the profile list and its buttons can be reached with Tab and operated with the keyboard (Up/Down to move between profiles, Space/Enter to activate, F2 to rename, Delete to delete).
