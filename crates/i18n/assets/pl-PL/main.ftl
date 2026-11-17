@@ -254,6 +254,8 @@ about-license = Licencja
 # Authentication
 auth-dialog-title = Czynnik uwierzytelniania VPN
 auth-dialog-message = Wprowadź swój czynnik uwierzytelniania:
+auth-save-credentials = Zapisz dane logowania
+auth-save-plain-text-warning = Hasło zostanie zapisane jako zwykły tekst
 
 # Status dialog
 status-dialog-title = Informacje o połączeniu

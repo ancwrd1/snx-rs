@@ -254,6 +254,8 @@ about-license = Lisenssi
 # Authentication
 auth-dialog-title = VPN-todennustekijä
 auth-dialog-message = Syötä todennustekijäsi:
+auth-save-credentials = Tallenna kirjautumistiedot
+auth-save-plain-text-warning = Salasana tallennetaan selväkielisenä
 
 # Status dialog
 status-dialog-title = Yhteystiedot

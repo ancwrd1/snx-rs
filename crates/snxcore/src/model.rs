@@ -118,6 +118,14 @@ impl TunnelSession {
         }
     }
 
+    pub fn is_pending_password(&self) -> bool {
+        matches!(self.state, SessionState::PendingChallenge(ref c) if c.mfa_type == MfaType::PasswordInput)
+    }
+
+    pub fn requires_user_name(&self) -> bool {
+        matches!(self.state, SessionState::PendingChallenge(ref c) if c.user_name_required)
+    }
+
     pub fn ssl_session_key(&self) -> Option<&str> {
         match self.state {
             SessionState::Authenticated(AuthenticatedSession::SslSessionKey(ref active_key)) => {
@@ -140,7 +148,6 @@ pub enum MfaType {
     #[default]
     PasswordInput,
     IdentityProvider,
-    UserNameInput,
     MobileAccess,
 }
 
@@ -158,6 +165,8 @@ impl MfaType {
 pub struct MfaChallenge {
     pub mfa_type: MfaType,
     pub prompt: String,
+    #[serde(default)]
+    pub user_name_required: bool,
 }
 
 fn format_bytes(n: u64) -> String {

@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - macOS: release builds are now also published for Intel Macs (#286)
 - Linux: `dns-resolver` option and GUI setting to choose between systemd-resolved and `/etc/resolv.conf` for DNS configuration.
 - GUI settings: the profile list and its buttons can be reached with Tab and operated with the keyboard (Up/Down to move between profiles, Space/Enter to activate, F2 to rename, Delete to delete).
+- GUI: "Save credentials" checkbox in the password prompt. When checked, the username is saved in the profile and the password in the OS keychain, or in the profile if `keychain` is disabled. When unchecked, nothing is saved and a password stored in the keychain is removed. A warning is shown when the password would be saved in plain text.
 
 ### Changed
 
 - GUI settings: the machine certificate authentication option is hidden for the SSL tunnel type, and the hardware token and system certificate types are not offered for the SSL tunnel.
+- When no username is configured, it is asked for together with the password (or the first authentication factor) in a single prompt instead of a separate step.
 
 ### Fixed
 

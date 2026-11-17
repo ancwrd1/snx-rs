@@ -169,5 +169,6 @@ pub(crate) fn challenge_from_msg_obj(msg_obj: &SExpression) -> anyhow::Result<Mf
     Ok(MfaChallenge {
         mfa_type: MfaType::from_id(&id),
         prompt,
+        user_name_required: false,
     })
 }

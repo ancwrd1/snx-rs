@@ -254,6 +254,8 @@ about-license = Licentie
 # Authentication
 auth-dialog-title = VPN-authenticatiefactor
 auth-dialog-message = Voer uw authenticatiefactor in:
+auth-save-credentials = Inloggegevens opslaan
+auth-save-plain-text-warning = Het wachtwoord wordt als platte tekst opgeslagen
 
 # Status dialog
 status-dialog-title = Verbindingsinformatie

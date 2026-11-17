@@ -254,6 +254,8 @@ about-license = Licens
 # Authentication
 auth-dialog-title = VPN-autentiseringsfaktor
 auth-dialog-message = Ange din autentiseringsfaktor:
+auth-save-credentials = Spara inloggningsuppgifter
+auth-save-plain-text-warning = Lösenordet sparas i klartext
 
 # Status dialog
 status-dialog-title = Anslutningsinformation

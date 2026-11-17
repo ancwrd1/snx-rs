@@ -50,6 +50,7 @@ impl SslTunnelConnector {
                     state: SessionState::PendingChallenge(MfaChallenge {
                         mfa_type,
                         prompt: data.prompt.map(|p| p.0).unwrap_or_default(),
+                        user_name_required: false,
                     }),
                     username: None,
                 }));
@@ -95,6 +96,7 @@ impl TunnelConnector for SslTunnelConnector {
                 state: SessionState::PendingChallenge(MfaChallenge {
                     mfa_type: MfaType::MobileAccess,
                     prompt: format!("https://{}/", self.params.server_name),
+                    user_name_required: false,
                 }),
                 username: None,
             }));
@@ -108,8 +110,9 @@ impl TunnelConnector for SslTunnelConnector {
             Ok(Arc::new(TunnelSession {
                 session_id: SessionId::default(),
                 state: SessionState::PendingChallenge(MfaChallenge {
-                    mfa_type: MfaType::UserNameInput,
-                    prompt: tr!("label-username"),
+                    mfa_type: MfaType::PasswordInput,
+                    prompt: tr!("label-password"),
+                    user_name_required: true,
                 }),
                 username: None,
             }))
@@ -131,6 +134,7 @@ impl TunnelConnector for SslTunnelConnector {
     async fn challenge_code(
         &mut self,
         session: Arc<TunnelSession>,
+        user_name: &str,
         user_input: &str,
     ) -> anyhow::Result<Arc<TunnelSession>> {
         debug!(
@@ -146,13 +150,18 @@ impl TunnelConnector for SslTunnelConnector {
             }));
         }
 
-        let data = if session.session_id.is_empty() {
-            self.gateway_connector.authenticate(user_input).await?
+        let session_id = if session.requires_user_name() {
+            let data = self.gateway_connector.authenticate(user_name.trim()).await?;
+            let session = self.process_auth_response(data).await?;
+            if !session.is_pending_password() {
+                return Ok(session);
+            }
+            session.session_id.clone()
         } else {
-            self.gateway_connector
-                .challenge_code(&session.session_id, user_input)
-                .await?
+            session.session_id.clone()
         };
+
+        let data = self.gateway_connector.challenge_code(&session_id, user_input).await?;
 
         self.process_auth_response(data).await
     }

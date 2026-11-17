@@ -48,9 +48,11 @@ pub trait TunnelConnector {
     async fn authenticate(&mut self) -> anyhow::Result<Arc<TunnelSession>>;
     async fn delete_session(&mut self) -> anyhow::Result<()>;
     async fn restore_session(&mut self) -> anyhow::Result<Arc<TunnelSession>>;
+    /// `user_name` is only consulted when the pending challenge has `user_name_required` set.
     async fn challenge_code(
         &mut self,
         session: Arc<TunnelSession>,
+        user_name: &str,
         user_input: &str,
     ) -> anyhow::Result<Arc<TunnelSession>>;
     async fn create_tunnel(

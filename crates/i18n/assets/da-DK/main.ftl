@@ -254,6 +254,8 @@ about-license = Licens
 # Authentication
 auth-dialog-title = VPN-godkendelsesfaktor
 auth-dialog-message = Indtast din godkendelsesfaktor:
+auth-save-credentials = Gem loginoplysninger
+auth-save-plain-text-warning = Adgangskoden gemmes som almindelig tekst
 
 # Status dialog
 status-dialog-title = Forbindelsesinformation

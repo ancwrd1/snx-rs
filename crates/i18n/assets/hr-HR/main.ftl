@@ -219,6 +219,8 @@ about-license = Licenca
 # Authentication
 auth-dialog-title = VPN faktor autentifikacije
 auth-dialog-message = Molimo unesite vaš faktor autentifikacije:
+auth-save-credentials = Spremi vjerodajnice
+auth-save-plain-text-warning = Lozinka će biti spremljena kao običan tekst
 
 # Status dialog
 status-dialog-title = Informacije o vezi

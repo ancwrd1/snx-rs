@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, LazyLock, Mutex, MutexGuard},
 };
 
+use anyhow::anyhow;
 use uuid::Uuid;
 
 use crate::model::params::{DEFAULT_PROFILE_UUID, TunnelParams};
@@ -161,6 +162,27 @@ impl ConnectionProfilesStore {
         }
     }
 
+    /// Applies `update` to the profile as it is on disk, so that changes made outside this process are kept.
+    pub fn update<F>(&self, uuid: Uuid, update: F) -> anyhow::Result<()>
+    where
+        F: FnOnce(&mut TunnelParams),
+    {
+        let config_file = self
+            .get(uuid)
+            .map(|p| p.config_file.clone())
+            .ok_or_else(|| anyhow!("Profile {uuid} not found"))?;
+
+        let mut params = TunnelParams::load(&config_file)?;
+        update(&mut params);
+        params.save()?;
+
+        let params = Arc::new(params);
+        if let Some(item) = self.lock().profiles.iter_mut().find(|p| p.profile_id == uuid) {
+            *item = params;
+        }
+        Ok(())
+    }
+
     pub fn remove(&self, uuid: Uuid) {
         let (file, order) = {
             let mut state = self.lock();
@@ -229,6 +251,36 @@ mod tests {
         assert_eq!(all.len(), 2);
         assert!(all.iter().any(|p| p.profile_id == id1));
         assert!(all.iter().any(|p| p.profile_id == id2));
+    }
+
+    #[test]
+    fn update_keeps_changes_made_on_disk() {
+        let dir = TempDir::new().unwrap();
+        let id = Uuid::new_v4();
+        let profile = write_profile(dir.path(), "alpha", id);
+
+        let store = ConnectionProfilesStore::new_in(dir.path());
+
+        TunnelParams {
+            server_name: "edited.example.com".to_owned(),
+            ..(*profile).clone()
+        }
+        .save()
+        .unwrap();
+
+        store.update(id, |p| p.user_name = "user".to_owned()).unwrap();
+
+        let on_disk = TunnelParams::load(&profile.config_file).unwrap();
+        assert_eq!(on_disk.user_name, "user");
+        assert_eq!(on_disk.server_name, "edited.example.com");
+        assert_eq!(store.get(id).unwrap().user_name, "user");
+    }
+
+    #[test]
+    fn update_reports_unknown_profile() {
+        let dir = TempDir::new().unwrap();
+        let store = ConnectionProfilesStore::new_in(dir.path());
+        assert!(store.update(Uuid::new_v4(), |_| {}).is_err());
     }
 
     #[test]

@@ -219,6 +219,8 @@ about-license = License
 # Authentication
 auth-dialog-title = VPN Authentication Factor
 auth-dialog-message = Please enter your authentication factor:
+auth-save-credentials = Save credentials
+auth-save-plain-text-warning = Password will be saved in plain text
 
 # Status dialog
 status-dialog-title = Connection information

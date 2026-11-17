@@ -31,6 +31,7 @@ enum ConnectorRequest {
     },
     ChallengeCode {
         session: Arc<TunnelSession>,
+        user_name: String,
         code: String,
         reply: oneshot::Sender<anyhow::Result<Arc<TunnelSession>>>,
         cancel: oneshot::Receiver<()>,
@@ -86,11 +87,13 @@ impl ConnectorHandle {
     async fn challenge_code(
         &self,
         session: Arc<TunnelSession>,
+        user_name: String,
         code: String,
         cancel: oneshot::Receiver<()>,
     ) -> anyhow::Result<Arc<TunnelSession>> {
         self.send_recv(|reply| ConnectorRequest::ChallengeCode {
             session,
+            user_name,
             code,
             reply,
             cancel,
@@ -146,13 +149,14 @@ fn spawn_connector_actor(mut connector: Box<dyn TunnelConnector + Send>) -> Conn
                 }
                 ConnectorRequest::ChallengeCode {
                     session,
+                    user_name,
                     code,
                     reply,
                     cancel,
                 } => {
                     let res = tokio::select! {
                         _ = cancel => Err(anyhow!(tr!("error-connection-cancelled"))),
-                        res = connector.challenge_code(session, &code) => res,
+                        res = connector.challenge_code(session, &user_name, &code) => res,
                     };
                     let _ = reply.send(res);
                 }
@@ -381,14 +385,16 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
                 Err(e) => TunnelServiceResponse::Error(e.to_string()),
             },
             TunnelServiceRequest::GetStatus => TunnelServiceResponse::ConnectionStatus(self.get_status().await),
-            TunnelServiceRequest::ChallengeCode(code, _) => match self.challenge_code(&code).await {
-                Ok(response) => response,
-                Err(e) => {
-                    warn!("Challenge code error: {:#}", e);
-                    self.state.reset();
-                    TunnelServiceResponse::Error(e.to_string())
+            TunnelServiceRequest::ChallengeCode(code, params) => {
+                match self.challenge_code(&params.user_name, &code).await {
+                    Ok(response) => response,
+                    Err(e) => {
+                        warn!("Challenge code error: {:#}", e);
+                        self.state.reset();
+                        TunnelServiceResponse::Error(e.to_string())
+                    }
                 }
-            },
+            }
             TunnelServiceRequest::Rekey => match self.rekey().await {
                 Ok(()) => TunnelServiceResponse::Ok,
                 Err(e) => TunnelServiceResponse::Error(e.to_string()),
@@ -472,7 +478,7 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
         self.connect_for_session(session, handle).await
     }
 
-    async fn challenge_code(&mut self, code: &str) -> anyhow::Result<TunnelServiceResponse> {
+    async fn challenge_code(&mut self, user_name: &str, code: &str) -> anyhow::Result<TunnelServiceResponse> {
         let (handle, session) = {
             let g = self.state.lock();
             (
@@ -484,7 +490,9 @@ impl<F: TunnelConnectorFactory + Send + Sync + 'static> ServerHandler<F> {
         let (cancel_tx, cancel_rx) = oneshot::channel();
         self.state.lock().cancel = Some(cancel_tx);
 
-        let new_session = handle.challenge_code(session, code.to_owned(), cancel_rx).await?;
+        let new_session = handle
+            .challenge_code(session, user_name.to_owned(), code.to_owned(), cancel_rx)
+            .await?;
 
         self.connect_for_session(new_session, handle).await
     }

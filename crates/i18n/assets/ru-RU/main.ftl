@@ -219,6 +219,8 @@ about-license = Лицензия
 # Authentication
 auth-dialog-title = Фактор аутентификации VPN
 auth-dialog-message = Пожалуйста, введите ваш фактор аутентификации:
+auth-save-credentials = Сохранить учётные данные
+auth-save-plain-text-warning = Пароль будет сохранён в открытом виде
 
 # Status dialog
 status-dialog-title = Информация о соединении

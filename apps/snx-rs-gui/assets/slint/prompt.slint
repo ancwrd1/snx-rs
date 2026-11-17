@@ -1,10 +1,10 @@
-import { Button, LineEdit, VerticalBox, HorizontalBox, Palette } from "std-widgets.slint";
+import { Button, CheckBox, LineEdit, VerticalBox, HorizontalBox, Palette } from "std-widgets.slint";
 import { Tr } from "tr.slint";
 
 export component PromptWindow inherits Window {
     title: Tr.auth-dialog-title;
     min-width: 500px;
-    min-height: 220px;
+    min-height: root.base-min-height;
     max-width: 500px;
     default-font-size: 14px;
 
@@ -12,9 +12,21 @@ export component PromptWindow inherits Window {
     in property <string> prompt;
     in property <string> default-entry;
     in property <bool> secure: false;
+    in property <bool> show-user-name: false;
+    in property <string> user-name-prompt;
+    in-out property <string> user-name;
+    in property <bool> show-save: false;
+    in-out property <bool> save-checked: false;
+    in property <bool> save-in-plain-text: false;
 
-    callback ok-clicked(string);
+    callback ok-clicked(string, string, bool);
     callback cancel-clicked();
+    callback fit-height();
+
+    property <length> base-min-height: 220px;
+    out property <length> preferred-content-height: max(root.base-min-height, root-layout.preferred-height);
+
+    changed save-checked => { root.fit-height(); }
 
     changed default-entry => {
         if (!root.secure) { entry.select-all(); }
@@ -35,7 +47,7 @@ export component PromptWindow inherits Window {
             return reject;
         }
 
-        VerticalBox {
+        root-layout := VerticalBox {
             padding: 14px;
             spacing: 12px;
 
@@ -60,6 +72,27 @@ export component PromptWindow inherits Window {
                     spacing: 4px;
                     alignment: start;
 
+                    if root.show-user-name: VerticalLayout {
+                        spacing: 4px;
+                        padding-bottom: 8px;
+
+                        Text {
+                            text: root.user-name-prompt;
+                            font-size: 16px;
+                            font-weight: 600;
+                            horizontal-alignment: left;
+                        }
+
+                        user-name-entry := LineEdit {
+                            text <=> root.user-name;
+                            accepted => { entry.focus(); }
+                            init => {
+                                self.focus();
+                                self.select-all();
+                            }
+                        }
+                    }
+
                     Text {
                         text: root.prompt;
                         font-size: 16px;
@@ -70,7 +103,24 @@ export component PromptWindow inherits Window {
                     entry := LineEdit {
                         text: root.default-entry;
                         input-type: root.secure ? InputType.password : InputType.text;
-                        accepted(text) => { root.ok-clicked(text); }
+                        accepted(text) => { root.ok-clicked(root.user-name, text, root.save-checked); }
+                    }
+
+                    if root.show-save: VerticalLayout {
+                        padding-top: 8px;
+                        spacing: 4px;
+
+                        CheckBox {
+                            text: Tr.auth-save-credentials;
+                            checked <=> root.save-checked;
+                        }
+
+                        if root.save-checked && root.save-in-plain-text: Text {
+                            text: Tr.auth-save-plain-text-warning;
+                            color: #d97706;
+                            font-size: 13px;
+                            horizontal-alignment: left;
+                        }
                     }
                 }
             }
@@ -89,7 +139,7 @@ export component PromptWindow inherits Window {
                     text: Tr.button-ok;
                     min-width: 80px;
                     primary: true;
-                    clicked => { root.ok-clicked(entry.text); }
+                    clicked => { root.ok-clicked(root.user-name, entry.text, root.save-checked); }
                 }
             }
         }

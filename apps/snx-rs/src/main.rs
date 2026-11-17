@@ -3,7 +3,7 @@ use std::{future::Future, path::Path, sync::Arc};
 use clap::{CommandFactory, Parser};
 use futures::pin_mut;
 use i18n::tr;
-use secrecy::ExposeSecret;
+use secrecy::{ExposeSecret, SecretString};
 use snxcore::{
     model::{
         MfaType, PromptInfo, SessionState,
@@ -289,37 +289,53 @@ where
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
             MfaType::PasswordInput => {
-                let prompt_info = mfa_prompts
+                let mut prompt_info = mfa_prompts
                     .get(mfa_index)
                     .cloned()
                     .unwrap_or_else(|| PromptInfo::new("", &challenge.prompt));
 
                 mfa_index += 1;
 
-                let input = if !params.password.expose_secret().is_empty() && mfa_index == params.password_factor {
-                    Ok(params.password.expose_secret().to_owned())
+                let known_input = if !params.password.expose_secret().is_empty() && mfa_index == params.password_factor
+                {
+                    Some(params.password.clone())
                 } else if let Some(ref mfa_code) = params.mfa_code
                     && mfa_index != params.password_factor
                 {
-                    Ok(mfa_code.clone())
+                    Some(SecretString::from(mfa_code.as_str()))
                 } else {
-                    tty_prompt.get_secure_input(prompt_info).await
+                    None
                 };
 
-                match input {
-                    Ok(input) => {
-                        session = tunnel_connector.challenge_code(session, &input).await?;
+                let user_name_prompt = (challenge.user_name_required && params.user_name.is_empty())
+                    .then(|| PromptInfo::new(tr!("label-username-required"), tr!("label-username")));
+
+                let (user_name, input) = match (known_input, user_name_prompt) {
+                    (Some(input), None) => (None, input),
+                    (_, user_name_prompt) => {
+                        if user_name_prompt.is_some() && prompt_info.header.is_empty() {
+                            prompt_info.header = tr!("label-username-required");
+                        }
+                        let input = tty_prompt
+                            .get_combined_input(prompt_info, user_name_prompt, None)
+                            .await?;
+                        (input.user_name, input.secret)
                     }
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
+                };
+
+                let user_name = user_name.unwrap_or_else(|| params.user_name.clone());
+
+                session = tunnel_connector
+                    .challenge_code(session, user_name.trim(), input.expose_secret())
+                    .await?;
             }
             MfaType::IdentityProvider => {
                 println!("{}", tr!("cli-identity-provider-auth"));
                 println!("{}", challenge.prompt);
                 let otp = OtpListener::new().await?.acquire_otp().await?;
-                session = tunnel_connector.challenge_code(session, &otp).await?;
+                session = tunnel_connector
+                    .challenge_code(session, &params.user_name, &otp)
+                    .await?;
             }
             MfaType::MobileAccess => {
                 let prompt_info = PromptInfo::new(
@@ -327,12 +343,9 @@ where
                     tr!("label-password"),
                 );
                 let input = tty_prompt.get_secure_input(prompt_info).await?;
-                session = tunnel_connector.challenge_code(session, &input).await?;
-            }
-            MfaType::UserNameInput => {
-                let prompt_info = PromptInfo::new(tr!("label-username-required"), &challenge.prompt);
-                let input = tty_prompt.get_plain_input(prompt_info).await?;
-                session = tunnel_connector.challenge_code(session, &input).await?;
+                session = tunnel_connector
+                    .challenge_code(session, &params.user_name, &input)
+                    .await?;
             }
         }
     }

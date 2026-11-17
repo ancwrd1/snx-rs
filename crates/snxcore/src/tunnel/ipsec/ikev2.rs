@@ -278,10 +278,12 @@ impl Ikev2TunnelConnector {
             None if text.starts_with("https://") => MfaChallenge {
                 mfa_type: MfaType::IdentityProvider,
                 prompt: text,
+                user_name_required: false,
             },
             None => MfaChallenge {
                 mfa_type: MfaType::PasswordInput,
                 prompt: if text.is_empty() { tr!("label-password") } else { text },
+                user_name_required: false,
             },
         };
 
@@ -625,8 +627,9 @@ impl TunnelConnector for Ikev2TunnelConnector {
             return Ok(Arc::new(TunnelSession {
                 session_id: SessionId::default(),
                 state: SessionState::PendingChallenge(MfaChallenge {
-                    mfa_type: MfaType::UserNameInput,
-                    prompt: tr!("label-username"),
+                    mfa_type: MfaType::PasswordInput,
+                    prompt: tr!("label-password"),
+                    user_name_required: true,
                 }),
                 username: None,
             }));
@@ -663,11 +666,15 @@ impl TunnelConnector for Ikev2TunnelConnector {
     async fn challenge_code(
         &mut self,
         _session: Arc<TunnelSession>,
+        user_name: &str,
         user_input: &str,
     ) -> anyhow::Result<Arc<TunnelSession>> {
         if self.awaiting_username {
             self.awaiting_username = false;
-            return self.do_authenticate(user_input.trim().to_owned()).await;
+            let session = self.do_authenticate(user_name.trim().to_owned()).await?;
+            if !session.is_pending_password() {
+                return Ok(session);
+            }
         }
 
         let step = self

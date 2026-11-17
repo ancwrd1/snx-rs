@@ -254,6 +254,8 @@ about-license = Licence
 # Authentication
 auth-dialog-title = VPN autentizační faktor
 auth-dialog-message = Zadejte váš autentizační faktor:
+auth-save-credentials = Uložit přihlašovací údaje
+auth-save-plain-text-warning = Heslo bude uloženo jako prostý text
 
 # Status dialog
 status-dialog-title = Informace o připojení

@@ -7,7 +7,7 @@ use i18n::tr;
 use interprocess::local_socket::traits::tokio::Stream;
 use secrecy::{ExposeSecret, SecretString};
 use tokio_util::codec::{Decoder, LengthDelimitedCodec};
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::{
     browser::BrowserController,
@@ -17,7 +17,8 @@ use crate::{
     },
     otp::OtpListener,
     platform::{Keychain, Platform, PlatformAccess},
-    prompt::SecurePrompt,
+    profiles::ConnectionProfilesStore,
+    prompt::{CombinedInput, SaveOffer, SaveTarget, SecurePrompt},
     server,
 };
 
@@ -65,12 +66,72 @@ impl FromStr for ServiceCommand {
     }
 }
 
+// `params` is not saved as is: by now it carries runtime-only state such as a token PIN,
+// which must not end up in the profile. Config files outside the profile store (`-c`) are
+// the user's own and are never rewritten.
+fn save_profile_credentials(
+    params: &TunnelParams,
+    user_name: Option<&str>,
+    password: Option<&SecretString>,
+) -> anyhow::Result<()> {
+    let store = ConnectionProfilesStore::instance();
+    if store
+        .get(params.profile_id)
+        .is_none_or(|p| p.config_file != params.config_file)
+    {
+        debug!(
+            "Not saving credentials in an unmanaged config file: {}",
+            params.config_file.display()
+        );
+        return Ok(());
+    }
+
+    store.update(params.profile_id, |profile| {
+        if let Some(user_name) = user_name {
+            user_name.clone_into(&mut profile.user_name);
+        }
+        if let Some(password) = password {
+            profile.password = password.clone();
+        }
+    })
+}
+
+// `input.save` is `None` when the prompt offered no choice: the `keychain` option decides then.
+// Without the keychain, a password is only written to the profile on an explicit choice.
+// Only the password factor saves anything; a username entered with an earlier factor is saved along with it.
+async fn save_credentials(params: &TunnelParams, input: CombinedInput, entered_user_name: Option<&str>) {
+    if input.save == Some(false) && params.keychain {
+        let _ = Platform::get().new_keychain().delete_password(params.profile_id).await;
+    }
+
+    if !input.save.unwrap_or(params.keychain) {
+        return;
+    }
+
+    let password = input.secret;
+
+    if params.keychain {
+        let _ = Platform::get()
+            .new_keychain()
+            .store_password(params.profile_id, &password)
+            .await;
+    }
+
+    let user_name = entered_user_name.filter(|u| !u.is_empty());
+    let profile_password = (!params.keychain && input.save == Some(true)).then_some(&password);
+
+    if user_name.is_some() || profile_password.is_some() {
+        save_profile_credentials(params, user_name, profile_password)
+            .unwrap_or_else(|e| warn!("Cannot save credentials in the profile: {}", e));
+    }
+}
+
 pub struct ServiceController<B, P> {
     prompt: P,
     mfa_prompts: Vec<PromptInfo>,
     mfa_index: usize,
     password_from_keychain: SecretString,
-    username: String,
+    entered_user_name: Option<String>,
     browser_controller: B,
     stream: Option<interprocess::local_socket::tokio::Stream>,
     otp_cancel_sender: Option<tokio::sync::oneshot::Sender<()>>,
@@ -99,7 +160,7 @@ where
         Self {
             prompt,
             password_from_keychain: SecretString::default(),
-            username: String::new(),
+            entered_user_name: None,
             mfa_prompts,
             mfa_index: 0,
             browser_controller,
@@ -152,17 +213,24 @@ where
     ) -> anyhow::Result<ConnectionStatus> {
         match self.get_mfa_input(mfa, params.clone()).await {
             Ok(input) => {
-                let result = self.do_challenge_code(input.clone(), params.clone()).await;
-                if result.is_ok()
-                    && mfa.mfa_type == MfaType::PasswordInput
+                let params = match input.user_name {
+                    Some(ref user_name) => {
+                        self.entered_user_name = Some(user_name.trim().to_owned());
+                        Arc::new(TunnelParams {
+                            user_name: user_name.trim().to_owned(),
+                            ..(*params).clone()
+                        })
+                    }
+                    None => params,
+                };
+                let is_password = mfa.mfa_type == MfaType::PasswordInput
                     && self.mfa_index == params.password_factor
-                    && params.keychain
-                    && !input.is_empty()
-                {
-                    let _ = Platform::get()
-                        .new_keychain()
-                        .store_password(params.profile_id, &SecretString::from(input))
-                        .await;
+                    && !input.secret.expose_secret().is_empty();
+                let entered_user_name = self.entered_user_name.clone();
+
+                let result = self.do_challenge_code(&input.secret, params.clone()).await;
+                if result.is_ok() && is_password {
+                    save_credentials(&params, input, entered_user_name.as_deref()).await;
                 }
                 result
             }
@@ -173,10 +241,10 @@ where
         }
     }
 
-    async fn get_mfa_input(&mut self, mfa: &MfaChallenge, params: Arc<TunnelParams>) -> anyhow::Result<String> {
+    async fn get_mfa_input(&mut self, mfa: &MfaChallenge, params: Arc<TunnelParams>) -> anyhow::Result<CombinedInput> {
         match mfa.mfa_type {
             MfaType::PasswordInput => {
-                let prompt = self
+                let mut prompt = self
                     .mfa_prompts
                     .get(self.mfa_index)
                     .cloned()
@@ -184,19 +252,45 @@ where
 
                 self.mfa_index += 1;
 
-                if !params.password.expose_secret().is_empty() && self.mfa_index == params.password_factor {
-                    Ok(params.password.expose_secret().to_owned())
-                } else if !self.password_from_keychain.expose_secret().is_empty()
-                    && self.mfa_index == params.password_factor
-                {
-                    Ok(self.password_from_keychain.expose_secret().to_owned())
+                let is_password_factor = self.mfa_index == params.password_factor;
+
+                let known_input = if !params.password.expose_secret().is_empty() && is_password_factor {
+                    Some(params.password.clone())
+                } else if !self.password_from_keychain.expose_secret().is_empty() && is_password_factor {
+                    Some(self.password_from_keychain.clone())
                 } else if let Some(ref mfa_code) = params.mfa_code
-                    && self.mfa_index != params.password_factor
+                    && !is_password_factor
                 {
-                    Ok(mfa_code.clone())
+                    Some(mfa_code.as_str().into())
                 } else {
-                    let input = self.prompt.get_secure_input(prompt).await?;
-                    Ok(input)
+                    None
+                };
+
+                let user_name_prompt = (mfa.user_name_required && params.user_name.is_empty()).then(|| {
+                    let mut user_name_prompt = PromptInfo::new(tr!("label-username-required"), tr!("label-username"));
+                    user_name_prompt.default_entry = std::env::var("USER").ok();
+                    user_name_prompt
+                });
+
+                match (known_input, user_name_prompt) {
+                    (Some(secret), None) => Ok(CombinedInput {
+                        secret,
+                        ..Default::default()
+                    }),
+                    (_, user_name_prompt) => {
+                        if user_name_prompt.is_some() && prompt.header.is_empty() {
+                            prompt.header = tr!("label-username-required");
+                        }
+                        let save = is_password_factor.then(|| SaveOffer {
+                            target: if params.keychain {
+                                SaveTarget::Keychain
+                            } else {
+                                SaveTarget::Profile
+                            },
+                            checked: params.keychain || !params.password.expose_secret().is_empty(),
+                        });
+                        self.prompt.get_combined_input(prompt, user_name_prompt, save).await
+                    }
                 }
             }
             MfaType::IdentityProvider => {
@@ -212,7 +306,7 @@ where
                     }
                     result = listener.acquire_otp() => {
                         self.browser_controller.close();
-                        result.inspect_err(|e| warn!("{}", e))
+                        result.map(|secret| CombinedInput { secret: secret.into(), ..Default::default() }).inspect_err(|e| warn!("{}", e))
                     }
                 }
             }
@@ -228,29 +322,9 @@ where
                     }
                     result = fut => {
                         self.browser_controller.close();
-                        result.inspect_err(|e| warn!("{}", e))
+                        result.map(|secret| CombinedInput { secret: secret.into(), ..Default::default() }).inspect_err(|e| warn!("{}", e))
                     }
                 }
-            }
-            MfaType::UserNameInput => {
-                let mut prompt = PromptInfo::new(tr!("label-username-required"), &mfa.prompt);
-                prompt.default_entry = if params.user_name.is_empty() {
-                    std::env::var("USER").ok()
-                } else {
-                    Some(params.user_name.clone())
-                };
-                let input = self.prompt.get_plain_input(prompt).await?;
-                self.username = input.clone();
-
-                if !self.username.is_empty()
-                    && params.keychain
-                    && params.password.expose_secret().is_empty()
-                    && let Ok(password) = Platform::get().new_keychain().acquire_password(params.profile_id).await
-                {
-                    self.password_from_keychain = password.into();
-                }
-
-                Ok(input)
             }
         }
     }
@@ -284,6 +358,7 @@ where
         }
 
         self.mfa_index = 0;
+        self.entered_user_name = None;
 
         if !params.user_name.is_empty()
             && params.keychain
@@ -292,8 +367,6 @@ where
         {
             self.password_from_keychain = password.into();
         }
-
-        self.username = params.user_name.clone();
 
         let response = self
             .send_receive(TunnelServiceRequest::Connect((*params).clone()), CONNECT_TIMEOUT)
@@ -320,11 +393,15 @@ where
         }
     }
 
-    async fn do_challenge_code(&mut self, code: String, params: Arc<TunnelParams>) -> anyhow::Result<ConnectionStatus> {
+    async fn do_challenge_code(
+        &mut self,
+        code: &SecretString,
+        params: Arc<TunnelParams>,
+    ) -> anyhow::Result<ConnectionStatus> {
         let response = self
             .send_receive(
                 TunnelServiceRequest::ChallengeCode(
-                    code,
+                    code.expose_secret().to_owned(),
                     TunnelParams {
                         cert_data: None,
                         ..(*params).clone()

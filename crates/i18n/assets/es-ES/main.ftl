@@ -254,6 +254,8 @@ about-license = Licencia
 # Authentication
 auth-dialog-title = Factor de autenticación VPN
 auth-dialog-message = Introduzca su factor de autenticación:
+auth-save-credentials = Guardar credenciales
+auth-save-plain-text-warning = La contraseña se guardará como texto sin cifrar
 
 # Status dialog
 status-dialog-title = Información de conexión

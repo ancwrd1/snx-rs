@@ -15,7 +15,7 @@ use snxcore::{
         },
         wrappers::SessionId,
     },
-    prompt::{NotificationCategory, SecurePrompt},
+    prompt::{CombinedInput, NotificationCategory, SaveOffer, SecurePrompt},
     server::CommandServer,
     tunnel::{GatewayConnector, TunnelCommand, TunnelConnector, TunnelConnectorFactory, TunnelEvent, VpnTunnel},
 };
@@ -119,8 +119,9 @@ impl TunnelConnector for MockTunnelConnector {
         Ok(Arc::new(TunnelSession {
             session_id: "1234".into(),
             state: SessionState::PendingChallenge(MfaChallenge {
-                mfa_type: MfaType::UserNameInput,
-                prompt: "username".to_string(),
+                mfa_type: MfaType::PasswordInput,
+                prompt: "password".to_string(),
+                user_name_required: true,
             }),
             username: None,
         }))
@@ -137,18 +138,11 @@ impl TunnelConnector for MockTunnelConnector {
     async fn challenge_code(
         &mut self,
         session: Arc<TunnelSession>,
+        user_name: &str,
         user_input: &str,
     ) -> anyhow::Result<Arc<TunnelSession>> {
-        match user_input {
-            USERNAME => Ok(Arc::new(TunnelSession {
-                state: SessionState::PendingChallenge(MfaChallenge {
-                    mfa_type: MfaType::PasswordInput,
-                    prompt: "password".to_string(),
-                }),
-                username: None,
-                ..(*session).clone()
-            })),
-            PASSWORD => Ok(Arc::new(TunnelSession {
+        match (user_name, user_input) {
+            (USERNAME, PASSWORD) => Ok(Arc::new(TunnelSession {
                 state: SessionState::Authenticated(AuthenticatedSession::SslSessionKey("key".to_string())),
                 username: None,
                 ..(*session).clone()
@@ -225,6 +219,19 @@ impl SecurePrompt for MockPrompt {
 
     async fn get_plain_input(&self, _prompt: PromptInfo) -> anyhow::Result<String> {
         Ok(USERNAME.to_string())
+    }
+
+    async fn get_combined_input(
+        &self,
+        _prompt: PromptInfo,
+        user_name_prompt: Option<PromptInfo>,
+        _save: Option<SaveOffer>,
+    ) -> anyhow::Result<CombinedInput> {
+        Ok(CombinedInput {
+            user_name: user_name_prompt.map(|_| USERNAME.to_string()),
+            secret: PASSWORD.into(),
+            save: Some(false),
+        })
     }
 
     async fn show_notification(

@@ -26,7 +26,7 @@
 | `ignore-server-cert=true\|false`                     | Disable all certificate checks, default is false                                                                                                         |
 | `ca-cert=<ca_certs>`                                 | One or more comma-separated custom CA root certificates used to validate TLS connection.                                                                 |
 | `tunnel-type=ipsec\|ssl`                             | Tunnel type, default is ipsec                                                                                                                            |
-| `keychain=true\|false`                               | Store user password in the OS keychain, default is false                                                                                                 |
+| `keychain=true\|false`                               | Store user password in the OS keychain and save the entered username in the profile, default is false                                                   |
 | `ike-version=auto\|1\|2`                             | IKE protocol version to use for the IPsec tunnel. Default is auto. See [Tunnel Types](tunnel-types.md) for the IKEv2 limitations.                        |
 | `ike-lifetime=28800`                                 | IKE SA lifetime in seconds, default is 28800. Set to higher value to extend IPsec session duration                                                       |
 | `ike-persist=true\|false`                            | Save IKE session to disk and try to reconnect automatically after application restart                                                                    |

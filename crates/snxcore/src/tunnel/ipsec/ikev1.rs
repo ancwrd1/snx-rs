@@ -332,8 +332,9 @@ impl Ikev1TunnelConnector {
                     Arc::new(TunnelSession {
                         session_id: self.ccc_session.clone(),
                         state: SessionState::PendingChallenge(MfaChallenge {
-                            mfa_type: MfaType::UserNameInput,
-                            prompt: tr!("label-username"),
+                            mfa_type: MfaType::PasswordInput,
+                            prompt: tr!("label-password"),
+                            user_name_required: true,
                         }),
                         username: None,
                     })
@@ -353,7 +354,7 @@ impl Ikev1TunnelConnector {
                             Ok(session)
                         } else {
                             let user_name = self.params.user_name.clone();
-                            self.challenge_code(Arc::new(TunnelSession::empty()), &user_name).await
+                            Box::pin(self.send_challenge_input(&user_name)).await
                         }
                     }
                     other => {
@@ -363,6 +364,21 @@ impl Ikev1TunnelConnector {
                 }
             }
         }
+    }
+
+    async fn send_challenge_input(&mut self, user_input: &str) -> anyhow::Result<Arc<TunnelSession>> {
+        let id_reply = self
+            .service
+            .send_attribute(
+                self.last_identifier,
+                self.last_message_id,
+                self.last_challenge_type,
+                Bytes::copy_from_slice(user_input.trim().as_bytes()),
+                Some(Duration::from_secs(120)),
+            )
+            .await?
+            .0;
+        self.process_auth_attributes(id_reply).await
     }
 
     async fn do_esp_proposal(&mut self) -> anyhow::Result<()> {
@@ -668,21 +684,17 @@ impl TunnelConnector for Ikev1TunnelConnector {
 
     async fn challenge_code(
         &mut self,
-        _session: Arc<TunnelSession>,
+        session: Arc<TunnelSession>,
+        user_name: &str,
         user_input: &str,
     ) -> anyhow::Result<Arc<TunnelSession>> {
-        let id_reply = self
-            .service
-            .send_attribute(
-                self.last_identifier,
-                self.last_message_id,
-                self.last_challenge_type,
-                Bytes::copy_from_slice(user_input.trim().as_bytes()),
-                Some(Duration::from_secs(120)),
-            )
-            .await?
-            .0;
-        self.process_auth_attributes(id_reply).await
+        if session.requires_user_name() {
+            let session = self.send_challenge_input(user_name).await?;
+            if !session.is_pending_password() {
+                return Ok(session);
+            }
+        }
+        self.send_challenge_input(user_input).await
     }
 
     async fn create_tunnel(
