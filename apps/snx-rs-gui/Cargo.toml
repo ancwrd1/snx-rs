@@ -17,7 +17,7 @@ workspace = true
 snxcore = { path = "../../crates/snxcore" }
 i18n = { path = "../../crates/i18n" }
 secrecy = "0.10"
-resvg = "0.49"
+resvg = "0.50"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"
@@ -41,12 +41,12 @@ chrono = "0.4"
 i-slint-backend-winit = { version = "1", default-features = false, features = ["wayland", "x11"] }
 ksni = "0.3"
 gtk4 = { version = "0.11", features = ["v4_10"], optional = true }
-nix = "0.31"
+nix = "0.32"
 webkit6 = { version = "0.6", optional = true }
 zbus = { version = "6", default-features = false, features = ["tokio"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-nix = "0.31"
+nix = "0.32"
 tray-icon = "0.26"
 objc2-foundation = { version = "0.3", features = [
     "NSString",
