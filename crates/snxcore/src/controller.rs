@@ -18,7 +18,7 @@ use crate::{
     otp::OtpListener,
     platform::{Keychain, Platform, PlatformAccess},
     profiles::ConnectionProfilesStore,
-    prompt::{CombinedInput, SaveOffer, SaveTarget, SecurePrompt},
+    prompt::{self, CombinedInput, SecurePrompt},
     server,
 };
 
@@ -244,54 +244,16 @@ where
     async fn get_mfa_input(&mut self, mfa: &MfaChallenge, params: Arc<TunnelParams>) -> anyhow::Result<CombinedInput> {
         match mfa.mfa_type {
             MfaType::PasswordInput => {
-                let mut prompt = self
-                    .mfa_prompts
-                    .get(self.mfa_index)
-                    .cloned()
-                    .unwrap_or_else(|| PromptInfo::new("", &mfa.prompt));
-
                 self.mfa_index += 1;
-
-                let is_password_factor = self.mfa_index == params.password_factor;
-
-                let known_input = if !params.password.expose_secret().is_empty() && is_password_factor {
-                    Some(params.password.clone())
-                } else if !self.password_from_keychain.expose_secret().is_empty() && is_password_factor {
-                    Some(self.password_from_keychain.clone())
-                } else if let Some(ref mfa_code) = params.mfa_code
-                    && !is_password_factor
-                {
-                    Some(mfa_code.as_str().into())
-                } else {
-                    None
-                };
-
-                let user_name_prompt = (mfa.user_name_required && params.user_name.is_empty()).then(|| {
-                    let mut user_name_prompt = PromptInfo::new(tr!("label-username-required"), tr!("label-username"));
-                    user_name_prompt.default_entry = std::env::var("USER").ok();
-                    user_name_prompt
-                });
-
-                match (known_input, user_name_prompt) {
-                    (Some(secret), None) => Ok(CombinedInput {
-                        secret,
-                        ..Default::default()
-                    }),
-                    (_, user_name_prompt) => {
-                        if user_name_prompt.is_some() && prompt.header.is_empty() {
-                            prompt.header = tr!("label-username-required");
-                        }
-                        let save = is_password_factor.then(|| SaveOffer {
-                            target: if params.keychain {
-                                SaveTarget::Keychain
-                            } else {
-                                SaveTarget::Profile
-                            },
-                            checked: params.keychain || !params.password.expose_secret().is_empty(),
-                        });
-                        self.prompt.get_combined_input(prompt, user_name_prompt, save).await
-                    }
-                }
+                prompt::get_password_factor_input(
+                    &self.prompt,
+                    &params,
+                    mfa,
+                    &self.mfa_prompts,
+                    self.mfa_index,
+                    &self.password_from_keychain,
+                )
+                .await
             }
             MfaType::IdentityProvider => {
                 let (tx, rx) = tokio::sync::oneshot::channel();

@@ -12,7 +12,7 @@ use snxcore::{
     },
     otp::OtpListener,
     platform::{NetworkInterface, Platform, PlatformAccess, SingleInstance},
-    prompt::{SecurePrompt, TtyPrompt},
+    prompt::{SecurePrompt, TtyPrompt, get_password_factor_input},
     server::CommandServer,
     tunnel::{TunnelCommand, TunnelConnectorFactory, TunnelEvent, connector::CheckPointConnectorFactory},
 };
@@ -289,44 +289,22 @@ where
     while let SessionState::PendingChallenge(challenge) = session.state.clone() {
         match challenge.mfa_type {
             MfaType::PasswordInput => {
-                let mut prompt_info = mfa_prompts
-                    .get(mfa_index)
-                    .cloned()
-                    .unwrap_or_else(|| PromptInfo::new("", &challenge.prompt));
-
                 mfa_index += 1;
 
-                let known_input = if !params.password.expose_secret().is_empty() && mfa_index == params.password_factor
-                {
-                    Some(params.password.clone())
-                } else if let Some(ref mfa_code) = params.mfa_code
-                    && mfa_index != params.password_factor
-                {
-                    Some(SecretString::from(mfa_code.as_str()))
-                } else {
-                    None
-                };
+                let input = get_password_factor_input(
+                    &tty_prompt,
+                    &params,
+                    &challenge,
+                    &mfa_prompts,
+                    mfa_index,
+                    &SecretString::default(),
+                )
+                .await?;
 
-                let user_name_prompt = (challenge.user_name_required && params.user_name.is_empty())
-                    .then(|| PromptInfo::new(tr!("label-username-required"), tr!("label-username")));
-
-                let (user_name, input) = match (known_input, user_name_prompt) {
-                    (Some(input), None) => (None, input),
-                    (_, user_name_prompt) => {
-                        if user_name_prompt.is_some() && prompt_info.header.is_empty() {
-                            prompt_info.header = tr!("label-username-required");
-                        }
-                        let input = tty_prompt
-                            .get_combined_input(prompt_info, user_name_prompt, None)
-                            .await?;
-                        (input.user_name, input.secret)
-                    }
-                };
-
-                let user_name = user_name.unwrap_or_else(|| params.user_name.clone());
+                let user_name = input.user_name.unwrap_or_else(|| params.user_name.clone());
 
                 session = tunnel_connector
-                    .challenge_code(session, user_name.trim(), input.expose_secret())
+                    .challenge_code(session, user_name.trim(), input.secret.expose_secret())
                     .await?;
             }
             MfaType::IdentityProvider => {
