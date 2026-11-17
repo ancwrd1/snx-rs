@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [6.7.0] - 2026-11-17
 
 ### Added
 
@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Linux: DNS configuration in a network namespace no longer goes to the host's systemd-resolved; the namespace's own `/etc/resolv.conf` is used instead.
+- IKEv2: an EAP error returned by the gateway during the first authentication factor exchange is now handled correctly.
 
 ### Security
 
@@ -1321,7 +1322,7 @@ Initial release.
 - `search-domains` option for additional search domains.
 - systemd service for running the client as a daemon.
 
-[unreleased]: https://github.com/ancwrd1/snx-rs/compare/v6.6.2...HEAD
+[6.7.0]: https://github.com/ancwrd1/snx-rs/compare/v6.6.2...v6.7.0
 [6.6.2]: https://github.com/ancwrd1/snx-rs/compare/v6.6.1...v6.6.2
 [6.6.1]: https://github.com/ancwrd1/snx-rs/compare/v6.6.0...v6.6.1
 [6.6.0]: https://github.com/ancwrd1/snx-rs/compare/v6.5.4...v6.6.0
