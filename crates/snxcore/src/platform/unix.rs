@@ -1,5 +1,7 @@
 use std::{
-    os::unix::fs::MetadataExt,
+    fs,
+    io::Write,
+    os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
 };
 
@@ -29,11 +31,40 @@ fn is_trusted(owner: u32, mode: u32, service_uid: u32) -> bool {
     (owner == 0 || owner == service_uid) && mode & 0o022 == 0
 }
 
+// The mode given to open() only applies to a new file, so an existing one is narrowed explicitly,
+// after truncation and before anything is written into it.
+pub(super) fn write_private_file(path: &Path, data: &[u8]) -> std::io::Result<()> {
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(0o600)
+        .open(path)?;
+    file.set_permissions(fs::Permissions::from_mode(0o600))?;
+    file.write_all(data)
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
     use super::*;
+
+    #[test]
+    fn private_file_is_owner_only() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("profile.conf");
+        fs::write(&path, b"old").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+
+        write_private_file(&path, b"new").unwrap();
+        assert_eq!(fs::metadata(&path).unwrap().mode() & 0o777, 0o600);
+        assert_eq!(fs::read(&path).unwrap(), b"new");
+
+        let new_path = dir.path().join("new.conf");
+        write_private_file(&new_path, b"data").unwrap();
+        assert_eq!(fs::metadata(&new_path).unwrap().mode() & 0o777, 0o600);
+    }
 
     #[test]
     fn ownership_and_mode_policy() {

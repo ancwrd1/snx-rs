@@ -310,6 +310,12 @@ pub trait PlatformAccess {
     // replace the library that the privileged service would load.
     fn trusted_library_path(&self, path: &Path) -> Option<PathBuf>;
 
+    // Writes a file that may hold secrets, such as a profile with a saved password, readable only by
+    // its owner. On Windows the per-user configuration directory already restricts access.
+    fn write_private_file(&self, path: &Path, data: &[u8]) -> std::io::Result<()> {
+        std::fs::write(path, data)
+    }
+
     // Local-socket name of the command server, resolved the same way on both sides. The default is an
     // OS-namespaced name; macOS pins it to a filesystem path instead.
     fn command_socket_name(&self, name: &str) -> std::io::Result<interprocess::local_socket::Name<'static>> {

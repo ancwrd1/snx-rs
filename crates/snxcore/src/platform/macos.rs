@@ -131,6 +131,10 @@ impl PlatformAccess for MacosPlatformAccess {
         super::unix::trusted_library_path(path)
     }
 
+    fn write_private_file(&self, path: &Path, data: &[u8]) -> std::io::Result<()> {
+        super::unix::write_private_file(path, data)
+    }
+
     fn data_dir(&self) -> PathBuf {
         // Root's home rather than world-readable /tmp: the session store may hold secrets.
         let home = std::env::var("HOME").unwrap_or_else(|_| "/var/root".to_owned());

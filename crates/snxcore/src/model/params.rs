@@ -17,7 +17,10 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::warn;
 use uuid::Uuid;
 
-use crate::util::{self, ipv4net_to_string, parse_ipv4_or_subnet};
+use crate::{
+    platform::{Platform, PlatformAccess},
+    util::{self, ipv4net_to_string, parse_ipv4_or_subnet},
+};
 
 #[cached]
 pub fn default_config_dir_cached() -> PathBuf {
@@ -1045,7 +1048,7 @@ impl TunnelParams {
         PathBuf::from(&self.config_file).parent().iter().for_each(|dir| {
             let _ = fs::create_dir_all(dir);
         });
-        fs::write(&self.config_file, buf.into_inner())?;
+        Platform::get().write_private_file(&self.config_file, &buf.into_inner())?;
 
         Ok(())
     }

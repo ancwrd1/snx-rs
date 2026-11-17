@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Linux: DNS configuration in a network namespace no longer goes to the host's systemd-resolved; the namespace's own `/etc/resolv.conf` is used instead.
 
+### Security
+
+- Linux, macOS: connection profiles are written readable only by their owner (mode 0600), as they may hold a saved password.
+
 ## [6.6.2] - 2026-11-09
 
 ### Added

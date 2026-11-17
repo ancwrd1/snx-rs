@@ -275,6 +275,10 @@ impl PlatformAccess for LinuxPlatformAccess {
         super::unix::trusted_library_path(path)
     }
 
+    fn write_private_file(&self, path: &Path, data: &[u8]) -> std::io::Result<()> {
+        super::unix::write_private_file(path, data)
+    }
+
     async fn authorize_socket_peer(&self, stream: &interprocess::local_socket::tokio::Stream) -> bool {
         command_socket::authorize_peer(stream).await
     }
