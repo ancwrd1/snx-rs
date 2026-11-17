@@ -1,8 +1,10 @@
 use std::{
     cmp::Ordering,
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, Mutex, MutexGuard},
+    time::SystemTime,
 };
 
 use anyhow::anyhow;
@@ -43,12 +45,47 @@ fn sort_by_saved_order(profiles: &mut [TunnelParams], order_file: &Path) {
     });
 }
 
+fn modified_time(path: &Path) -> Option<SystemTime> {
+    fs::metadata(path).and_then(|m| m.modified()).ok()
+}
+
 struct ProfilesState {
     profiles: Vec<Arc<TunnelParams>>,
     connected: Uuid,
+    modified: HashMap<PathBuf, SystemTime>,
 }
 
 impl ProfilesState {
+    fn new(profiles: Vec<TunnelParams>) -> Self {
+        let modified = profiles
+            .iter()
+            .filter_map(|p| Some((p.config_file.clone(), modified_time(&p.config_file)?)))
+            .collect();
+        Self {
+            profiles: profiles.into_iter().map(Arc::new).collect(),
+            connected: DEFAULT_PROFILE_UUID,
+            modified,
+        }
+    }
+
+    // Another process, such as snxctl saving the credentials, may have rewritten a profile file.
+    fn refresh(&mut self) {
+        for item in &mut self.profiles {
+            let Some(mtime) = modified_time(&item.config_file) else {
+                continue;
+            };
+            if self.modified.get(&item.config_file) == Some(&mtime) {
+                continue;
+            }
+            self.modified.insert(item.config_file.clone(), mtime);
+            if let Ok(params) = TunnelParams::load(&item.config_file)
+                && params.profile_id == item.profile_id
+            {
+                *item = Arc::new(params);
+            }
+        }
+    }
+
     fn find(&self, uuid: Uuid) -> Option<Arc<TunnelParams>> {
         self.profiles.iter().find(|p| p.profile_id == uuid).cloned()
     }
@@ -80,10 +117,7 @@ impl ConnectionProfilesStore {
         sort_by_saved_order(&mut all, &order_file(&path));
 
         Self {
-            state: Mutex::new(ProfilesState {
-                profiles: all.into_iter().map(Arc::new).collect(),
-                connected: DEFAULT_PROFILE_UUID,
-            }),
+            state: Mutex::new(ProfilesState::new(all)),
             path,
         }
     }
@@ -93,7 +127,9 @@ impl ConnectionProfilesStore {
     }
 
     fn lock(&self) -> MutexGuard<'_, ProfilesState> {
-        self.state.lock().unwrap_or_else(|e| e.into_inner())
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        state.refresh();
+        state
     }
 
     pub fn all(&self) -> Vec<Arc<TunnelParams>> {
@@ -274,6 +310,33 @@ mod tests {
         assert_eq!(on_disk.user_name, "user");
         assert_eq!(on_disk.server_name, "edited.example.com");
         assert_eq!(store.get(id).unwrap().user_name, "user");
+    }
+
+    #[test]
+    fn picks_up_profile_changed_on_disk() {
+        let dir = TempDir::new().unwrap();
+        let id = Uuid::new_v4();
+        let profile = write_profile(dir.path(), "alpha", id);
+
+        let store = ConnectionProfilesStore::new_in(dir.path());
+        assert_eq!(store.get(id).unwrap().user_name, "");
+
+        TunnelParams {
+            user_name: "user".to_owned(),
+            ..(*profile).clone()
+        }
+        .save()
+        .unwrap();
+        // make the change visible even where the file system's timestamps are coarse
+        fs::File::options()
+            .write(true)
+            .open(&profile.config_file)
+            .unwrap()
+            .set_modified(SystemTime::now() + std::time::Duration::from_secs(10))
+            .unwrap();
+
+        assert_eq!(store.get(id).unwrap().user_name, "user");
+        assert_eq!(store.all()[0].user_name, "user");
     }
 
     #[test]

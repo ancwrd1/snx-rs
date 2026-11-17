@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Linux: `dns-resolver` option and GUI setting to choose between systemd-resolved and `/etc/resolv.conf` for DNS configuration.
 - GUI settings: the profile list and its buttons can be reached with Tab and operated with the keyboard (Up/Down to move between profiles, Space/Enter to activate, F2 to rename, Delete to delete).
 - GUI: "Save credentials" checkbox in the password prompt. When checked, the username is saved in the profile and the password in the OS keychain, or in the profile if `keychain` is disabled. When unchecked, nothing is saved and a password stored in the keychain is removed. A warning is shown when the password would be saved in plain text.
+- GUI: changes made to profile files outside the GUI, such as credentials saved by `snxctl`, are picked up without a restart.
 
 ### Changed
 
