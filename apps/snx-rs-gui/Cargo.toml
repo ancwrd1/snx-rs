@@ -47,7 +47,7 @@ zbus = { version = "6", default-features = false, features = ["tokio"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 nix = "0.32"
-tray-icon = "0.26"
+tray-icon = "0.27"
 objc2-foundation = { version = "0.3", features = [
     "NSString",
     "NSBundle",
@@ -83,7 +83,7 @@ objc2-web-kit = { version = "0.3", optional = true, features = [
 ] }
 
 [target.'cfg(windows)'.dependencies]
-tray-icon = "0.26"
+tray-icon = "0.27"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
