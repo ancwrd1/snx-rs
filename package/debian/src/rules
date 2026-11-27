@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+export CARGO_HOME = $(CURDIR)/debian/cargo-home
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --frozen --profile lto
+
+override_dh_auto_clean:
+	rm -rf target debian/cargo-home
+
+# The maintainer scripts manage the service themselves
+override_dh_installsystemd:
+
+# The lto profile strips the binaries
+override_dh_dwz:

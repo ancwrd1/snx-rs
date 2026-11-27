@@ -1,0 +1,20 @@
+Source: snx-rs
+Section: net
+Priority: optional
+Maintainer: Dmitry Pankratov <dmitry@pankratov.net>
+Build-Depends: debhelper-compat (= 13),
+               cargo (>= 1.88),
+               rustc (>= 1.88),
+               pkgconf,
+               libssl-dev,
+               libsqlite3-dev,
+               libfontconfig-dev
+Standards-Version: 4.7.0
+Homepage: https://github.com/ancwrd1/snx-rs
+Rules-Requires-Root: no
+
+Package: snx-rs
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: SNX-RS Check Point VPN Client for Linux
+ Unofficial client for Check Point VPN tunnels, written in Rust.

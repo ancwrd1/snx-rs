@@ -29,7 +29,7 @@ Top-level directories:
 * `crates/` — library crates.
 * `apps/` — the three binary crates.
 * `docs/` — user-facing Markdown docs (`docs/README.md` is the index). Keep in sync when changing user-visible behavior.
-* `package/` — packaging assets: systemd unit (`snx-rs.service`), desktop file, Debian and RPM packaging, installer script, LTO build script.
+* `package/` — packaging assets: systemd unit (`snx-rs.service`), desktop file, Debian and RPM packaging (binary packages from `package.sh`, source packages from `package-source.sh`), installer script, LTO build script.
 * `.github/workflows/` — `ci.yml` (fmt + clippy + test), `release.yml`, `automerge.yml`, `pages.yml`.
 * `i18n.md` — canonical instructions for translation tasks. Re-read before doing any locale work.
 * `CHANGELOG.md` — hand-maintained. Add a user-visible entry for any user-visible change.

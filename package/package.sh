@@ -9,7 +9,7 @@ else
   version="$2"
 fi
 deb_version="${version:1}"
-rpm_version="$(echo $version | sed 's/-/~/g')"
+rpm_version="$(echo ${version#v} | sed 's/-/~/g')"
 arch="$(uname -m)"
 # Must match the glibc the binaries were linked against, see build-lto.sh
 glibc_version="${GLIBC_VERSION:-2.39}"
@@ -125,7 +125,8 @@ create_rpm() {
     mkdir -p "$rpm/SRPMS"
     mkdir -p "$rpm/BUILDROOT"
 
-    sed "s/{{version}}/$rpm_version/;s/{{arch}}/$arch/;s/{{glibc}}/$glibc_version/" "$basedir/package/rpm/package.spec.in" > "$rpm/SPECS/package.spec"
+    cat "$basedir/package/rpm/package.spec.in" "$basedir/package/rpm/common.spec" \
+        | sed "s/{{version}}/$rpm_version/;s/{{arch}}/$arch/;s/{{glibc}}/$glibc_version/" > "$rpm/SPECS/package.spec"
 
     mkdir -p "$RPM_BUILDROOT/usr/bin"
     mkdir -p "$RPM_BUILDROOT/usr/lib/systemd/system"

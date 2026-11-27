@@ -73,7 +73,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Using tag: $TAG"
 
-      - name: Download release assets (non-webkit only)
+      - name: Download release assets (non-webkit and sources only)
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
@@ -84,7 +84,11 @@ jobs:
             --repo "${{ github.repository }}" \
             --dir assets \
             --pattern "snx-rs-${TAG}-linux-*.deb" \
-            --pattern "snx-rs-${TAG}-linux-*.rpm"
+            --pattern "snx-rs-${TAG}-linux-*.rpm" \
+            --pattern "snx-rs_*.dsc" \
+            --pattern "snx-rs_*.orig.tar.xz" \
+            --pattern "snx-rs_*.debian.tar.xz" \
+            --pattern "snx-rs-*.src.rpm"
           ls -la assets
 
       - name: Build APT repository
@@ -94,13 +98,17 @@ jobs:
           set -euo pipefail
           ROOT=site/deb
           POOL=$ROOT/pool/main/s/snx-rs
-          mkdir -p "$POOL/amd64" "$POOL/arm64"
+          mkdir -p "$POOL/amd64" "$POOL/arm64" "$POOL/source"
 
           for f in assets/*.deb; do
             case "$f" in
               *linux-x86_64.deb) cp "$f" "$POOL/amd64/" ;;
               *linux-arm64.deb)  cp "$f" "$POOL/arm64/" ;;
             esac
+          done
+          # Releases before source packages were introduced have none
+          for f in assets/snx-rs_*; do
+            if [ -e "$f" ]; then cp "$f" "$POOL/source/"; fi
           done
 
           for arch in amd64 arm64; do
@@ -113,6 +121,11 @@ jobs:
               > "dists/${SUITE}/${COMPONENT}/binary-$arch/Packages"
             gzip -9kf "dists/${SUITE}/${COMPONENT}/binary-$arch/Packages"
           done
+
+          mkdir -p "dists/${SUITE}/${COMPONENT}/source"
+          apt-ftparchive sources "pool/${COMPONENT}/s/snx-rs/source" \
+            > "dists/${SUITE}/${COMPONENT}/source/Sources"
+          gzip -9kf "dists/${SUITE}/${COMPONENT}/source/Sources"
 
           cat > /tmp/aptftp.conf <<EOF
           APT::FTPArchive::Release::Origin "${ORIGIN}";
@@ -137,16 +150,17 @@ jobs:
         run: |
           set -euo pipefail
           ROOT=site/rpm
-          mkdir -p "$ROOT/x86_64" "$ROOT/aarch64"
+          mkdir -p "$ROOT/x86_64" "$ROOT/aarch64" "$ROOT/SRPMS"
 
           for f in assets/*.rpm; do
             case "$f" in
+              *.src.rpm)         cp "$f" "$ROOT/SRPMS/" ;;
               *linux-x86_64.rpm) cp "$f" "$ROOT/x86_64/" ;;
               *linux-arm64.rpm)  cp "$f" "$ROOT/aarch64/" ;;
             esac
           done
 
-          for arch in x86_64 aarch64; do
+          for arch in x86_64 aarch64 SRPMS; do
             createrepo_c "$ROOT/$arch"
             gpg --batch --yes --default-key "$GPG_KEY_ID" \
               --detach-sign --armor "$ROOT/$arch/repodata/repomd.xml"
@@ -167,6 +181,14 @@ jobs:
           name=snx-rs
           baseurl=${BASE_URL}/rpm/\$basearch
           enabled=1
+          gpgcheck=1
+          repo_gpgcheck=1
+          gpgkey=${BASE_URL}/KEY.gpg
+
+          [snx-rs-source]
+          name=snx-rs - Source
+          baseurl=${BASE_URL}/rpm/SRPMS
+          enabled=0
           gpgcheck=1
           repo_gpgcheck=1
           gpgkey=${BASE_URL}/KEY.gpg
@@ -224,6 +246,15 @@ jobs:
             https://ancwrd1.github.io/snx-rs/snx-rs.sources
           sudo apt update
           sudo apt install snx-rs</pre>
+
+            <h2>Source packages</h2>
+            <p>Source packages build the default variant from source, with all Rust dependencies vendored,
+               and need Rust 1.88 or newer. They are also attached to every release.</p>
+            <p>dnf: <code>dnf download --source snx-rs</code> uses the <code>snx-rs-source</code> repository,
+               which is set up by <code>snx-rs.repo</code> and disabled by default.</p>
+            <p>apt: change <code>Types: deb</code> to <code>Types: deb deb-src</code> in
+               <code>/etc/apt/sources.list.d/snx-rs.sources</code>, then run
+               <code>sudo apt update</code> and <code>apt source snx-rs</code>.</p>
 
             <p><a href="KEY.gpg">Signing key</a></p>
           </body>

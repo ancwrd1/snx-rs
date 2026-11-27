@@ -1,0 +1,6 @@
+target/lto/snx-rs usr/bin
+target/lto/snxctl usr/bin
+target/lto/snx-rs-gui usr/bin
+package/snx-rs.service usr/lib/systemd/system
+package/snx-rs-gui.desktop usr/share/applications
+package/icons/*.svg usr/share/icons/hicolor/symbolic/apps

@@ -1,0 +1,14 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: snx-rs
+Source: https://github.com/ancwrd1/snx-rs
+
+Files: *
+Copyright: Dmitry Pankratov <dmitry@pankratov.net>
+License: AGPL-3.0-or-later
+ The full license text is in the COPYING file of the source package.
+
+Files: vendor/*
+Copyright: The authors of the respective crates
+License: various
+ Each vendored crate is distributed under its own license, as stated in its
+ Cargo.toml and the license files it ships.

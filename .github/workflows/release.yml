@@ -79,6 +79,42 @@ jobs:
           name: artifacts-${{ matrix.arch }}${{ matrix.suffix }}
           path: target/snx-rs-*
 
+  build-source:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev rpm
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+
+      - name: Install cargo-vendor-filterer
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-vendor-filterer
+
+      - name: Package sources
+        run: |
+          chmod +x package/package-source.sh
+          ./package/package-source.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-source
+          path: |
+            target/snx-rs_*
+            target/snx-rs-*.src.rpm
+
   build-windows:
     runs-on: windows-latest
     steps:
@@ -151,7 +187,7 @@ jobs:
           path: target/snx-rs-*.dmg
 
   release:
-    needs: [build, build-windows, build-macos]
+    needs: [build, build-source, build-windows, build-macos]
     runs-on: ubuntu-24.04
 
     steps:
@@ -201,7 +237,7 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Sign .deb and .rpm artifacts
+      - name: Sign .deb, .dsc and .rpm artifacts
         env:
           GPG_KEY_ID: ${{ steps.gpg.outputs.fingerprint }}
         run: |
@@ -209,6 +245,11 @@ jobs:
 
           for f in artifacts/*.deb; do
             debsigs --sign=origin -k "$GPG_KEY_ID" "$f"
+          done
+
+          for f in artifacts/*.dsc; do
+            gpg --batch --yes -u "$GPG_KEY_ID" --digest-algo SHA256 --clearsign -o "$f.asc" "$f"
+            mv "$f.asc" "$f"
           done
 
           cat > "$HOME/.rpmmacros" <<EOF
@@ -283,6 +324,19 @@ jobs:
                 release_id: release.data.id,
                 name: macosName,
                 data: macosArtifact
+              });
+            }
+
+            // Debian and RPM source packages keep the names their tools gave them,
+            // as the .dsc refers to its tarballs by name.
+            const sourcePattern = /^snx-rs(_.+\.(dsc|orig\.tar\.xz|debian\.tar\.xz)|-.+\.src\.rpm)$/;
+            for (const sourceName of fs.readdirSync("artifacts").filter(f => sourcePattern.test(f))) {
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.data.id,
+                name: sourceName,
+                data: fs.readFileSync(`artifacts/${sourceName}`)
               });
             }
 

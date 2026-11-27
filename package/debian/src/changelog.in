@@ -1,0 +1,5 @@
+snx-rs ({{version}}) unstable; urgency=medium
+
+  * Release {{upstream}}, see CHANGELOG.md for details.
+
+ -- Dmitry Pankratov <dmitry@pankratov.net>  {{date}}

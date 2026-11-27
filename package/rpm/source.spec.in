@@ -1,0 +1,38 @@
+Name:           snx-rs
+Version:        {{version}}
+Release:        1%{?dist}
+Summary:        SNX-RS Check Point VPN Client for Linux
+
+License:        AGPL-3.0-or-later
+URL:            https://github.com/ancwrd1/snx-rs
+Source0:        %{name}_%{version}.orig.tar.xz
+
+# The tarball only vendors the crates needed on these targets
+ExclusiveArch:  x86_64 aarch64
+
+BuildRequires:  cargo >= 1.88
+BuildRequires:  rust >= 1.88
+BuildRequires:  gcc
+BuildRequires:  pkgconfig(openssl)
+BuildRequires:  pkgconfig(sqlite3)
+BuildRequires:  pkgconfig(fontconfig)
+
+# The lto profile strips the binaries
+%global debug_package %{nil}
+
+%description
+Unofficial Linux client for Check Point VPN, written in Rust.
+
+%prep
+%autosetup -n %{name}-%{version}
+
+%build
+export CARGO_HOME="$PWD/.cargo-home"
+cargo build --frozen --profile lto
+
+%install
+install -D -m 755 -t %{buildroot}/usr/bin target/lto/snx-rs target/lto/snxctl target/lto/snx-rs-gui
+install -D -m 644 -t %{buildroot}/usr/lib/systemd/system package/snx-rs.service
+install -D -m 644 -t %{buildroot}/usr/share/applications package/snx-rs-gui.desktop
+install -D -m 644 -t %{buildroot}/usr/share/icons/hicolor/symbolic/apps package/icons/*.svg
+
