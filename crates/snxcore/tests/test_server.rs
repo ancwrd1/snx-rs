@@ -6,8 +6,8 @@ use snxcore::{
     browser::BrowserController,
     controller::{ServiceCommand, ServiceController},
     model::{
-        AuthenticatedSession, ConnectionInfo, ConnectionStatus, MfaChallenge, MfaType, PromptInfo, SessionState,
-        TunnelSession,
+        AuthenticatedSession, CacheType, ConnectionInfo, ConnectionStatus, MfaChallenge, MfaType, PromptInfo,
+        SessionState, TunnelSession,
         params::{NotificationLevel, TunnelParams},
         proto::{
             AuthResponse, CertificateResponse, ClientSettingsResponse, ConnectivityInfo, GatewayInformation,
@@ -39,7 +39,11 @@ impl TunnelConnectorFactory for MockTunnelConnectorFactory {
         }))
     }
 
-    fn new_gateway_connector(&self, _params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {
+    fn new_gateway_connector_with_cache(
+        &self,
+        _params: Arc<TunnelParams>,
+        _cache_type: CacheType,
+    ) -> Arc<dyn GatewayConnector + Send + Sync> {
         Arc::new(MockGatewayConnector)
     }
 }

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt, net::Ipv4Addr, sync::Arc, time::Duration};
+use std::{borrow::Cow, fmt, net::Ipv4Addr, path::PathBuf, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Local};
 use ipnet::Ipv4Net;
@@ -534,4 +534,16 @@ impl PromptInfo {
             Cow::Owned(format!("{}: ", self.prompt.trim()))
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CacheType {
+    /// No caching, always read from the network
+    None,
+    /// Read and write through memory cache
+    Transient,
+    /// Read and write through the persistent storage
+    Persistent(PathBuf),
+    /// Read uncached from the network, store cached in the persistent storage
+    Writethrough(PathBuf),
 }

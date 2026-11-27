@@ -5,7 +5,7 @@ use bytes::Bytes;
 use tokio::sync::mpsc;
 
 use crate::model::{
-    ConnectionInfo, IPsecSession, TunnelSession,
+    CacheType, ConnectionInfo, IPsecSession, TunnelSession,
     params::TunnelParams,
     proto::{AuthResponse, CertificateResponse, ClientSettingsResponse, GatewayInformation},
     wrappers::SessionId,
@@ -81,5 +81,13 @@ pub trait TunnelConnectorFactory: Clone {
         &self,
         params: Arc<TunnelParams>,
     ) -> impl Future<Output = anyhow::Result<Box<dyn TunnelConnector + Send + Sync>>> + Send;
-    fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync>;
+    fn new_gateway_connector_with_cache(
+        &self,
+        params: Arc<TunnelParams>,
+        cache_type: CacheType,
+    ) -> Arc<dyn GatewayConnector + Send + Sync>;
+
+    fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {
+        self.new_gateway_connector_with_cache(params, CacheType::Transient)
+    }
 }

@@ -4,6 +4,7 @@ use tracing::debug;
 
 use crate::{
     model::{
+        CacheType,
         params::{IkeVersion, TunnelParams, TunnelType},
         proto::LoginOption,
     },
@@ -66,7 +67,11 @@ impl TunnelConnectorFactory for CheckPointConnectorFactory {
         result
     }
 
-    fn new_gateway_connector(&self, params: Arc<TunnelParams>) -> Arc<dyn GatewayConnector + Send + Sync> {
-        Arc::new(CccGatewayConnector::new(params.clone()))
+    fn new_gateway_connector_with_cache(
+        &self,
+        params: Arc<TunnelParams>,
+        cache_type: CacheType,
+    ) -> Arc<dyn GatewayConnector + Send + Sync> {
+        Arc::new(CccGatewayConnector::new(params, cache_type))
     }
 }

@@ -1,4 +1,11 @@
-use std::{cell::RefCell, net::Ipv4Addr, path::Path, rc::Rc, sync::Arc, time::Duration};
+use std::{
+    cell::RefCell,
+    net::Ipv4Addr,
+    path::{Path, PathBuf},
+    rc::Rc,
+    sync::Arc,
+    time::Duration,
+};
 
 use i18n::fluent_templates::LanguageIdentifier;
 use itertools::Itertools;
@@ -6,6 +13,7 @@ use secrecy::ExposeSecret;
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Window};
 use snxcore::{
     model::{
+        CacheType,
         params::{
             CertType, DEFAULT_PROFILE_UUID, DnsResolver, IkeVersion, NotificationLevel, TunnelParams, TunnelType,
         },
@@ -24,6 +32,12 @@ use crate::{
     tr,
     ui::{SettingsWindow, WindowController, WindowScope, close_window},
 };
+
+const GATEWAY_INFORMATION_CACHE_FILE: &str = "gateway_information_cache.db";
+
+fn gateway_information_cache_path() -> PathBuf {
+    TunnelParams::default_config_dir().join(GATEWAY_INFORMATION_CACHE_FILE)
+}
 
 thread_local! {
     static PENDING_CONFIRM: RefCell<Option<async_channel::Sender<bool>>> = const { RefCell::new(None) };
@@ -244,11 +258,15 @@ impl SettingsWindowController {
         {
             let weak = self.scope.weak();
             let state = self.state.clone();
+            let cache_path = gateway_information_cache_path();
+
             self.scope.window.on_fetch_info_clicked(move || {
+                let cache_path = cache_path.clone();
+
                 let Some(w) = weak.upgrade() else { return };
                 if let Some(params) = current_profile_params(&w.window, &state) {
                     w.window.set_fetch_enabled(false);
-                    fetch_server_info(&w.window, &state, &params);
+                    fetch_server_info(&w.window, &state, &params, CacheType::Writethrough(cache_path));
                 }
             });
         }
@@ -603,7 +621,12 @@ fn load_profile_into_window(window: &SettingsWindow, state: &Rc<RefCell<Settings
         .unwrap_or(0);
     window.set_locale_index(locale_index);
 
-    fetch_server_info(window, state, &params);
+    fetch_server_info(
+        window,
+        state,
+        &params,
+        CacheType::Persistent(gateway_information_cache_path()),
+    );
 }
 
 fn refresh_default_profile_index(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>) {
@@ -686,7 +709,12 @@ thread_local! {
     static SETTINGS_STATE: RefCell<Option<Rc<RefCell<SettingsState>>>> = const { RefCell::new(None) };
 }
 
-fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>, params: &TunnelParams) {
+fn fetch_server_info(
+    window: &SettingsWindow,
+    state: &Rc<RefCell<SettingsState>>,
+    params: &TunnelParams,
+    cache_type: CacheType,
+) {
     if window.get_server_name().is_empty() {
         window.set_auth_types(ModelRc::new(VecModel::from(Vec::<SharedString>::new())));
         state.borrow_mut().auth_ids.clear();
@@ -706,7 +734,8 @@ fn fetch_server_info(window: &SettingsWindow, state: &Rc<RefCell<SettingsState>>
 
     let (tx, rx) = async_channel::bounded(1);
     tokio::spawn(async move {
-        let connector = CheckPointConnectorFactory::default().new_gateway_connector(Arc::new(new_params));
+        let connector =
+            CheckPointConnectorFactory::default().new_gateway_connector_with_cache(Arc::new(new_params), cache_type);
         let info = connector.get_gateway_information().await;
         let _ = tx.send(info).await;
     });
